@@ -1,5 +1,6 @@
 *.pyc
 /data
+/prv
 /tmpl/exec/*
 /config.py
 
