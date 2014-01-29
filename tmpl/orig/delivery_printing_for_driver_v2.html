@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc.html" />
+<title>POSX - Delivery V2 > Printing</title>
+
+<script type="text/javascript">
+$(function() {
+
+$('.btn').button();
+
+$('.m_ctrl > input[value="print"]').click(function() { window.print(); });
+
+});
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.m_ctrl input, .m_ctrl select {margin-right:10px;}
+
+.vtable {width:952px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;border-right:1px solid #eeeeee;}
+.vtable > div:nth-child(1) > div {height:50px;line-height:50px;font-size:18px;border:1px solid #eeeeee;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #eeeeee;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(odd) {background-color:#fafafa}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#f5f5f5}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:0;width:40px;}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:41px;width:69px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:111px;right:603px;}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:513px;width:89px;}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:452px;width:60px;}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:401px;width:50px;}
+.vtable > div:nth-child(1) > div > div:nth-child(7) {right:201px;width:199px;}
+.vtable > div:nth-child(1) > div > div:nth-child(8) {right:0px;width:201px;border-right:none}
+
+.d_tbl {width:952px;margin:0 auto 20px auto;}
+.d_tbl > .d_hdr {height:30px;line-height:30px;font-weight:bold;margin-bottom:3px;}
+.d_tbl > .d_hdr > span {float:left;width:150px;display:block;height:30px;}
+.d_tbl > .d_hdr > span:nth-child(3) {width:600px;text-align:right;float:right}
+.d_tbl > .d_hdr > .hdr_el_print_only {display:none}
+
+@media print {
+.m_ctrl {display:none}
+.m_body {margin:0 auto;}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.d_tbl {page-break-after:always;margin:0 auto;}
+.d_tbl > .d_hdr > .hdr_el_print_only {display:block}
+}
+@page {
+margin:60px 50px;
+size:landscape;
+}
+
+</style>
+
+</head>
+%if auto_print:
+<body onload="window.print();setTimeout('window.close()', 0)">
+%else:
+<body>
+%endif
+
+<div class="m_ctrl">
+<select style="width:140px" class="filter_driver">
+%for u in drivers:
+<option value="${u[0]}">${u[1]|h}</option>
+%endfor
+</select>
+<input type="button" value="print" class="btn" />
+</div>
+
+<div class="m_body">
+
+%for drv_id,drv_data in sorted(drv_d.items(), key=lambda x: x[0]):
+%if not cur_driver_id or cur_driver_id == drv_id:
+<%
+d_recs,d_stat = drv_data
+%>
+<div class="d_tbl d_driver_id_${drv_id}">
+<div class="d_hdr">
+<span>司机: ${drv_id and users_lku.get(drv_id, 'UNK') or ''|h}</span>
+<span>总单数: ${len(d_recs)}</span>
+<span class="hdr_el_print_only">#${d_id} - ${d_name and (d_name + ' - ') or ''|h}${d_date}</span>
+</div>
+<div class="vtable">
+<div>
+<div><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>应结帐</div><div>已送</div><div>款项回收</div><div>办公室专用</div></div>
+<%
+k = 0
+%>
+%for rec in d_recs:
+<%
+k += 1
+%>
+<div>
+<div>${k}</div>
+<div>${rec['type'] and '收款'.decode('utf8') or rec.get('num') or ''}</div>
+%if rec:
+<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${rec.get('payment_required') and '要收钱'.decode('utf8') or ''|h}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div></div><div></div>
+%else:
+<div></div><div></div><div></div><div></div><div></div><div></div>
+%endif
+</div>
+%endfor
+</div>
+</div>
+</div>
+%endif
+%endfor
+
+</div>
+
+</body>
+</html>

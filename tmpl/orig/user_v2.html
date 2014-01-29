@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - User</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<script type="text/javascript" src="js/jquery-tinylibv3.js"></script>
+<link type="text/css" href="css/tinylibv3.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v2.css" rel="stylesheet" />
+
+<script type="text/javascript">
+
+function click_name(uid, old_name)
+{
+    g_v_dlg_name.find('input[name="new_name"]').val(old_name);
+    g_v_dlg_name.data('uid', uid).dialog('option', 'title', 'UserID: ' + uid).dialog('open');
+}
+
+function click_password(uid)
+{
+    g_v_dlg_password.data('uid', uid).dialog('option', 'title', 'UserID: ' + uid).dialog('open');
+}
+
+function click_permission(uid, perm_val)
+{
+    var perm = $('input[name="perm"]', g_v_dlg_permisson);
+    for(var i = 0; i < perm.length; i++) {
+        var o = $(perm[i]);
+        o.prop('checked', (perm_val & (1 << parseInt(o.val()))) != 0 );
+    }
+    
+    g_v_dlg_permisson.data('uid', uid).dialog('option', 'title', 'UserID: ' + uid).dialog('open');
+}
+
+function click_delete(uid)
+{
+    $.post('?fn=del_user', {'uid':uid}, function(d) {
+        if(d.ret) location.reload();
+    }, 'json');
+}
+
+$(function() {
+
+$('.btn_home').button();
+
+$('.btn_add_user').button().click(function() {
+    var val = $.trim($('input[name="new_user_name"]').val());
+    if(!val.length) return false;
+    $.post('?fn=add_user', {'name':val}, function(d) {
+        if(d.uid) location.reload();
+    }, 'json');
+    
+    return false;
+});
+
+g_v_dlg_name = $('#dlg_name').dialog({
+    modal:true,
+    autoOpen:false,
+    width:400,
+    height:230,
+    buttons: {
+        'Save': function() {
+            var val = $.trim($('input[name="new_name"]', g_v_dlg_name).val());
+            $.post('?fn=set_name', {'uid':g_v_dlg_name.data('uid'), 'name':val}, function(d) {
+                if(d.uid) location.reload();
+            }, 'json');
+        }
+    }
+});
+
+g_v_dlg_password = $('#dlg_password').dialog({
+    modal:true,
+    autoOpen:false,
+    width:400,
+    height:230,
+    buttons: {
+        'Save': function() {
+            var val = $.trim($('input[name="new_password"]', g_v_dlg_password).val());
+            $.post('?fn=set_password', {'uid':g_v_dlg_password.data('uid'), 'password':val}, function(d) {
+                if(d.uid) location.reload();
+            }, 'json');
+        }
+    }
+});
+
+g_v_dlg_permisson = $('#dlg_permisson').dialog({
+    modal:true,
+    autoOpen:false,
+    width:400,
+    height:400,
+    buttons: {
+        'Save': function() {
+            var val = 0;
+            var perm = $('input[name="perm"]', g_v_dlg_permisson);
+            for(var i = 0; i < perm.length; i++) {
+                var o = $(perm[i]);
+                if(o.prop('checked')) val |= 1 << parseInt(o.val());
+            }
+            
+            $.post('?fn=set_perm', {'uid':g_v_dlg_permisson.data('uid'), 'perm':val}, function(d) {
+                if(d.uid) location.reload();
+            }, 'json');
+        }
+    }
+});
+
+
+});
+
+</script>
+
+<style type="text/css">
+.user_tbl {width:600px;}
+.user_tbl input[type="button"] {font-size:16px;}
+
+.dlg_blk {text-align:center}
+.dlg_blk input[type="text"], .dlg_blk input[type="password"] {width:200px;}
+#dlg_permisson {text-align:left}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<a href="home" class="btn_home">Home</a>
+
+<input name="new_user_name" type="text" />
+<a href="#" class="btn_add_user">Add User</a>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+
+<table class="pxm_tbl user_tbl">
+<tr><th>Id</th><th>Name</th><th>Attr</th><th></th></tr>
+%for u in reversed(userlist):
+%if u[0] != 1:
+<tr>
+<td>${u[0]}</td><td>${u[1]|h}</td><td>${"%08X" % (u[2],)}</td>
+<td>
+
+<input type="button" value="name" onclick="click_name(${u[0]}, '${u[1]|h}')" />
+<input type="button" value="password" onclick="click_password(${u[0]})" />
+<input type="button" value="permission" onclick="click_permission(${u[0]}, ${'0x%08X' % (u[2],)})" />
+<input type="button" value="delete" onclick="confirm('Delete this User?') && click_delete(${u[0]})" />
+</td>
+</tr>
+%endif
+%endfor
+</table>
+
+</div></div>
+
+<div id="dlg_password" class="dlg_blk">
+Password: <input type="password" name="new_password" value="" />
+</div>
+
+<div id="dlg_name" class="dlg_blk">
+Name: <input type="text" name="new_name" value="" />
+</div>
+
+<div id="dlg_permisson" class="dlg_blk">
+
+%for p in sorted(PERM_BIT.items(), key=lambda x: x[1]):
+%if p[1] < 31:
+<input type="checkbox" name="perm" value="${p[1]}" />${p[0]|h}<br/>
+%endif
+%endfor
+</div>
+
+</div>
+
+
+</body>
+</html>

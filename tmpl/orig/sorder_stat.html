@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Special Order</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v2.js"></script>
+<script type="text/javascript" src="js/posx.js"></script>
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+<script type="text/javascript">
+    
+</script>
+
+<style type="text/css">
+    
+</style>
+
+</head>
+<body>
+
+<table class="pxm_tbl">
+<tr><th>name</th><th>total</th><th>count</th></tr>
+%for k, v in assocs.items():
+<tr><td>${k|h}</td><td>${'%0.2f'%v['total']}</td><td>${'%d'%v['count']}</td></tr>
+%endfor
+</table>
+
+</body>
+</html>

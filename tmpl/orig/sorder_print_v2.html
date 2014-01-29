@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" href="css/flick/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script type="text/javascript" src="js/posx.js?rev=20131111"></script>
+<title>POSX - sOrder ${ord_id} > Print</title>
+
+<script type="text/javascript">
+
+function dlg_btn_reverse() {
+    var v = $.trim(g_v_dlg_confirm_reversing.find('> input').val());
+    if(!v) return;
+    
+    $.post('?fn=reverse', {rid:'${ord_id}', reason:$.trim(v)}, function(d) {
+        if (!d) { MsgBox('error', 'Unknown Error!'); }
+        else if (d.err) { g_v_dlg_confirm_reversing.dialog('close'); MsgBox('error', d.err); }
+        else if (d.order_id) window.location.reload();
+    }, 'json');
+}
+
+function dlg_btn_delete() {
+    $.post('?fn=delete', {rid:'${ord_id}'}, function(d) {
+        if (!d) { MsgBox('error', 'Unknown Error!'); }
+        else if (d.err) { g_v_dlg_confirm_delete.dialog('close'); MsgBox('error', d.err); }
+        else if (d.order_id) window.close();
+    }, 'json');
+}
+
+function dlg_btn_mark() {
+    var is_paid = g_v_confirm_payment_paid.val();
+    if(is_paid == '${int(bool(ord_is_paid))}') return;
+    
+    $.post('?fn=mark', { rid:'${ord_id}', is_paid:parseInt(is_paid) }, function(d) {
+        if (!d) { MsgBox('error', 'Unknown Error!'); }
+        else if (d.err) { g_v_dlg_confirm_payment.dialog('close'); MsgBox('error', d.err); }
+        else if (d.order_id) window.location.reload();
+    }, 'json');
+}
+
+function open_wnd_item_hist(item_id) {
+    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_cust_hist(cust_id) {
+    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_delivery(d_id) {
+    window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d_id,'posx_delivery_record','location=0,width=1150,height=800');
+    return false;
+}
+
+$(function() {
+// 
+
+
+$('#btn_add_comment').button().click(function() {
+    var comment = $.trim($('.txt_comment').val());
+    if(!comment) return;
+    $.post('?fn=addcomment', { rid:'${ord_id}', comment:comment }, function(d) {
+        if(!d || !d.order_id) return;
+        window.location.reload();
+    }, 'json');
+});
+
+$('#btn_reverse').button().click(function() {
+    g_v_dlg_confirm_reversing.dialog('open');
+});
+
+$('#btn_delete').button().click(function() {
+    g_v_dlg_confirm_delete.dialog('open');
+});
+
+$('#btn_print').button().click(function() {
+    window.print();
+});
+
+$('#btn_edit').button().click(function() {
+        window.open('sorder?order_id=${ord_id}&load_type=9','posx_sorder','location=0');
+});
+
+$('#btn_copy').button().click(function() {
+        window.open('sorder?order_id=${ord_id}&load_type=0','posx_sorder','location=0');
+});
+
+$('#btn_mark_payment').button().click(function() {
+    g_v_confirm_payment_paid.val('${int(bool(ord_is_paid))}').change();
+    g_v_dlg_confirm_payment.dialog('open');
+});
+
+g_v_dlg_confirm_reversing = $('#dlg_confirm_reversing').dialog({
+    modal:true,
+    autoOpen:false,
+    width:600,
+    buttons: {
+        'Reverse': dlg_btn_reverse,
+    }
+});
+
+g_v_dlg_confirm_delete = $('#dlg_confirm_delete').dialog({
+    modal:true,
+    autoOpen:false,
+    width:600,
+    buttons: {
+        'Delete': dlg_btn_delete,
+    }
+});
+
+g_v_dlg_confirm_payment = $('#dlg_confirm_payment').dialog({
+    modal:true,
+    autoOpen:false,
+    width:600,
+    buttons: {
+        'Mark': dlg_btn_mark,
+    }
+});
+
+g_v_confirm_payment_paid = $('#dlg_confirm_payment .confirm_payment_paid').change(function() {
+    var o = $(this);
+    o.css('background-color', $(o.children('option')[ parseInt(o.val()) ]).css('background-color'));
+});
+
+$('.maincnt').tooltip();
+
+//
+});
+</script>
+
+<style type="text/css">
+
+body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
+input {margin:0;outline:none;padding:1px;border:1px solid #ccc}
+
+.maincnt {width:952px;margin:0 auto;}
+
+.ctrlcnt {width:952px;margin-bottom:10px;height:40px;padding:6px 0;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {font-size:20px;height:40px;display:block;float:left;margin-right:6px;}
+.ctrlcnt > input.r_btn {float:right;margin-right:0px;margin-left:6px;}
+
+.vtable {width:952px;}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:290px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:221px;width:70px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:81px;width:140px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(5) > span {font-size:14px;color:blue}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:1px;width:80px;font-weight:bold}
+
+.vtable > div:nth-child(2) > div {height:22px;line-height:22px;font-size:18px;font-weight:bold}
+.vtable > div:nth-child(2) > div > div:nth-child(1) {left:1px;right:101px;text-align:right;}
+.vtable > div:nth-child(2) > div > div:nth-child(2) {right:1px;width:100px;}
+
+.memocnt {border:1px solid #ccc;margin:0 0 10px 0;}
+.memocnt pre {margin:0;padding:5px;}
+
+.cls_redcolor {color:red}
+.discount {color:blue}
+
+.ordinfo {width:952px;position:relative;margin-bottom:10px;}
+.ordinfo.ord_type_reversing {color:#CC0000}
+.ordinfo.ord_type_reversed {color:#0066CC}
+.ordinfo.ord_status_open {color:#1e8007}
+.ordinfo .payment_unpaid {color:#CC0000;}
+.ordinfo .payment_paid {color:#0066CC;}
+.ordinfo > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
+.ordinfo > div > div {position:absolute;top:0;bottom:0;text-align:right}
+.ordinfo > div > div:nth-child(1) {left:0;width:60px;}
+.ordinfo > div > div:nth-child(2) {left:110px;width:260px;}
+.ordinfo > div > div:nth-child(3) {right:270px;width:100px;}
+.ordinfo > div > div:nth-child(4) {right:0;width:260px;}
+
+#dlg_confirm_payment {text-align:center;font-weight:bold;line-height:30px;font-size:22px;}
+#dlg_confirm_payment > .confirm_payment_paid {margin-left:10px;width:110px;border-color:#ccc}
+#dlg_confirm_payment > .confirm_payment_paid > option:first-child {background-color:#FFCCCC;}
+#dlg_confirm_payment > .confirm_payment_paid > option:last-child {background-color:#E5FFCC;}
+
+.cnt_comment {margin-top:10px;border-top:1px solid #ccc;padding:10px 0 10px 0}
+.cnt_comment .cnt_comment_add {height:44px;position:relative;}
+.cnt_comment .cnt_comment_add input#btn_add_comment {font-size:20px;line-height:26px;display:block;position:absolute;right:0;width:170px;}
+.cnt_comment .cnt_comment_add input.txt_comment {height:40px;font-size:26px;line-height:26px;position:absolute;left:0;top:0;right:180px;}
+
+.cnt_comment_hist {margin-top:10px;}
+.cnt_comment_hist > div {position:relative;padding-left:180px;font-size:18px;overflow:hidden;line-height:26px;}
+.cnt_comment_hist > div > div:first-child {position:absolute;left:0;width:180px;overflow:hidden;color:#663300;font-style:italic}
+.cnt_comment_hist > div > div:nth-child(2) > span:first-child {font-weight:bold;text-transform:uppercase;color:#003366}
+
+.p_cur {cursor:pointer}
+
+div.xlabel {position:relative;height:32px;line-height:32px;margin:9px 0;}
+div.xlabel > div {display:block;position:absolute;top:0;bottom:0;}
+div.xlabel > div:nth-child(1) {left:0;width:80px;text-align:right;white-space:nowrap}
+div.xlabel > div:nth-child(2) {left:90px;right:0;}
+
+
+.delivery_problem {background-color:#ffd9d9}
+
+
+@media print {
+.maincnt {margin:0 auto;}
+.cnt_ord {min-height:80px;}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child, .cnt_company {border-color:#000;}
+.cnt_ord .cnt_cust_info, .memocnt, .ctrlcnt, .cnt_ord .cnt_ord_info .label_payment {display:none}
+.cls_redcolor {color:#000}
+.cnt_comment {display:none}
+.problem_msg {display:none}
+.ordinfo .shipping_status {display:none}
+}
+@page {
+margin:60px 50px;
+}
+
+</style>
+
+</head>
+%if auto_print:
+<body onload="window.print();setTimeout('window.close()', 0)">
+%else:
+<body>
+%endif
+
+<div class="maincnt">
+
+<div class="ctrlcnt">
+<input type="button" value="Print" id="btn_print" />
+%if not ord_is_close:
+<input type="button" value="Edit" id="btn_edit" />
+%endif
+<input type="button" value="Copy" id="btn_copy" />
+%if not ord_is_reversed and not ord_is_reversing:
+%if ord_is_payable:
+<input type="button" value="Mark Payment" id="btn_mark_payment" />
+%endif
+%if ord_is_completed:
+<input type="button" value="Reverse" id="btn_reverse" class="r_btn" />
+%endif
+%endif
+%if not ord_is_close:
+<input type="button" value="Delete" id="btn_delete" class="r_btn" />
+%endif
+</div>
+
+
+<%
+ord_info_cls = ''
+if not ord_is_close:
+    ord_info_cls = ' ord_status_open'
+elif ord_is_reversing:
+    ord_info_cls = ' ord_type_reversing'
+elif ord_is_reversed:
+    ord_info_cls = ' ord_type_reversed'
+%>
+
+<div class="ordinfo${ord_info_cls}">
+    
+<div>
+<div>ID:</div>
+<div title="PriceLevel: ${price_lvls[int(ord_price_level)]|h}">
+%if ord_is_close:
+${not ord_is_completed and '***' or ''}${ord_id}
+%if ord_is_reversing:
+(Reversing &lt; ${ord_ref_id})
+%elif ord_is_reversed:
+(Reversed &gt; ${ord_ref_id})
+%endif
+%else:
+${ord_id} (OPEN)
+%endif
+</div>
+
+<div>Assoc:</div>
+<div>${ord_assoc_name|h}${ord_assoc_id!=ord_user_id and ' (%s)' % ord_cashier_name or ''|h}</div>
+</div>
+
+<div>
+<div>Count:</div>
+<div>Item ${ord_global['itemcount']}, Qty ${ord_global['qtycount']}</div>
+
+<div>Customer:</div>
+%if ord_global['customer']:
+<%
+cust = ord_global['customer']
+title = ','.join( [cust[x] for x in ('address1', 'address2', 'city', 'state', 'zip', 'phone1') if cust[x]] )
+%>
+<div class="p_cur" onclick="return open_wnd_cust_hist('${cust["sid"]}')" title="${title}">${cust['name']|h}</div>
+%else:
+<div>-</div>
+%endif
+</div>
+
+<div>
+<div>Date:</div>
+<div title="${ord_order_date!=ord_creation_date and 'Creation Date: %s' % ord_creation_date or ''}">${ord_order_date}</div>
+
+<div>Payment:</div>
+%if not ord_is_reversed and not ord_is_reversing and ord_is_payable or ord_is_paid:
+%if ord_is_paid:
+<div title="${ord_paid_date}" class="payment_paid">paid</div>
+%else:
+<div class="payment_unpaid">unpaid</div>
+%endif
+%else:
+<div>-</div>
+%endif
+</div>
+
+%for d in delivery_info:
+<%
+title = [ 'ID(%d)%s' % (d['d_id'], d['name'] and ': ' + d['name'] or ''), 'ShipDate: %s' % (d['ts'], ) ]
+if d['problem_flag']:
+    pbs = []
+    for pid,pif in d['js'].get('problems').items():
+        title.append( '%s(%s)%s' % (PROBLEMS[int(pid)], users_lku.get(pif[0], ''), pif[1] and ': ' + pif[1] or '') )
+%>
+<div class="shipping_status p_cur${d['problem_flag'] and ' delivery_problem' or ''}" title="${', '.join(title)|h}" onclick="return open_wnd_delivery('${d["d_id"]}')">
+<div>Driver:</div>
+<div>${users_lku.get(d['driver_id'], 'UNK')|h}</div>
+
+<div>Delivered:</div>
+<div>${d['delivered'] and 'YES' or 'NO'}</div>
+</div>
+%endfor
+
+
+</div>
+
+%if ord_global['memo']:
+<div class="memocnt"><pre>${ord_global['memo']|h}</pre></div>
+%endif
+
+
+<div class="vtable">
+    
+<div>
+<div><div>ID</div><div>ALU</div><div>Name</div><div>Qty</div><div>Price</div><div>ExPrice</div></div>
+<%
+import math
+%>
+% for item in ord_items_js:
+<%
+unit = item['units'][item['in_uom_idx']]
+uom = unit[2]
+old_price = unit[0][ int(ord_price_level) ]
+cur_price = item['in_price']
+
+tr_class = ''
+row_desc = []
+
+#if item['in_qty']: row_desc.append('UnitPrice: %0.2f%s' % (item['in_price']/item['in_qty'], uom and '/' + uom or ''))
+
+prev_qty = item.get('prev_qty')
+if prev_qty:
+    if unit[3]:
+        if unit[3] == 1:
+            row_desc.append('PrevOnHand: %0.2f' % (math.floor(prev_qty[0] / unit[3])))
+        else:
+            row_desc.append('PrevOnHand: %0.2f (%0.2f / %0.2f)' % (
+            math.floor(prev_qty[0] / unit[3]),
+            prev_qty[0],
+            unit[3]
+            ))
+    else:
+        row_desc.append('PrevOnHand: ERR')
+        
+item_disc = 0
+if old_price != cur_price:
+    if old_price > cur_price:
+        if old_price:
+            item_disc = round((old_price - cur_price) / old_price * 100, 2)
+            row_desc.append('RegPrice: $%0.2f, Disc: %0.2f%%' % (old_price, item_disc))
+        else:
+            row_desc.append('Disc: ERR' % (old_price,))
+    else:
+        row_desc.append('RegPrice: $%0.2f' % (old_price,))
+
+item_err = item.get('err')
+if item_err:
+    tr_class = ' class="cls_redcolor"'
+    row_desc.append(u'Error: %s' % item_err)
+
+elif item['in_extprice'] <= 0:
+    tr_class = ' class="cls_redcolor"'
+    
+%>
+<div title="${u'. '.join(row_desc)}"${tr_class}><div onclick="return open_wnd_item_hist('${item["id"]}')">${item['num']}</div><div>${item['units'][0][1]|h}</div><div>${item['in_desc']|h}</div><div>${item['in_qty']}${(uom and ' ' + uom or '')|h}</div><div>$${'%0.2f'%item['in_price']}${item_disc and '<span>&nbsp;(%0.1f%%D)</span>' % item_disc or ''}</div><div>$${'%0.2f'%item['in_extprice']}</div></div>
+% endfor
+</div>
+
+<div>
+<div><div>Subtotal:&nbsp;</div><div${ord_global['subtotal'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % ord_global['subtotal']}</div></div>
+%if ord_global['disc']:
+<div><div>Discount${' <span class="discount">(%0.2f%%)</span>' % ord_global['disc']}:&nbsp;</div><div>${"$%0.2f" % ord_global['disc_amount']}</div></div>
+%endif
+<div><div>Total:&nbsp;</div><div${ord_global['total'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % ord_global['total']}</div></div>
+</div>
+
+</div>
+
+
+<div class="cnt_comment">
+<div class="cnt_comment_add"><input type="text" class="txt_comment" style="width:760px" /><input type="button" value="Add Comment" id="btn_add_comment" /></div>
+    
+<div class="cnt_comment_hist">
+%for x in reversed(comment):
+<div><div>${x[0]}</div><div><span>${x[1]|h}:</span> ${x[3]|h}</div></div>
+%endfor
+</div>
+
+</div>
+
+
+</div>
+
+<div id="dlg_confirm_reversing" title="Reversing Order #${ord_id}">Reason: <input type="text" /></div>
+<div id="dlg_confirm_delete" title="Delete Order #${ord_id}"></div>
+<div id="dlg_confirm_payment" title="Mark Payment #${ord_id}">Payment: <select class="confirm_payment_paid"><option value="0">UNPAID</option><option value="1">PAID</option></select></div>
+
+</body>
+
+</html>

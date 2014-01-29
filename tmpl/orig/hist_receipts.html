@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - History > Receipts</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<script type="text/javascript" src="js/jquery-tinylibv3.js"></script>
+<link type="text/css" href="css/tinylibv3.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+
+<script type="text/javascript">
+var g_tg_srch_cust_data = {};
+var g_tg_srch_item_data = {};
+
+function srch_cust_render_item(ul, item)
+{
+    var d = item[2] = $.parseJSON(item[2]);
+    
+    var s = '';
+    if (d['addr1'] || d['address1']) s += (d['addr1'] || d['address1']) + ',';
+    if (d['city']) s += d['city'];
+    
+    return $('<li class="srch_cust"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['phone'] || d['phone1']))
+            .append($('<span></span>').text(s))
+    ).appendTo(ul);
+
+}
+
+function srch_item_render_item(ul, item)
+{
+    var d = item[3] = $.parseJSON(item[3]);
+    
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['alu']))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+
+}
+
+$(function() {
+    
+g_v_datagrid_cust = $('#datagrid_cust').tinygrid({
+len:0,
+src:{page:'?fn=getpagecust', data:g_tg_srch_cust_data},
+cols: [{name:'Num', width:100},
+       {name:'Type', width:150},
+       {name:'SO#', width:150},
+       {name:'Assoc', width:250},
+       {name:'Total', width:120},
+       {name:'OrderDate', width:300},
+       ],
+click: function(r, c, d) {
+    if (d[7])
+        window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+    else
+        window.open('?fn=printreceipt&rid=' + d[6],'posx_print_wnd','location=0,width=992,height=700');
+}
+});
+
+g_v_datagrid_item = $('#datagrid_item').tinygrid({
+len:0,
+src:{page:'?fn=getpageitem', data:g_tg_srch_item_data},
+cols: [{name:'Num', width:120},
+       {name:'Type', width:180},
+       {name:'Details', width:"100%"},
+       {name:'QtyChg', width:150},
+       {name:'Date', width:250},
+       ],
+click: function(r, c, d) {
+    if(d[6] < 2) {
+        if (d[7])
+            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        else
+            window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+    } else if (d[6] < 4) {
+        window.open('sync?fn=printorder&type=3&rid=' + d[5],'posx_vo_wnd','location=0,width=992,height=700');
+    }
+}
+});
+
+
+$('#srch_cust').focus().autocomplete({
+    autoFocus: true,
+    source: "?fn=srchcust",
+    minLength: 1,
+    select: function(event, ui) {
+        g_v_datagrid_item.css('visibility', 'hidden').css('z-index', '0');
+        g_v_datagrid_cust.css('visibility', 'visible').css('z-index', '1');
+        g_tg_srch_cust_data['cid'] = ui.item[0];
+        g_v_datagrid_cust.tinygrid('update', 1, true, [-1], true);
+    }
+}).data("ui-autocomplete")._renderItem = srch_cust_render_item;
+
+$('#srch_item').autocomplete({
+    autoFocus: true,
+    source: "?fn=srchitem",
+    minLength: 1,
+    select: function(event, ui) {
+        g_v_datagrid_cust.css('visibility', 'hidden').css('z-index', '0');
+        g_v_datagrid_item.css('visibility', 'visible').css('z-index', '1');
+        g_tg_srch_item_data['tid'] = ui.item[0];
+        g_v_datagrid_item.tinygrid('update', 1, true, [-1], true);
+    }
+}).data("ui-autocomplete")._renderItem = srch_item_render_item;
+
+$('#srch_receipt').keyup(function(e) {
+    if(e.which == 13) {
+        var rno = $.trim($(this).val());
+        $(this).val('');
+        if(rno.length <= 0 || rno.match(/^\d+$/) === null) return;
+        
+        $.ajax({
+            async: false,
+            type: 'get',
+            url: '?fn=hasreceipt',
+            data: {rno:rno},
+            success: function(d) {
+                if(!d) return;
+                if (d.sid_type)
+                    window.open('sorder?fn=print&rid=' + d.rno,'posx_print_wnd','location=0,width=992,height=700');
+                else
+                    window.open('?fn=printreceipt&rid=' + d.sid,'posx_print_wnd','location=0,width=992,height=700');
+            },
+            dataType: 'json'
+        });
+    }
+});
+
+g_v_dlg_order = $('#dlg_order').dialog({
+    autoOpen:false,
+    width:992,height:700,
+    resizable:false
+});
+
+$('.btn_home').button();
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+.btn_home {float:right;}
+
+.tinygrid {position:absolute;left:0;top:62px;bottom:0;right:0;width:auto;height:auto;z-index:0;visibility:hidden}
+#dlg_order {margin:0;padding:0;position:relative;overflow:hidden}
+#dlg_order > iframe {border:none;width:100%;height:100%;margin:0;padding:0;}
+.assoc {height:32px;width:200px;margin-right:10px;}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:250px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:170px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:365px;color:#101010;margin-right:0;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:170px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:565px;color:#101010;margin-right:0;}
+
+.pxm_ctrl_cont > input {margin-right:10px;}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<span>Customer:</span>
+<input type="text" id="srch_cust" />
+
+<span>Item:</span>
+<input type="text" id="srch_item" />
+
+<span>Receipt No#:</span>
+<input type="text" id="srch_receipt" />
+
+<a href="home" class="btn_home">Quit</a>
+
+</div></div>
+
+<div id="datagrid_cust"></div>
+<div id="datagrid_item"></div>
+
+</body>
+</html>

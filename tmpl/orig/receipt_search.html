@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Receipt > Search</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<script type="text/javascript" src="js/jquery-tinylibv3.js?rev=20131108"></script>
+<link type="text/css" href="css/tinylibv3.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+
+<script type="text/javascript">
+var g_v_srch_data = {cid:null, tid:null};
+
+function srch_cust_render_item(ul, item)
+{
+    var d = item[2] = $.parseJSON(item[2]);
+    
+    var s = '';
+    if (d['addr1'] || d['address1']) s += (d['addr1'] || d['address1']) + ',';
+    if (d['city']) s += d['city'];
+    
+    return $('<li class="srch_cust"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['phone'] || d['phone1']))
+            .append($('<span></span>').text(s))
+    ).appendTo(ul);
+
+}
+
+function srch_item_render_item(ul, item)
+{
+    var d = item[3] = $.parseJSON(item[3]);
+    
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['alu']))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+
+}
+
+$(function() {
+
+g_v_datagrid_receipt = $('#datagrid_receipt').tinygrid({
+len:0,
+src:{page:'?fn=get_srch_items', data:g_v_srch_data},
+cols: [{name:'Receipt#', width:100},
+       {name:'Date', width:220},
+       {name:'Qty', width:100},
+       {name:'FinalExtPrice', width:180},
+       {name:'DocTxt', width:'100%'},
+       ],
+click: function(r, c, d) {
+    if (d[6])
+        window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+    else
+        window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+}
+});
+
+g_v_srch_cust = $('#srch_cust').focus().autocomplete({
+    autoFocus: true,
+    source: "?fn=srchcust",
+    minLength: 1,
+    select: function(event, ui) {
+        g_v_srch_data.tid = null;
+        g_v_srch_data.cid = ui.item[0];
+        g_v_datagrid_receipt.tinygrid('update', 0, true, [-1], true);
+        g_v_srch_item.val('').autocomplete('option', 'source', "?fn=srch_item_with_cid&cid=" + g_v_srch_data.cid);
+    },
+    response: function(event, ui) {
+        for(var i = 0; i < ui.content.length; i++) {
+            var ct = ui.content[i];
+            ct.value = ct[1];
+        }
+    }
+});
+g_v_srch_cust.data("ui-autocomplete")._renderItem = srch_cust_render_item;
+
+g_v_srch_item = $('#srch_item').autocomplete({
+    autoFocus: true,
+    minLength: 1,
+    select: function(event, ui) {
+        g_v_srch_data.tid = ui.item[0];
+        g_v_datagrid_receipt.tinygrid('update', 1, true, [-1], true);
+    },
+    response: function(event, ui) {
+        for(var i = 0; i < ui.content.length; i++) {
+            var ct = ui.content[i];
+            ct.value = ct[1];
+        }
+    },
+    search: function(event, ui) {
+        return g_v_srch_data.cid !== null;
+    }
+});
+g_v_srch_item.data("ui-autocomplete")._renderItem = srch_item_render_item;
+
+
+$('.btn_home').button();
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+.btn_home {float:right;}
+
+.tinygrid {position:absolute;left:0;top:62px;bottom:0;right:0;}
+#dlg_order {margin:0;padding:0;position:relative;overflow:hidden}
+#dlg_order > iframe {border:none;width:100%;height:100%;margin:0;padding:0;}
+.assoc {height:32px;width:200px;margin-right:10px;}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:250px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:170px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:365px;color:#101010;margin-right:0;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:170px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:565px;color:#101010;margin-right:0;}
+
+.pxm_ctrl_cont > input {margin-right:10px;}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<span>Customer:</span>
+<input type="text" id="srch_cust" />
+
+<span>Item:</span>
+<input type="text" id="srch_item" />
+
+<a href="home" class="btn_home">Quit</a>
+
+</div></div>
+
+<div id="datagrid_receipt"></div>
+
+</body>
+</html>

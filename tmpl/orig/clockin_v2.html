@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - ClockIn</title>
+
+<script type="text/javascript">
+G_LANG_T = [
+{
+    'InTime': '登入时间',
+    'In': '入',
+    'Out': '出',
+    'WorkingHours': '今天工作小时',
+    'Error': '错误',
+    'TryAgain': '再试一次',
+    'GoBack': '退回'
+},
+{
+    'InTime': 'LogIn Time',
+    'In': 'IN',
+    'Out': 'OUT',
+    'WorkingHours': 'Working Hours',
+    'Error': 'Error',
+    'TryAgain': 'Try Again',
+    'GoBack': 'Go Back'
+}
+];
+
+g_cur_user = null;
+g_timer_logout = null;
+g_lang = G_LANG_T[0];
+
+function update_ts()
+{
+    g_v_m_title.text( fmt_time_by_date(new Date()) );
+    if(g_v_c_pad_code.is(':visible') && !g_v_c_pad_code.is(':focus')) g_v_c_pad_code.focus();
+}
+
+function click__num_pad() {
+    g_v_c_pad_code.val( g_v_c_pad_code.val() + parseInt($(this).text()) );
+    keyup_pad_code();
+}
+
+function load_user_info(user)
+{
+    g_cur_user = user;
+    g_v_m_info.show();
+    g_v_m_pad.hide();
+    g_lang = G_LANG_T[ user['flag'] & 1 ];
+    
+    g_v_m_info.children('.c_btn_quit').text(g_lang['GoBack']);
+    g_v_m_info.children('.c_user_name').text(user.user_name);
+    if(user.in_ts) {
+        g_v_m_info.children('.c_last_in_ts').show().text(g_lang['InTime'] + ': ' + fmt_time(user.in_ts));
+        g_v_m_info.children('.c_btn_clockin').text(g_lang['Out']).addClass('c_btn_clockin_out');
+    } else {
+        g_v_m_info.children('.c_last_in_ts').hide();
+        g_v_m_info.children('.c_btn_clockin').text(g_lang['In']).removeClass('c_btn_clockin_out');
+    }
+    if(user.today_hrs)
+        g_v_m_info.children('.c_today_hrs').show().text(g_lang['WorkingHours'] + ': ' + user.today_hrs)
+    else
+        g_v_m_info.children('.c_today_hrs').hide();
+        
+    if(g_timer_logout !== null) clearTimeout(g_timer_logout);
+    g_timer_logout = setTimeout(logout, 15000);
+}
+
+function logout()
+{
+    g_v_c_btn_quit.click();
+}
+
+function keyup_pad_code()
+{
+    var v = g_v_c_pad_code.val();
+    if(!v.length) return;
+    if(/^[0-9]+$/.test(v) === false) { g_v_c_pad_code.effect("shake"); g_v_c_pad_code.val(''); return; }
+    if(v.length >= 4) {
+        g_cur_user = null;
+        g_v_c_pad_code.val('');
+
+        $.ajax({
+            async: false,
+            type: 'post',
+            url: '?fn=get_user_info',
+            data: {'code': v},
+            success: function(js) {
+                if(!js || !js.user) { g_v_c_pad_code.effect("shake"); return; }
+                load_user_info(js.user);
+            },
+            dataType: 'json',
+            error: function(xhr, status, error) { MsgBox('Error', 'Unexpected Error'); }
+        });
+        
+    }
+}
+
+$(function() {
+
+g_v_m_pad = $('.m_pad');
+
+$('.c_num_pad > div', g_v_m_pad).click(click__num_pad);
+g_v_c_pad_code = $('.c_pad_code', g_v_m_pad).keyup(keyup_pad_code);
+
+
+g_v_m_info = $('.m_info');
+
+g_v_c_btn_quit = $('.c_btn_quit', g_v_m_info).click(function() {
+    if(g_timer_logout !== null) clearTimeout(g_timer_logout);
+    g_cur_user = null;
+    g_v_m_info.hide();
+    g_v_m_pad.show();
+});
+
+$('.c_btn_clockin', g_v_m_info).click(function() {
+    if(!g_cur_user) return;
+    
+    $.ajax({
+        async: false,
+        type: 'post',
+        url: '?fn=clockin',
+        data: {'code': g_cur_user.user_code, 'in': g_cur_user.in_ts ? 0 : 1, 'rev': g_cur_user.rev},
+        success: function(js) {
+            if(!js || !js.ret) { MsgBox(g_lang['Error'], g_lang['TryAgain']); return; }
+            
+        },
+        dataType: 'json',
+        error: function(xhr, status, error) { MsgBox(g_lang['Error'], g_lang['TryAgain']); }
+    });
+    
+    g_v_c_btn_quit.click();
+});
+
+g_v_m_title = $('.mcnt > .m_title');
+setInterval(update_ts, 1000);
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px}
+body {-webkit-user-select:none}
+
+.mcnt {width:600px;height:546px;margin:10px auto 0 auto;border:1px solid #ddd;border-radius:8px;position:relative;background-color:#fff}
+.mcnt > .m_title {position:absolute;top:5px;left:5px;right:5px;height:50px;background-color:#f2f2f2;line-height:50px;text-align:center;font-size:32px;font-weight:bold}
+.m_pad, .m_info {position:absolute;top:60px;left:0;right:0;bottom:0}
+.m_pad > div, .m_info > div {position:absolute;}
+
+.m_pad > .c_num_pad {top:96px;left:55px;right:55px;bottom:0;}
+.m_pad > .c_num_pad > div {position:absolute;width:98px;height:98px;line-height:98px;font-size:72px;font-weight:bold;text-align:center;border:1px solid #ddd;background-color:#f9f9f9;border-radius:5px;cursor:pointer}
+.m_pad > .c_num_pad > div:hover {background-color:#0082c5}
+.c_pad_code {position:absolute;width:484px;height:46px !important;top:14px;left:55px;font-size:32px !important;}
+
+.m_info > .c_user_name {top:0;left:5px;right:5px;height:60px;line-height:60px;font-weight:bold;font-size:48px;text-align:center;border-bottom:1px solid #ddd}
+.m_info > .c_btn {bottom:30px;left:150px;width:298px;height:68px;font-weight:bold;line-height:68px;font-size:48px;text-align:center;border:1px solid #ddd;background-color:#eef8ff;cursor:pointer}
+.m_info > .c_btn_clockin {bottom:130px;background-color:#eeffe4}
+.m_info > .c_btn_clockin_out {background-color:#ffeeee}
+.m_info > .c_ctn_status {height:60px;width:100%;text-align:center;font-size:32px;line-height:60px;}
+.m_info > .c_last_in_ts {top:100px;}
+.m_info > .c_today_hrs {top:170px;}
+
+</style>
+
+</head>
+<body>
+    
+<div class="mcnt">
+<div class="m_title"></div>
+
+<div class="m_pad">
+<input type="password" class="c_pad_code" />
+<div class="c_num_pad">
+<div style="top:0;left:0">1</div>
+<div style="top:0;left:130px">2</div>
+<div style="top:0;left:260px">3</div>
+<div style="top:0;left:390px">4</div>
+<div style="top:130px;left:0">5</div>
+<div style="top:130px;left:130px">6</div>
+<div style="top:130px;left:260px">7</div>
+<div style="top:130px;left:390px">8</div>
+<div style="top:260px;left:0">9</div>
+<div style="top:260px;left:130px">0</div>
+</div>
+</div>
+
+<div class="m_info" style="display:none">
+<div class="c_user_name"></div>
+<div class="c_ctn_status c_last_in_ts"></div>
+<div class="c_ctn_status c_today_hrs"></div>
+<div class="c_btn c_btn_clockin"></div>
+<div class="c_btn c_btn_quit"></div>
+</div>
+
+
+</div>
+    
+</body>
+</html>

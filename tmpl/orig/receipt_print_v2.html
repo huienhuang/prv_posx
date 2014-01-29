@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" href="css/flick/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script type="text/javascript" src="js/posx.js?rev=20131111"></script>
+<title>Receipt - ${r_num}</title>
+
+<script type="text/javascript">
+
+function open_wnd_item_hist(item_id) {
+    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_cust_hist(cust_id) {
+    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_receipt(rid) {
+    window.open('?fn=printreceipt&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_so(so_sid) {
+    window.open('sync?fn=printorder&type=2&rid='+so_sid,'posx_so_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_delivery(d_id) {
+    window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d_id,'posx_delivery_record','location=0,width=1150,height=800');
+    return false;
+}
+
+
+$(function() {
+// 
+
+$('#btn_print').button().click(function() {
+    window.print();
+});
+
+$('.maincnt').tooltip();
+
+$('#btn_add_comment').button().click(function() {
+    var comment = $.trim($('.txt_comment').val());
+    if(!comment) return;
+    $.post('?fn=addcomment', { rid:'${r_sid}', comment:comment }, function(d) {
+        if(!d || !d.order_id) return;
+        window.location.reload();
+    }, 'json');
+});
+
+//
+});
+</script>
+
+<style type="text/css">
+body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
+input,select {margin:0;outline:none;padding:1px;border:1px solid #ccc}
+
+.maincnt {width:952px;margin:0 auto;}
+
+.ctrlcnt {width:952px;margin-bottom:10px;height:40px;padding:6px 0;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {font-size:20px;height:40px;margin-right:6px;}
+
+.ordinfo {width:952px;position:relative}
+.ordinfo.ord_type_reversing {color:#CC0000}
+.ordinfo.ord_type_reversed {color:#0066CC}
+.ordinfo > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
+.ordinfo > div > div {position:absolute;top:0;bottom:0;text-align:right}
+.ordinfo > div > div:nth-child(1) {left:0;width:60px;}
+.ordinfo > div > div:nth-child(2) {left:110px;width:260px;}
+.ordinfo > div > div:nth-child(3) {right:270px;width:100px;}
+.ordinfo > div > div:nth-child(4) {right:0;width:260px;}
+
+.custinfo {width:952px;height:140px;position:relative;overflow:hidden}
+.custinfo > div {position:absolute;top:20px;width:350px;height:95px;border:1px solid #ccc;padding:10px;}
+.custinfo > div > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.custinfo > div > div:nth-child(2) {font-weight:bold;cursor:pointer}
+.custinfo > .billto {left:0}
+.custinfo > .shipto {right:0}
+
+.vtable {width:952px;margin-top:10px;}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:311px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:241px;width:70px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:101px;width:140px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div > span {font-size:14px;color:blue}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:1px;width:100px;font-weight:bold}
+.vtable > div:nth-child(2) > div {height:22px;line-height:22px;font-size:18px;font-weight:bold}
+.vtable > div:nth-child(2) > div > div:nth-child(1) {left:1px;right:101px;text-align:right;}
+.vtable > div:nth-child(2) > div > div:nth-child(2) {right:1px;width:100px;}
+
+
+.memocnt {border:1px solid #ccc;margin:0 0 10px 0;}
+.memocnt pre {margin:0;padding:5px;}
+
+.cls_redcolor {color:red}
+
+
+.cnt_comment {margin-top:10px;border-top:1px solid #ccc;padding:10px 0 10px 0}
+.cnt_comment .cnt_comment_add {height:44px;position:relative;}
+.cnt_comment .cnt_comment_add input#btn_add_comment {font-size:20px;line-height:26px;display:block;position:absolute;right:0;width:170px;}
+.cnt_comment .cnt_comment_add input.txt_comment {height:40px;font-size:26px;line-height:26px;position:absolute;left:0;top:0;right:180px;}
+
+.cnt_comment_hist {margin-top:10px;}
+.cnt_comment_hist > div {position:relative;padding-left:180px;font-size:18px;overflow:hidden;line-height:26px;}
+.cnt_comment_hist > div > div:first-child {position:absolute;left:0;width:180px;overflow:hidden;color:#663300;font-style:italic}
+.cnt_comment_hist > div > div:nth-child(2) > span:first-child {font-weight:bold;text-transform:uppercase;color:#003366}
+
+
+div.xlabel {position:relative;height:32px;line-height:32px;margin:9px 0;}
+div.xlabel > div {display:block;position:absolute;top:0;bottom:0;}
+div.xlabel > div:nth-child(1) {left:0;width:80px;text-align:right;white-space:nowrap}
+div.xlabel > div:nth-child(2) {left:90px;right:0;}
+
+.delivery_problem {background-color:#ffd9d9}
+
+.p_cur {cursor:pointer}
+
+@media print {
+.maincnt {margin:0 auto;}
+.custinfo > div, .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.memocnt {display:none}
+.cls_redcolor {color:#000}
+.ctrlcnt {display:none}
+.cnt_comment {display:none}
+.problem_msg {display:none}
+.ordinfo .shipping_status {display:none}
+}
+@page {
+margin:60px 50px;
+}
+
+
+</style>
+
+</head>
+
+<%
+r_render_type = (r_flag >> 16) & 0xFF
+r_type = (r_flag >> 8) & 0xFF
+r_status = (r_flag >> 0) & 0xFF
+%>
+
+%if auto_print:
+<body onload="window.print();window.close();">
+%else:
+<body>
+%endif
+
+<div class="maincnt">
+
+
+<div class="ctrlcnt">
+<input type="button" value="Print" id="btn_print" />
+</div>
+<%
+if r_status == 1:
+    ord_status = ' - Reversed'
+    ord_info_cls = ' ord_type_reversed"'
+elif r_status == 2:
+    ord_status = ' - Reversing'
+    ord_info_cls = ' ord_type_reversing"'
+else:
+    ord_status = ''
+    ord_info_cls = ''
+
+ORD_TYPE=('Sales', 'Return', 'Deposit', 'Refund', 'Payout', 'Payin')
+if r_type >= 0 and r_type < len(ORD_TYPE):
+    ord_type = ORD_TYPE[r_type]
+else:
+    ord_type = 'UNK'
+
+%>
+<div class="ordinfo${ord_info_cls}">
+    
+<div>
+<div>ID:</div>
+<div title="PriceLevel: ${price_lvls[int(r_price_level)]|h}">
+%if r_rid != None:
+<span onclick="return open_wnd_receipt('${r_rid}')" style="cursor:pointer">${r_num}</span>
+%else:
+${r_num}
+%endif
+%if r_so_sid:
+<span onclick="return open_wnd_so('${r_so_sid}')" style="cursor:pointer">${u'(SO# %s)' % r_global['sonum']|h}</span>
+%endif
+</div>
+
+<div>Assoc:</div>
+<div>${r_assoc|h}${r_assoc!=r_cashier and u' (%s)' % r_cashier or ''|h}</div>
+</div>
+
+<div>
+<div>Type:</div>
+<div>${ord_type}${ord_status}</div>
+
+<div>Count:</div>
+<div>Item ${r_global['itemcount']}, Qty ${round_ex(r_global['qtycount'], 1)}</div>
+</div>
+
+<div>
+<div>Date:</div>
+<div title="${r_creation_date != r_order_date and 'CreationDate: %s' % r_creation_date or ''}">${r_order_date}</div>
+
+<%
+tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] and '(%s)' % x['numlst'] or '', round_ex(x['amount'])) for x in r_global['tender'] ])
+%>
+<div>Payment:</div>
+<div title="${tender_str|h}">${tender_types[r_global['tendertype']]|h}</div>
+</div>
+
+%for d in delivery_info:
+<%
+title = [ 'ID(%d)%s' % (d['d_id'], d['name'] and ': ' + d['name'] or ''), 'ShipDate: %s' % (d['ts'], ) ]
+if d['problem_flag']:
+    pbs = []
+    for pid,pif in d['js'].get('problems').items():
+        title.append( '%s(%s)%s' % (PROBLEMS[int(pid)], users_lku.get(pif[0], ''), pif[1] and ': ' + pif[1] or '') )
+%>
+<div class="shipping_status p_cur${d['problem_flag'] and ' delivery_problem' or ''}" title="${', '.join(title)|h}" onclick="return open_wnd_delivery('${d["d_id"]}')">
+<div>Driver:</div>
+<div>${users_lku.get(d['driver_id'], 'UNK')|h}</div>
+
+<div>Delivered:</div>
+<div>${d['delivered'] and 'YES' or 'NO'}</div>
+</div>
+%endfor
+
+
+</div>
+
+%if r_global['customer'] or r_global['shipping']:
+<div class="custinfo">
+
+%if r_global['customer']:
+<%
+cust = r_global['customer']
+%>
+<div class="billto">
+<div>Bill To:</div>
+<div onclick="return open_wnd_cust_hist('${r_cid}')">${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+%if cust['phone']:
+<div>${cust['phone']|h}</div>
+%endif
+</div>
+%endif
+
+%if r_global['shipping']:
+<%
+cust = r_global['shipping']
+%>
+<div class="shipto">
+<div>Ship To:</div>
+<div>${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+<div>${cust['provider']|h} ${cust['tracking'] and '#' + cust['tracking'] or ''|h}</div>
+</div>
+%endif
+
+</div>
+%endif
+
+<div class="vtable">
+    
+<div>
+<div><div>ID</div><div>ALU</div><div>Name</div><div>Qty</div><div>Price</div><div>ExPrice</div></div>
+<%
+import math
+%>
+% for item in r_items:
+<%
+item_tr_cls = ''
+item_disc_s = ''
+item_price = item['price']
+item_org_price = item['origprice'] or item_price
+if item_org_price != item_price:
+    if item['disc']:
+        item_disc_s = '<span>&nbsp;(%0.1f%%D)</span>' % round_ex(item['disc'], 1)
+        
+    elif item_org_price > item_price:
+        item_disc_s = '<span>&nbsp;(%0.1f%%D)</span>' % (round_ex((item_org_price - item_price) / item_org_price * 100, 1), )
+
+item_title_s = []
+#if item['qty']: item_title_s.append('UnitPrice: %0.2f%s' % (item['price']/item['qty'], item['uom'] and '/' + item['uom'] or ''))
+if item['origprice'] != item['price']: item_title_s.append( 'RegPrice: %0.2f' % round_ex(item['origprice']) )
+if item['snum']: item_title_s.append( 'SerialNum: %s' % item['snum'] )
+item_title_s = ', '.join(item_title_s)
+
+%>
+<div title="${item_title_s}" class="${item['pricetax'] * item['qty'] <= 0 and 'cls_redcolor' or ''}"><div onclick="return open_wnd_item_hist('${item["itemsid"]}')">${item['itemno'] or ''}</div><div>${item['alu']|h}</div><div>${item['desc1']|h}</div><div>${round_ex(item['qty'],1)}${item['uom'] and ' ' + item['uom'] or ''|h}</div><div>$${'%0.2f'%round_ex(item['price'])}${item_disc_s}</div><div>$${'%0.2f'%(round_ex(item['price'] * item['qty']),)}${item['pricetax']!=item['price'] and '<span> T</span>' or ''}</div></div>
+% endfor
+</div>
+
+<div>
+<div><div>Subtotal:</div><div${r_global['subtotal'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['subtotal'])}</div></div>
+%if r_global['discamt']:
+<div><div>Discount ${'(%0.2f%%)' % round_ex(r_global['discprc'])}:</div><div>${"$%0.2f" % round_ex(-r_global['discamt'])}</div></div>
+%endif
+%if r_global['taxamt']:
+<div><div>Tax:</div><div${r_global['taxamt'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['taxamt'])}</div></div>
+%endif
+%if r_global['shipping']:
+<%
+shipping_total = r_global['shipping']['amt'] + r_global['shipping']['taxamt']
+%>
+%if shipping_total:
+<div><div>Shipping:</div><div${shipping_total < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(shipping_total)}</div></div>
+%endif
+%endif
+<div><div>Total:</div><div${r_global['total'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['total'])}</div></div>
+</div>
+
+</div>
+
+
+<div class="cnt_comment">
+<div class="cnt_comment_add"><input type="text" class="txt_comment" style="width:760px" /><input type="button" value="Add Comment" id="btn_add_comment" /></div>
+    
+<div class="cnt_comment_hist">
+%for x in reversed(comment):
+<div><div>${x[0]}</div><div><span>${x[1]|h}:</span> ${x[3]|h}</div></div>
+%endfor
+</div>
+
+</div>
+
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - ClockIn</title>
+<link type="text/css" href="css/smoothness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript" src="js/clockin.js"></script>
+<link type="text/css" href="css/default.css" rel="stylesheet" />
+<link rel="icon" type="image/png" sizes="72x72" href="img/clock.png">
+
+<script type="text/javascript">
+
+function cmc_user_keyup(e)
+{
+    if(e.which == 13) {
+        e.preventDefault();
+        g_v_action.click();
+    }
+}
+
+$(function() {
+    
+g_v_hdr = $('.cmc_hdr');
+g_v_action = $('.cmc_action').click(cmc_action_click);
+g_v_status_msg = $('.cmc_status_msg');
+g_v_user_sel = $('.cmc_user').change(cmc_user_change).keyup(cmc_user_keyup);
+
+
+update_clock();
+setInterval('update_clock()', 1000);
+
+var m_uid = location.search.match(/uid=([0-9]+)/i);
+if(m_uid) g_v_user_sel.html('<option value="'+m_uid[1]+'"></option>');
+
+g_v_user_sel.change().focus();
+if(!g_cur_uid) load_user_state();
+
+});
+
+</script>
+
+<style type="text/css">
+
+body {background:#ffffff url('img/bg.jpg')}
+.clk_main_cnt {font-size:36px;margin:10px auto;padding:8px;width:700px;height:600px;border:1px solid #92a6ca;background-color:#fafafa;}
+.cmc_hdr {height:60px;background:#ffffff url('img/hdr.jpg') repeat-x 0 0;border:1px solid #92a6ca;margin-bottom:8px;padding:0 15px;line-height:60px;color:#3f3f3f}
+.cmc_control {height:60px;text-align:center}
+.cmc_user {font-size:38px;width:600px;}
+.cmc_user_s0 {background-color:#e6e6e6}
+.cmc_user_s1 {background-color:#c9feb1}
+.cmc_user_s2 {background-color:#fff9cd}
+.cmc_btn_admin {font-size:18px;}
+.cmc_status {height:202px;text-align:center;padding:20px 8px;}
+.cmc_action {margin:0 auto;width:450px;height:160px;background:#ffffff url('img/btn_in.jpg');border:1px solid #84c40a;font-size:72px;line-height:160px;text-align:center;color:#181818;}
+.cmc_action_out {background:#ffffff url('img/btn_out.jpg');border:1px solid #f6be68;}
+
+.cmc_status_msg {height:150px;border:1px dotted #bffc82;background:#f5fef2;padding:25px 10px;}
+.cmc_action {cursor:pointer}
+
+</style>
+
+</head>
+<body>
+
+<div class="clk_main_cnt">
+
+<div class="cmc_hdr"></div>
+<div class="cmc_body">
+<div class="cmc_control"><select class="cmc_user"></select></div>
+<div class="cmc_status"><div class="cmc_status_msg"></div></div>
+<div class="cmc_action"></div>
+</div>
+
+</div>
+
+</body>
+</html>

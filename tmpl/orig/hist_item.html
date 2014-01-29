@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc.html" />
+<title>POSX - Item > History</title>
+
+<%
+import json
+%>
+
+<script type="text/javascript">
+
+g_item_units = ${json.dumps(item_info['units'])};
+g_item_qty = ${json.dumps(item_info['qty'])};
+g_cur_factor = 0;
+g_v_datagrid = [];
+
+function load_item_sold_report_cb(js)
+{
+    if(!js || !js.stat) return;
+    if(!g_cur_factor) { MsgBox('Error', 'Zero Factor!'); return; }
+    
+    g_v_sold_tp_tbl.empty().show().append('<div><div>Date</div><div>RegularQty</div><div>SpecialQty</div><div>TotalQty</div></div>');
+    
+    var ttl_qty = [0, 0];
+    for(var i = 0; i < js.stat.length; i++) {
+        var s = js.stat[i];
+        var d = s[1];
+        var qty = d.qty;
+        
+        var r_qty = g_cur_factor != 1 ? (qty[0] / g_cur_factor) : qty[0];
+        var s_qty = g_cur_factor != 1 ? (qty[1] / g_cur_factor) : qty[1];
+        
+        ttl_qty[0] += r_qty;
+        ttl_qty[1] += s_qty;
+        
+        var o = $('<div></div>')
+        .append($('<div></div>').text( s[0] ))
+        .append($('<div></div>').text( r_qty.toFixed(1) ))
+        .append($('<div></div>').text( s_qty.toFixed(1) ))
+        .append($('<div></div>').text( (r_qty + s_qty).toFixed(1) ));
+        
+        g_v_sold_tp_tbl.append(o);
+    }
+    
+    g_v_sold_tp_tbl.append(
+                           $('<div></div>')
+                           .append($('<div></div>').text(''))
+                           .append($('<div></div>').text( ttl_qty[0].toFixed(1) ))
+                           .append($('<div></div>').text( ttl_qty[1].toFixed(1) ))
+                           .append($('<div></div>').text( (ttl_qty[0] + ttl_qty[1]).toFixed(1) ))
+    );
+
+}
+
+function load_item_sold_report()
+{
+    g_v_sold_tp_tbl.hide();
+    
+    var frm_date = g_v_sold_tp_ctrl.children('input[name="frm_date"]').datepicker('getDate');
+    var to_date = g_v_sold_tp_ctrl.children('input[name="to_date"]').datepicker('getDate');
+    var interval = g_v_sold_tp_ctrl.children('select[name="interval"]').val();
+    
+    if(!frm_date || !to_date) return;
+    
+    $.get('?fn=get_item_sold_report', {
+        'tid': '${item_sid}',
+        'frm_ts': parseInt(frm_date.getTime() / 1000),
+        'to_ts': parseInt(to_date.getTime() / 1000),
+        'interval': interval
+    }, load_item_sold_report_cb, 'json'
+    );
+    
+}
+
+function show_all()
+{
+    var o = $(this);
+    var d = g_v_datagrid[ o.data('tg_idx') ];
+    d.tinygrid('src').data['flag'] = o.prop('checked') ? 1 : 0;
+    d.tinygrid('update', -1, true, [-1], true);
+}
+
+$(function() {
+
+g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
+len:0,
+src:{page:'?fn=getpageitem', data:{'tid': '${item_sid}'}},
+cols: [{name:'Num', width:120},
+       {name:'Type', width:180},
+       {name:'Details', width:"100%"},
+       {name:'QtyChg', width:150},
+       {name:'Date', width:250},
+       ],
+click: function(r, c, d) {
+    if (d[6] < 2) {
+        if (d[7])
+            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        else
+            window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+    } else if (d[6] < 4) {
+        window.open('sync?fn=printorder&type=3&rid=' + d[5],'posx_vo_wnd','location=0,width=992,height=700');
+    }
+},
+getval: function(r, org_getval) {
+    var row = org_getval.apply(this, [r]);
+    if (!row) return row;
+    row = row.slice(0);
+    row[3] = g_cur_factor ? (g_cur_factor != 1 ? (row[3] / g_cur_factor).toFixed(2) : row[3].toFixed(2)) : 'ERR!';
+    return row;
+}
+});
+
+g_v_datagrid[2] = $('#datagrid_so').tinygrid({
+len:0,
+src:{page:'sync?fn=getitemorders', data:{'rid': '${item_sid}', 'type': 2}},
+cols: [{name:'#', width:100},
+       {name:'Customer', width:"100%"},
+       {name:'Clerk', width:120},
+       {name:'Qty', width:70},
+       {name:'Sent', width:70},
+       {name:'Date', width:100},
+       ],
+click: function(r, c, d) {
+    window.open('sync?fn=printorder&type='+d[7]+'&rid=' + d[6],'posx_so_wnd','location=0,width=992,height=700');
+},
+getval: function(r, org_getval) {
+    var row = org_getval.apply(this, [r]);
+    if (!row) return row;
+    row = row.slice(0);
+    
+    if(g_cur_factor) {
+        if(g_cur_factor != 1) {
+            row[3] = Math.ceil(row[3] / g_cur_factor);
+            row[4] = Math.floor(row[4] / g_cur_factor);
+        }
+    } else {
+        row[3] = 'ERR';
+        row[4] = 'ERR';
+    }
+    
+    return row;
+},
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
+init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 2).change(show_all); }
+});
+
+g_v_datagrid[1] = $('#datagrid_po').tinygrid({
+len:0,
+src:{page:'sync?fn=getitemorders', data:{'rid': '${item_sid}', 'type': 1}},
+cols: [{name:'#', width:100},
+       {name:'Vendor', width:"100%"},
+       {name:'Clerk', width:120},
+       {name:'Qty', width:70},
+       {name:'Rcvd', width:70},
+       {name:'Date', width:100},
+       ],
+click: function(r, c, d) {
+    window.open('sync?fn=printorder&type='+d[7]+'&rid=' + d[6],'posx_po_wnd','location=0,width=992,height=700');
+},
+getval: function(r, org_getval) {
+    var row = org_getval.apply(this, [r]);
+    if (!row) return row;
+    row = row.slice(0);
+    
+    if(g_cur_factor) {
+        if(g_cur_factor != 1) {
+            row[3] = Math.ceil(row[3] / g_cur_factor);
+            row[4] = Math.floor(row[4] / g_cur_factor);
+        }
+    } else {
+        row[3] = 'ERR';
+        row[4] = 'ERR';
+    }
+    
+    return row;
+},
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
+init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 1).change(show_all); }
+});
+
+
+
+g_v_datagrid[3] = $('#datagrid_cust').tinygrid({
+len:0,
+src:{page:'?fn=get_item_custs', data:{'tid': '${item_sid}'}},
+cols: [{name:'Name', width:"100%"},
+       {name:'Qty', width:100},
+       {name:'LastSaleDate', width:250},
+       ],
+click: function(r, c, d) {
+    window.open('hist?fn=custhist&cid='+d[3],'posx_customer_hist','location=0,width=992,height=700');
+},
+getval: function(r, org_getval) {
+    var row = org_getval.apply(this, [r]);
+    if (!row) return row;
+    row = row.slice(0);
+    row[1] = g_cur_factor ? (g_cur_factor != 1 ? (row[1] / g_cur_factor).toFixed(2) : row[1].toFixed(2)) : 'ERR!';
+    return row;
+}
+});
+
+
+g_v_item_unit = $('.cnt_top > .item_unit');
+g_v_item_unit_ordqty = g_v_item_unit.children('.s_qty_ord').click(function() { g_v_item_tabs.tabs('option', 'active', 2); });
+g_v_item_unit_purqty = g_v_item_unit.children('.s_qty_pur').click(function() { g_v_item_tabs.tabs('option', 'active', 1); });
+
+g_v_item_tabs = $('.item_tabs').tabs({
+    activate: function( event, ui ) {
+        var a_idx = g_v_item_tabs.tabs('option', 'active');
+        if(a_idx == 4) {
+            load_item_sold_report();
+            
+        } else {
+            var tg = g_v_datagrid[a_idx];
+            if(tg !== undefined) tg.tinygrid('update', -1, true);
+            
+        }
+    },
+    active:${dg_type}
+});
+
+//++
+(function() {
+    var tp = $('#item_tab_4_sold');
+    g_v_sold_tp_ctrl = tp.children('.tp_ctrl');
+    
+    g_v_sold_tp_ctrl.children('input[name="frm_date"]').datepicker().datepicker("setDate", '-6m').change(load_item_sold_report);
+    g_v_sold_tp_ctrl.children('input[name="to_date"]').datepicker().datepicker("setDate", '+0').change(load_item_sold_report);
+    g_v_sold_tp_ctrl.children('select').change(load_item_sold_report);
+    g_v_sold_tp_ctrl.children('input[value="Apply"]').button().click(load_item_sold_report);
+    g_v_sold_tp_tbl = tp.children('.ptable');
+    
+})();
+//--
+
+g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
+    var unit = g_item_units[ parseInt($(this).val()) ];
+    g_cur_factor = unit[3];
+    
+    var qty = g_item_qty.slice(0);
+    if (unit[3] && g_cur_factor != 1) {
+        qty[0] /= g_cur_factor;
+        qty[1] /= g_cur_factor;
+        qty[2] /= g_cur_factor;
+        qty[3] /= g_cur_factor;
+    }
+    
+    g_v_item_unit.children('.s_price').text('Price: $' + unit[0][0].toFixed(2));
+    g_v_item_unit.children('.s_qty_oh').text('OHQty: ' + (g_cur_factor ? qty[0].toFixed(2) : 'Err'));
+    g_v_item_unit_ordqty.text('OrdQty: ' + (g_cur_factor ? qty[1].toFixed(2) : 'Err'));
+    g_v_item_unit_purqty.text('PurQty: ' + (g_cur_factor ? qty[3].toFixed(2) : 'Err'));
+    
+    for(var i = 0; i < g_v_datagrid.length; i++) g_v_datagrid[i].tinygrid('update', -1, false, true, false, true);
+    
+    var a_idx = g_v_item_tabs.tabs('option', 'active');
+    if(a_idx == 4) {
+        load_item_sold_report();
+        
+    } else {
+        var tg = g_v_datagrid[a_idx];
+        if(tg !== undefined) tg.tinygrid('update', -1, true);
+        
+    }
+    
+}).val("${item_info['default_uom_idx']}").change();
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tinygrid {position:absolute;left:0;top:49px;bottom:0;right:0;width:auto;height:auto;}
+.cnt_top {height:70px;padding:5px;font-size:20px;line-height:22px;}
+.cnt_top .item_name {font-size:20px;font-weight:bold;}
+.cnt_top .item_name > span {margin-right:20px;}
+.cnt_top .item_name > span:nth-child(1) {color:#004C99}
+.cnt_top .item_name > span:nth-child(2) {color:#994C00}
+.cnt_top .item_name > span:nth-child(3) {color:blue}
+.cnt_top .item_unit > table {margin-top:5px;}
+.cnt_ctrl {position:absolute;width:200px;height:60px;top:5px;right:5px;text-align:right}
+.cnt_ctrl span {font-size:16px;}
+.item_unit {margin:10px 0;color:#663300}
+.item_unit > select {width:120px;}
+.item_unit > span {margin-left:20px;font-weight:bold;cursor:pointer}
+
+.item_tabs {font-size:18px;position:absolute;top:80px;bottom:0;left:0;right:0;padding:0;}
+.tinygrid .tgft_showall {position:absolute;top:0;bottom:0;right:0;width:150px;font-weight:bold}
+
+.ui-tabs-panel {padding:10px 5px 0 5px !important;}
+
+.tp_ctrl select, .tp_ctrl input {width:100px;margin-right:15px;}
+
+#item_tab_4_sold > .ptable {margin-top:15px}
+
+
+</style>
+
+</head>
+<body>
+<div class="cnt_top">
+<div class="item_name">
+<span>${item_num|h}</span>
+<span>
+%if item_info['units'][0][1]:
+${item_info['units'][0][1]|h}
+%endif
+</span>
+<span>${item_name|h}</span>
+</div>
+<div class="item_unit">
+
+<select>
+<%
+k = 0
+%>
+%for u in item_info['units']:
+<option value="${k}">${u[2]|h}${u[3] != 1 and ' * %0.2f' % u[3] or ''}</option>
+<%
+k += 1
+%>
+%endfor
+</select>
+
+<span class="s_price"></span>
+<span class="s_qty_oh"></span>
+<span class="s_qty_ord"></span>
+<span class="s_qty_pur"></span>
+
+</div>
+</div>
+<div class="cnt_ctrl"></div>
+
+<div class="item_tabs">
+
+<ul>
+<li><a href="#item_tab_0_hist">History</a></li>
+<li><a href="#item_tab_1_po">PurchaseOrder</a></li>
+<li><a href="#item_tab_2_so">SalesOrder</a></li>
+<li><a href="#item_tab_3_cust">Customer</a></li>
+<li><a href="#item_tab_4_sold">Sold</a></li>
+</ul>
+
+<div id="item_tab_0_hist"><div id="datagrid_hist"></div></div>
+<div id="item_tab_1_po"><div id="datagrid_po"></div></div>
+<div id="item_tab_2_so"><div id="datagrid_so"></div></div>
+<div id="item_tab_3_cust"><div id="datagrid_cust"></div></div>
+<div id="item_tab_4_sold">
+    
+<div class="tp_ctrl">
+<span>From: </span><input type="text" name="frm_date" />
+<span>To: </span><input type="text" name="to_date" />
+<span>By: </span><select name="interval"><option value="0">Month</option><option value="1">Year</option><option value="2">Quarter</option></select>
+<input type="button" value="Apply" />
+</div>
+
+<div class="ptable" style="display:none"></div>
+
+</div>
+</div>
+
+</body>
+</html>
+

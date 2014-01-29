@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc.html" />
+<title>POSX - Delivery V2 > Printing</title>
+
+<script type="text/javascript">
+$(function() {
+
+$('.btn').button();
+
+$('.m_ctrl > input[value="print"]').click(function() { window.print(); });
+
+});
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.m_ctrl input, .m_ctrl select {margin-right:10px;}
+
+.vtable {width:952px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:32px;line-height:32px;font-size:18px;border:1px solid #eeeeee;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #eeeeee;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(odd) {background-color:#fafafa}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#f5f5f5}
+.vtable > div:nth-child(1) > div:last-child {font-weight:bold;background-color:#f5f5f5}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;right:831px;}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {right:751px;width:80px;}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {right:601px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:451px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:301px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:151px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(7) {right:1px;width:150px;}
+
+.d_tbl {width:952px;margin:0 auto 20px auto;}
+.d_tbl > .d_hdr {height:30px;line-height:30px;font-weight:bold;margin-bottom:3px;}
+.d_tbl > .d_hdr > span {float:left;width:150px;display:block;height:30px;}
+.d_tbl > .d_hdr > span:nth-child(1) {width:600px;text-align:right;float:right}
+
+@media print {
+.m_ctrl {display:none}
+.m_body {margin:0 auto;}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.d_tbl {page-break-after:always;margin:0 auto;}
+}
+@page {
+margin:60px 50px;
+size:landscape;
+}
+
+</style>
+
+</head>
+%if auto_print:
+<body onload="window.print();setTimeout('window.close()', 0)">
+%else:
+<body>
+%endif
+
+<div class="m_ctrl">
+<input type="button" value="print" class="btn" />
+</div>
+
+<div class="m_body">
+
+
+<div class="d_tbl">
+<div class="d_hdr">
+<span class="hdr_el_print_only">${', '.join(map(str,d_ids))} ${d_date}</span>
+</div>
+<div class="vtable">
+<div>
+<div><div>Driver</div><div>Count</div><div>${'</div><div>'.join(map(str.capitalize, payments))}</div><div>Total</div></div>
+<%
+drv_d_a = sorted(drv_d.items(), key=lambda x: x[0])
+drv_d_a.append( (None, ([], overall_stat)) )
+over_all_count = 0
+%>
+%for drv_id,drv_data in drv_d_a:
+<%
+d_recs,d_stat = drv_data
+over_all_count += len(d_recs)
+row_total = [0, 0]
+%>
+<div>
+%if drv_id == None:
+<div>Total</div>
+<div>${over_all_count}</div>
+%else:
+<div>${drv_id and users_lku.get(drv_id, 'UNK') or ''|h}</div>
+<div>${len(d_recs)}</div>
+%endif
+%for i in range(len(payments)):
+<%
+i *= 2
+row_total[0] += d_stat[i]
+row_total[1] += d_stat[i + 1]
+%>
+<div>${d_stat[i] and '$%0.2f (%d)'% (d_stat[i], d_stat[i + 1]) or ''|h}</div>
+%endfor
+<div>${row_total[0] and '$%0.2f (%d)' % (row_total[0], row_total[1]) or ''|h}</div>
+</div>
+%endfor
+</div>
+</div>
+</div>
+
+</div>
+
+</body>
+</html>

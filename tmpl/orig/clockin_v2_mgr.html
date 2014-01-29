@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - ClockIn MGR V2</title>
+
+<script type="text/javascript">
+g_clockin_users = null;
+
+function open_wnd_user_time_report(user_id, frm_ts, to_ts)
+{
+    window.open('?fn=user_report&user_id=' + user_id + '&frm_ts=' + frm_ts + '&to_ts=' + to_ts,
+                'posx_user_time_report','location=0,width=992,height=700');
+}
+
+g_seq__change_date = 0;
+function change_date()
+{
+    var els = g_v_tabs_report.data('in_els');
+    var frm_date = els.frm_date[0].datepicker('getDate');
+    var to_date = els.to_date[0].datepicker('getDate');
+    var frm_ts = frm_date ? parseInt(frm_date.getTime() / 1000) : 0;
+    var to_ts = to_date ? parseInt(to_date.getTime() / 1000) : 0;
+    g_v_tabs_report_xtbl.empty();
+    
+    var seq = ++g_seq__change_date;
+    $.get('?fn=get_users', {'frm_ts': frm_ts, 'to_ts': to_ts}, function(js) {
+        if(seq !== g_seq__change_date || !js) return;
+        for(var i = 0; i < js.length; i++) {
+            var u = js[i];
+            
+            var ws = '';
+            for(var j = 0; j < u[7].length; j++) {
+                var w = u[7][j];
+                ws += 'W'+ (w[0] + 1) + ': ' + w[1] + ', ';
+            }
+            if(ws) ws = ws.substring(0, ws.length - 2);
+            
+            g_v_tabs_report_xtbl.append(
+                $('<div class="xtbl_row"></div>')
+                .append( $('<div onclick="return open_wnd_user_time_report('+u[0]+','+frm_ts+','+to_ts+')"></div>').text(u[1]) )
+                .append( $('<div></div>').text(u[2]) )
+                .append( $('<div></div>').text(u[3]) )
+                .append( $('<div></div>').text(u[4]) )
+                .append( $('<div></div>').text(u[5]) )
+                .append( $('<div title="'+ws+'"></div>').text(u[6]).tooltip() )
+            );
+        }
+        
+    }, 'json');
+    
+}
+
+function delete_clockin_user(user_id)
+{
+    $.post('?fn=del_clockin_user', {'user_id':user_id}, function(js) {
+        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'Unexpected Error'); return; }
+        load_users();
+        
+    }, 'json');
+}
+
+function update_code_clocking_user()
+{
+    var user = g_v_dlg_edit_user.data('user');
+    if(!user) return;
+    
+    var user_id = user['user_id'];
+    var user_rev = user['rev'];
+    var els = g_v_dlg_edit_user.data('in_els');
+    var user_code = parseInt(els.code[0].val());
+    var user_lang = parseInt(els.lang[0].val());
+    if(!user_id || !user_code || user_code.length > 4) return;
+    
+    $.post('?fn=update_code_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_code':user_code, 'user_lang':user_lang}, function(js) {
+        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'Unexpected Error'); return; }
+        load_users();
+        
+    }, 'json');
+}
+
+function update_status_clocking_user()
+{
+    var user = g_v_dlg_edit_user.data('user');
+    if(!user) return;
+    
+    var user_id = user['user_id'];
+    var user_rev = user['rev'];
+    var els = g_v_dlg_edit_user.data('in_els');
+    var user_in = parseInt(els.in[0].val());
+    var user_in_time = $.trim(els.in_time[0].val());
+    if(!user_id || user_in && !user_in_time) return;
+    
+    $.post('?fn=update_status_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_in':user_in, 'user_in_time':user_in_time}, function(js) {
+        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'Unexpected Error'); return; }
+        load_users();
+        
+    }, 'json');
+}
+
+function open_dlg_edit_user(idx)
+{
+    var user = g_clockin_users && g_clockin_users[idx];
+    if(!user) return;
+    
+    var els = g_v_dlg_edit_user.data('in_els');
+    els.code[0].val( user['user_code'] );
+    els.lang[0].val( user['flag'] & 1 ? '1' : '0' );
+    els.in[0].val( user['in_ts'] ? '1' : '0' );
+    els.in_time[0].val( user['in_ts'] ? user['in_time'] : fmt_time() );
+    g_v_dlg_edit_user.data('user', user).dialog('open');
+}
+
+g_seq__load_users = 0;
+function load_users()
+{
+    g_v_dlg_edit_user.dialog('close');
+    var els = g_v_tabs_employee.data('in_els');
+    
+    $(els.user_id[0].val('0').children().slice(1)).remove();
+    g_v_tabs_employee_xtbl.empty();
+    g_clockin_users = null;
+    
+    var seq = ++g_seq__load_users;
+    $.get('?fn=loads_users', {}, function(js) {
+        if(seq !== g_seq__load_users || !js) return;
+        var v_user_id = els.user_id[0];
+        for(var i = 0; i < js.normal_users.length; i++) {
+            var u = js.normal_users[i];
+            v_user_id.append( $('<option></option>').val(u['user_id']).text(u['user_name']) );
+        }
+        g_clockin_users = js.clockin_users;
+        for(var i = 0; i < js.clockin_users.length; i++) {
+            var u = js.clockin_users[i];
+            g_v_tabs_employee_xtbl.append(
+                $('<div class="xtbl_row"></div>')
+                .append( $('<div><span title="Delete" onclick="return confirm(\'delete this user?\') && delete_clockin_user('+u['user_id']+')"></span><span title="Add"></span><span title="Edit" onclick="return open_dlg_edit_user('+i+')"></span></div>') )
+                .append( $('<div onclick="open_wnd_user_time_report('+u['user_id']+', 0, 0);return false"></div>').text(u['user_name']) )
+                .append( $('<div></div>').text(u['flag'] & 1 ? 'English' : 'Chinese') )
+                .append( $('<div></div>').text(u['user_code']) )
+                .append( $('<div></div>').text(u['in_ts'] ? 'IN' : 'OUT') )
+                .append( $('<div></div>').text(u['in_time']) )
+            );
+        }
+        
+    }, 'json');
+    
+}
+
+$(function() {
+var els;
+
+$('.btn').button();
+
+g_v_tabs_employee = $('#tabs_employee');
+idx_elements(g_v_tabs_employee, 5);
+els = g_v_tabs_employee.data('in_els');
+els.add[0].click(function() {
+    var els = g_v_tabs_employee.data('in_els');
+    var uid = parseInt(els.user_id[0].val());
+    var code = parseInt(els.code[0].val());
+    if(!uid || !code || code.length > 4) return;
+    $.post('?fn=add_clockin_user', {'user_id':uid, 'user_code':code}, function(js) {
+        if(!js || !js.ret) return;
+        load_users();
+    }, 'json');
+});
+els.new[0].click(function() {
+    g_v_dlg_new_user.find('input[name="user_name"]').val('');
+    g_v_dlg_new_user.dialog('open');
+});
+els.refresh[0].click(load_users);
+g_v_tabs_employee_xtbl = $('.xtbl_body', g_v_tabs_employee);
+
+
+g_v_tabs_report = $('#tabs_report');
+idx_elements(g_v_tabs_report, 5);
+g_v_tabs_report.children('.tp_ctrl').tooltip();
+els = g_v_tabs_report.data('in_els');
+els.frm_date[0].datepicker().change(change_date);
+els.to_date[0].datepicker().change(change_date);
+els.apply[0].click(change_date);
+els.export[0].click(function() {
+    var els = g_v_tabs_report.data('in_els');
+    var frm_date = els.frm_date[0].datepicker('getDate');
+    var to_date = els.to_date[0].datepicker('getDate');
+    var frm_ts = frm_date ? parseInt(frm_date.getTime() / 1000) : 0;
+    var to_ts = to_date ? parseInt(to_date.getTime() / 1000) : 0;
+    
+    var v_form = $('#form_dl');
+    v_form.find('input[name="js"]').val( JSON.stringify({'frm_ts':frm_ts, 'to_ts':to_ts, 'type':'users'}) );
+    v_form.submit();
+    
+});
+g_v_tabs_report_xtbl = $('.xtbl_body', g_v_tabs_report);
+
+g_v_dlg_edit_user = $('#dlg_edit_user').dialog({
+    autoOpen: false,
+    modal: true,
+    width:530,
+    height:200
+});
+idx_elements(g_v_dlg_edit_user, 5);
+els = g_v_dlg_edit_user.data('in_els');
+els.code_save[0].click(update_code_clocking_user);
+els.status_save[0].click(update_status_clocking_user);
+
+els.in[0].change(function() {
+    var els = g_v_dlg_edit_user.data('in_els');
+    if( parseInt(els.in[0].val()) )
+        els.in_time[0].prop('disabled', false);
+    else
+        els.in_time[0].prop('disabled', true);
+});
+
+g_v_dlg_new_user = $('#dlg_new_user').dialog({
+    autoOpen: false,
+    modal: true,
+    width:380,
+    height:200,
+    buttons: {
+        'new': function() {
+            var v_user_name = g_v_dlg_new_user.find('input[name="user_name"]');
+            var user_name = $.trim(v_user_name.val());
+            if(!user_name) return;
+            
+            $.post('?fn=add_new_user', {'user_name': user_name}, function(js) {
+                if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'unexpected error'); return; }
+                g_v_dlg_new_user.dialog('close');
+                load_users();
+                
+            }, 'json');
+            
+        }
+    }
+});
+
+g_v_tabs = $('#m_tabs').tabs({
+    'heightStyle': 'fill',
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'quit') {
+            go_home();
+            return false;
+        }
+        
+        return true;
+    },
+    activate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6).toLowerCase();
+        if (nz === 'employee') load_users();
+        else if (nz === 'report') change_date();
+    },
+    active: 0
+});
+
+load_users();
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+#m_tabs {position:absolute;top:0;left:0;right:0;bottom:0;font-size:18px;padding:0px;}
+#m_tabs > div {position:absolute;top:49px;left:0;right:0;bottom:0;height:auto !important;width:auto !important;padding:0px;}
+
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+#tabs_employee .xtbl, #tabs_report .xtbl {top:50px}
+#tabs_employee .xtbl_row > div:nth-child(1) {width:89px}
+#tabs_employee .xtbl_row > div:nth-child(2) {width:200px;cursor:pointer}
+#tabs_employee .xtbl_row > div:nth-child(3) {width:100px}
+#tabs_employee .xtbl_row > div:nth-child(4) {width:100px}
+#tabs_employee .xtbl_row > div:nth-child(5) {width:100px}
+#tabs_employee .xtbl_row > div:nth-child(6) {width:180px}
+#tabs_employee .xtbl_body .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
+#tabs_employee .xtbl_body .xtbl_row > div:nth-child(1) > span {position:absolute;display:block;top:8px;left:2px;width:26px;height:26px;cursor:pointer}
+#tabs_employee .xtbl_body .xtbl_row > div:nth-child(1) > span:nth-child(2) {left:29px}
+#tabs_employee .xtbl_body .xtbl_row > div:nth-child(1) > span:nth-child(3) {left:61px}
+
+#tabs_report .xtbl_row > div:nth-child(1) {width:200px;cursor:pointer}
+#tabs_report .xtbl_row > div:nth-child(2) {width:100px}
+
+div.xlabel {position:relative;height:32px;line-height:32px;margin:9px 0;}
+div.xlabel > div {display:block;position:absolute;top:0;bottom:0;white-space:nowrap}
+div.xlabel > div:nth-child(1) {left:0;width:100px;text-align:right;}
+div.xlabel > div:nth-child(2) {left:110px;right:0;}
+
+.dlg_cls input[type="text"], .dlg_cls select {width:200px;}
+
+</style>
+
+</head>
+<body>
+    
+    
+<div id="m_tabs">
+<ul>
+    <li><a href="#tabs_employee">Employee</a></li>
+    <li><a href="#tabs_report">Report</a></li>
+    <li style="float:right"><a href="#tabs_quit">Quit</a></li>
+</ul>
+
+<div id="tabs_employee">
+<div class="tp_ctrl">
+<select style="width:180px" name="ctrl_user_id"><option value="0">-- Select User --</option></select>
+<input type="text" name="ctrl_code" style="width:100px" maxlength="4" />
+<input type="button" value="add" name="ctrl_add" class="btn" />
+<input type="button" value="refresh" name="ctrl_refresh" class="btn" />
+<input type="button" value="new" name="ctrl_new" class="btn" />
+</div>
+
+<div class="xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div></div><div>Name</div><div>Lang</div><div>Code</div><div>Status</div><div>InTime</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+
+</div>
+
+
+<div id="tabs_report">
+<div class="tp_ctrl">
+<span>From: </span><input type="text" style="width:120px" name="ctrl_frm_date" />
+<span>To: </span><input type="text" style="width:120px" name="ctrl_to_date" />
+<input type="button" value="apply" name="ctrl_apply" class="btn" />
+<input type="button" value="export" name="ctrl_export" class="btn" />
+</div>
+
+<div class="xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Name</div><div>Total</div><div>Normal</div><div>OT</div><div>DailyOT</div><div>WeeklyOT</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+</div>
+
+</div>
+
+
+<div id="dlg_edit_user" class="dlg_cls" title="Edit User">
+<div class="xlabel"><div>Code:</div><div><input type="text" name="user_code" maxlength="4" style="width:50px" /> <select name="user_lang" style="width:100px"><option value="0">Chinese</option><option value="1">English</option></select> <input type="button" value="save" name="user_code_save" class="btn" /></div></div>
+<div class="xlabel"><div>Status:</div><div><select name="user_in" style="width:70px"><option value="1">IN</option><option value="0">OUT</option></select> <input type="text" name="user_in_time" style="width:210px" /> <input type="button" value="save" name="user_status_save" class="btn" /></div></div>
+</div>
+
+<div id="dlg_new_user" class="dlg_cls" title="add new user">
+<div class="xlabel"><div>Name:</div><div><input type="text" name="user_name" /></div></div>
+</div>
+
+<form id="form_dl" target="form_dl_target_frame" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
+<iframe name="form_dl_target_frame" style="display:none"></iframe>
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc.html" />
+<title>POSX - Comm By Dept</title>
+
+<script type="text/javascript">
+g_data = null;
+g_ajax_req__get_comm = 0;
+
+function change__report_date()
+{
+    g_data = null;
+    g_v_report_dept.val('').change();
+    $(g_v_report_dept.children().slice(1)).remove();
+    
+    var report_date = g_v_report_date.val();
+    if(!report_date) return;
+    
+    var req = ++g_ajax_req__get_comm;
+    $.get('?fn=get_comm', {'report_date': report_date}, function(js) {
+        if(req != g_ajax_req__get_comm) return;
+        if(js.err) MsgBox('ERROR', js.err);
+        
+        for(var i = 0; i < js.depts.length; i++) {
+            var dept = js.depts[i];
+            g_v_report_dept.append( $('<option></option>').val(dept[0]).text(dept[1]) );
+        }
+        
+        g_data = js;
+        g_v_report_dept.change();
+    }, 'json');
+    
+}
+
+function load_data()
+{
+    var dept_id = g_v_report_dept.val();
+    var js = g_data;
+    
+    for(var i = 0; i < js.clerks.length; i++) {
+        var clerk = js.clerks[i];
+        var depts = clerk[1];
+        var total = [0, 0, 0];
+        for(var j = 0; j < depts.length; j++) {
+            var dept = depts[j];
+            if(dept_id && dept_id !== dept[0]) continue;
+            total[0] += dept[1][0];
+            total[1] += dept[1][1];
+            total[2] += dept[1][2];
+        }
+        
+        g_v_main_xtbl.append(
+            $('<div class="xtbl_row"></div>')
+            .append( $('<div onclick="open_dlg_clerk('+i+');return false;"></div>').text(clerk[0]) )
+            .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
+            .append( $('<div></div>').text(total[0].toFixed(2)) )
+            .append( $('<div></div>').text(total[1].toFixed(2)) )
+            .append( $('<div></div>').text(total[2].toFixed(2)) )
+            .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
+        );
+    }
+}
+
+function change__report_dept()
+{
+    g_v_main_xtbl.empty();
+    if(!g_data) return;
+    load_data();
+}
+
+
+function open_dlg_clerk(i)
+{
+    g_v_clerk_xtbl_footer.empty();
+    g_v_clerk_xtbl.empty();
+    if(!g_data) return;
+    var clerk = g_data.clerks[i];
+    if(!clerk) return;
+    
+    var depts = clerk[1];
+    var total_all = [0, 0, 0, 0, 0];
+    for(var j = 0; j < depts.length; j++) {
+        var dept = depts[j];
+        var total = dept[1];
+        
+        var r_total = total[0] + total[1];
+        var r_pending = total[0];
+        var r_recved = total[1];
+        var r_prevrecved = total[2];
+        var r_estimated = total[1] + total[2];
+        
+        total_all[0] += r_total;
+        total_all[1] += r_pending;
+        total_all[2] += r_recved;
+        total_all[3] += r_prevrecved;
+        total_all[4] += r_estimated;
+        
+        g_v_clerk_xtbl.append(
+            $('<div class="xtbl_row"></div>')
+            .append( $('<div></div>').text(dept[2]) )
+            .append( $('<div></div>').text(r_total.toFixed(2)) )
+            .append( $('<div></div>').text(r_pending.toFixed(2)) )
+            .append( $('<div></div>').text(r_recved.toFixed(2)))
+            .append( $('<div></div>').text(r_prevrecved.toFixed(2)) )
+            .append( $('<div></div>').text(r_estimated.toFixed(2)) )
+        );
+    }
+    g_v_clerk_xtbl_footer
+    .append( $('<div></div>') )
+    .append( $('<div></div>').text(total_all[0].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[1].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[2].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[3].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[4].toFixed(2)) )
+    
+    g_v_dlg_clerk.dialog('option', 'title', clerk[0]).dialog('open');
+    
+}
+
+$(function() {
+
+$('.btn').button();
+$('.tp_ctrl > input[value="quit"]').click(go_home);
+$('.xtbl_header').tooltip();
+
+g_v_report_date = $('.tp_ctrl > [name="report_date"]').change(change__report_date);
+g_v_report_dept = $('.tp_ctrl > [name="report_dept"]').change(change__report_dept);
+g_v_main_xtbl = $('.main_tbl .xtbl');
+
+g_v_dlg_clerk = $('#dlg_clerk').dialog({
+    autoOpen: false,
+    width:850,
+    height:500,
+});
+
+g_v_clerk_xtbl = $('.xtbl', g_v_dlg_clerk);
+g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
+
+.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:720px;}
+.xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:120px;position:relative}
+.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%}
+.xtbl_row > div:nth-child(1) {cursor:pointer}
+
+.xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
+.xtbl .xtbl_row:hover {background-color:#ffe7d7}
+.xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
+.xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
+.xtbl_header {top:0}
+.xtbl_footer {bottom:0;top:auto}
+.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl {position:absolute;top:37px;bottom:37px;right:0;left:0;overflow:auto;}
+
+#dlg_clerk {position:relative}
+#dlg_clerk .xtbl_row {min-width:820px;}
+#dlg_clerk .xtbl_row > div:nth-child(1) {width:220px;}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+
+<select style="width:180px" name="report_date"><option value="">-- Select Report --</option>
+%for r in reports:
+<option>${r|h}</option>
+%endfor
+</select>
+<select style="width:180px" name="report_dept"><option value="">-- Select Dept --</option></select>
+<input style="margin-left:20px" type="button" value="export" class="btn" />
+<input style="margin-left:20px" type="button" value="quit" class="btn" />
+
+</div>
+
+<div class="main_tbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="Pending + Rcved">Total</div><div>Pending</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div></div></div>
+<div class="xtbl"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+
+<div id="dlg_clerk">
+<div class="xtbl_header"><div class="xtbl_row"><div>Dept</div><div title="Pending + Rcved">Total</div><div>Pending</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div></div></div>
+<div class="xtbl"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+
+</body>
+</html>
+
+

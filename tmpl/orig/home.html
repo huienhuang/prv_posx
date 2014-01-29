@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<%include file="header_inc_v2.html" />
+<title>POSX - Home</title>
+<link rel="icon" type="image/png" sizes="72x72" href="img/main.png">
+
+<style type="text/css">
+.m_ctrl {min-width:900px}
+.m_ctrl input[type="text"] {margin-right:10px}
+
+.dlg_passwd {text-align:center}
+.dlg_passwd input[type="password"] {width:150px}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0;}
+
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:200px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:90px;color:#994C00;font-weight:bold;text-align:right}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:510px;color:#004C99;}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
+
+.sys_menu {width:120px;position:absolute;right:0;top:10px;}
+
+
+.pxm_blk {border:1px solid #c1c1c1;margin-bottom:20px;padding-bottom:10px;border-radius:5px;overflow:hidden}
+.pxm_blk > div:first-child {height:30px;line-height:28px;text-align:center;font-size:22px;background-color:#e6e5e5;border-bottom:1px solid #c1c1c1;margin-bottom:15px;}
+
+.pxm_list li {width:130px;height:30px;float:left;border:1px solid #c1c1c1;
+margin:0 10px 10px 10px;padding:3px;text-align:center;background-color:#f2f2f2;border-radius:5px}
+.pxm_list li a {display:block;line-height:30px;width:130px;height:30px;}
+
+
+</style>
+
+<script>
+var g_price_level = 0;
+
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text( '$' + unit[0][g_price_level] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function custsearch_render_item(ul, item)
+{
+    var d = item[2];
+    
+    var ks = ['address1', 'city', 'phone1'];
+    var info = '';
+    for(var i = 0; i < ks.length; i++) {
+        var v = d[ ks[i] ];
+        if(v) info += info ? ', ' + v : v;
+    }
+    
+    return $('<li class="srch_cust"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['creditused'] ? '$' + d['creditused'].toFixed(2) : ''))
+            .append($('<span></span>').text(info))
+            .append($('<span></span>').text(''))
+    ).appendTo(ul);
+    
+}
+
+function ac_item_search_response(event, ui) {
+    var ct = ui.content;
+    var term = $.trim( $(this).data("ui-autocomplete").term.toLowerCase() );
+        
+    for(var i = 0; i < ct.length; i++) {
+        var c = ct[i];
+        var item = c[3] = $.parseJSON(c[3]);
+        var units = item.units;
+            
+        if (c[4] !== null) {
+            var upc_uom_idx = parseInt(c[4]);
+            if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
+                
+        } else if(term) {
+            for(var u = 0; u < units.length; u++) {
+                var alu = units[u][1];
+                if(alu && alu.toLowerCase() === term) {
+                    item.default_uom_idx = u;
+                    break;
+                }
+            }
+        }
+            
+    }
+}
+
+$(function() {
+
+g_v_dlg_passwd = $('.dlg_passwd').dialog({
+    autoOpen:false,
+    modal:true,
+    width:500,
+    height:230,
+    close:function(evt,ui) { $(this).find('input[type="password"]').val(''); },
+    buttons: {
+        'Update': function() {
+            var o = $(this);
+            var a = {
+                'new_passwd': o.find('.txt_new_passwd').val(),
+                'old_passwd': o.find('.txt_old_passwd').val()
+            };
+            $.post('?fn=password', a, function(d) {
+                if(d && d.res) g_v_dlg_passwd.dialog('close');
+            }, 'json');
+        },
+    }
+});
+
+$('#srch_receipt').keyup(function(e) {
+    if(e.which == 13) {
+        var rno = $.trim($(this).val());
+        $(this).val('');
+        if(rno.length <= 0 || rno.match(/^\d+$/) === null) return;
+        
+        $.ajax({
+            async: false,
+            type: 'get',
+            url: 'hist?fn=hasreceipt',
+            data: {rno:rno},
+            success: function(d) {
+                if(!d) return;
+                if (d.sid_type)
+                    window.open('sorder?fn=print&rid=' + d.rno,'posx_print_wnd','location=0,width=992,height=700');
+                else
+                    window.open('hist?fn=printreceipt&rid=' + d.sid,'posx_print_wnd','location=0,width=992,height=700');
+            },
+            dataType: 'json'
+        });
+    }
+});
+
+$('#srch_salesorder').keyup(function(e) {
+    if(e.which == 13) {
+        var rno = $.trim($(this).val());
+        $(this).val('');
+        if(rno.length <= 0 || rno.match(/^\d+$/) === null) return;
+        
+        $.ajax({
+            async: false,
+            type: 'get',
+            url: 'sync?fn=has_salesorder',
+            data: {rno:rno},
+            success: function(d) {
+                if(!d) return;
+                window.open('sync?fn=printorder&type=2&rid='+d.sid,'posx_so_wnd','location=0,width=992,height=700');
+            },
+            dataType: 'json'
+        });
+    }
+});
+
+
+
+g_v_ac_item_search = $('#srch_item').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=itemsearch",
+    minLength: 1,
+    select: function(event, ui) {
+        window.open('hist?fn=itemhist&tid='+ui.item[0],'posx_item_hist','location=0,width=992,height=700');
+    },
+    response: ac_item_search_response
+});
+g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
+
+g_v_ac_cust_search = $('#srch_cust').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=custsearch",
+    minLength: 1,
+    select: function(event, ui) {
+        window.open('hist?fn=custhist&cid='+ui.item[0],'posx_customer_hist','location=0,width=992,height=700');
+    },
+    response: function(event, ui) {
+        var ct = ui.content;
+        for(var i = 0; i < ct.length; i++) {
+            var c = ct[i];
+            c[2] = $.parseJSON(c[2]);
+        }
+    }
+});
+g_v_ac_cust_search.data("ui-autocomplete")._renderItem = custsearch_render_item;
+
+
+$('.sys_menu').tinymenu();
+
+
+});
+
+</script>
+
+</head>
+<body>
+
+<div class="m_ctrl">
+<span>Customer: </span><input type="text" id="srch_cust" style="width:120px" />
+<span>Item: </span><input type="text" id="srch_item" style="width:120px" />
+<span>Receipt#: </span><input type="text" id="srch_receipt" style="width:80px"/>
+<span>SO#: </span><input type="text" id="srch_salesorder" style="width:80px"/>
+
+%if user_id:
+<div class="sys_menu">
+<ul><li>
+<a>${user_name|h}</a>
+<ul>
+<li><a href="?fn=logout">Logout</a><li>
+<li><a href="javascript:g_v_dlg_passwd.dialog('open')">Password</a><li>
+</ul>
+</li></ul>
+</div>
+%endif
+
+</div>
+
+<div class="m_body">
+
+%if user_lvl & ( (1 << PERM_BIT['admin']) | (1 << PERM_BIT['time']) ):
+<div class="pxm_blk">
+<div>Admin</div>
+
+<ul class="pxm_list">
+%if user_lvl & (1 << PERM_BIT['admin']):
+<li><a href="comm">Commision</a></li>
+<li><a href="comm?fn=comm_by_dept">Comm By Dept</a></li>
+<li><a href="user">User</a></li>
+%endif
+%if user_lvl & (1 << PERM_BIT['time']):
+<li><a href="clockinreport">Clock In Report</a></li>
+<li><a href="clockinv2?fn=mgr">Time MGR</a></li>
+%endif
+</ul>
+
+<div style="clear:both"></div>
+</div>
+%endif
+
+<div class="pxm_blk">
+<div>Receipt</div>
+
+<ul class="pxm_list">
+<li style="display:none"><a href="wrongdate">Wrong Date</a></li>
+<li><a href="hist">History</a></li>
+<li><a href="hist?fn=search">Search</a></li>
+<li style="display:none"><a href="sorder">红单</a></li>
+%if user_lvl & (1 << PERM_BIT['admin']):
+<li><a href="receiptstat">红单 Report</a></li>
+<li><a href="receipttotal">Regular Report</a></li>
+%endif
+<li><a href="delivery">Delivery</a></li>
+</ul>
+
+<div style="clear:both"></div>
+</div>
+
+<div class="pxm_blk">
+<div>Item</div>
+
+<ul class="pxm_list">
+<li><a href="simpleinfo?fn=alu">LookUp</a></li>
+<li style="display:none"><a href="errorprice">Error Price</a></li>
+<li style="display:none"><a href="errorquantity">Error Quantity</a></li>
+%if user_lvl & (1 << PERM_BIT['item stat access']):
+<li><a href="itemsold">Sold Report</a></li>
+%endif
+</ul>
+
+<div style="clear:both"></div>
+</div>
+
+
+<div class="pxm_blk">
+<div>System</div>
+
+<ul class="pxm_list">
+<li><a href="fixup">Fixup</a></li>
+<li><a href="label">Label</a></li>
+%if user_lvl & (1 << PERM_BIT['sys']) & 0:
+<li><a href="sys?fn=mac">Mac</a></li>
+%endif
+</ul>
+
+<div style="clear:both"></div>
+</div>
+
+</div>
+
+<div title="Change Password" class="dlg_passwd">
+Old: <input type="password" class="txt_old_passwd" />&nbsp;
+New: <input type="password" class="txt_new_passwd" />
+</div>
+
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Item > Stat</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<script type="text/javascript" src="js/jquery-tinygrid.js"></script>
+<link type="text/css" href="css/tinygrid.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+<script type="text/javascript">
+var g_price_level = 0;
+var g_item = null;
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text( '$' + unit[0][g_price_level] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function ac_item_search_response(event, ui)
+{
+    var ct = ui.content;
+    var term = $.trim( $(this).data("ui-autocomplete").term.toLowerCase() );
+        
+    for(var i = 0; i < ct.length; i++) {
+        var c = ct[i];
+        var item = c[3] = $.parseJSON(c[3]);
+        var units = item.units;
+            
+        if (c[4] !== null) {
+            var upc_uom_idx = parseInt(c[4]);
+            if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
+                
+        } else if(term) {
+            for(var u = 0; u < units.length; u++) {
+                var alu = units[u][1];
+                if(alu && alu.toLowerCase() === term) {
+                    item.default_uom_idx = u;
+                    break;
+                }
+            }
+        }
+            
+    }
+}
+
+function chg_uom()
+{
+    if(!g_item) return;
+    var item_js = g_item[3];
+    var units = item_js.units;
+    var uom_idx = parseInt(g_v_item_uom.val());
+    if(uom_idx >= units.length) return;
+    
+    var unit = units[uom_idx];
+    var qtys = item_js.qty.slice(0);
+    if (unit[3] != 1) {
+        qtys[0] /= unit[3];
+        qtys[1] /= unit[3];
+        qtys[2] /= unit[3];
+        qtys[3] /= unit[3];
+    }
+    
+    g_v_item_qtys.empty()
+    .append($('<span></span>').text('OHQty: ' + qtys[0].toFixed(2)))
+    .append($('<span></span>').click(list_orders_so).text('OrdQty: ' + qtys[1].toFixed(2)))
+    .append($('<span></span>').click(list_orders_po).text('PurQty: ' + qtys[3].toFixed(2)));
+    
+    var h = '<table class="pxm_tbl"><tr><th>Date</th><th>Total Qty</th><th>Total Count</th><th>Reg Qty</th><th>Reg Count</th><th>Red Qty</th><th>Red Count</th></tr>';
+    for(var i = 0 ; i < item_js.stat.length; i++) {
+        var s = item_js.stat[i];
+        var j = s[1];
+        var qtys = j.qty.slice(0);
+        if (unit[3] != 1) {
+            qtys[0] /= unit[3];
+            qtys[1] /= unit[3];
+        }
+        h += '<tr><td>'+s[0]+'</td><td>'+(qtys[0]+qtys[1]).toFixed(2)+'</td><td>'+(j.count[0]+j.count[1])+'</td><td>'+qtys[0].toFixed(2)+'</td><td>'+j.count[0]+'</td><td>'+qtys[1].toFixed(2)+'</td><td>'+j.count[1]+'</td></tr>';
+    }
+    h += '</table>';
+    g_v_item_stat.html(h);
+    
+}
+
+function update_stat(d)
+{
+    if (!d || !g_item || d.item_id !== g_item[0]) return;
+    g_item[3].stat = d.stat;
+    
+    var units = g_item[3].units;
+    for(var i = 0; i < units.length; i++) {
+        var u = units[i];
+        g_v_item_uom.append( $('<option value="'+i+'"></option>').text(u[2] + (i > 0 ? ' *' + u[3] : '')) );
+    }
+    
+    g_v_item_uom.val(''+g_item[3].default_uom_idx).change();
+}
+
+function load_item(item) {
+    g_item = item;
+    
+    g_v_item_uom.empty();
+    g_v_item_stat.empty();
+    g_v_item_name.empty();
+    
+    if (!g_item) return;
+    
+    g_v_item_name.append($('<span></span>').text(item[1]).click(open_item_hist))
+    .append($('<span></span>').text(item[3].units[0][1]))
+    .append($('<span></span>').text(item[2]));
+    
+    $.get('?fn=stat', {'item_id': item[0], 'from_date':parseInt(g_v_from_date.datepicker('getDate').getTime()/1000)}, update_stat, 'json');
+}
+
+function list_orders_po() { list_orders(1); }
+function list_orders_so() { list_orders(2); }
+
+function list_orders(type) {
+    if(!g_item) return;
+    var item_js = g_item[3];
+    var units = item_js.units;
+    var uom_idx = parseInt(g_v_item_uom.val());
+    if(uom_idx >= units.length) return;
+    var unit = units[uom_idx];
+    
+    window.open('hist?fn=itemhist&dg_type='+type+'&tid=' + g_item[0],'posx_item_hist','location=0,width=992,height=700');
+}
+
+function open_item_hist() {
+    if(!g_item) return;
+    window.open('hist?fn=itemhist&tid=' + g_item[0],'posx_item_hist','location=0,width=992,height=700');
+}
+
+$(function() {
+    
+$('.btn_home').button();
+
+g_v_item_name = $('.cnt_item_name');
+g_v_item_stat = $('.cnt_item_stat');
+g_v_item_qtys = $('.cnt_item_qtys');
+
+g_v_ac_item_search = $('#item_search').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=itemsearch",
+    minLength: 1,
+    select: function(event, ui) { load_item(ui.item); },
+    response: ac_item_search_response
+});
+g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
+
+g_v_from_date = $('#from_date').datepicker({
+    onSelect:function() { load_item(g_item); }
+}).datepicker("setDate", "-6m");
+
+g_v_item_uom = $('#item_uom').change(chg_uom);
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+#item_search {width:200px;margin-right:20px;}
+#from_date {width:100px;margin-right:20px;}
+#item_uom {width:200px;}
+.btn_home {float:right;}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0;}
+
+.pxm_tbl {width:800px;}
+.pxm_tbl td {padding:5px;}
+.pxm_tbl tr td:first-child {cursor:pointer}
+
+.cnt_item > div {}
+.cnt_item_name, .cnt_item_qtys {font-weight:bold;padding:10px 0;border-bottom:1px solid #ccc;height:26px;line-height:26px;}
+.cnt_item_name > span {margin-right:20px;}
+.cnt_item_name > span:nth-child(1) {color:#004C99;cursor:pointer}
+.cnt_item_name > span:nth-child(2) {color:#994C00}
+.cnt_item_name > span:nth-child(3) {color:blue}
+.cnt_item_qtys > span {float:left;display:block;height:26px;width:150px;margin-right:20px;cursor:pointer}
+.cnt_item_stat {padding:20px 0}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<span>Item: </span>
+<input type="text" id="item_search" />
+
+<span>From: </span>
+<input type="text" id="from_date" />
+
+<span>UOM: </span>
+<select id="item_uom"></select>
+
+<a href="home" class="btn_home">Quit</a>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+
+<div class="cnt_item">
+    <div class="cnt_item_name"></div>
+    <div class="cnt_item_qtys"></div>
+    <div class="cnt_item_stat"></div>
+</div>
+
+</div></div>
+
+</body>
+</html>

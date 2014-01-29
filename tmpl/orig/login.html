@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - Log In</title>
+
+<script type="text/javascript">
+
+$(function() {
+    
+$('.btn_home').button().click(go_home);
+$('.btn_login').button().click(function() {
+    $('#login_form').submit();
+});
+
+});
+
+</script>
+<style type="text/css">
+
+.main_cont {border:1px solid #c4c4c4;width:300px;height:180px;margin:50px auto 0 auto;background-color:#f2f2f2;padding:30px 50px;text-align:center;}
+
+</style>
+</head>
+<body>
+
+<div class="main_cont">
+<form id="login_form" method="POST" action="?fn=login&amp;a=m">
+<select name="user_id" style="width:300px">
+<option value="0"> - Select User - </option>
+%for u in userlist:
+%if u[2] & (1 << USER_PERM_BIT['normal access']):
+<option value="${u[0]}">${u[1]|h}</option>
+%endif
+%endfor
+</select>
+<br><br>
+<input type="password" name="user_passwd" style="width:292px" />
+<br><br>
+<input type="button" class="btn_home" value="Home" />
+<input type="button" class="btn_login" value="Log Me In" />
+</form>
+
+</div>
+
+</body>
+</html>

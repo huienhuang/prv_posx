@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Label</title>
+
+<script type="text/javascript">
+
+$(function() {
+    
+$('.btn').button();
+
+g_v_m_ctrl = $('.m_ctrl');
+idx_elements(g_v_m_ctrl, 5);
+
+g_v_iframe_tmpl = $('.m_body iframe');
+
+var els = g_v_m_ctrl.data('in_els');
+els.tmpl[0].change(function() {
+    var tmpl = $(this).val();
+    if(!tmpl)
+        g_v_iframe_tmpl.attr('src', 'about:blank');
+    else
+        g_v_iframe_tmpl.attr('src', '?fn=preview&tmpl=' + tmpl);
+});
+els.preview[0].click(function() {
+    g_v_iframe_tmpl[0].contentWindow.print();
+    
+})
+els.quit[0].click(function() {
+    go_home();
+    
+})
+
+init_item_ac('[name="ctrl_srch"]', function(evt, ui) {
+    var add_label = g_v_iframe_tmpl[0].contentWindow.add_label;
+    add_label && add_label(ui.item);
+});
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+.m_body {position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
+.m_body iframe {width:100%;height:100%;border:none;margin:0;padding:0}
+
+</style>
+
+</head>
+<body>
+
+<div class="m_ctrl">
+<select name="ctrl_tmpl" style="width:200px">
+<option value="">-- Select Template --</option>
+%for t_id,t_val in templates:
+<option value="${t_id|h}">${t_val|h}</option>
+%endfor
+</select>
+<input type="text" name="ctrl_srch" />
+<input type="button" name="ctrl_preview" value="preview" class="btn" />
+<input type="button" name="ctrl_quit" value="quit" class="btn" />
+</div>
+
+<div class="m_body">
+<iframe></iframe>
+</div>
+
+</body>
+</html>

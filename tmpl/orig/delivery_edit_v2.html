@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc.html" />
+<title>POSX - Delivery V2 > Edit</title>
+
+<script type="text/javascript">
+var g_cur_delivery_id = 0;
+var g_cur_delivery_rev = 0;
+var g_delivery_record_changed = 0;
+var g_recs = {};
+
+function custsearch_render_item(ul, item)
+{
+    var d = item[2];
+    
+    var ks = ['address1', 'city', 'phone1'];
+    var info = '';
+    for(var i = 0; i < ks.length; i++) {
+        var v = d[ ks[i] ];
+        if(v) info += info ? ', ' + v : v;
+    }
+    
+    return $('<li class="srch_cust"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['creditused'] ? '$' + d['creditused'].toFixed(2) : ''))
+            .append($('<span></span>').text(info))
+            .append($('<span></span>').text(''))
+    ).appendTo(ul);
+    
+}
+
+function new__data_input()
+{
+    g_v_dlg_data_input.data('rec_v', null).dialog('option', 'title', 'New').dialog('open');
+    g_v_dlg_data_input.data('in_els').type[0].change();
+}
+
+function new_ex__data_input()
+{
+    g_v_dlg_data_input_msg.empty();
+    new__data_input();
+}
+
+function update__receipt_tbl_row_0(rec_v, rec)
+{
+    var dnz = rec['driver_id'] ? g_v_dlg_data_input.data('in_els')['driver_id'][1][rec['driver_id']] : '';
+    rec_v.children('.rec_driver').text(dnz === undefined ? 'UNK' : dnz);
+}
+
+function update__receipt_tbl_row_1(rec_v, rec)
+{
+    var pm = (rec['js'] || {})['payments'];
+    if(!pm || !pm.length) {
+        rec_v.children('.rec_payment_received').text('');
+        return;
+    }
+    
+    var total = 0;
+    var pm_nzs = g_v_dlg_payment.data('in_els').payment_type[1];
+    var pms = []
+    for(var i = 0; i < pm.length; i++) {
+        var p = pm[i];
+        pms.push(pm_nzs[p[0]] + ' $' + p[1].toFixed(2) + (p[2] ? ' - ' + p[2] : ''));
+        total += p[1];
+    }
+    rec.pms = pms;
+    rec_v.children('.rec_payment_received').text('$' + total.toFixed(2));
+}
+
+function update__receipt_tbl_row_2(rec_v, rec)
+{
+    var in_els = g_v_dlg_problem.data('in_els');
+    var sales = in_els.problem_sales[1];
+    var lst = in_els.problem_id[0].children();
+    var pbs = (rec['js'] || {})['problems'] || {};
+    var pba = [];
+    for(var i = 1; i < lst.length; i++) {
+        var o = $(lst[i]);
+        var pb = pbs[ (parseInt(o.val()) - 1) + '' ];
+        if(pb) pba.push( o.attr('title') + '(' + sales[ pb[0] ] + ')'+ (pb[1] ? ' - ' + pb[1] : '') );
+    }
+    rec.pba = pba;
+    rec_v.children('.rec_problem').text( pba.length ? '有(' + pba.length + ')' : '' );
+}
+
+function update__receipt_tbl_row(rec_v, rec)
+{
+    rec_v.children('.rec_num').text(rec.type ? '' : (rec['dup'] ? '*' : '') + rec['num']);
+    rec_v.children('.rec_company').text(rec['company'] || '');
+    rec_v.children('.rec_amount').text(rec['amount'] ? '$' + rec['amount'].toFixed(2) : '');
+    
+    rec_v.find('input[name="rec_delivered"]').prop('checked', !!rec['delivered']);
+    rec_v.find('input[name="rec_problem"]').prop('checked', !!rec['problem_flag']);
+    rec_v.find('input[name="rec_payment_required"]').prop('checked', !!rec['payment_required']);
+    
+    update__receipt_tbl_row_0(rec_v, rec);
+    update__receipt_tbl_row_1(rec_v, rec);
+    update__receipt_tbl_row_2(rec_v, rec);
+    update__receipt_tbl_row_color(rec_v, rec);
+}
+
+function get_note_content()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    return rec.type !== 0 || !rec.js.note ? null : rec.js.note;
+}
+
+function get_problem_content()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if(!rec.pba || !rec.pba.length) return null;
+    
+    var o = $('<div></div>');
+    for(var i = 0; i < rec.pba.length; i++) o.append( $('<div></div>').text(rec.pba[i]) );
+    
+    return o;
+}
+
+function get_pr_content()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if(!rec.pms || !rec.pms.length) return null;
+    
+    var o = $('<div></div>');
+    for(var i = 0; i < rec.pms.length; i++) o.append( $('<div></div>').text(rec.pms[i]) );
+    
+    return o;
+}
+
+function new__receipt_tbl_row(pos, rec)
+{
+    rec = rec || {};
+    if(rec.js === undefined) rec.js = {};
+    
+    var rec_v = g_v_receipt_tbl_row_tmpl.clone().show().data('rec', rec);
+    rec_v.children('.rec_pos').text(pos);
+    
+    rec_v.children('.rec_num').tooltip({
+       items: '.rec_num',
+       content: get_note_content
+    });
+    
+    rec_v.children('.rec_problem').tooltip({
+       items: '.rec_problem',
+       content: get_problem_content
+    });
+    
+    rec_v.children('.rec_payment_received').tooltip({
+       items: '.rec_payment_received',
+       content: get_pr_content
+    });
+    
+    return rec_v;
+}
+
+function add_new_row(rec)
+{
+    var rec_v = new__receipt_tbl_row(g_v_receipt_tbl.children().length + 1, rec);
+    g_v_receipt_tbl.append(rec_v);
+    g_v_receipt_tbl.scrollTop(rec_v.outerHeight() * (g_v_receipt_tbl.children(':visible').length - 1));
+    return rec_v;
+}
+
+function enter__data_input(e)
+{
+    if(e.which == 13) click_save__data_input();
+}
+
+function click_save__data_input()
+{
+    g_v_dlg_data_input_msg.empty();
+    
+    var in_els = g_v_dlg_data_input.data('in_els');
+    var type = parseInt(in_els.type[0].val());
+    var rec_v = g_v_dlg_data_input.data('rec_v');
+
+    if(type) {
+        var cid = in_els['cid'][0].val();
+        var customer = $.trim(in_els['customer'][0].val());
+        if(!customer || !cid) return;
+        
+        if(!rec_v) rec_v = add_new_row();
+        var rec = rec_v.data('rec');
+        if(rec.type === 0 && rec.num) { delete g_recs[rec.num]; rec.num = null; }
+        
+        rec['type'] = 1;
+        rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
+        rec['company'] = customer;
+        rec['cid'] = cid;
+        rec['amount'] = parseFloat(in_els['amount'][0].val()) || 0.0;
+        rec['payment_required'] = 1;
+        
+        update__receipt_tbl_row(rec_v, rec);
+        delivery_record_changed(rec);
+        new__data_input();
+        
+    } else {
+        var num = parseInt($.trim(in_els['num'][0].val()));
+        if(!num) return;
+        
+        var rec = null;
+        if(!rec_v || (rec=rec_v.data('rec')) && rec.num !== num) {
+            if(g_recs[num] !== undefined) {
+                g_v_dlg_data_input_msg.text('receipt #' + num + ' already exists');
+                return;
+            }
+        
+            $.ajax({
+                async: false,
+                type: 'get',
+                url: '?fn=get_delivery_receipt',
+                data: {'num': num, 'd_id': g_cur_delivery_id},
+                success: function(d) {
+                    if(d.err) { g_v_dlg_data_input_msg.text(d.err); return; }
+                    
+                    var n_rec = d.rec;
+                    var note = $.trim(in_els['note'][0].val());
+                    if(n_rec.dup && !note) {
+                        g_v_dlg_data_input_msg.text('receipt exists, need to enter the note');
+                        return;
+                    }
+                    
+                    if(rec && rec.num) delete g_recs[rec.num];
+                    rec = n_rec;
+                    if(!rec_v) rec_v = add_new_row(rec);
+                    g_recs[num] = rec;
+                    
+                    rec['type'] = 0;
+                    rec['num'] = num;
+                    rec['js']['note'] = note;
+                    rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
+                    
+                    update__receipt_tbl_row(rec_v, rec);
+                    delivery_record_changed(rec);
+                    new__data_input();
+                    
+                },
+                dataType: 'json',
+                error: function(xhr, status, error) {
+                    g_v_dlg_data_input_msg.text('unexpected error');
+                }
+            });
+            
+        } else {
+            rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
+            rec['js']['note'] = $.trim(in_els['note'][0].val());
+            update__receipt_tbl_row_0(rec_v, rec);
+            delivery_record_changed(rec);
+            new__data_input();
+        }
+        
+        
+    }
+
+    
+}
+
+function delete__row_tool()
+{
+    close_all_dlgs();
+    
+    var rec_v = $(this).closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    if(rec.loaded && !confirm('Remove This Row?')) return;
+    
+    var pos = parseInt(rec_v.children('.rec_pos').text());
+    var lst = rec_v.nextAll();
+    for(var i = 0; i < lst.length; i++) $(lst[i]).children('.rec_pos').text(pos + i);
+    
+    if(rec.type === 0 && rec.num) delete g_recs[rec.num];
+    rec_v.remove();
+    
+    if(rec.type !== undefined) {
+        g_v_filter_driver.change();
+        delivery_record_changed();
+    }
+}
+
+function add__row_tool()
+{
+    var rec_v = $(this).closest('.receipt_tbl_row');
+    var pos = parseInt(rec_v.children('.rec_pos').text()) + 1;
+    var lst = rec_v.nextAll();
+    for(var i = 0; i < lst.length; i++) $(lst[i]).children('.rec_pos').text(pos + i + 1);
+    
+    var new_rec_v = new__receipt_tbl_row(pos);
+    rec_v.after(new_rec_v);
+    edit__row_tool.call(null, new_rec_v);
+}
+
+function edit__row_tool(rec_v)
+{
+    if(!rec_v) rec_v = $(this).closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    g_v_dlg_data_input_msg.empty();
+    
+    g_v_dlg_data_input.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Edit Row #' + rec_v.children('.rec_pos').text());
+    
+    var in_els = g_v_dlg_data_input.data('in_els');
+    in_els['type'][0].val(rec.type ? '1' : '0').change();
+    if(!rec.type) {
+        in_els['num'][0].val(rec['num'] || '');
+        in_els['note'][0].val(rec['js']['note'] || '');
+    } else {
+        in_els['customer'][0].val(rec['company'] || '');
+        in_els['cid'][0].val(rec['cid'] || '');
+        in_els['amount'][0].val(rec['amount'] ? rec['amount'].toFixed(2) : '');
+    }
+    in_els['driver_id'][0].val(rec['driver_id'] || '0');
+    
+}
+
+function change__row_cb()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    var nz = je.attr('name').substr(4).toLowerCase();
+    var checked = rec[nz] = je.prop('checked') ? 1 : 0;
+    update__receipt_tbl_row_color(rec_v, rec);
+    
+    delivery_record_changed(rec);
+}
+
+function open_dlg_payment()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    var in_els = g_v_dlg_payment.data('in_els');
+    var pm = (rec['js'] || {})['payments'];
+    
+    var ph_v = in_els.payment_history[0].val('0');
+    $(ph_v.children().slice(1)).remove();
+    if(pm) {
+        var pm_nzs = in_els.payment_type[1];
+        for(var i = 0; i < pm.length; i++) {
+            var p = pm[i];
+            ph_v.append( $('<option value="'+(i+1)+'"></option>').text( pm_nzs[p[0]] + ' $' + p[1].toFixed(2) + (p[2] ? ' - ' + p[2] : '') ) );
+        }
+    }
+    in_els.payment_history[0].change();
+    
+    g_v_dlg_payment.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Payment - Row #' + rec_v.children('.rec_pos').text());
+
+}
+
+function open_dlg_problem()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    var in_els = g_v_dlg_problem.data('in_els');
+    var pbs = (rec['js'] || {})['problems'] || {};
+    var lst = in_els.problem_id[0].val('0').children();
+    var sales = in_els.problem_sales[1];
+    for(var i = 1; i < lst.length; i++) {
+        var o = $(lst[i]);
+        var pb = pbs[ (parseInt(o.val()) - 1) + '' ];
+        if(pb) {
+            o.text( '> ' + o.attr('title') + ' - ' + sales[ pb[0] ] + (pb[1] ? ' - ' + pb[1] : '') ).addClass('problem_active');
+        } else {
+            o.text( '' + o.attr('title') ).removeClass('problem_active');
+        }
+    }
+    in_els.problem_sales[0].val('0');
+    in_els.problem_note[0].val('');
+    
+    g_v_dlg_problem.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Problem - Row #' + rec_v.children('.rec_pos').text());
+}
+
+function delivery_record_changed(rec)
+{
+    if(rec) {
+        if(rec.type === undefined) return;
+        rec['changed'] = 1;
+    }
+    g_delivery_record_changed = 1;
+}
+
+function update__receipt_tbl_row_color(rec_v, rec)
+{
+    rec_v.removeClass('rec_delivered rec_problem');
+    if(rec['problem_flag']) rec_v.addClass('rec_problem');
+    else if(rec['delivered']) rec_v.addClass('rec_delivered');
+}
+
+function close_all_dlgs()
+{
+    g_v_dlg_data_input.dialog('close');
+    g_v_dlg_payment.dialog('close');
+    g_v_dlg_problem.dialog('close');
+}
+
+function load_delivery_record(d_id)
+{
+    g_cur_delivery_id = 0;
+    g_cur_delivery_rev = 0;
+    g_delivery_record_changed = 0;
+    g_recs = {}
+    g_v_receipt_tbl.empty();
+    g_v_delivery_name.val('');
+    g_v_delivery_date.datepicker("setDate", '+0');
+    g_v_delivery_id.val('');
+    g_v_receipt_tbl_footer.children().empty();
+    close_all_dlgs();
+    if(!d_id) {
+%if not read_only:
+        g_v_delivery_id.val('NEW');
+        new_ex__data_input();
+%endif
+        return;
+    }
+    
+    $.ajax({
+        async: false,
+        type: 'get',
+        url: '?fn=get_delivery_record',
+        data: {'d_id': d_id},
+        success: function(d) {
+            if(d.msg) MsgBox('MSG', d.msg);
+            if(!d.d_id) return;
+            g_cur_delivery_id = d.d_id;
+            g_cur_delivery_rev = d.rev;
+            g_v_delivery_id.val(g_cur_delivery_id);
+            g_v_delivery_name.val(d.name);
+            var dt = new Date();
+            dt.setTime(d.ts * 1000);
+            g_v_delivery_date.datepicker('setDate', dt);
+            
+            var recs = d.recs;
+            for(var i = 0; i < recs.length; i++) {
+                var rec = recs[i];
+                rec['loaded'] = 1;
+                var rec_v = new__receipt_tbl_row(i + 1, rec);
+                if (rec.type === 0) g_recs[ rec['num'] ] = rec;
+                update__receipt_tbl_row(rec_v, rec);
+                g_v_receipt_tbl.append(rec_v);
+            }
+            
+            g_v_filter_driver.change();
+            
+        },
+        dataType: 'json',
+        error: function(xhr, status, error) {
+            MsgBox('Error', 'loading record #' + d_id + ' - unexpected error');
+        }
+    });
+}
+
+function save_delivery_record()
+{
+    if(!g_delivery_record_changed) return;
+    var lst = g_v_receipt_tbl.children();
+    if(!g_cur_delivery_id && !lst.length) return;
+    
+    var recs = [];
+    for(var i = 0; i < lst.length; i++)
+    {
+        var rec_v = $(lst[i]);
+        var rec = rec_v.data('rec');
+        recs.push(rec);
+        
+        if(rec.type !== undefined && !rec.driver_id) {
+            MsgBox('Warning', 'Row#' + (i+1) + ' No Driver Assigned Yet');
+            return;
+        }
+    }
+    
+    var dt = g_v_delivery_date.datepicker('getDate');
+    $.ajax({
+        async: false,
+        type: 'post',
+        url: '?fn=save_delivery_record',
+        data: {
+            'd_id': g_cur_delivery_id,
+            'rev': g_cur_delivery_rev,
+            'recs': JSON.stringify(recs),
+            'ts': dt ? parseInt(dt.getTime() / 1000) : 0,
+            'name': g_v_delivery_name.val()
+        },
+        success: function(d) {
+            if(d.err) { MsgBox('Error', d.err); return; }
+            g_delivery_record_changed = 0;
+            window.location='?fn=delivery_edit&d_id=' + d.d_id;
+        },
+        dataType: 'json',
+        error: function(xhr, status, error) {
+            MsgBox('Error', 'saving record #' + (g_cur_delivery_id || 'NEW') + ' - unexpected error');
+        }
+    });
+}
+
+function open_wnd_receipt()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if (rec.type !== 0 || !rec.sid) return;
+    if (rec.sid_type)
+        window.open('sorder?fn=print&rid=' + rec.num,'posx_print_wnd','location=0,width=992,height=700');
+    else
+        window.open('hist?fn=printreceipt&rid=' + rec.sid,'posx_print_wnd','location=0,width=992,height=700');
+}
+
+function open_wnd_customer()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if (!rec.cid) return;
+    window.open('hist?fn=custhist&cid=' + rec.cid,'posx_customer_hist','location=0,width=992,height=700');
+}
+
+
+function idx_elements(blk, nz_prefix_len)
+{
+    var in_els = {}
+    var lst = blk.find('input,select');
+    for(var y = 0; y < lst.length; y++) {
+        var o = $(lst[y]);
+        var a = {};
+        if( o.prop("tagName").toLowerCase() === 'select' ) {
+            var l = o.children('option');
+            for(var i = 0; i < l.length; i++) {
+                var d = $(l[i]);
+                var k = parseInt(d.val());
+                a[k] = d.html();
+            }
+        }
+        in_els[ o.attr('name').substr(nz_prefix_len) ] = [o, a];
+    }
+    
+    blk.data('in_els', in_els);
+}
+
+function highlight_num(num)
+{
+    var lst = g_v_receipt_tbl.children();
+    var k = 0;
+    for(var i = 0; i < lst.length; i++) {
+        var rec_v = $(lst[i]);
+        var rec = rec_v.data('rec');
+        var visible = rec_v.is(':visible');
+        if(rec.type === 0 && rec.num === num) {
+            if(!visible) rec_v.show();
+            g_v_receipt_tbl.scrollTop(rec_v.outerHeight() * k);
+            rec_v.effect("shake");
+            return;
+        }
+        if(visible) k++;
+    }
+}
+
+function change__filter_driver() {
+    var driver_id = parseInt($(this).val());
+    var lst = g_v_receipt_tbl.children();
+    var recs = []
+    if(!driver_id) {
+        lst.show();
+        for(var i = 0; i < lst.length; i++) {
+            var rec_v = $(lst[i]);
+            var rec = rec_v.data('rec');
+            recs.push(rec);
+        }
+        
+    } else {
+        for(var i = 0; i < lst.length; i++) {
+            var rec_v = $(lst[i]);
+            var rec = rec_v.data('rec');
+            if(rec.driver_id === driver_id) {
+                rec_v.show();
+                recs.push(rec);
+            } else
+                rec_v.hide();
+        }
+        
+    }
+    
+    var pms = {};
+    var total = [0, 0];
+    for(var j = 0; j < recs.length; j++) {
+        var rec = recs[j];
+        if (rec.type === undefined || !rec.js || !rec.js.payments) continue;
+        var pm = rec.js.payments;
+        for(var i = 0; i < pm.length; i++) {
+            var p = pm[i];
+            var pt = pms[ p[0] ];
+            if(pt === undefined) pt = pms[ p[0] ] = [0, 0];
+            pt[0] += 1;
+            pt[1] += p[1];
+            total[0] += 1;
+            total[1] += p[1];
+        }
+    }
+    var s_pm = '';
+    var pm_types = g_v_dlg_payment.data('in_els')['payment_type'][1];
+    
+    for(var k in pms) {
+        var pt = pms[k];
+        s_pm += (pm_types[k] || 'UNK('+k+')') + '(' + pt[0] +') $' + pt[1].toFixed(2) + ', ';
+    }
+    if(s_pm) s_pm = s_pm + 'total(' + total[0] + '): $' + total[1].toFixed(2);
+    
+    var v_stat = g_v_receipt_tbl_footer.children();
+    $(v_stat[0]).text('Count: ' + recs.length);
+%if has_perm__accounting:
+    $(v_stat[1]).text(s_pm);
+%endif
+}
+
+
+function click__payment_remove()
+{
+    var in_els = g_v_dlg_payment.data('in_els');
+    var ph_id = parseInt(in_els.payment_history[0].val());
+    if(!ph_id) return;
+    
+    var rec_v = g_v_dlg_payment.data('rec_v');
+    var rec = rec_v.data('rec');
+    
+    var pm = (rec['js'] || {})['payments'];
+    pm.splice(ph_id - 1, 1);
+    in_els.payment_history[0].val('0');
+    
+    var lst = in_els.payment_history[0].children();
+    $(lst[ph_id]).remove();
+    for(var i = ph_id + 1; i < lst.length; i++) $(lst[i]).val((i - 1) + '');
+    
+    in_els.payment_history[0].change();
+    delivery_record_changed(rec);
+}
+
+function click__payment_set()
+{
+    var rec_v = g_v_dlg_payment.data('rec_v');
+    var rec = rec_v.data('rec');
+    rec['js'] = rec['js'] || {};
+    var pm = rec['js']['payments'] = rec['js']['payments'] || [];
+    
+    var in_els = g_v_dlg_payment.data('in_els');
+    var ph_id = parseInt(in_els.payment_history[0].val());
+    
+    var p = null;
+    if(!ph_id) {
+        p = [0, 0, ''];
+        pm.push(p);
+        ph_id = pm.length;
+        in_els.payment_history[0].append('<option value="'+ph_id+'"></option>').val(ph_id + '');
+    }
+    p = pm[ph_id - 1];
+    var d = $(in_els.payment_history[0].children()[ph_id]);
+    
+    p[0] = parseInt(in_els.payment_type[0].val());
+    p[1] = parseFloat(in_els.payment_amount[0].val()) || 0;
+    p[2] = $.trim(in_els.payment_memo[0].val());
+    
+    var pm_nzs = in_els.payment_type[1];
+    d.text( pm_nzs[p[0]] + ' $' + p[1].toFixed(2) + (p[2] ? ' - ' + p[2] : '') );
+    in_els.payment_history[0].change();
+    delivery_record_changed(rec);
+}
+
+function change__payment_history()
+{
+    var in_els = g_v_dlg_payment.data('in_els');
+    var ph_id = parseInt(in_els.payment_history[0].val());
+    if(!ph_id) {
+        in_els.payment_remove[0].hide();
+        in_els.payment_set[0].val('add');
+        in_els.payment_amount[0].val('');
+        in_els.payment_memo[0].val('');
+        return;
+    }
+    
+    var rec_v = g_v_dlg_payment.data('rec_v');
+    var rec = rec_v.data('rec');
+    var pm = (rec['js'] || {})['payments'];
+    var p = pm[ph_id - 1];
+    
+    in_els.payment_remove[0].show();
+    in_els.payment_set[0].val('update');
+    in_els.payment_type[0].val(p[0] + '');
+    in_els.payment_amount[0].val(p[1].toFixed(2));
+    in_els.payment_memo[0].val(p[2]);
+}
+
+function change__problem_id()
+{
+    var in_els = g_v_dlg_problem.data('in_els');
+    var rec_v = g_v_dlg_problem.data('rec_v');
+    var rec = rec_v.data('rec');
+    var pbs = (rec['js'] || {})['problems'] || {};
+    
+    var pid = parseInt(in_els.problem_id[0].val());
+    var pb = pid ? pbs[(pid - 1) + ''] : null;
+    if(pb) {
+        in_els.problem_sales[0].val( pb[0] + '' );
+        in_els.problem_note[0].val( pb[1] );
+    } else {
+        in_els.problem_sales[0].val('0');
+        in_els.problem_note[0].val('');
+    }
+}
+
+function change__problem_attr()
+{
+    var in_els = g_v_dlg_problem.data('in_els');
+    var rec_v = g_v_dlg_problem.data('rec_v');
+    var rec = rec_v.data('rec');
+    var pid = parseInt(in_els.problem_id[0].val());
+    if(!pid) return;
+    
+    rec['js'] = rec['js'] || {};
+    var pbs = rec['js']['problems'] = rec['js']['problems'] || {};
+    
+    rec['problem_flag'] = rec['problem_flag'] || 0;
+    
+    var sales_id = parseInt(in_els.problem_sales[0].val());
+    var note = $.trim(in_els.problem_note[0].val());
+    
+    var o = in_els.problem_id[0].children('[value="'+pid+'"]');
+    if(sales_id) {
+        var pb = pbs[(pid - 1) + ''] = [sales_id, note];
+        rec['problem_flag'] |= 1 << (pid - 1);
+        var sales = in_els.problem_sales[1];
+        o.text( '> ' + o.attr('title') + ' - ' + sales[ pb[0] ] + (pb[1] ? ' - ' + pb[1] : '') ).addClass('problem_active');
+    } else {
+        rec['problem_flag'] &= ~(1 << (pid - 1));
+        delete pbs[(pid - 1) + ''];
+        o.text( '' + o.attr('title') ).removeClass('problem_active');
+    }
+    
+    delivery_record_changed(rec);
+}
+
+function delete_delivery_record()
+{
+    if(!g_cur_delivery_id || !confirm('Delete this record? All data will be lost!')) return;
+    
+    $.post('?fn=delete', {'d_id': g_cur_delivery_id}, function() {
+        window.location='?fn=delivery_edit&d_id=' + g_cur_delivery_id;
+    }, 'json');
+}
+
+$(function() {
+
+$('.btn').button();
+
+g_v_delivery_id = $('.tab_ctrl .delivery_id');
+g_v_receipt_tbl = $('.receipt_tbl');
+g_v_receipt_tbl_footer = $('.receipt_tbl_footer');
+
+g_v_dlg_data_input = $('#dlg_data_input').dialog({
+    autoOpen: false,
+    width:400,
+    height:350,
+    close:function() { g_v_dlg_data_input.data('rec_v', null); },
+    buttons: {
+        'save': click_save__data_input,
+    }
+});
+
+g_v_dlg_payment = $('#dlg_payment').dialog({
+    autoOpen: false,
+    modal: true,
+    width:480,
+    height:280,
+    close:function() {
+        var rec_v = g_v_dlg_payment.data('rec_v');
+        var rec = rec_v.data('rec');
+        update__receipt_tbl_row_1(rec_v, rec);
+        g_v_filter_driver.change();
+        g_v_dlg_payment.data('rec_v', null);
+    },
+});
+g_v_dlg_problem = $('#dlg_problem').dialog({
+    autoOpen: false,
+    modal: true,
+    width:600,
+    height:250,
+    close:function() {
+        var rec_v = g_v_dlg_problem.data('rec_v');
+        var rec = rec_v.data('rec');
+        update__receipt_tbl_row_2(rec_v, rec);
+        update__receipt_tbl_row_color(rec_v, rec);
+        g_v_dlg_problem.data('rec_v', null);
+    },
+});
+idx_elements(g_v_dlg_data_input, 4);
+idx_elements(g_v_dlg_payment, 4);
+idx_elements(g_v_dlg_problem, 4);
+g_v_dlg_data_input_msg = g_v_dlg_data_input.find('.dlg_msg');
+
+g_v_receipt_tbl_row_tmpl = $('.receipt_tbl_row_tmpl').removeClass('receipt_tbl_row_tmpl');
+
+g_v_filter_driver = $('.tab_ctrl > .filter_driver').change(change__filter_driver);
+g_v_delivery_name = $('.tab_ctrl > .delivery_name');
+g_v_delivery_date = $('.tab_ctrl > .delivery_date').datepicker();
+g_v_rec_num_lku = $('.tab_ctrl > .rec_num_lku').keyup(function(e) {
+    if(e.which !== 13) return;
+    var d = $(this);
+    var num = parseInt( d.val() );
+    d.val('');
+    if(!num) return;
+    highlight_num(num);
+});
+
+g_v_delivery_printing = $('.tab_ctrl > .delivery_printing').change(function() {
+    var tmpl = g_v_delivery_printing.val();
+    g_v_delivery_printing.val('');
+    
+    if(!g_cur_delivery_id) return;
+    
+    if(g_delivery_record_changed) {
+        MsgBox('warning', 'data has been changed, save before printing');
+        return;
+    }
+    
+    var driver_id = parseInt(g_v_filter_driver.val()) || 0;
+    
+    window.open('?fn=delivery_printing_'+tmpl+'&d_id='+g_cur_delivery_id+'&auto_print=1&driver_id='+driver_id,'posx_printing_wnd__delivery','location=0,width=992,height=700');
+});
+
+
+%if read_only:
+g_v_delivery_name.prop('disabled', true);
+g_v_delivery_date.prop('disabled', true);
+g_v_receipt_tbl_row_tmpl.find('input').prop('disabled', true);
+
+$('.tab_ctrl > input[value="edit"]').click(function() { window.location='?fn=delivery_edit&d_id='+g_cur_delivery_id; });
+
+g_v_delivery_id.keyup(function(e) {
+    if(e.which !== 13) return;
+    var d_id = parseInt( $(this).val() );
+    if(!d_id) return;
+    
+    load_delivery_record(d_id);
+    
+}).prop('disabled', false);
+
+%else:
+
+g_v_delivery_id.prop('disabled', true);
+var in_els = g_v_dlg_data_input.data('in_els');
+in_els.num[0].keyup(enter__data_input);
+in_els.amount[0].keyup(enter__data_input);
+in_els.type[0].change(function() {
+    var type = parseInt($(this).val());
+    var els = g_v_dlg_data_input.data('in_els');
+    
+    if(type) {
+        els.num[0].parent().parent().hide();
+        els.note[0].parent().parent().hide();
+        els.cid[0].val('');
+        els.amount[0].val('').parent().parent().show();
+        els.customer[0].parent().parent().show();
+        els.customer[0].val('').focus();
+    } else {
+        els.amount[0].parent().parent().hide();
+        els.customer[0].parent().parent().hide();
+        els.note[0].val('').parent().parent().show();
+        els.num[0].parent().parent().show();
+        els.num[0].val('').focus();
+    }
+    
+});
+
+in_els.customer[0].autocomplete({
+    autoFocus: true,
+    source: "sync?fn=custsearch",
+    minLength: 1,
+    select: function(event, ui) {
+        var els = g_v_dlg_data_input.data('in_els');
+        els.cid[0].val(ui.item[0]);
+    },
+    response: function(event, ui) {
+        var ct = ui.content;
+        for(var i = 0; i < ct.length; i++) {
+            var c = ct[i];
+            c[2] = $.parseJSON(c[2]);
+            c.value = c[1];
+        }
+    }
+}).data("ui-autocomplete")._renderItem = custsearch_render_item;
+
+in_els = g_v_dlg_payment.data('in_els');
+in_els.payment_remove[0].click(click__payment_remove);
+in_els.payment_set[0].click(click__payment_set);
+in_els.payment_history[0].change(change__payment_history);
+
+in_els = g_v_dlg_problem.data('in_els');
+in_els.problem_id[0].change(change__problem_id);
+in_els.problem_sales[0].change(change__problem_attr);
+in_els.problem_note[0].change(change__problem_attr);
+
+g_v_receipt_tbl.sortable({
+    items: '> div',
+    update: function(event, ui) {
+        var rec_v = ui.item;
+        var lst = g_v_receipt_tbl.children();
+        var cur_pos = rec_v.prevAll().length + 1;
+        var old_pos = parseInt(rec_v.children('.rec_pos').text());
+        if(cur_pos > old_pos) {
+            var tmp = cur_pos;
+            cur_pos = old_pos;
+            old_pos = tmp;
+        }
+        for(cur_pos = cur_pos - 1; cur_pos < old_pos && cur_pos < lst.length; cur_pos++)
+            $(lst[cur_pos]).children('.rec_pos').text(cur_pos + 1);
+        
+        close_all_dlgs();
+        delivery_record_changed();
+    }
+}).disableSelection();
+
+$('.tab_ctrl > input[value="add"]').click(new_ex__data_input);
+$('.tab_ctrl > input[value="new"]').click(function(){ window.location='?fn=delivery_edit'; });
+$('.tab_ctrl > input[value="save"]').click(save_delivery_record);
+$('.tab_ctrl > input[value="delete"]').click(delete_delivery_record);
+
+g_v_delivery_name.change(function() { delivery_record_changed(); });
+g_v_delivery_date.change(function() { delivery_record_changed(); });
+
+window.onbeforeunload = function(e) {
+    if(g_delivery_record_changed) return "Discard?";
+    return undefined;
+}
+
+%endif
+
+
+$('.tab_ctrl, .receipt_tbl_header').tooltip();
+
+load_delivery_record("${d_id or ''}");
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tab_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tab_ctrl input, .tab_ctrl select {margin-right:10px;}
+
+.receipt_tbl_row {height:42px;font-size:20px;line-height:42px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:1129px;}
+.receipt_tbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;}
+.receipt_tbl_row > div:nth-child(1) {${read_only and 'width:0' or 'width:89px'}}
+.receipt_tbl_row > div:nth-child(2) {width:50px;color:#1d4500}
+.receipt_tbl_row > div:nth-child(3) {width:80px;font-weight:bold}
+.receipt_tbl_row > div:nth-child(4) {width:300px;font-style:italic;color:#0050a1}
+.receipt_tbl_row > div:nth-child(5) {width:80px;}
+.receipt_tbl_row > div:nth-child(6) {width:80px;}
+.receipt_tbl_row > div:nth-child(7) {width:80px;}
+.receipt_tbl_row > div:nth-child(8) {width:80px;}
+.receipt_tbl_row > div:nth-child(9) {width:210px;cursor:pointer}
+.receipt_tbl_row > div:nth-child(10) {width:80px;cursor:pointer}
+.receipt_tbl .receipt_tbl_row:nth-child(even) {background-color:#f9f9f9}
+.receipt_tbl_header,.receipt_tbl_footer {position:absolute;top:0;left:0;right:0;background-color:#f1f1f1;font-weight:bold;}
+.receipt_tbl_header {top:50px}
+.receipt_tbl_footer {bottom:0;top:auto;border-top:1px solid #ddd;}
+.receipt_tbl_footer > div {text-align:left;color:#000 !important}
+.receipt_tbl_footer > div:nth-child(1) {width:120px;}
+.receipt_tbl_footer > div:nth-child(2) {width:780px;}
+
+.receipt_tbl {position:absolute;top:93px;bottom:43px;right:0;left:0;overflow:hidden;overflow-y:scroll;min-width:1129px;}
+.receipt_tbl_row input[name="rec_memo"] {width:224px}
+.receipt_tbl_row .rec_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
+.receipt_tbl_row .rec_tools > span {position:absolute;display:block;top:8px;left:2px;width:26px;height:26px;cursor:pointer}
+.receipt_tbl_row .rec_tools > span:nth-child(2) {left:29px}
+.receipt_tbl_row .rec_tools > span:nth-child(3) {left:61px}
+.receipt_tbl .receipt_tbl_row.rec_delivered {background-color:#e7f1ff}
+.receipt_tbl .receipt_tbl_row.rec_paid {background-color:#fff7e8}
+.receipt_tbl .receipt_tbl_row.rec_problem {background-color:#fddfdf}
+.receipt_tbl .receipt_tbl_row.rec_paid_n_delivered {background-color:#f5ffe9}
+.receipt_tbl .receipt_tbl_row.rec_warning {background-color:#ff6060}
+.receipt_tbl .receipt_tbl_row:hover {background-color:#ffe7d7}
+.receipt_tbl_row .rec_num, .receipt_tbl_row .rec_company {cursor:pointer}
+
+div.xlabel {position:relative;height:32px;line-height:32px;margin:9px 0;}
+div.xlabel > div {display:block;position:absolute;top:0;bottom:0;white-space:nowrap}
+div.xlabel > div:nth-child(1) {left:0;width:100px;text-align:right;}
+div.xlabel > div:nth-child(2) {left:110px;right:0;}
+
+#dlg_problem select {width:490px}
+#dlg_problem .problem_active {background-color:#ffcaca}
+#dlg_problem input[type="text"] {width:484px}
+#dlg_problem div.xlabel > div:nth-child(1) {width:60px}
+#dlg_problem div.xlabel > div:nth-child(2) {left:70px}
+
+#dlg_data_input {font-size:18px;}
+#dlg_data_input .dlg_msg {height:26px;text-align:center;color:#ff3535}
+.dlg_cls input[type="text"] {width:194px}
+.dlg_cls select {width:200px}
+
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:200px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:90px;color:#994C00;font-weight:bold;text-align:right}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:510px;color:#004C99;}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
+
+
+
+</style>
+
+</head>
+<body>
+
+<div class="tab_ctrl">
+<span>ID: </span>
+<input type="text" style="width:50px" class="delivery_id" />
+<input type="text" style="width:100px" class="delivery_name" title="Name" />
+<input type="text" style="width:100px" class="delivery_date" title="ShipDate" />
+<select class="delivery_printing" style="width:100px">
+<option value="">- Print -</option>
+%for u in printing_tmpls:
+<option value="${u.lower().replace(' ', '_')|h}">${u|h}</option>
+%endfor
+</select>
+<select style="width:140px" class="filter_driver">
+%for u in drivers:
+<option value="${u[0]}">${u[1]|h}</option>
+%endfor
+</select>
+<input type="text" style="width:80px" class="rec_num_lku" title="Receipt Lookup" />
+%if not read_only:
+<input type="button" value="save" class="btn" />
+<input type="button" value="new" class="btn" />
+<input type="button" value="delete" class="btn"/>
+<input type="button" value="add" class="btn" />
+%else:
+<input type="button" value="edit" class="btn" />
+%endif
+</div>
+
+<div class="receipt_tbl_row receipt_tbl_header">
+<div></div>
+<div>#</div>
+<div>Receipt#</div>
+<div>Customer</div>
+<div>Amount</div>
+<div>Driver</div>
+<div title="Payment Required">应结帐</div>
+<div title="Delivered">已送货</div>
+<div title="Payment Received">款项回收</div>
+<div title="Problem">有问题</div>
+</div>
+<div class="receipt_tbl_row receipt_tbl_row_tmpl" style="display:none">
+<div class="rec_tools">
+%if not read_only:
+<span title="Delete" onclick="return delete__row_tool.call(this)"></span><span title="Add" onclick="return add__row_tool.call(this)"></span><span title="Edit" onclick="return edit__row_tool.call(this)"></span>
+%endif
+</div>
+<div class="rec_pos"></div>
+<div class="rec_num" onclick="return open_wnd_receipt.call(this)"></div>
+<div class="rec_company" onclick="return open_wnd_customer.call(this)"></div>
+<div class="rec_amount"></div>
+<div class="rec_driver"></div>
+<div class="rec_payment_required"><input type="checkbox" name="rec_payment_required" onchange="return change__row_cb.call(this)" /></div>
+<div><input type="checkbox" name="rec_delivered" onchange="return change__row_cb.call(this)" /></div>
+<div class="rec_payment_received"${not read_only and ' onclick="return open_dlg_payment.call(this)"' or ''}></div>
+<div class="rec_problem"${not read_only and ' onclick="return open_dlg_problem.call(this)"' or ''}></div>
+</div>
+<div class="receipt_tbl"></div>
+<div class="receipt_tbl_row receipt_tbl_footer"><div></div><div></div></div>
+
+
+<div id="dlg_data_input" class="dlg_cls">
+<div class="dlg_msg"></div>
+<div class="xlabel"><div>Driver:</div><div><select name="rec_driver_id">
+%for u in drivers:
+<option value="${u[0]}">${u[1]|h}</option>
+%endfor
+</select></div></div>
+<div class="xlabel"><div>Type:</div><div><select name="rec_type"><option value="0">Receipt</option><option value="1">Payment Collection</option></select></div></div>
+<div class="xlabel"><div>Receipt #:</div><div><input type="text" name="rec_num" /></div></div>
+<div class="xlabel"><div>Note:</div><div><input type="text" name="rec_note" /></div></div>
+<div class="xlabel"><div>Company:</div><div><input type="text" name="rec_customer" /></div></div>
+<div class="xlabel"><div>Amount:</div><div><input type="text" name="rec_amount" /></div></div>
+<input type="hidden" name="rec_cid" />
+</div>
+
+<div id="dlg_payment" class="dlg_cls">
+<div class="xlabel"><div>Payment:</div><div><select name="rec_payment_history"><option value="0">-- New --</option></select> <input type="button" name="rec_payment_remove" value="remove" class="btn" /></div></div>
+<div class="xlabel"><div>Type:</div><div><select name="rec_payment_type">
+%for i in range(len(payments)):
+<option value="${i}">${payments[i]|h}</option>
+%endfor
+</select> <input type="button" name="rec_payment_set" value=" " class="btn" /></div></div>
+<div class="xlabel"><div>Amount:</div><div><input type="text" name="rec_payment_amount" /></div></div>
+<div class="xlabel"><div>Memo:</div><div><input type="text" name="rec_payment_memo" /></div></div>
+</div>
+
+<div id="dlg_problem" class="dlg_cls">
+<div class="xlabel"><div>Type:</div><div>
+<select name="rec_problem_id">
+<option value="0">- Problem -</option>
+%for i in range(len(problems)):
+<option value="${i+1}" title="${problems[i]|h}"> </option>
+%endfor
+</select></div></div>
+<div class="xlabel"><div>Sales:</div><div>
+<select name="rec_problem_sales">
+%for u in sales:
+<option value="${u[0]}">${u[1]|h}</option>
+%endfor
+</select></div></div>
+<div class="xlabel"><div>Note:</div><div><input type="text" name="rec_problem_note" /></div></div>
+</div>
+
+</body>
+</html>

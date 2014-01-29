@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Receipt > Stat</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v2.js"></script>
+<script type="text/javascript" src="js/jquery-tinygrid.js"></script>
+<link type="text/css" href="css/tinygrid.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+<script type="text/javascript">
+g_seq = 0;
+
+function open_order_wnd(rid)
+{
+    window.open('sorder?fn=print&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function load_user(uid)
+{
+    g_v_assoc.val(''+uid).change();
+    return false;
+}
+
+function load_data_all_user(d)
+{
+    var o = g_v_stat_all_user.show().children('.vtable_body');
+    for(var i = 0; i < d.stat.length; i++) {
+        var t = d.stat[i];
+        
+        o.append($('<div class="vtable_row"></div>')
+                 .append( $('<div onclick="return load_user('+t.uid+')"></div>').text(t.name) )
+                 .append( $('<div></div>').text(t.count) )
+                 .append( $('<div></div>').text(t.total.toFixed(2)) )
+                 .append( $('<div></div>').text(t.cost.toFixed(2) + (t.total ? ' ('+(t.cost / t.total * 100).toFixed(2)+'%)' : '') ))
+        );
+        
+    }
+    
+    var f = g_v_stat_all_user.children('.vtable_footer');
+    f.children(':nth-child(2)').text('Count: ' + d.count);
+    f.children(':nth-child(3)').text(d.total.toFixed(2));
+    f.children(':nth-child(4)').text(d.cost.toFixed(2) + (d.total ? ' ('+(d.cost / d.total * 100).toFixed(2)+'%)' : '') );
+}
+
+function load_data_per_user(d)
+{
+    var o = g_v_stat_per_user.show().children('.vtable_body');
+    for(var i = 0; i < d.stat.length; i++) {
+        var t = d.stat[i];
+        
+        o.append($('<div class="vtable_row"></div>')
+                 .append( $('<div onclick="return open_order_wnd(\''+t.id+'\')"></div>').text(t.id) )
+                 .append( $('<div></div>').text(t.type) )
+                 .append( $('<div></div>').text(t.paid) )
+                 .append( $('<div></div>').text(t.memo) )
+                 .append( $('<div></div>').text(t.total.toFixed(2)) )
+                 .append( $('<div></div>').text(t.order_date) )
+        );
+        
+    }
+    
+    var f = g_v_stat_per_user.children('.vtable_footer');
+    f.children(':nth-child(4)').text('Count: ' + d.count);
+    f.children(':nth-child(5)').text(d.total.toFixed(2));
+}
+
+function load_data() {
+    g_seq++;
+    var seq = g_seq;
+    
+    g_v_stat_all_user.hide().children('.vtable_body').empty();
+    g_v_stat_per_user.hide().children('.vtable_body').empty();
+    
+    var from_date = g_v_from_date.datepicker('getDate');
+    var to_date = g_v_to_date.datepicker('getDate');
+    
+    g_v_stat_date.text(from_date.toLocaleDateString() + ' - ' + to_date.toLocaleDateString());
+    
+    $.get('?fn=stat', {
+        'assoc_id': g_v_assoc.val(),
+        'from_ts': parseInt(from_date.getTime()/1000),
+        'to_ts': parseInt(to_date.getTime()/1000),
+        'status': g_v_status.val(),
+    },
+    function(d) {
+        if(seq != g_seq) return;
+        d.assoc_id ? load_data_per_user(d) : load_data_all_user(d);
+    },
+    'json'
+    );
+}
+
+$(function() {
+
+$('.btn_home').button();
+$('.btn_print').button().click(function() {window.print()});
+
+g_v_stat_all_user = $('.stat_all_user');
+g_v_stat_per_user = $('.stat_per_user');
+g_v_stat_date = $('.stat_date');
+
+g_v_from_date = $('.txt_from_date').datepicker({onSelect:load_data}).datepicker("setDate", '+0');
+g_v_to_date =  $('.txt_to_date').datepicker({onSelect:load_data}).datepicker("setDate", '+0');
+
+g_v_status = $('.txt_status').change(load_data);
+g_v_assoc = $('.txt_assoc').change(load_data);
+
+g_v_assoc.change();
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;font-size:20px;}
+
+.btn_home,.btn_print {float:right}
+.pxm_ctrl_cont input, .pxm_ctrl_cont select {width:130px;font-size:20px;margin-right:20px;}
+
+.vtable {width:952px;background-color:white}
+.vtable div.vtable_row {position:relative;page-break-inside:avoid;}
+.vtable div.vtable_row > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable div.vtable_row {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable div.vtable_row > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div.vtable_body > div.vtable_row > div:first-child {cursor:pointer}
+.vtable > div.vtable_body > div.vtable_row:nth-child(even) {background-color:#F9F9F9}
+.vtable > div.vtable_body > div.vtable_row:hover {background-color:#FFE5CC}
+.vtable > div.vtable_header {font-weight:bold;background-color:#E0E0E0}
+.vtable > div.vtable_footer {font-weight:bold;background-color:#E0E0E0;border-bottom:1px solid #ccc;}
+
+.stat_all_user div.vtable_row > div:nth-child(1) {left:1px;right:501px}
+.stat_all_user div.vtable_row > div:nth-child(2) {width:100px;right:401px}
+.stat_all_user div.vtable_row > div:nth-child(3) {width:200px;right:201px}
+.stat_all_user div.vtable_row > div:nth-child(4) {width:200px;right:1px}
+
+.stat_per_user div.vtable_row > div:nth-child(1) {left:1px;width:100px}
+.stat_per_user div.vtable_row > div:nth-child(2) {left:101px;width:100px}
+.stat_per_user div.vtable_row > div:nth-child(3) {left:201px;width:100px}
+.stat_per_user div.vtable_row > div:nth-child(4) {left:301px;right:401px}
+.stat_per_user div.vtable_row > div:nth-child(5) {right:251px;width:150px}
+.stat_per_user div.vtable_row > div:nth-child(6) {width:250px;right:1px}
+
+.stat_date {display:none}
+
+@media print {
+.maincnt {margin:0 auto;}
+.vtable div.vtable_row, .vtable div.vtable_row > div {border-color:#000;}
+.pxm_ctrl {display:none}
+.pxm_body {margin:0}
+.stat_date {display:block}
+}
+@page {
+margin:60px 50px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<span>Assoc: </span>
+<select class="txt_assoc">
+<option value="0"> - Any - </option>
+%for u in userlist:
+%if u[2]:
+<option value="${u[0]}"${cur_uid == u[0] and ' selected="selected"' or ''}>${u[1]|h}</option>
+%endif
+%endfor
+</select>
+
+<span>Status: </span>
+<select class="txt_status">
+<option value="0"> - Any - </option>
+<option value="1">Paid</option>
+<option value="2">Unpaid</option>
+</select>
+
+<span>From: </span>
+<input type="text" class="txt_from_date" />
+
+<span>To: </span>
+<input type="text" class="txt_to_date" />
+
+<a href="home" class="btn_home">Quit</a>
+<a href="javascript:void(0)" class="btn_print">Print</a>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+
+<div class="cnt_stat">
+
+<div class="stat_date"></div>
+
+<div class="vtable stat_all_user">
+<div class="vtable_row vtable_header"><div>Name</div><div>Count</div><div>Total</div></div>
+<div class="vtable_body"></div>
+<div class="vtable_row vtable_footer"><div></div><div></div><div></div><div></div></div>
+</div>
+
+<div class="vtable stat_per_user">
+<div class="vtable_row vtable_header"><div>ID</div><div>Type</div><div>Paid</div><div>Memo</div><div>Total</div><div>Order Date</div></div>
+<div class="vtable_body"></div>
+<div class="vtable_row vtable_footer"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+</div>
+
+</div>
+
+</div></div>
+
+</body>
+</html>

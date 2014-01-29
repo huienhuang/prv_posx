@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - System > Mac</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+<script type="text/javascript">
+
+$(function() {
+
+$('.btn_home').button();
+    
+$('.btn_refresh').button().click(function() {location.reload();});
+
+$('.btn_save').button().click(function() {
+    var o = $('.mac_tbl input[name="mac"]:checked');
+    var s = '';
+    for(var i = 0; i < o.length; i++) s += $(o[i]).val() + ',';
+    if(s) s = s.substr(0, s.length - 1);
+    
+    $.post('?fn=macsave', {'mac':s}, function(d) {
+        location.reload();
+    }, 'json');
+});
+    
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+.btn_home {float:right;}
+
+.pxm_tbl {width:800px;}
+.pxm_tbl td {padding:5px;height:auto;}
+.pxm_tbl tr td:nth-child(3) {text-align:right}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<a class="btn_refresh">Refresh</a>
+<a class="btn_save">Save</a>
+<a href="home" class="btn_home">Quit</a>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+
+<table class="pxm_tbl mac_tbl">
+<tr><th>Allowed</th><th>MAC</th><th>IP</th></tr>
+%for k,v in mac_lst:
+<tr>
+<td><input type="checkbox" name="mac" value="${k}"${v[1] and ' checked="checked"' or ''}/></td><td>${k}</td>
+<td>
+%for i in v[0]:
+${'%s [%d]' % i}<br/>
+%endfor
+</td>
+</tr>
+%endfor
+</table>
+
+</div></div>
+
+</body>
+</html>
+

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Receipt > Total</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
+<script type="text/javascript" src="js/jquery-tinygrid.js"></script>
+<link type="text/css" href="css/tinygrid.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css" rel="stylesheet" />
+
+<script type="text/javascript">
+
+function load_receipt(sid) {
+    if(!sid) return false;
+    window.open('hist?fn=printreceipt&rid=' + sid,'posx_print_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function load_total() {
+    $('.total').text('');
+    $('.receipt').text('');
+    
+    var frm = g_v_from_date.datepicker("getDate");
+    var to = g_v_to_date.datepicker("getDate");
+    if (!frm || !to) return;
+    var from_date = parseInt(frm.getTime() / 1000);
+    var to_date = parseInt(to.getTime() / 1000) + 24 * 3600;
+    if (from_date >= to_date) return;
+    
+    $.get('?fn=total', {from_date:from_date, to_date:to_date}, function(d) {
+        
+        $('.total').text('Total: ' + d.total + ', TaxedTotal: ' + d.taxedtotal + ', ' + frm.toLocaleDateString() + ' - ' + to.toLocaleDateString());
+        
+        for(var x = 0; x < d.payments.length; x++) {
+            var p = d.payments[x];
+            
+            var o = $('<div class="vtable"><div><div><div>NUM</div><div>Payment</div><div>Total_'+p[0]+'</div><div>Taxed_'+p[0]+'</div><div>Status</div><div>Customer</div></div></div></div><br/>');
+            var c = o.find('> div:first')
+            
+            var total = taxedtotal = 0;
+            for(var i = 0; i < p[1].length; i++) {
+                var pr = p[1][i];
+                var rec = d.receipts[ pr[0] ];
+                c.append(
+                    $('<div></div>')
+                    .append( $('<div onclick="return load_receipt(\''+rec['sid']+'\')"></div>').text(pr[0]) )
+                    .append( $('<div></div>').text(rec['payment']) )
+                    .append( $('<div></div>').text(pr[1]) )
+                    .append( $('<div></div>').text(pr[2]) )
+                    .append( $('<div onclick="return load_receipt(\''+rec['ref']+'\')"></div>').text(rec['status']) )
+                    .append( $('<div></div>').text(rec['customer']) )
+                );
+                
+                total += parseFloat(pr[1]);
+                taxedtotal += parseFloat(pr[2]);
+            }
+            
+            c.append(
+                $('<div></div>')
+                .append( $('<div></div>').text('') )
+                .append( $('<div></div>').text(p[0]) )
+                .append( $('<div></div>').text(total.toFixed(2)) )
+                .append( $('<div></div>').text(taxedtotal.toFixed(2)) )
+                .append( $('<div></div>').text('') )
+                .append( $('<div></div>').text('') )
+            );
+            
+            
+            $('.receipt').append(o);
+            
+        }
+        
+        if(d.others.length) {
+            
+            var o = $('<div class="vtable"><div><div><div>NUM</div><div>Payment</div><div>Total_Other</div><div>Taxed_Other</div><div>Taxed_Orig</div><div>Customer</div></div></div></div><br/>');
+            var c = o.find('> div:first')
+            
+            var total = taxedtotal = 0;
+            for(var i = 0; i < d.others.length; i++) {
+                var item_num = d.others[i];
+                var rec = d.receipts[ item_num ];
+                c.append(
+                    $('<div></div>')
+                    .append( $('<div onclick="return load_receipt(\''+rec['sid']+'\')"></div>').text(item_num) )
+                    .append( $('<div></div>').text(rec['payment']) )
+                    .append( $('<div></div>').text(rec['total']) )
+                    .append( $('<div></div>').text(rec['taxedtotal']) )
+                    .append( $('<div></div>').text(rec['origtaxedtotal']) )
+                    .append( $('<div></div>').text(rec['customer']) )
+                );
+                
+                total += parseFloat(rec['total']);
+                taxedtotal += parseFloat(rec['taxedtotal']);
+            }
+            
+            c.append(
+                $('<div></div>')
+                .append( $('<div></div>').text('') )
+                .append( $('<div></div>').text('') )
+                .append( $('<div></div>').text(total.toFixed(2)) )
+                .append( $('<div></div>').text(taxedtotal.toFixed(2)) )
+                .append( $('<div></div>').text('') )
+                .append( $('<div></div>').text('') )
+            );
+            
+            
+            $('.receipt').append(o);
+            
+            
+        }
+        
+        
+    }, 'json');
+    
+}
+
+$(function() {
+
+g_v_from_date = $('#from_date').datepicker({
+    onSelect:load_total
+});
+
+g_v_to_date = $('#to_date').datepicker({
+    onSelect:load_total
+});
+
+$('.btn_print').button().click(function() {
+    window.print();
+});
+
+$('.btn_home').button();
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+#from_date {width:100px;margin-right:20px;}
+#to_date {width:100px;margin-right:20px;}
+
+.btn_home,.btn_print {float:right}
+
+.vtable {width:952px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:80px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:141px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {left:291px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {left:441px;width:150px;}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {left:591px;right:1px;}
+
+@media print {
+.pxm_ctrl {display:none}
+.pxm_body {margin:0 auto;}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+}
+@page {
+margin:60px 50px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<span>From: </span>
+<input type="text" id="from_date" />
+
+<span>To: </span>
+<input type="text" id="to_date" />
+
+<a href="home" class="btn_home">Quit</a>
+<a href="javascript:void(0)" class="btn_print">Print</a>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+<div class="total"></div>
+<div class="receipt"></div>
+</div></div>
+
+</body>
+</html>

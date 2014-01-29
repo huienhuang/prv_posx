@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - Error Quantity</title>
+<link type="text/css" href="css/smoothness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery-tinylibv3.js"></script>
+<link type="text/css" href="css/tinylibv3.css" rel="stylesheet" />
+<link type="text/css" href="css/default.css" rel="stylesheet" />
+
+<script type="text/javascript">
+
+
+$(function() {
+    
+$('.btn_home').button();
+
+$('#datagrid').tinygrid({
+len:1,
+src:{page:'?fn=getpage', rowidx:'?fn=getrowidx', pagesize_mul:10},
+cols: [{name:'ItemNO', width:150},
+       {name:'Qty1', width:120},
+       {name:'Desc', width:"100%"},
+       ]
+});
+
+$('.search').keyup(function(e) {
+    if(e.which == 13) {
+        e.preventDefault();
+        
+        var val = $(this).val();
+        if( !val || !val.match(/^[0-9]+$/gi) ) return;
+        $('#datagrid').tinygrid('seek', val);
+    } 
+});
+
+});
+
+</script>
+
+<style type="text/css">
+.tinygrid {top:62px;}
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+
+<a href="home" class="btn_home">Home</a>
+
+<input type="text" class="search" />
+
+</div></div>
+
+<div id="datagrid"></div>
+
+</body>
+</html>

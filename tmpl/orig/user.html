@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - User</title>
+<link type="text/css" href="css/smoothness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.21.custom.min.js"></script>
+<link type="text/css" href="css/default.css" rel="stylesheet" />
+
+<script type="text/javascript">
+
+function load_user(user_id, user_name)
+{
+    $('#form_user input[name="user_id"]').val(user_id);
+    $('#form_user input[name="v_user_id"]').val(user_id);
+    $('#form_user input[name="user_name"]').val(user_name);
+    $('#form_user input[name="user_password"]').val('');
+    return false;
+}
+
+function reset_user()
+{
+    return load_user('', '');
+}
+
+function delete_user(user_id) {
+    $.post('?fn=deleteuser', {'user_id':user_id}, function() {
+        location.reload();
+    }, 'json');
+}
+
+$(function() {
+    $('.btn_home').button();
+    $('.btn_usr_ctrl').button();
+    $('.btn_setuser').button();
+    $('.btn_resetuser').button().click(reset_user);
+    
+});
+    
+</script>
+
+<style type="text/css">
+.pxm_ctrl_cont input[name="v_user_id"] {width:50px;}
+.pxm_ctrl_cont form {display:inline;margin:0;padding:0;padding-left:50px;}
+
+.pxm_tbl a {font-size:16px;}
+.pxm_tbl td {height:50px;}
+</style>
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+<a href="home" class="btn_home">Home</a>
+<form id="form_user" action="?fn=setuser" method="POST">
+<input type="text" name="v_user_id" disabled="disabled" />
+<input type="hidden" name="user_id" />
+<input type="text" name="user_name" />
+<input type="password" name="user_pass" />
+<input type="submit" class="btn_setuser" value="Set User">
+<input type="button" class="btn_resetuser" value="Reset">
+</form>
+
+</div></div>
+
+<div class="pxm_body"><div class="pxm_body_cont">
+
+<table class="pxm_tbl">
+<tr><th>Id</th><th>Name</th><th>Attr</th><th></th></tr>
+%for u in userlist:
+<tr>
+<td>${u[0]}</td><td>${u[1]|h}</td><td>${"%08X" % (int(u[2]),)}</td>
+<td>
+<a class="btn_usr_ctrl" href="#" onclick="confirm('Are you sure to delete this user ?')&&delete_user('${u[0]}');return false;">Delete</a>
+<a class="btn_usr_ctrl" href="#" onclick="return load_user('${u[0]}','${u[1]|h}');">Modify</a>
+</td>
+</tr>
+%endfor
+</table>
+
+</div></div>
+
+</body>
+</html>

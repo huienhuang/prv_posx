@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - Customer > History</title>
+
+<script type="text/javascript">
+
+g_v_datagrid = [];
+
+function show_all()
+{
+    var o = $(this);
+    var d = g_v_datagrid[ o.data('tg_idx') ];
+    d.tinygrid('src').data['flag'] = o.prop('checked') ? 1 : 0;
+    d.tinygrid('update', -1, true, [-1], true);
+}
+
+function srch_item_render_item(ul, item)
+{
+    var d = item[3] = $.parseJSON(item[3]);
+    
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d['alu']))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+
+}
+
+
+function select__srch_item(event, ui) {
+    g_v_item_tabs.tabs("option", "active", 3);
+    g_receipt_srch_data.tid = ui.item[0];
+    g_v_datagrid_receipt.tinygrid('update', 1, true, [-1], true);
+}
+
+function open_wnd_map() {
+    var o = $(this);
+    var s = escape( o.html() + ',' + o.next().html() );
+    window.open('http://maps.google.com/maps?q=' + s,'posx_map','location=0,width=992,height=700');
+}
+
+function change__schedule_val()
+{
+    g_v_schedule_periods_xtbl.empty();
+    var els = g_v_schedule.data('in_els');
+    var date = els.date[0].val();
+    var rule = els.rule[0].val();
+    var next = els.next[0].val();
+    if(!date || !rule) return;
+    
+    $.get('district?fn=get_periods',
+    {
+        'cid': '${cust_sid}',
+        date: date,
+        rule: rule,
+        next: next
+    },
+    function(js) {
+        if(!js) { MsgBox('Error', 'Unexpected Error'); return; };
+        
+        for(var i = 0; i < js.length; i++) {
+            var p = js[i];
+            g_v_schedule_periods_xtbl.append(
+                $('<div class="xtbl_row"><div></div></div>')
+                .append( $('<div></div>').text(p[0]) )
+                .append( $('<div></div>').text(p[1]) )
+            );
+        }
+        
+    }, 'json');
+}
+
+$(function() {
+
+g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
+len:1,
+src:{page:'?fn=getpagecust', data:{'cid': '${cust_sid}'}},
+cols: [{name:'Num', width:100},
+       {name:'Type', width:150},
+       {name:'SO#', width:100},
+       {name:'Assoc', width:'100%'},
+       {name:'Total', width:120},
+       {name:'OrderDate', width:230},
+       ],
+click: function(r, c, d) {
+    if(c == 2) {
+        if(d[8])
+            window.open('sync?fn=printorder&type=2&rid='+d[8],'posx_so_wnd','location=0,width=992,height=700');
+    } else {
+        if (d[7])
+            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        else
+            window.open('?fn=printreceipt&rid=' + d[6],'posx_print_wnd','location=0,width=992,height=700');
+    }
+}
+});
+
+g_v_datagrid[1] = $('#datagrid_so').tinygrid({
+len:0,
+src:{page:'sync?fn=getcustorders', data:{'cid': '${cust_sid}'}},
+cols: [{name:'#', width:100},
+       {name:'Clerk', width:120},
+       {name:'Qty', width:70},
+       {name:'Sent', width:70},
+       {name:'Total', width:120},
+       {name:'Date', width:110},
+       {name:'MarkedDate', width:110},
+       ],
+click: function(r, c, d) {
+    window.open('sync?fn=printorder&type=2&rid=' + d[7],'posx_so_wnd','location=0,width=992,height=700');
+},
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
+init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 1).change(show_all); }
+});
+
+g_v_datagrid[2] = $('#datagrid_item').tinygrid({
+len:0,
+src:{page:'?fn=get_cust_items', data:{'cid': '${cust_sid}'}},
+cols: [{name:'Num', width:70},
+       {name:'ALU', width:140},
+       {name:'Name', width:"100%"},
+       {name:'Qty', width:80},
+       {name:'Receipts', width:90},
+       {name:'LastSaleDate', width:210},
+       ],
+click: function(r, c, d) {
+    if(c == 4) {
+        select__srch_item(null, {item:[d[6]]});
+    } else
+        window.open('hist?fn=itemhist&tid='+d[6],'posx_item_hist','location=0,width=992,height=700');
+},
+});
+
+g_receipt_srch_data = {}
+g_v_datagrid_receipt = g_v_datagrid[3] = $('#datagrid_receipt').tinygrid({
+len:0,
+src:{page:'?fn=get_srch_items&cid=${cust_sid}', data:g_receipt_srch_data},
+cols: [{name:'Receipt#', width:100},
+       {name:'Date', width:220},
+       {name:'Qty', width:100},
+       {name:'FinalUnitPrice', width:180},
+       {name:'DocTxt', width:'100%'},
+       ],
+click: function(r, c, d) {
+    if (d[6])
+        window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+    else
+        window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+}
+});
+
+g_v_datagrid[4] = $('#datagrid_delivery').tinygrid({
+len:0,
+src:{page:'?fn=get_cust_delivery&cid=${cust_sid}'},
+cols: [{name:'Receipt#', width:100},
+       {name:'Driver', width:100},
+       {name:'Delivered', width:100},
+       {name:'Problem', width:100},
+       {name:'Record#', width:100},
+       {name:'RecordName', width:'100%'},
+       {name:'Clerk', width:100},
+       {name:'OrderDate', width:100},
+       {name:'ShipDate', width:100},
+       ],
+click: function(r, c, d) {
+    if (c === 4) {
+        window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[4],'posx_delivery_record','location=0,width=1150,height=800');
+    } else {
+        if (d[10])
+            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        else
+            window.open('?fn=printreceipt&rid=' + d[9],'posx_print_wnd','location=0,width=992,height=700');
+    }
+}
+});
+
+g_v_datagrid_note = g_v_datagrid[5] = $('#datagrid_note').tinygrid({
+len:0,
+src:{page:'?fn=get_cust_comment&cid=${cust_sid}'},
+cols: [{name:'Date', width:210},
+       {name:'User', width:120},
+       {name:'Note', width:'100%'},
+       ],
+});
+
+g_v_srch_item = $('#srch_item').autocomplete({
+    position: {my:"right top", at:"right bottom"},
+    source: '?fn=srch_item_with_cid&cid=${cust_sid}',
+    autoFocus: true,
+    minLength: 1,
+    select: select__srch_item,
+    response: function(event, ui) {
+        for(var i = 0; i < ui.content.length; i++) {
+            var ct = ui.content[i];
+            ct.value = ct[1];
+        }
+    }
+}).focus();
+g_v_srch_item.data("ui-autocomplete")._renderItem = srch_item_render_item;
+
+g_v_dlg_comment = $('#dlg_comment').dialog({
+    autoOpen: false,
+    width:500,
+    height:200,
+    buttons: {
+        'add': function() {
+            var o = $(g_v_dlg_comment.find('input[name="note_val"]'));
+            var v = $.trim(o.val());
+            if(!v) return;
+            
+            $.post('?fn=add_cust_comment', {'cid': '${cust_sid}', 'comment': v}, function(js) {
+                if(!js || !js.ret) return;
+                g_v_dlg_comment.dialog('close');
+                g_v_datagrid_note.tinygrid('update', -1, true, true, true);
+            }, 'json');
+        }
+    }
+});
+
+$('.cust_add_note').click(function() {
+    $(g_v_dlg_comment.find('input[name="note_val"]')).val('');
+    g_v_dlg_comment.dialog('open');
+});
+
+g_v_schedule = $('#item_tab_4_schedule');
+g_v_schedule_periods_xtbl = $('.periods_xtbl .xtbl_body', g_v_schedule);
+idx_elements(g_v_schedule, 9);
+var els = g_v_schedule.data('in_els');
+els.save[0].button().click(function() {
+    var els = g_v_schedule.data('in_els');
+    var date = els.date[0].val();
+    var rule = els.rule[0].val();
+    var next = els.next[0].val();
+    var note = els.note[0].val();
+    
+    $.post('district?fn=set_schedule',
+    {
+        'cid': '${cust_sid}',
+        'date': date,
+        'rule': rule,
+        'next': next,
+        'note': note,
+    },
+    function(js) {
+        if(!js || !js.ret) { MsgBox('Error', 'Unexpected Error'); return; };
+        els.refresh[0].click();
+        
+    }, 'json').error(function() { MsgBox('Error', 'Unexpected Error'); });
+});
+els.refresh[0].button().click(function() {
+    
+    $.get('district?fn=get_schedule',
+    {
+        'cid': '${cust_sid}',
+    },
+    function(js) {
+        if(!js) { MsgBox('Error', 'Unexpected Error'); return; };
+        
+        var els = g_v_schedule.data('in_els');
+        els.date[0].val(js.schedule_date);
+        els.next[0].val(js.schedule_next);
+        els.rule[0].val(js.schedule_rule).change();
+        els.note[0].val(js.note);
+    }, 'json');
+    
+});
+els.date[0].datepicker().change(change__schedule_val);
+els.rule[0].change(change__schedule_val);
+els.next[0].datepicker().change(change__schedule_val);
+
+g_v_item_tabs = $('.item_tabs').tabs({
+    activate: function(event, ui) {
+        var idx = $(this).tabs('option', 'active');
+        g_v_datagrid[idx] && g_v_datagrid[idx].tinygrid('update', -1, true);
+        
+        var nz = ui.newTab.children('a').prop('hash').substr(12);
+        if(nz === 'schedule') {
+            g_v_schedule.data('in_els').refresh[0].click();
+        }
+        
+    },
+    active:${dg_type}
+});
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tinygrid {position:absolute;left:0;top:49px;bottom:0;right:0;width:auto;height:auto;}
+.cnt_cust {height:90px;padding:5px;font-size:18px;line-height:22px;color:#004C99}
+.cnt_cust > .cust_name {font-weight:bold;color:#994C00;font-size:22px;}
+.cnt_cust .cust_bal {padding-left:20px;}
+.cnt_cust .cust_bal_p {color:#990000}
+.cnt_cust .cust_bal_n {color:#4C9900}
+
+.cnt_ctrl {position:absolute;width:300px;height:60px;top:5px;right:5px;text-align:right}
+.cnt_ctrl > span {font-size:16px;}
+
+.item_tabs {font-size:18px;position:absolute;top:96px;bottom:0;left:0;right:0;padding:0;}
+.tinygrid .tgft_showall {position:absolute;top:0;bottom:0;right:0;width:150px;font-weight:bold}
+
+.ui-tabs-panel {padding:10px 5px 0 5px !important;}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#e5ecff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#fff4e5}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:170px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:565px;color:#101010;margin-right:0;}
+
+
+.cls_icon_add {vertical-align:middle;cursor:pointer}
+
+#item_tab_4_schedule > div {float:left;width:460px;height:300px;position:relative}
+#item_tab_4_schedule > div:nth-child(2) {width:400px}
+#item_tab_4_schedule .periods_xtbl .xtbl_row {min-width:400px}
+#item_tab_4_schedule .periods_xtbl .xtbl_row div {text-align:left}
+#item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(1) {width:6px}
+#item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(2) {width:190px}
+#item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(3) {width:190px}
+
+</style>
+
+</head>
+<body>
+<div class="cnt_cust">
+<div class="cust_name">
+${cust_name|h}
+%if cust_info['creditused'] > 0:
+ <span class="cust_bal cust_bal_p">Balance: $${'%0.2f' % cust_info['creditused']}</span>
+%elif cust_info['creditused'] < 0:
+ <span class="cust_bal cust_bal_n">Credit: $${'%0.2f' % -cust_info['creditused']}</span>
+%endif
+</div>
+<div onclick="open_wnd_map.call(this);return false" style="cursor:pointer">${cust_info['address1']|h}
+%if cust_info['address2']:
+, 
+${cust_info['address2']|h}
+%endif
+</div>
+<div>${cust_info['city']|h}, ${cust_info['state']|h} ${cust_info['zip']|h}</div>
+<div>${cust_info['phone1']|h}</div>
+</div>
+<div class="cnt_ctrl">
+<input type="text" id="srch_item" />
+</div>
+
+
+<div class="item_tabs">
+
+<ul>
+<li><a href="#item_tab_0_hist">History</a></li>
+<li><a href="#item_tab_1_so">SalesOrder</a></li>
+<li><a href="#item_tab_2_item">Item</a></li>
+<li><a href="#item_tab_3_receipt">Receipt</a></li>
+<li><a href="#item_tab_4_delivery">Delivery</a></li>
+<li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
+<li style="float:right"><a href="#item_tab_4_schedule">Schedule</a></li>
+</ul>
+
+<div id="item_tab_0_hist"><div id="datagrid_hist"></div></div>
+<div id="item_tab_1_so"><div id="datagrid_so"></div></div>
+<div id="item_tab_2_item"><div id="datagrid_item"></div></div>
+<div id="item_tab_3_receipt"><div id="datagrid_receipt"></div></div>
+<div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
+<div id="item_tab_5_note"><div id="datagrid_note"></div></div>
+<div id="item_tab_4_schedule">
+<div>
+<div class="xlabel"><div>OrderDate:</div><div><input type="text" name="schedule_next" style="width:300px" /></div></div>
+<div class="xlabel"><div>RefDate:</div><div><input type="text" name="schedule_date" style="width:300px" /></div></div>
+<div class="xlabel"><div>RefRule:</div><div><input type="text" name="schedule_rule" style="width:300px" /></div></div>
+<div class="xlabel" style="height:90px"><div>Note:</div><div><textarea name="schedule_note" style="width:300px;height:80px"></textarea></div></div>
+<div style="clear:both"><input type="button" name="schedule_save" value="save" class="btn" /> <input type="button" name="schedule_refresh" value="refresh" class="btn" /></div>
+</div>
+
+<div>
+<div class="xtbl periods_xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div></div><div>Start</div><div>End</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div id="dlg_comment" title="Add Note">
+<div class="xlabel"><div>Note:</div><div><input type="text" name="note_val" style="width:300px" /></div></div>
+</div>
+
+</body>
+</html>
+

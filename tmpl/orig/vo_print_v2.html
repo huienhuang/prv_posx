@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script type="text/javascript" src="js/posx.js"></script>
+<title>Voucher - ${r_num|h}</title>
+
+<script type="text/javascript">
+
+function open_wnd_item_hist(item_id) {
+    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_cust_hist(cust_id) {
+    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function click_order_po(id) {
+    window.open('sync?fn=printorder&type=1&rid=' + id,'posx_so_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function show_po() {
+%if len(r_po) == 1:
+    click_order_po('${r_po[0][0]}');
+%elif len(r_po) > 1:
+    g_v_dlg_po.dialog('open');
+%endif
+}
+
+$(function() {
+// 
+
+$('#btn_print').button().click(function() {
+    window.print();
+});
+
+g_v_dlg_po = $('#dlg_po').dialog({
+    autoOpen:false,
+    width:700,
+    height:500,
+});
+
+$('.maincnt').tooltip();
+
+//
+});
+</script>
+
+<style type="text/css">
+body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
+
+.maincnt {width:952px;margin:0 auto;}
+
+.ctrlcnt {width:952px;margin-bottom:10px;height:52px;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {font-size:20px;position:absolute;display:block;top:3px;}
+.ctrlcnt > input#btn_print {left:0;}
+.ctrlcnt > input#btn_reverse {right:0;}
+
+
+.ordinfo {width:952px;height:60px;position:relative}
+.ordinfo table {position:absolute;display:block;height:60px;text-align:right;border-collapse:collapse;font-weight:bold;font-size:18px;}
+.ordinfo table td {padding:0px;height:20px;line-height:20px;}
+.ordinfo table td:nth-child(2) {width:260px}
+.ordinfo table:nth-child(1) {left:0}
+.ordinfo table:nth-child(2) {right:0}
+.ordinfo.ord_type_reversing {color:#CC0000}
+.ordinfo.ord_type_reversed {color:#0066CC}
+.ordinfo table:first-child tr:first-child td:last-child span {cursor:pointer}
+
+.custinfo {width:952px;height:140px;position:relative;overflow:hidden}
+.custinfo > div {position:absolute;top:20px;width:350px;height:95px;border:1px solid #ccc;padding:10px;}
+.custinfo > div > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.custinfo > div > div:nth-child(2) {font-weight:bold;cursor:pointer}
+.custinfo > .billto {left:0}
+.custinfo > .shipto {right:0}
+
+.vtable {width:952px;margin-top:15px;}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:311px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:241px;width:70px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:101px;width:140px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div > span {font-size:14px;color:blue}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:1px;width:100px;font-weight:bold}
+.vtable > div:nth-child(2) > div {height:22px;line-height:22px;font-size:18px;font-weight:bold}
+.vtable > div:nth-child(2) > div > div:nth-child(1) {left:1px;right:101px;text-align:right;}
+.vtable > div:nth-child(2) > div > div:nth-child(2) {right:1px;width:100px;}
+
+
+.memocnt {border:1px solid #ccc;margin:0 0 10px 0;}
+.memocnt pre {margin:0;padding:5px;}
+
+.cls_redcolor {color:red}
+
+.pxm_tbl {border-collapse:collapse;font-size:20px;}
+.pxm_tbl th, .pxm_tbl td {border:1px solid #b2b2b2;padding:3px;line-height:26px;height:26px;}
+.pxm_tbl td {text-align:center;background-color:transparent;}
+.pxm_tbl th {background-color:#e6e5e5}
+.pxm_tbl tr.alt {background-color:#ffffff}
+.pxm_tbl tr.highlight, .pxm_tbl td.highlight {background-color:#ffc3c3}
+.pxm_tbl tr:hover {background-color:#daecfd}
+.pxm_tbl tr td:first-child {cursor:pointer}
+
+@media print {
+.maincnt {margin:0 auto;}
+.custinfo > div, .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.memocnt {display:none}
+.cls_redcolor {color:#000}
+.ctrlcnt {display:none}
+}
+@page {
+margin:60px 50px;
+}
+
+
+</style>
+
+</head>
+
+%if auto_print:
+<body onload="window.print();window.close();">
+%else:
+<body>
+%endif
+
+<div class="maincnt">
+
+
+<div class="ctrlcnt">
+<input type="button" value="Print" id="btn_print" />
+</div>
+
+<%
+r_render_type = (r_flag >> 16) & 0xFF
+r_type = (r_flag >> 8) & 0xFF
+r_status = (r_flag >> 0) & 0xFF
+
+if r_status == 1:
+    ord_status = ' - Reversed'
+    ord_info_cls = ' ord_type_reversed"'
+elif r_status == 2:
+    ord_status = ' - Reversing'
+    ord_info_cls = ' ord_type_reversing"'
+else:
+    ord_status = ''
+    ord_info_cls = ''
+    
+ORD_TYPE=('Receiving', 'Return')
+if r_type >= 0 and r_type < len(ORD_TYPE):
+    ord_type = ORD_TYPE[r_type]
+else:
+    ord_type = 'UNK'
+%>
+<div class="ordinfo${ord_info_cls}">
+<table>
+<tr><td>VO:</td><td>${r_num|h}
+%if r_global['ponum']:
+ <span onclick="return show_po()">${'(PO# %s)' % r_global['ponum']|h}</span>
+%endif
+</td></tr>
+<tr><td>Type:</td><td>${ord_type}${ord_status}</td></tr>
+<tr><td>Date:</td><td title="${r_creationdate != r_voucherdate and 'CreationDate: %s' % r_creationdate or ''}">${r_voucherdate}</td></tr>
+</table>
+<table>
+<tr><td>Vendor:</td><td title="${r_invdate and 'InvoiceDate: %s' % r_invdate or ''} ${r_duedate and 'InvoiceDueDate: %s' % r_duedate or ''}">${r_global['vend']|h}</td></tr>
+<tr><td>Assoc:</td><td>${r_clerk|h}</td></tr>
+<tr><td>Count:</td><td>Item ${r_global['itemcount']}, Qty ${round_ex(r_global['qtycount'], 1)}</td></tr>
+</table>
+</div>
+
+<div class="vtable">
+    
+<div>
+<div><div>ID</div><div>ALU</div><div>Name</div><div>Qty</div><div>Price</div><div>ExPrice</div></div>
+<%
+import math
+%>
+% for item in r_items:
+<%
+
+item_title_s = ''
+if item['snum']: item_title_s += 'SerialNum: %s' % item['snum']
+
+%>
+<div title="${item_title_s}" class="${item['cost'] * item['qty'] <= 0 and 'cls_redcolor' or ''}"><div onclick="return open_wnd_item_hist('${item["itemsid"]}')">${item['itemno'] or ''}</div><div>${item['alu']|h}</div><div>${item['desc1']|h}</div><div>${round_ex(item['qty'],1)}${item['uom'] and ' ' + item['uom'] or ''|h}</div><div>$${'%0.2f'%round_ex(item['cost'])}</div><div>$${'%0.2f'%(round_ex(item['cost'] * item['qty']),)}</div></div>
+% endfor
+</div>
+
+<div>
+<div><div>Subtotal:</div><div${r_global['subtotal'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['subtotal'])}</div></div>
+%if r_global['discamt']:
+<div><div>Discount ${'(%0.2f%%)' % round_ex(r_global['discprc'])}:</div><div>${"$%0.2f" % round_ex(-r_global['discamt'])}</div></div>
+%endif
+%if r_global['feeamt']:
+<div><div>Fee:</div><div${r_global['feeamt'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['feeamt'])}</div></div>
+%endif
+<div><div>Total:</div><div${r_global['total'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['total'])}</div></div>
+</div>
+
+</div>
+
+
+
+</div>
+
+%if len(r_po) > 1:
+<div id="dlg_po">
+<table class="pxm_tbl" style="width:98%">
+<tr><th>#</th><th>Clerk</th><th>Date</th></tr>
+%for i in r_po:
+<tr><td onclick="return click_order_po('${i[0]}')">${i[1]|h}</td><td>${i[2]|h}</td><td>${i[3]|h}</td></tr>
+%endfor
+</table>
+</div>
+%endif
+
+
+</body>
+
+</html>

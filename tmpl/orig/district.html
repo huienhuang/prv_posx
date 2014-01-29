@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - District</title>
+
+<script type="text/javascript">
+
+<%
+import json
+%>
+g_data = null;
+
+g_seq__load_dists = 0;
+function load_dists()
+{
+    var els = g_v_tp_ctrl.data('in_els');
+    var dt = els.date[0].val();
+    
+    g_data = null;
+    $(els.dist_nz[0].val('').children().slice(1)).remove();
+    g_v_customer_xtbl.empty();
+    
+    var seq = ++g_seq__load_dists;
+    $.get('?fn=load_dists', {'dt': dt}, function(js) {
+        if(seq !== g_seq__load_dists || !js) return;
+        g_data = js;
+        setup_dists();
+        
+    }, 'json');
+    
+}
+
+function setup_dists()
+{
+    if(!g_data) return;
+    
+    var stats = g_data.stats;
+    
+    zips_lku = {};
+    for(var i = 0; i < g_data.dists.length; i++) {
+        var dist = g_data.dists[i];
+        var count = 0;
+        for(var j = 0; j < dist[1].length; j++) {
+            var zip = dist[1][j]
+            zips_lku[zip] = true;
+            count += (stats[zip] || 0);
+        }
+        g_v_dist_nz.append( $('<option></option>').val(dist[1].join(',')).text((count ? '['+count+'] ' : '') + dist[0]) );
+    }
+    
+    for(var i = 0; i < g_data.zips.length; i++) {
+        var zip = g_data.zips[i];
+        if(zips_lku[zip] !== undefined) continue;
+        var count = (stats[zip] || 0);
+        g_v_dist_nz.append( $('<option></option>').val(zip).text((count ? '['+count+'] ' : '') + zip) );
+    }
+}
+
+function change__dist_val()
+{
+    var els = g_v_dlg_zip_mapping.data('in_els');
+    var dist_id = parseInt(els.sel_name[0].val());
+    var name = $.trim(els.name[0].val());
+    if (!dist_id && !name) return;
+    var zips = $.trim(els.zips[0].val());
+    
+    var zm = g_v_dlg_zip_mapping.data('zm_js');
+    if(dist_id) {
+        var dist = zm.lst[ dist_id - 1 ];
+        if(name) {
+            dist.name = name;
+            dist.zips = zips;
+        } else {
+            dist.deleted = true;
+            $(els.sel_name[0].val('0').children()[dist_id]).hide();
+        }
+    } else {
+        var dist_id = els.sel_name[0].children().length;
+        els.sel_name[0].append( $('<option></option>').val(dist_id + '').text(name) ).val(dist_id + '');
+        zm.lst[dist_id - 1] = {'name': name, 'zips': zips};
+    }
+    
+    els.sel_name[0].change();
+}
+
+function mr_delete_row(num)
+{
+    g_v_dlg_mark_salesorders.data('data_js')[ num ].v_row.remove();
+    delete g_v_dlg_mark_salesorders.data('data_js')[ num ];
+}
+
+function mr_load_row(num)
+{
+    var row = g_v_dlg_mark_salesorders.data('data_js')[ num ];
+    var els = g_v_dlg_mark_salesorders.data('in_els');
+    
+    els.sonum[0].val(row.sonum);
+    els.date[0].val(row.delivery_date);
+    els.zip[0].val(row.delivery_zip);
+}
+
+function keyup__mr_ctrl_input(e)
+{
+    if(e.which !== 13) return;
+    
+    var els = g_v_dlg_mark_salesorders.data('in_els');
+    var v_date = els.date[0];
+    var s_date = v_date.val();
+    var v_zip = els.zip[0];
+    var s_zip = v_zip.val();
+    var v_sonum = els.sonum[0];
+    var sonum = v_sonum.val();
+    
+    if (!sonum) return;
+    
+    var data_js = g_v_dlg_mark_salesorders.data('data_js');
+    var row = data_js[sonum];
+    if (row !== undefined) {
+        if(s_zip) row.delivery_zip = s_zip;
+        if(s_date) row.delivery_date = s_date;
+        
+        var v_row_n = row.v_row.children();
+        $(v_row_n[4]).text(row.delivery_date);
+        $(v_row_n[5]).text(row.delivery_zip);
+        
+        v_sonum.val('');
+        v_zip.val('');
+        
+        return;
+    }
+    
+    $.get('?fn=get_salesorder', {'sonum':sonum}, function(js) {
+        if(!js || !js.sonum) return;
+        
+        v_sonum.val('');
+        v_zip.val('');
+        if(s_zip) js.delivery_zip = s_zip;
+        if(s_date) js.delivery_date = s_date;
+        var v_row = js.v_row = create_new_row__salesorder(js);
+        g_v_mark_salesorders_xtbl.append(v_row);
+        data_js[js.sonum] = js;
+        
+    }, 'json');
+    
+}
+
+function create_new_row__salesorder(js)
+{
+    return $('<div class="xtbl_row'+(js.schedule_date ? '' : ' customer_no_schedule')+'"><div onclick="mr_delete_row.call(this, \''+js.sonum+'\');return false">D</div><div onclick="mr_load_row.call(this, \''+js.sonum+'\');return false">E</div></div>')
+    .append( $('<div onclick="open_wnd_so(\''+js.sid+'\');return false"></div>').text(js.sonum) )
+    .append( $('<div onclick="open_wnd_customer(\''+js.cust_sid+'\');return false"></div>').text(js.name) )
+    .append( $('<div></div>').text(js.delivery_date) )
+    .append( $('<div></div>').text(js.delivery_zip) )
+    .append( $('<div></div>').text(js.marked ? 'Y' : '') )
+    .append( $('<div'+(js.ref_receipt?' onclick="open_wnd_receipt(\''+js.ref_receipt[0]+'\')"':'')+'></div>').text(js.ref_receipt ? js.ref_receipt[2] : '') );
+}
+
+function open_wnd_customer(cid)
+{
+    window.open('hist?fn=custhist&cid=' + cid,'posx_customer_hist','location=0,width=992,height=700');
+}
+
+function open_wnd_so(so_sid)
+{
+    window.open('sync?fn=printorder&type=2&rid='+so_sid,'posx_so_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_receipt(rid) {
+    window.open('hist?fn=printreceipt&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+function show_marked_so(sid, frm, to)
+{
+    g_v_tg_show_marked_orders_data.sid = sid;
+    g_v_tg_show_marked_orders_data.frm = frm;
+    g_v_tg_show_marked_orders_data.to = to;
+    
+    g_v_dlg_show_marked_orders.dialog('open');
+    g_v_tg_show_marked_orders.tinygrid('update', -1, true, true, true);
+}
+
+function show_regular_so(sid, frm, to)
+{
+    $.get('?fn=get_cust_salesorders', {'sid':sid, 'frm':frm, 'to':to}, function(js) {
+        g_v_tp_ctrl.data('in_els').mark_salesorders[0].click();
+        if(!js) return;
+        
+        var data_js = g_v_dlg_mark_salesorders.data('data_js');
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            var v_row = r.v_row = create_new_row__salesorder(r);
+            g_v_mark_salesorders_xtbl.append(v_row);
+            data_js[r.sonum] = r;
+        }
+        
+    }, 'json');
+}
+
+$(function() {
+
+$('.btn').button();
+
+g_v_customer_xtbl = $('.customer_xtbl .xtbl_body');
+
+g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+
+g_v_dlg_zip_mapping = $('#dlg_zip_mapping').dialog({
+    autoOpen: false,
+    width:600,
+    height:300,
+    close: function() { g_v_dlg_zip_mapping.data('zm_js').reload_req && window.location.reload(); },
+    buttons: {
+        'save': function() {
+            var zm = g_v_dlg_zip_mapping.data('zm_js');
+            zm.reload_req = true;
+            $.post('?fn=save_zip_mapping', {'js': JSON.stringify(zm.lst)}, function(js) {
+                if(!js || !js.ret) return;
+                g_v_dlg_zip_mapping.data('in_els').sel_name[0].val('0').change();
+            }, 'json');
+        }
+    }
+});
+idx_elements(g_v_dlg_zip_mapping, 5);
+
+var els = g_v_dlg_zip_mapping.data('in_els');
+els.sel_name[0].change(function() {
+    var els = g_v_dlg_zip_mapping.data('in_els');
+    var dist_id = parseInt(els.sel_name[0].val());
+    els.name[0].val('');
+    els.zips[0].val('');
+    if(!dist_id) return;
+    
+    var zm = g_v_dlg_zip_mapping.data('zm_js');
+    var dist = zm.lst[ dist_id - 1 ];
+    
+    els.name[0].val( dist.name );
+    els.zips[0].val( dist.zips );
+});
+els.name[0].change(change__dist_val);
+els.zips[0].change(change__dist_val);
+
+els = g_v_tp_ctrl.data('in_els');
+els.zip_mapping[0].click(function() {
+    if(!g_data) return;
+    
+    var lst = [];
+    var sel_name = g_v_dlg_zip_mapping.data('in_els').sel_name[0].val('0');
+    $(sel_name.children().slice(1)).remove();
+    for(var i = 0; i < g_data.dists.length; i++) {
+        var dist = g_data.dists[i];
+        sel_name.append( $('<option></option>').val('' + (i + 1)).text(dist[0]) );
+        lst.push( {'name': dist[0], 'zips': dist[1].join(',')} );
+    }
+    sel_name.change();
+    g_v_dlg_zip_mapping.data('zm_js', {'lst':lst}).dialog('open');
+});
+
+g_v_dist_nz = els.dist_nz[0].change(function() {
+    var zips = g_v_dist_nz.val();
+    var delivery_date = g_v_tp_ctrl.data('in_els').date[0].val();
+    
+    g_v_customer_xtbl.empty();
+    if(!zips || !delivery_date) return;
+    $.get('?fn=get_dist_customers', {'zips':zips, 'delivery_date':delivery_date}, function(js) {
+        if(!js) return;
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            
+            g_v_customer_xtbl.append( $('<div class="xtbl_row'+(r['not_in_range']?' not_in_range':'')+'"></div>')
+                .append( $('<div onclick="open_wnd_customer(\''+r['sid']+'\')"></div>').text(r['name']) )
+                .append( $('<div></div>').text(r['period_start']) )
+                .append( $('<div></div>').text(r['period_end']) )
+                .append( $('<div></div>').text(r['so_count'] ? r['so_maxdate'] : '') )
+                .append( $('<div onclick="show_regular_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['rc_count']+'/'+r['so_count']) )
+                .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['period_marked_count']) )
+                .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+delivery_date+'\',\''+delivery_date+'\');return false"></div>').text(r['marked_count']) )
+            );
+        }
+        
+    }, 'json');
+});
+els.refresh[0].click(function() { g_v_dist_nz.change(); });
+
+els.mark_salesorders[0].click(function() {
+    g_v_mark_salesorders_xtbl.empty();
+    g_v_dlg_mark_salesorders.data('in_els').date[0].val( g_v_tp_ctrl.data('in_els').date[0].val() );
+    g_v_dlg_mark_salesorders.data('data_js', {}).dialog('open');
+});
+els.show_salesorders[0].click(function() {
+    var zips = g_v_dist_nz.val();
+    var delivery_date = g_v_tp_ctrl.data('in_els').date[0].val();
+    
+    if (!zips || !delivery_date) {
+        g_v_dlg_show_orders.dialog('close');
+        return;
+    }
+    
+    g_v_tg_show_orders_data.zips = zips;
+    g_v_tg_show_orders_data.date = delivery_date;
+    g_v_dlg_show_orders.dialog('open');
+    g_v_tg_show_orders.tinygrid('update', -1, true, true, true);
+});
+
+g_v_dlg_mark_salesorders = $('#dlg_mark_salesorders').dialog({
+    autoOpen: false,
+    width:800,
+    height:500,
+});
+idx_elements(g_v_dlg_mark_salesorders, 3);
+els = g_v_dlg_mark_salesorders.data('in_els');
+els.sonum[0].keyup(keyup__mr_ctrl_input);
+els.save[0].click(function() {
+    var data_js = g_v_dlg_mark_salesorders.data('data_js');
+
+    var a_lst = [];
+    for(var k in data_js) {
+        var l = data_js[k];
+        a_lst.push( [l.sid, l.delivery_date, l.delivery_zip] );
+    }
+    
+    $.post('?fn=set_salesorders_delivery', {'js':JSON.stringify(a_lst)}, function(js) {
+        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'unexpected error'); return; }
+        
+        g_v_dlg_mark_salesorders.data('data_js', {});
+        g_v_mark_salesorders_xtbl.empty();
+        
+    }, 'json').error(function() { MsgBox('Error', 'unexpected error'); });
+    
+});
+els.date[0].datepicker().datepicker('setDate', '+0').keyup(keyup__mr_ctrl_input);
+els.zip[0].keyup(keyup__mr_ctrl_input);
+g_v_mark_salesorders_xtbl = $('.xtbl .xtbl_body', g_v_dlg_mark_salesorders);
+
+g_v_dlg_show_orders = $('#dlg_show_orders').dialog({
+    autoOpen: false,
+    width:700,
+    height:450,
+});
+
+g_v_tg_show_orders_data = {};
+g_v_tg_show_orders = $('.tg_show_orders', g_v_dlg_show_orders).tinygrid({
+len:0,
+src:{page:'?fn=get_salesorders', data:g_v_tg_show_orders_data},
+cols: [{name:'SONUM', width:100},
+       {name:'Company', width:'100%'},
+       {name:'ZIP', width:100},
+       ],
+click: function(r, c, d) {
+    if (c == 1)
+        open_wnd_customer(d[4]);
+    else
+        open_wnd_so(d[3]);
+}
+});
+
+g_v_dlg_show_marked_orders = $('#dlg_show_marked_orders').dialog({
+    autoOpen: false,
+    width:700,
+    height:450,
+});
+
+g_v_tg_show_marked_orders_data = {};
+g_v_tg_show_marked_orders = $('.tg_show_marked_orders', g_v_dlg_show_marked_orders).tinygrid({
+len:0,
+src:{page:'?fn=get_marked_salesorders', data:g_v_tg_show_marked_orders_data},
+cols: [{name:'SONUM', width:100},
+       {name:'Company', width:'100%'},
+       {name:'ZIP', width:100},
+       {name:'Date', width:200},
+       ],
+click: function(r, c, d) {
+    if (c == 1)
+        open_wnd_customer(d[5]);
+    else
+        open_wnd_so(d[4]);
+}
+});
+
+g_v_tp_ctrl.data('in_els').date[0].datepicker().datepicker('setDate', '+0').change(load_dists).change();
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0}
+
+.customer_xtbl {top:50px;}
+
+#dlg_zip_mapping {position:relative;}
+#dlg_zip_mapping .dist_dp_ctn {margin:10px 0;border:1px solid #ccc;float:left;width:200px;height:280px;overflow-y:scroll;}
+#dlg_zip_mapping .dist_dp_ctn > div {cursor:pointer}
+#dlg_zip_mapping #dist_to {margin-left:10px}
+
+
+#dlg_zip_mapping select {width:430px}
+#dlg_zip_mapping input[type="text"] {width:424px}
+
+
+#dlg_mark_salesorders .xtbl {margin-top:50px}
+#dlg_mark_salesorders .xtbl .xtbl_row {min-width:660px}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(1) {width:20px;cursor:pointer;font-weight:bold;color:#930000;text-align:center}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(2) {width:20px;cursor:pointer;font-weight:bold;color:#078b00;text-align:center}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(3) {width:100px;cursor:pointer}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(4) {width:270px;cursor:pointer}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(5) {width:100px}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(6) {width:100px}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(7) {width:80px}
+#dlg_mark_salesorders .xtbl .xtbl_row div:nth-child(8) {width:80px;cursor:pointer}
+#dlg_mark_salesorders .dlg_ctrl {height:32px}
+#dlg_mark_salesorders .xtbl .xtbl_row.customer_no_schedule {background-color:#ffebeb}
+
+.customer_xtbl .xtbl_row div:nth-child(1) {width:250px}
+.customer_xtbl .xtbl_row div:nth-child(2) {width:110px}
+.customer_xtbl .xtbl_row div:nth-child(3) {width:110px}
+.customer_xtbl .xtbl_row div:nth-child(4) {width:110px}
+.customer_xtbl .xtbl_row div:nth-child(5) {width:110px;cursor:pointer}
+.customer_xtbl .xtbl_row div:nth-child(6) {cursor:pointer}
+.customer_xtbl .xtbl_row div:nth-child(7) {cursor:pointer}
+
+.customer_xtbl .xtbl_row.not_in_range {background-color:#ffd0d0}
+
+#dlg_show_orders,#dlg_show_marked_orders {position:relative}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="text" name="ctrl_date" style="width:120px" />
+<select style="width:250px" name="ctrl_dist_nz"><option value="">-- District --</option></select>
+<input type="button" name="ctrl_refresh" value="Refresh" class="btn" />
+<input type="button" name="ctrl_show_salesorders" value="ShowOrders" class="btn" />
+<input type="button" name="ctrl_mark_salesorders" value="MarkOrders" class="btn" />
+<input type="button" name="ctrl_zip_mapping" value="ZipMapping" class="btn" />
+</div>
+
+<div class="xtbl customer_xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Name</div><div>PeriodStart</div><div>PeriodEnd</div><div>LastOrderDate</div><div>POS_SO</div><div>USER_SO</div><div>CURDAY_SO</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+
+<div id="dlg_zip_mapping" title="Zipcode Mapping">
+<div class="xlabel"><div>District:</div><div><select name="dist_sel_name"><option value="0">-- New --</option></select></div></div>
+<div class="xlabel"><div>Name:</div><div><input type="text" name="dist_name" /></div></div>
+<div class="xlabel"><div>Zips:</div><div><input type="text" name="dist_zips" /></div></div>
+</div>
+
+<div id="dlg_mark_salesorders" title="Mark SalesOrder">
+<div class="dlg_ctrl"><input type="text" name="mr_sonum" style="width:80px" title="SO No" />
+<input type="text" name="mr_date" style="width:120px" title="date" />
+<input type="text" name="mr_zip" style="width:120px" title="zip" maxlength="5" />
+<input type="button" name="mr_save" value="save" class="btn" style="margin-left:50px" />
+</div>
+<div class="xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div></div><div></div><div>SalesOrder#</div><div>Company</div><div>DeliveryDate</div><div>DeliveryZip</div><div>Marked</div><div>Receipt</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+</div>
+
+<div id="dlg_show_orders" title="SalesOrders"><div class="tg_show_orders"></div></div>
+
+<div id="dlg_show_marked_orders" title="MarkedOrders"><div class="tg_show_marked_orders"></div></div>
+
+</body>
+</html>

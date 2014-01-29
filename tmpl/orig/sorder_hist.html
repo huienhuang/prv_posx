@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>POSX - INV > History</title>
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery-tinygrid.js"></script>
+<link type="text/css" href="css/tinygrid.css" rel="stylesheet" />
+<link type="text/css" href="css/default_v1.css?rev=20131205" rel="stylesheet" />
+
+<%
+if user_lvl & (1 << 31):
+    cur_uid = 0
+else:
+    cur_uid = user_id
+%>
+
+<script type="text/javascript">
+var g_tg_src_data = {uid:'${cur_uid}'};
+
+$(function() {
+
+$('.btn_home').button();
+
+g_v_datagrid = $('#datagrid').tinygrid({
+len:1,
+src:{page:'?fn=getpage', pagesize_mul:1, data:g_tg_src_data},
+cols: [{name:'ID', width:90},
+       {name:'Status', width:60},
+       {name:'Type', width:120},
+       {name:'Assoc', width:100},
+       {name:'Total', width:120},
+       {name:'Paid', width:50},
+       {name:'Memo', width:"100%"},
+       {name:'OrderDate', width:220},
+       ],
+click: function(r, c, d) {
+    window.open('?fn=print&rid=' + d[0], 'posx_print_wnd', 'location=0,width=992,height=700');
+}
+});
+
+$(window).resize(function() { g_v_datagrid.tinygrid('update', -1, true); });
+
+$('.search').keyup(function(e) {
+    if(e.which != 13) return;
+    
+    var o = $(this);
+    var v = parseInt(o.val());
+    o.val('');
+    
+    $.ajax({
+        async: false,
+        type: 'get',
+        url: '?fn=find',
+        data: {rid: v},
+        success: function(d) {
+            if (!d || !d.order_id) return;
+            window.open('?fn=print&rid=' + d.order_id, 'posx_print_wnd', 'location=0,width=992,height=700');
+        },
+        dataType: 'json'
+    });
+});
+
+$('.assoc').change(function() {
+   g_tg_src_data.uid = $(this).val();
+   g_v_datagrid.tinygrid('update', 1, true, [-1], true);
+});
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+.tinygrid {position:absolute;left:0;top:63px;bottom:0;right:0;width:auto;height:auto;}
+.assoc {height:32px;width:150px;margin-right:20px;}
+.search {width:100px;margin-right:20px;}
+.status {height:32px;width:100px;}
+</style>
+
+</head>
+<body>
+
+<div class="pxm_ctrl"><div class="pxm_ctrl_cont">
+<!--
+<a href="home" class="btn_home">Home</a>
+-->
+<span>Assoc: </span>
+<select class="assoc">
+<option value="0"> - Any - </option>
+%for u in userlist:
+%if u[2] & (1 << USER_PERM_BIT['sales']):
+<option value="${u[0]}"${cur_uid == int(u[0]) and ' selected="selected"' or ''}>${u[1]|h}</option>
+%endif
+%endfor
+</select>
+<span>Order: </span>
+<input type="text" class="search" />
+
+<!--
+<span>Status: </span>
+<select class="status">
+<option value="0"> - Any - </option>
+<option value="1">Close</option>
+<option value="2">Open</option>
+</select>
+-->
+
+</div></div>
+
+<div id="datagrid"></div>
+
+</body>
+</html>

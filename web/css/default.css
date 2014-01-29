@@ -1,0 +1,36 @@
+
+body {margin:0;padding:0;background-color:#f9f9f9;font-family:"Times New Roman",Times,serif;font-size:20px;font-weight:normal;color:#111}
+ul{list-style-type:none;padding:0;margin:0;}
+a {text-decoration:none;color:#111}
+input, select {font-family:"Times New Roman",Times,serif;font-size:20px;font-weight:normal;outline:none;border:1px solid #ddd}
+
+.pxm_ctrl {position:fixed;left:0;top:0;width:100%;height:60px;background-color:#f1f1f1;border-bottom:1px solid #c1c1c1;z-index:1}
+.pxm_ctrl_cont {padding:10px;}
+.pxm_ctrl_cont select {font-size:26px;line-height:26px;width:250px;margin:0}
+.pxm_ctrl_cont input {font-size:20px;line-height:26px;margin:0}
+.pxm_ctrl_cont a, .pxm_ctrl_cont .ui-button-text {font-size:20px;line-height:26px;}
+.pxm_ctrl_cont input[type="text"], .pxm_ctrl_cont input[type="password"] {font-size:26px;width:150px;}
+
+.pxm_body {position:relative;z-index:0;margin-top:60px;}
+.pxm_body_cont {padding:10px;}
+
+.pxm_blk {border:1px solid #c1c1c1;margin-bottom:20px;padding-bottom:10px;border-radius:5px;overflow:hidden}
+.pxm_blk > div:first-child {height:30px;line-height:28px;text-align:center;font-size:22px;background-color:#e6e5e5;border-bottom:1px solid #c1c1c1;margin-bottom:15px;}
+
+.pxm_tbl {margin-top:20px;border-collapse:collapse;font-size:20px;}
+.pxm_tbl, .pxm_tbl th, .pxm_tbl td {border: 1px solid #b2b2b2;padding:5px 10px;line-height:30px;}
+.pxm_tbl td {height:30px;text-align:center;background-color:transparent;}
+.pxm_tbl th {background-color:#e6e5e5}
+.pxm_tbl tr.alt {background-color:#ffffff}
+.pxm_tbl tr.highlight, .pxm_tbl td.highlight {background-color:#ffc3c3}
+.pxm_tbl tr:hover {background-color:#daecfd}
+
+.sli_item {}
+.sli_item:nth-child(even) {background-color:#f6f6f6}
+.sli_item a {padding:5px;height:39px;line-height:39px;width:700px;font-weight:normal;margin:0 !important;font-size:20px;}
+.sli_item a.ui-state-hover {background:#c2ffbc none;border:none;font-weight:normal;margin:0 !important;}
+.sli_item span {height:39px;width:100px;float:left;white-space:nowrap;overflow:hidden}
+
+
+.sbutton {border-radius:5px;cursor:pointer;font-size:18px;line-height:24px;text-align:center;width:98px;height:24px;border:1px solid #327e04;background-color:#4C9900;font-weight:bold;color:#ffffff;}
+.sbutton:hover {background-color:#56A605}

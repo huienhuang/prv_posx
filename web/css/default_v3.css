@@ -1,0 +1,38 @@
+
+body {margin:0;padding:0;font-family:"Times New Roman",Times,serif !important;font-size:20px;font-weight:normal;color:#111}
+ul{list-style-type:none;padding:0;margin:0;}
+a {text-decoration:none;color:#111}
+input, select {font-family:"Times New Roman",Times,serif !important;font-size:20px !important;border:1px solid #ddd !important;outline:none;padding:2px !important;vertical-align:middle}
+input {height:26px !important;}
+input[type="button"] {height:32px !important;padding:2px 10px !important;}
+select {height:32px !important;}
+
+.m_ctrl {position:fixed;left:0;top:0;right:0;height:50px;line-height:50px;padding:0 3px;background-color:#fbfbfb;border-bottom:1px solid #f0f0f0;z-index:9999}
+.m_body {margin-top:51px;}
+
+.pxm_ctrl {position:fixed;left:0;top:0;width:100%;line-height:66px;height:66px;background-color:#f1f1f1;border-bottom:1px solid #c1c1c1;z-index:1}
+.pxm_ctrl_cont {padding:8px;line-height:50px;height:50px;min-width:900px;}
+.pxm_ctrl_cont input[type="text"] {font-size:32px;height:44px;vertical-align:bottom;width:300px;margin-left:30px;}
+.pxm_ctrl .ui-button {vertical-align:bottom}
+.pxm_body {margin-top:67px;padding:10px;}
+
+.sbutton {border-radius:5px;cursor:pointer;font-size:18px;line-height:24px;text-align:center;width:98px;height:24px;border:1px solid #327e04;background-color:#4C9900;font-weight:bold;color:#ffffff;}
+.sbutton:hover {background-color:#56A605}
+
+.pxm_tbl {border-collapse:collapse;font-size:20px;}
+.pxm_tbl th, .pxm_tbl td {border:1px solid #b2b2b2;padding:3px;line-height:26px;height:26px;}
+.pxm_tbl td {text-align:center;background-color:transparent;}
+.pxm_tbl th {background-color:#e6e5e5}
+.pxm_tbl tr.alt {background-color:#ffffff}
+.pxm_tbl tr.highlight, .pxm_tbl td.highlight {background-color:#ffc3c3}
+.pxm_tbl tr:hover {background-color:#daecfd}
+
+
+.ptable {width:800px;border:1px solid #ddd;overflow:hidden}
+.ptable > div {height:30px;line-height:30px;border-bottom:1px solid #ddd;white-space:nowrap}
+.ptable > div:hover {background-color:#ffeac6;}
+.ptable > div:first-child {background-color:#f5f5f5;font-weight:bold}
+.ptable > div:last-child {border-bottom:none;background-color:#f5f5f5}
+.ptable > div > div {float:left;height:100%;width:150px;text-align:center}
+
+
