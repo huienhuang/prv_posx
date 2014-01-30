@@ -177,7 +177,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         )
         for r in cur.fetchall(): custs_marked_count.setdefault(r[0], [0])[0] += r[1]
         
-        cur.execute(('select sc.sid,sc.name,sc.zip,c.schedule_date,c.schedule_rule,c.schedule_next from sync_customers sc left join customer c on (c.cid=sc.sid) where c.cid is not null and c.schedule_date!=0 and sc.zip in (%s)') % (','.join(map(str, zips)),))
+        cur.execute(('select sc.sid,sc.name,sc.zip,c.schedule_date,c.schedule_rule,c.schedule_next,(select max(sodate) from sync_salesorders where cust_sid=sc.sid and status<=1) as so_maxdate from sync_customers sc left join customer c on (c.cid=sc.sid) where c.cid is not null and c.schedule_date!=0 and sc.zip in (%s)') % (','.join(map(str, zips)),))
         cnz = cur.column_names
         rows = []
         for r in cur.fetchall():
@@ -195,20 +195,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
             period = self.get_period(s_dt, self.parse_rule_no_check(r['schedule_rule']), a_dt)
 
-            cur.execute('select sid,sodate from sync_salesorders where cust_sid=%s and sodate>=%s and sodate<%s and status<=1', (r['sid'], period[0], period[1]))
-            so_maxdate = 0
-            so_sids = []
+            cur.execute('select ss.sid,(select sid from sync_receipts where so_sid=ss.sid limit 1) from sync_salesorders ss where ss.cust_sid=%s and ss.sodate>=%s and ss.sodate<%s and ss.status<=1', (
+                r['sid'], period[0], period[1]
+                )
+            )
+            so_count = rc_count = 0
             for row in cur.fetchall():
-                if row[1] > so_maxdate: so_maxdate = row[1]
-                so_sids.append(str(row[0]))
-            
-            rc_count = 0
-            if so_sids:
-                cur.execute('select count(distinct so_sid) from sync_receipts where so_sid in (%s)' % (','.join(so_sids),))
-                rc_count = cur.fetchall()[0][0]
+                so_count += 1
+                if row[1] != None: rc_count += 1
             
             r['rc_count'] = rc_count
-            r['so_count'] = so_count = len(so_sids)
+            r['so_count'] = so_count
+            so_maxdate = r['so_maxdate']
             r['so_maxdate'] = so_maxdate and time.strftime("%m/%d/%Y", time.localtime(so_maxdate)) or ''
             ps_dt = time.localtime(period[0])
             r['period_start'] = time.strftime("%m/%d/%Y", ps_dt)

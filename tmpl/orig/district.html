@@ -16,6 +16,7 @@ function load_dists()
 {
     var els = g_v_tp_ctrl.data('in_els');
     var dt = els.date[0].val();
+    var dist_nz_val = g_v_dist_nz.val();
     
     g_data = null;
     $(els.dist_nz[0].val('').children().slice(1)).remove();
@@ -25,13 +26,13 @@ function load_dists()
     $.get('?fn=load_dists', {'dt': dt}, function(js) {
         if(seq !== g_seq__load_dists || !js) return;
         g_data = js;
-        setup_dists();
+        setup_dists(dist_nz_val);
         
     }, 'json');
     
 }
 
-function setup_dists()
+function setup_dists(dist_nz_val)
 {
     if(!g_data) return;
     
@@ -55,6 +56,8 @@ function setup_dists()
         var count = (stats[zip] || 0);
         g_v_dist_nz.append( $('<option></option>').val(zip).text((count ? '['+count+'] ' : '') + zip) );
     }
+    
+    g_v_dist_nz.val(dist_nz_val).change();
 }
 
 function change__dist_val()
@@ -274,7 +277,7 @@ g_v_dist_nz = els.dist_nz[0].change(function() {
                 .append( $('<div onclick="open_wnd_customer(\''+r['sid']+'\')"></div>').text(r['name']) )
                 .append( $('<div></div>').text(r['period_start']) )
                 .append( $('<div></div>').text(r['period_end']) )
-                .append( $('<div></div>').text(r['so_count'] ? r['so_maxdate'] : '') )
+                .append( $('<div></div>').text(r['so_maxdate']) )
                 .append( $('<div onclick="show_regular_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['rc_count']+'/'+r['so_count']) )
                 .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['period_marked_count']) )
                 .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+delivery_date+'\',\''+delivery_date+'\');return false"></div>').text(r['marked_count']) )
