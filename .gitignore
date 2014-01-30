@@ -1,6 +1,8 @@
 *.pyc
 /data
 /prv
+/log
+/copydb
 /tmpl/exec/*
 /config.py
 
