@@ -225,7 +225,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['marked_count'] = custs_marked_count.get(r['sid'], [0])[0]
             r['sid'] = str(r['sid'])
             
-            rows.append( ((not_in_range, int(bool(so_count)), abs(period[1] - t_ts)), r) )
+            rating = (
+                int(bool(so_count)),
+                -(t_ts - max(so_maxdate or 0, t_ts)) / (period[1] - period[0]),
+                abs(period[1] - t_ts)
+            )
+            rows.append( (rating, r) )
             
         rows.sort(key=lambda x:x[0])
         rows = [ x[1] for x in rows ]
