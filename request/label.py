@@ -7,16 +7,13 @@ import socket
 import re
 
 
-
-
-
 DEFAULT_PERM = 0x00000000
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
         d = {
             'templates': (
-                ('5193', '5193 2 x 4'),
+                ('5193', '5163 2 x 4'),
                 ('5160', '5160 1 x 2 5/8'),
             )
         }
