@@ -9,6 +9,8 @@ import config
 import mysql.connector
 import json
 
+sys.exit()
+
 db_mdb = mysql.connector.connect(**config.mysql)
 cur_mdb = db_mdb.cursor()
 

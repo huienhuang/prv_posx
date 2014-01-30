@@ -15,7 +15,9 @@ DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
-        self.req.writefile('delivery_v2.html')
+        r = {}
+        r['has_perm_admin'] = self.user_lvl & (1 << config.USER_PERM_BIT['admin'])
+        self.req.writefile('delivery_v2.html', r)
     
     def fn_get_delivery_record(self):
         d_id = self.req.qsv_int('d_id')
@@ -529,3 +531,52 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         res['apg'] = apg
         self.req.writejs(ret)
 
+    def fn_report(self):
+        self.req.writefile('delivery_v2_report.html')
+        
+    def fn_get_report__delivery_pickup(self):
+        m = self.req.qsv_int('m')
+        
+        year,month = divmod(m, 100)
+        frm_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
+    
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+        to_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
+        
+        cur = self.cur()
+        cur.execute('select num,items_js from sync_receipts where num in (select distinct num from deliveryv2_receipt) and order_date >= %s and order_date < %s and type&0xFFFF=0', (
+            frm_ts, to_ts
+            )
+        )
+        
+        cn_pickup = 0
+        cn_line = 0
+        cn_qty = 0
+        rows = cur.fetchall()
+        for row in rows:
+            rec_in = False
+            for item in json.loads(row[1]):
+                if item['itemsid'] == 1000000005: continue
+                if item['qty'] <= 0: continue
+                rec_in = True
+                
+                cn_line += 1
+                cn_qty += item['qty']
+                
+            if rec_in: cn_pickup += 1
+            
+        self.req.writejs(
+            {
+            'total': len(rows),
+            'pickup': cn_pickup,
+            'line': cn_line,
+            'qty': cn_qty
+            }
+        )
+        
+    fn_get_report__delivery_pickup.PERM = 1 << config.USER_PERM_BIT['admin']
+    
+    

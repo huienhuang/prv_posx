@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - Delivery V2 Report</title>
+
+<script type="text/javascript">
+
+$(function() {
+
+g_v_m_body = $('.x_body');
+g_v_m_xtbl = $('.xtbl_body', g_v_m_body);
+
+g_v_m_ctrl = $('.x_ctrl');
+idx_elements(g_v_m_ctrl, 5);
+
+var els = g_v_m_ctrl.data('in_els');
+els.month[0].change(function() {
+    g_v_m_xtbl.empty();
+    
+    var m = $(this).val();
+    if(!m) return;
+    
+    $.get('?fn=get_report__delivery_pickup', {'m': m}, function(js) {
+        
+        g_v_m_xtbl.append(
+                          $('<div class="xtbl_row"></div>')
+                          .append( $('<div></div>').text(js.total) )
+                          .append( $('<div></div>').text(js.pickup) )
+                          .append( $('<div></div>').text(js.line) )
+                          .append( $('<div></div>').text(js.qty) )
+        );
+        
+    }, 'json');
+    
+});
+
+//++load month str
+(function() {
+    var els = g_v_m_ctrl.data('in_els');
+    var v_month = els.month[0];
+    
+    var dt = new Date();
+    var y = dt.getFullYear();
+    var m = dt.getMonth() + 1;
+    
+    for(var i = 0; i < 6; i++) {
+        v_month.append( $('<option></option>').val(y * 100 + m).text( y + '-' + (m < 10 ? '0' : '') + m) );
+        m--;
+        if(m < 1) {
+            m = 12;
+            y--;
+        }
+    }
+    
+})();
+//--load month str
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none}
+.ui-widget {font-size:18px}
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<select name="ctrl_month"><option value="">-- Month --</option></select>
+</div>
+
+<div class="x_body">
+<div class="xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Pickup</div><div>Line</div><div>Qty</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+</div>
+
+</body>
+</html>

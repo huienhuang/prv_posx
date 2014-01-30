@@ -40,6 +40,11 @@ g_v_tabs = $('#m_tabs').tabs({
                 g_v_district_iframe.data('inited', true);
                 g_v_district_iframe.attr('src', 'district');
             }
+        } else if(nz == 'report') {
+            if(!g_v_report_iframe.data('inited')) {
+                g_v_report_iframe.data('inited', true);
+                g_v_report_iframe.attr('src', 'delivery?fn=report');
+            }
         }
     },
     active: 0
@@ -48,6 +53,8 @@ g_v_tabs = $('#m_tabs').tabs({
 g_v_view_iframe = $('#tabs_view > iframe', g_v_tabs);
 
 g_v_district_iframe = $('#tabs_district > iframe', g_v_tabs);
+
+g_v_report_iframe = $('#tabs_report > iframe', g_v_tabs);
 
 g_v_records = $('#tabs_main > #records', g_v_tabs).tinygrid({
 len:1,
@@ -112,7 +119,10 @@ body {-webkit-user-select:none;}
     <li><a href="#tabs_view">详细记录</a></li>
     <li><a href="#tabs_receipts">有问题的单</a></li>
     <li><a href="#tabs_district">District</a></li>
-    <li style="float:right"><a href="#tabs_quit">退出</a></li>
+%if has_perm_admin:
+    <li><a href="#tabs_report">Report</a></li>
+%endif
+    <li style="float:right"><a href="#tabs_quit">Quit</a></li>
     <li style="float:right"><a href="#tabs_new">新纪录</a></li>
 </ul>
 
@@ -123,6 +133,8 @@ body {-webkit-user-select:none;}
 <div id="tabs_receipts"><div id="receipts"></div></div>
 
 <div id="tabs_district"><iframe></iframe></div>
+
+<div id="tabs_report"><iframe></iframe></div>
 
 <div id="tabs_new"><iframe src="?fn=delivery_edit"></iframe></div>
 
