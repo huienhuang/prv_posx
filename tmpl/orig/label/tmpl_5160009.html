@@ -21,17 +21,39 @@ function setup_data(item)
 
 function add_label(item)
 {
-    g_v_body.children('.labelpaper').remove();
+    var s_item = setup_data(item);
+    for(var i = 0; i < g_labels.length; i++) _fill_label(g_labels[i], s_item);
+}
+
+function change_elem()
+{
+    var wrap_elem = $(this);
+    var js = wrap_elem.data('js');
+    var elem = js.v;
+    if(elem === undefined) return;
+    js.v = undefined;
     
-    var paper = create_new_paper();
-    var labels = paper.children('div');
+    var val = wrap_elem.detach().val();
+    var c_elem = js.type ? elem.find('td') : elem;
+    if(html_to_text(c_elem) === val) return;
     
-    for(var i = 0; i < labels.length; i++) {
-        var label = $(labels[i]);
-        label.addClass('label_active');
-        fill_label(label, item);
+    var idx = elem.index();
+    var new_val = text_to_html(val);
+    for(var i = 0; i < g_labels.length; i++) {
+        elem = $( g_labels[i].children()[idx] );
+        (js.type ? elem.find('td') : elem).html(new_val);
     }
 }
+
+$(function() {
+
+g_labels = [];
+var lst = create_new_paper().children('div').addClass('label_active');
+for(var i = 0; i < lst.length; i++) g_labels.push($(lst[i]));
+
+window.onbeforeunload = undefined;
+
+});
 
 </script>
 
