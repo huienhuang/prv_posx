@@ -31,6 +31,10 @@ els.quit[0].click(function() {
     go_home();
     
 })
+els.clear[0].click(function() {
+    g_v_m_ctrl.data('in_els').tmpl[0].change();
+    
+})
 
 init_item_ac('[name="ctrl_srch"]', function(evt, ui) {
     var add_label = g_v_iframe_tmpl[0].contentWindow.add_label;
@@ -52,14 +56,15 @@ body {-webkit-user-select:none;}
 <body>
 
 <div class="m_ctrl">
-<select name="ctrl_tmpl" style="width:200px">
+<select name="ctrl_tmpl" style="width:300px">
 <option value="">-- Select Template --</option>
 %for t_id,t_val in templates:
 <option value="${t_id|h}">${t_val|h}</option>
 %endfor
 </select>
-<input type="text" name="ctrl_srch" />
+<input type="text" name="ctrl_srch" style="width:150px" />
 <input type="button" name="ctrl_preview" value="preview" class="btn" />
+<input type="button" name="ctrl_clear" value="clear" class="btn" />
 <input type="button" name="ctrl_quit" value="quit" class="btn" />
 </div>
 
