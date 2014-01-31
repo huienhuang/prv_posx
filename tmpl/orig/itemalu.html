@@ -138,7 +138,7 @@ g_v_item_qtys = $('.cnt_item_qtys');
 
 g_v_ac_item_search = $('#item_search').autocomplete({
     autoFocus: true,
-    source: "?fn=itemsearch",
+    source: "sync?fn=search_item__simple",
     minLength: 1,
     select: function(event, ui) { load_item(ui.item); },
     response: ac_item_search_response

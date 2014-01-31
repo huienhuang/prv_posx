@@ -73,22 +73,32 @@ class RequestHandler(tinywsgi2.RequestHandler):
                 if mac == cur_mac: return True
         
         return False
-        
+    
+    def logout(self):
+        self.out_cookie['__auth__'] = ''
+        self.out_cookie['__auth__']['expires'] = -(3600 * 24)
+    
     def login(self, user_id=None, user_passwd=None):
         rip = self.environ.get('REMOTE_ADDR', '')
-        c_user_id = self.cookie.get('user_id')
-        c_auth_id = self.cookie.get('auth_id')
+        auth = self.cookie.get('__auth__')
+        cts = int(time.time())
         
         uid = None
         if user_id == None:
-            if c_user_id and c_user_id.value.isdigit() and c_auth_id:
-                uid = int(c_user_id.value)
-                aid = c_auth_id.value
+            if auth:
+                auth_a = (auth.value or '').split(':')
+                if len(auth_a) == 3:
+                    c_uid,c_ats,c_aid = auth_a
+                    if c_uid.isdigit() and c_ats.isdigit():
+                        uid = int(c_uid)
+                        ats = int(c_ats)
+                        aid = c_aid
         else:
             uid = user_id
             dpw = self.genpasswd(user_passwd)
             aid = hashlib.md5('%s%s%s%s' % (rip, config.secret_code, uid, dpw)).hexdigest()
-        
+            ats = 0
+            
         if uid:
             cur = self.cur()
             cur.execute('select user_name,user_passwd,user_lvl from user where user_id=%d limit 1' % (uid, ))
@@ -99,12 +109,14 @@ class RequestHandler(tinywsgi2.RequestHandler):
                 r_aid = hashlib.md5('%s%s%s%s' % (rip, config.secret_code, uid, dpw)).hexdigest()
                 if r_aid == aid:
                     self.user_id = uid
-                    self.user_name = r[0].decode('utf8')
+                    self.user_name = r[0]
                     self.user_lvl = int(r[2])
                     
-                    if user_id:
-                        self.out_cookie['user_id'] = str(uid)
-                        self.out_cookie['auth_id'] = str(aid)
+                    if cts >= ats + 6600:
+                        self.out_cookie['__auth__'] = '%s:%s:%s' % (uid, cts, aid)
+                        self.out_cookie['__auth__']['expires'] = 7200
+                    
+                    if user_id and not user_passwd: self.req.redirect('home?fn=set_password')
                     
                     return True
         
@@ -112,11 +124,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.user_name = None
         self.user_lvl = 0
         
-        if c_user_id or c_auth_id:
-            self.out_cookie['user_id'] = ''
-            self.out_cookie['user_id']['expires'] = -(3600 * 24)
-            self.out_cookie['auth_id'] = ''
-            self.out_cookie['auth_id']['expires'] = -(3600 * 24)
+        if auth: self.logout()
         
         return False
     
@@ -200,12 +208,9 @@ class RequestHandler(tinywsgi2.RequestHandler):
     fn_login_by_name_js.PERM = 0
     
     def fn_logout(self):
-        self.out_cookie['user_id'] = ''
-        self.out_cookie['user_id']['expires'] = -(3600 * 24)
-        self.out_cookie['auth_id'] = ''
-        self.out_cookie['auth_id']['expires'] = -(3600 * 24)
+        self.logout()
         self.req.redirect('?fn=login')
-            
+        
         return False
 
     fn_logout.PERM = 0

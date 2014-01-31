@@ -21,12 +21,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs(row)
     
-    regx_kw = re.compile(u'[^ 0-9a-z,]+', re.I|re.M|re.S)
-    def fn_itemsearch(self):
-        kw = self.qsv_str('term')
-        if not kw: return
-        mode = self.qsv_int('mode')
-        
+    def search_item(self, kw, mode):
         kws = set(self.regx_kw.sub(u' ', kw).strip().lower().replace(u',', u' ').strip().split(u' '))
         kws.discard(u'')
         if not kws: return
@@ -54,8 +49,30 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             items.append( [str(x[0]),] + list(x[1:4]) + [None] )
             k += 1
             if k >= 10: break
+            
+        return items
+    
+    def fn_search_item__simple(self):
+        kw = self.qsv_str('term')
+        if not kw: return
+        mode = self.qsv_int('mode')
+        
+        items = self.search_item(kw, mode)
+        for t in items:
+            js = t[3] = json.loads(t[3])
+            for u in js['units']: u[0] = None
+            del js['udfs']
         
         self.req.writejs(items)
+        
+    fn_search_item__simple.PERM = 0
+    
+    regx_kw = re.compile(u'[^ 0-9a-z,]+', re.I|re.M|re.S)
+    def fn_itemsearch(self):
+        kw = self.qsv_str('term')
+        if not kw: return
+        mode = self.qsv_int('mode')
+        self.req.writejs( self.search_item(kw, mode) )
         
     def fn_custsearch(self):
         kw = self.qsv_str('term')

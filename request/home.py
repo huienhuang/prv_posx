@@ -22,3 +22,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_env(self):
         self.req.writefile('env.html', {'env':self.environ})
     
+    
+    def fn_set_password(self):
+        self.req.writefile('set_password.html')
+        
