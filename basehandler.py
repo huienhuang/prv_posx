@@ -114,7 +114,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
                     
                     if cts >= ats + 6600:
                         self.out_cookie['__auth__'] = '%s:%s:%s' % (uid, cts, aid)
-                        self.out_cookie['__auth__']['expires'] = 7200
+                        #self.out_cookie['__auth__']['expires'] = 7200
                     
                     if user_id and not user_passwd: self.req.redirect('home?fn=set_password')
                     

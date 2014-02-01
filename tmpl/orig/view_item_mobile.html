@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - View Item</title>
+
+<script type="text/javascript">
+
+$(function() {
+
+init_item_ac('[name="item_srch"]', function(evt, ui) {
+    
+});
+
+}); //-ready
+
+</script>
+
+<style type="text/css">
+body {width:320px;height:480px;overflow:hidden;margin:0 auto}
+
+.item_info_tbl {padding-top:5px}
+.item_info_tbl > div {position:relative;border-top:1px solid #ddd;margin:0;min-height:32px;padding-left:60px;line-height:32px}
+.item_info_tbl > div:last-child {border-bottom:1px solid #ddd}
+.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:50px;padding-right:10px;text-align:right}
+.item_info_tbl > div > div:nth-child(2) {text-align:center;}
+
+</style>
+
+</head>
+<body>
+<div class="x_ctrl"><input type="text" name="item_srch" /></div>
+<div class="x_body item_info_tbl">
+<div><div>号码</div><div></div></div>
+<div><div>名称</div><div></div></div>
+<div><div>单位</div><div></div></div>
+<div><div>厂商</div><div></div></div>
+<div><div>图片</div><div></div></div>
+</div>
+</body>
+</html>
