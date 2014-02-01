@@ -116,7 +116,7 @@ function load_item(item)
     g_v_item_name.append($('<span></span>').text(item[1]))
     .append($('<span></span>').text(item[3].vends[0][0]))
     .append($('<span></span>').text(item[3].units[0][1]))
-    .append($('<span></span>').text(item[2]));
+    .append($('<span onclick="se_name();return false"></span>').text(item[2]));
     
     var units = g_item[3].units;
     for(var i = 0; i < units.length; i++) {
@@ -126,6 +126,11 @@ function load_item(item)
     
     g_v_item_uom.val(''+g_item[3].default_uom_idx).change();
     
+}
+
+function se_name()
+{
+    if(g_item) window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(g_item[2]),'posx_se_item','location=0,width=992,height=700');
 }
 
 $(function() {
@@ -176,9 +181,9 @@ body {-webkit-user-select:none;}
 .cnt_item_name, .cnt_item_qtys {font-weight:bold;padding:10px 0;border-bottom:1px solid #ccc;height:26px;line-height:26px;}
 .cnt_item_name > span {margin-right:20px;}
 .cnt_item_name > span:nth-child(1) {color:#004C99;cursor:pointer}
-.cnt_item_name > span:nth-child(2) {color:#556B2F}
-.cnt_item_name > span:nth-child(3) {color:#994C00}
-.cnt_item_name > span:nth-child(4) {color:blue}
+.cnt_item_name > span:nth-child(2) {color:#556B2F;cursor:pointer}
+.cnt_item_name > span:nth-child(3) {color:#994C00;cursor:pointer}
+.cnt_item_name > span:nth-child(4) {color:blue;cursor:pointer}
 .cnt_item_qtys > span {float:left;display:block;height:26px;width:150px;margin-right:20px;cursor:pointer}
 .cnt_item_alus {padding:20px 0}
 
