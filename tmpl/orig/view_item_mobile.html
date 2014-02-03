@@ -32,6 +32,18 @@ init_item_ac(
         var item = ui.item;
         g_v_item_tbl.no.text(item[1]);
         g_v_item_tbl.name.text(item[2]);
+        
+        var units = item[3].units;
+        for(var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            g_v_item_tbl.unit.append(
+                $('<div></div>')
+                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') ) )
+                .append( $('<span></span>').text( unit[1] ) )
+                .append( $('<span></span>').text( unit[4] ) )
+            );
+        }
+        
     },
     {
         delay: 500,
@@ -84,7 +96,7 @@ body {overflow:hidden;margin:0 auto;padding-top:36px;}
 <div class="item_info_tbl">
 <div><div>号码</div><div></div></div>
 <div><div>名称</div><div></div></div>
-<div><div>单位</div><div></div></div>
+<div><div>单位</div><div class="item_unit"></div></div>
 <div><div>厂商</div><div></div></div>
 <div><div>图片</div><div></div></div>
 </div>
