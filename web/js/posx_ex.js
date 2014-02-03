@@ -40,16 +40,16 @@ function __ac_item_search_response(event, ui) {
     }
 }
 
-function init_item_ac(sel, cb)
+function init_item_ac(sel, cb, option, fn_render)
 {
-    var ac = $(sel).autocomplete({
+    var ac = $(sel).autocomplete( $.extend({
         autoFocus: true,
         source: "sync?fn=itemsearch",
         minLength: 1,
         select: cb,
-        response: __ac_item_search_response
-    });
-    ac.data("ui-autocomplete")._renderItem = __itemsearch_render_item;
+        response: __ac_item_search_response,
+    }, option) );
+    ac.data("ui-autocomplete")._renderItem = fn_render || __itemsearch_render_item;
     
     return ac;
 }

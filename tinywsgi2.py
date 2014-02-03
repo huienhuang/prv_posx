@@ -9,7 +9,6 @@ import thread
 import string
 import cgi
 import time
-import cStringIO
 import Cookie
 import gzip
 import json
@@ -100,7 +99,7 @@ class Application:
             
             #build response
             status = req.out_status
-            output = req.out_res.getvalue()
+            output = ''.join(req.out_res)
             cookie = [ c.OutputString() for c in req.out_cookie.values() ]
             status = "%s %s" % (status, responses.get(status, 'UNKNOWN'))
             headers = self.headers.copy()
@@ -184,7 +183,7 @@ class Request:
         
         self.out_status = 200
         
-        self.out_res = cStringIO.StringIO()
+        self.out_res = []
         self.out_headers = {}
         
         self.cookie = Cookie.SimpleCookie()
@@ -217,17 +216,17 @@ class Request:
         self.write( json.dumps(o, separators=(',',':'), encoding=self.app.encoding) )
     
     def writex(self, v):
-        self.out_res.truncate(0)
+        self.out_res = []
         self.write(v)
     
     def write(self, v):
         if isinstance(v, unicode):
-            self.out_res.write(v.encode(self.app.encoding))
+            self.out_res.append(v.encode(self.app.encoding))
         else:
-            self.out_res.write(str(v))
+            self.out_res.append(str(v))
     
     def writefile(self, fnz, data={}):
-        self.out_res.write( self.app.render(fnz, data) )
+        self.out_res.append( self.app.render(fnz, data) )
 
     def qsv_int(self, k, dv=0):
         v = self.qsd.get(k, [''])[0].strip()

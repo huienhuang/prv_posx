@@ -78,26 +78,23 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.out_cookie['__auth__'] = ''
         self.out_cookie['__auth__']['expires'] = -(3600 * 24)
     
-    def login(self, user_id=None, user_passwd=None):
+    def login(self, in_uid=None, in_pass=None):
         rip = self.environ.get('REMOTE_ADDR', '')
         auth = self.cookie.get('__auth__')
-        cts = int(time.time())
+        ts_idx = int(int(time.time()) / 3600)
         
         uid = None
-        if user_id == None:
-            if auth:
-                auth_a = (auth.value or '').split(':')
-                if len(auth_a) == 3:
-                    c_uid,c_ats,c_aid = auth_a
-                    if c_uid.isdigit() and c_ats.isdigit():
-                        uid = int(c_uid)
-                        ats = int(c_ats)
-                        aid = c_aid
+        if in_uid == None:
+            #check cookie auth
+            auth_ = (auth and auth.value or '').split(':')
+            if len(auth_) == 2 and auth_[0].isdigit():
+                uid = int(auth_[0])
+                aid = auth_[1]
         else:
-            uid = user_id
-            dpw = self.genpasswd(user_passwd)
-            aid = hashlib.md5('%s%s%s%s' % (rip, config.secret_code, uid, dpw)).hexdigest()
-            ats = 0
+            #check user input
+            uid = in_uid
+            aid_ = self.gen_pre_auth(rip, uid, self.genpasswd(in_pass))
+            aid = self.gen_auth(aid_, ts_idx - 1)
             
         if uid:
             cur = self.cur()
@@ -105,18 +102,24 @@ class RequestHandler(tinywsgi2.RequestHandler):
             r = cur.fetchall()
             r = r and r[0] or None
             if r:
-                dpw = r[1]
-                r_aid = hashlib.md5('%s%s%s%s' % (rip, config.secret_code, uid, dpw)).hexdigest()
+                r_aid_ = self.gen_pre_auth(rip, uid, r[1])
+                r_aid = self.gen_auth(r_aid_, ts_idx)
+                
+                login_pass = 0
                 if r_aid == aid:
+                    login_pass = 1
+                else:
+                    r_aid_prev = self.gen_auth(r_aid_, ts_idx - 1)
+                    if r_aid_prev == aid:
+                        login_pass = 2
+                    
+                if login_pass:
                     self.user_id = uid
                     self.user_name = r[0]
                     self.user_lvl = int(r[2])
                     
-                    if cts >= ats + 6600:
-                        self.out_cookie['__auth__'] = '%s:%s:%s' % (uid, cts, aid)
-                        #self.out_cookie['__auth__']['expires'] = 7200
-                    
-                    if user_id and not user_passwd: self.req.redirect('home?fn=set_password')
+                    if login_pass == 2: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
+                    if in_uid and not in_pass: self.req.redirect('home?fn=set_password')
                     
                     return True
         
@@ -147,6 +150,12 @@ class RequestHandler(tinywsgi2.RequestHandler):
     
     def genpasswd(self, s):
         return hashlib.md5('%s%s' % (config.passwd_code, s)).hexdigest()
+    
+    def gen_pre_auth(self, rip, uid, dpw):
+        return hashlib.md5('%s%s%s%s' % (rip, config.secret_code, uid, dpw)).digest()
+    
+    def gen_auth(self, pre_auth, ts_idx):
+        return hashlib.md5('%s%s%s' % (pre_auth, config.secret_code_v1, ts_idx)).hexdigest()
     
     def updpasswd(self, old, new):
         old_dpw = self.genpasswd(old)

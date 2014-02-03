@@ -2,40 +2,92 @@
 <html>
 <head>
 <%include file="header_inc_v3.html" />
+<meta name="viewport" content="width=320,user-scalable=no">
 <title>POSX - View Item</title>
 
 <script type="text/javascript">
 
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
 $(function() {
 
-init_item_ac('[name="item_srch"]', function(evt, ui) {
+
+init_item_ac(
+    '[name="ctrl_search"]',
+    function(evt, ui) {
+        var item = ui.item;
+        g_v_item_tbl.no.text(item[1]);
+        g_v_item_tbl.name.text(item[2]);
+    },
+    {
+        delay: 500,
+        position: {my:"left top", at:"left bottom", collision:"none", of: $('.m_top')}
+    },
+    itemsearch_render_item
     
-});
+); //init_item_ac
+
+var lst = $('.item_info_tbl > div > div:nth-child(2)');
+g_v_item_tbl = {
+    'no': $(lst[0]),
+    'name': $(lst[1]),
+    'unit': $(lst[2]),
+    'vendor': $(lst[3]),
+    'picture': $(lst[4]),
+}
 
 }); //-ready
 
 </script>
 
 <style type="text/css">
-body {width:320px;height:480px;overflow:hidden;margin:0 auto}
+body {overflow:hidden;margin:0 auto;padding-top:36px;}
 
-.item_info_tbl {padding-top:5px}
+.m_top {position:fixed;top:0;left:0;right:0;height:32px;padding:2px;line-height:32px;background-color:#f9f9f9;z-index:1}
+.m_top input {vertical-align:bottom}
+.m_top_ext {position:fixed;top:36px;left:0;right:0;bottom:0;background-color:#f9f9f9;z-index:1;display:none}
+
 .item_info_tbl > div {position:relative;border-top:1px solid #ddd;margin:0;min-height:32px;padding-left:60px;line-height:32px}
 .item_info_tbl > div:last-child {border-bottom:1px solid #ddd}
 .item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:50px;padding-right:10px;text-align:right}
 .item_info_tbl > div > div:nth-child(2) {text-align:center;}
 
+.ui-autocomplete {top:36px;left:0;bottom:0;right:0;border:none;padding:0}
+.ui-menu > .ui-menu-item {width:auto;height:46px}
+.ui-menu > .ui-menu-item > a {font-size:16px;width:auto;height:40px}
+.ui-menu > .ui-menu-item > a > span {height:20px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:50px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:100px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:150px;margin-right:0;}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:310px;margin-right:0;clear:left}
 </style>
 
 </head>
 <body>
-<div class="x_ctrl"><input type="text" name="item_srch" /></div>
-<div class="x_body item_info_tbl">
+<div class="m_top"><input text="text" name="ctrl_search" style="width:120px" /></div>
+<div class="m_top_ext"></div>
+
+<div class="item_info_tbl">
 <div><div>号码</div><div></div></div>
 <div><div>名称</div><div></div></div>
 <div><div>单位</div><div></div></div>
 <div><div>厂商</div><div></div></div>
 <div><div>图片</div><div></div></div>
 </div>
+
 </body>
 </html>
