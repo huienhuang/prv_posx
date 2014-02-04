@@ -23,8 +23,31 @@ function itemsearch_render_item(ul, item)
     
 }
 
+function finish_upload_img(lst)
+{
+    g_v_img_upload_form[0].reset();
+    
+    for(var i = 0; i < lst.length; i++) {
+        var img = lst[i];
+        g_v_item_tbl.picture.prepend( $('<img/>').attr('alt', img[0]).attr('src', img[1]) );
+    }
+    
+}
+
 $(function() {
 
+
+g_v_m_top = $('.m_top');
+$('input[name="ctrl_add_img"]', g_v_m_top).click(function() {
+    g_v_img_upload_form__img.click();
+});
+
+g_v_img_upload_form = $('#img_upload_form');
+g_v_img_upload_form__img = $('input[name="img"]', g_v_img_upload_form).change(function() {
+    var fnz = g_v_img_upload_form__img.val();
+    if(!fnz) return;
+    g_v_img_upload_form.submit();
+});
 
 init_item_ac(
     '[name="ctrl_search"]',
@@ -33,21 +56,37 @@ init_item_ac(
         g_v_item_tbl.no.text(item[1]);
         g_v_item_tbl.name.text(item[2]);
         
+        g_v_item_tbl.unit.empty();
         var units = item[3].units;
         for(var i = 0; i < units.length; i++) {
             var unit = units[i];
             g_v_item_tbl.unit.append(
                 $('<div></div>')
-                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') ) )
+                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '') ) )
                 .append( $('<span></span>').text( unit[1] ) )
                 .append( $('<span></span>').text( unit[4] ) )
             );
         }
         
+        g_v_item_tbl.vend.empty();
+        var vends = item[3].vends;
+        for(var i = 0; i < vends.length; i++) {
+            var vend = vends[i];
+            if(vend[1] || vend[2]) {
+                g_v_item_tbl.vend.append(
+                    $('<div></div>')
+                    .append( $('<span></span>').text(vend[1]) )
+                    .append( $('<span></span>').text(vend[2]) )
+                );
+            }
+        }
+        
+        g_v_item_tbl.picture.empty();
+        
     },
     {
         delay: 500,
-        position: {my:"left top", at:"left bottom", collision:"none", of: $('.m_top')}
+        position: {my:"left top", at:"left bottom", collision:"none", of:g_v_m_top}
     },
     itemsearch_render_item
     
@@ -58,7 +97,7 @@ g_v_item_tbl = {
     'no': $(lst[0]),
     'name': $(lst[1]),
     'unit': $(lst[2]),
-    'vendor': $(lst[3]),
+    'vend': $(lst[3]),
     'picture': $(lst[4]),
 }
 
@@ -86,20 +125,40 @@ body {overflow:hidden;margin:0 auto;padding-top:36px;}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:100px}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:150px;margin-right:0;}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:310px;margin-right:0;clear:left}
+
+.item_unit > div > span:nth-child(1) {margin-right:5px;color:#394c8a}
+.item_unit > div > span:nth-child(2) {margin-right:5px;color:#833f16}
+.item_unit > div > span:nth-child(3) {color:#4e6f15}
+
+.item_vend > div > span:nth-child(1) {margin-right:5px;color:#833f16}
+.item_vend > div > span:nth-child(2) {margin-right:5px;color:#4e6f15}
+
+
 </style>
 
 </head>
 <body>
-<div class="m_top"><input text="text" name="ctrl_search" style="width:120px" /></div>
+<div class="m_top">
+<input type="text" name="ctrl_search" style="width:120px" />
+<input type="image" src="img/upload.png" name="ctrl_add_img" alt="add img" />
+</div>
 <div class="m_top_ext"></div>
 
 <div class="item_info_tbl">
 <div><div>号码</div><div></div></div>
 <div><div>名称</div><div></div></div>
 <div><div>单位</div><div class="item_unit"></div></div>
-<div><div>厂商</div><div></div></div>
+<div><div>厂商</div><div class="item_vend"></div></div>
 <div><div>图片</div><div></div></div>
 </div>
+
+<div id="internal_ui_obj" style="display:none">
+<form id="img_upload_form" action="?fn=upload_img" method="post" enctype="multipart/form-data" target="img_upload_form__target">
+<input type="file" name="img" accept="image/jpeg,image/png" />
+</form>
+<iframe name="img_upload_form__target"></iframe>
+</div>
+
 
 </body>
 </html>

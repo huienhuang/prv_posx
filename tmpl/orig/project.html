@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - Project OnGoing</title>
+
+<script type="text/javascript">
+
+$(function() {
+
+
+$('.tp_ctrl input[value="quit"]').button().click(function() {
+    go_home();
+});
+
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+
+.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
+.main_tbl .xtbl_row > div:nth-child(1) {width:180px}
+.main_tbl .xtbl_row > div:nth-child(2) {width:80px}
+.main_tbl .xtbl_row > div:nth-child(3) {width:80px}
+.main_tbl .xtbl_row > div:nth-child(4) {width:320px}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="button" value="quit" class="btn" />
+</div>
+
+<div class="xtbl main_tbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Name</div><div>Priority</div><div>Progress</div><div>Note</div></div></div>
+<div class="xtbl_body">
+<div class="xtbl_row"><div>Mobile Inventory UI</div><div>High</div><div>80%</div><div>Easy to check the price, etc</div></div>
+<div class="xtbl_row"><div>Special CRM</div><div>Normal</div><div>0%</div><div>Integrate with POSX</div></div>
+</div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+
+</body>
+</html>

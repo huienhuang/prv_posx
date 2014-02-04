@@ -34,3 +34,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.setconfigv2('allowed_mac_addrs', s)
         self.req.writejs( {'res':1} )
 
+    def fn_project(self):
+        self.req.writefile('project.html')
+
+    
+

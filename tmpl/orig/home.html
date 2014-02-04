@@ -300,6 +300,9 @@ $('.sys_menu').tinymenu();
 %if user_lvl & (1 << PERM_BIT['sys']) & 0:
 <li><a href="sys?fn=mac">Mac</a></li>
 %endif
+%if user_lvl & (1 << PERM_BIT['sys']):
+<li><a href="sys?fn=project">Project</a></li>
+%endif
 </ul>
 
 <div style="clear:both"></div>
