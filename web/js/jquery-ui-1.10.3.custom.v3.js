@@ -6331,11 +6331,12 @@ $.widget( "ui.autocomplete", {
 
 		// size and position menu
 		ul.show();
-		this._resizeMenu();
-		ul.position( $.extend({
-			of: this.element
-		}, this.options.position ));
-
+		if(!this.options.position || !this.options.position.mode) {
+			this._resizeMenu();
+			ul.position( $.extend({
+				of: this.element
+			}, this.options.position ));
+		}
 		if ( this.options.autoFocus ) {
 			this.menu.next();
 		}

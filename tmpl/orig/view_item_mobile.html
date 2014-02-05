@@ -62,9 +62,9 @@ init_item_ac(
             var unit = units[i];
             g_v_item_tbl.unit.append(
                 $('<div></div>')
-                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '') ) )
-                .append( $('<span></span>').text( unit[1] ) )
-                .append( $('<span></span>').text( unit[4] ) )
+                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '') + ' ' ) )
+                .append( $('<span></span>').text( unit[1] + ' ' ) )
+                .append( $('<span></span>').text( unit[4]) )
             );
         }
         
@@ -75,7 +75,7 @@ init_item_ac(
             if(vend[1] || vend[2]) {
                 g_v_item_tbl.vend.append(
                     $('<div></div>')
-                    .append( $('<span></span>').text(vend[1]) )
+                    .append( $('<span></span>').text(vend[1] + ' ') )
                     .append( $('<span></span>').text(vend[2]) )
                 );
             }
@@ -85,8 +85,9 @@ init_item_ac(
         
     },
     {
+        source: "sync?fn=itemsearch&mini=1",
         delay: 500,
-        position: {my:"left top", at:"left bottom", collision:"none", of:g_v_m_top}
+        position: {mode:1}
     },
     itemsearch_render_item
     
@@ -106,7 +107,7 @@ g_v_item_tbl = {
 </script>
 
 <style type="text/css">
-body {overflow:hidden;margin:0 auto;padding-top:36px;}
+body {margin:0 auto;padding-top:36px;}
 
 .m_top {position:fixed;top:0;left:0;right:0;height:32px;padding:2px;line-height:32px;background-color:#f9f9f9;z-index:1}
 .m_top input {vertical-align:bottom}
@@ -115,9 +116,9 @@ body {overflow:hidden;margin:0 auto;padding-top:36px;}
 .item_info_tbl > div {position:relative;border-top:1px solid #ddd;margin:0;min-height:32px;padding-left:60px;line-height:32px}
 .item_info_tbl > div:last-child {border-bottom:1px solid #ddd}
 .item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:50px;padding-right:10px;text-align:right}
-.item_info_tbl > div > div:nth-child(2) {text-align:center;}
+.item_info_tbl > div > div:nth-child(2) {text-align:center}
 
-.ui-autocomplete {top:36px;left:0;bottom:0;right:0;border:none;padding:0}
+.ui-autocomplete {top:36px;left:0;bottom:0;right:0;border:none;padding:0;position:fixed}
 .ui-menu > .ui-menu-item {width:auto;height:46px}
 .ui-menu > .ui-menu-item > a {font-size:16px;width:auto;height:40px}
 .ui-menu > .ui-menu-item > a > span {height:20px}
@@ -126,13 +127,14 @@ body {overflow:hidden;margin:0 auto;padding-top:36px;}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:150px;margin-right:0;}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:310px;margin-right:0;clear:left}
 
-.item_unit > div > span:nth-child(1) {margin-right:5px;color:#394c8a}
-.item_unit > div > span:nth-child(2) {margin-right:5px;color:#833f16}
+.item_unit > div > span:nth-child(1) {color:#394c8a}
+.item_unit > div > span:nth-child(2) {color:#833f16}
 .item_unit > div > span:nth-child(3) {color:#4e6f15}
+.item_unit > div:nth-child(even) {background-color:#fdf3e4}
 
-.item_vend > div > span:nth-child(1) {margin-right:5px;color:#833f16}
-.item_vend > div > span:nth-child(2) {margin-right:5px;color:#4e6f15}
-
+.item_vend > div > span:nth-child(1) {color:#833f16}
+.item_vend > div > span:nth-child(2) {color:#4e6f15}
+.item_vend > div:nth-child(even) {background-color:#fdf3e4}
 
 </style>
 

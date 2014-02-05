@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v2.html" />
+<title>POSX - Item - Report - Sale</title>
+
+<script type="text/javascript">
+
+
+$(function() {
+
+$('.btn').button();
+
+g_v_ctrl = $('.x_ctrl')
+idx_elements(g_v_ctrl, 0);
+var els = g_v_ctrl.data('in_els');
+
+els.quit[0].click(go_home);
+
+
+$('.tg_item_list').tinygrid({
+len:1,
+src:{page:'reportitem?fn=get_items'},
+cols: [{name:'ID', width:70},
+       {name:'Name', width:"100%"},
+       {name:'OnHand', width:90},
+       {name:'OnOrder', width:90},
+       {name:'T_Qty', width:90},
+       {name:'T_Sale', width:90},
+       {name:'T_Cost', width:90},
+       {name:'Margin', width:90},
+       {name:'Margin%', width:90},
+       ],
+});
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px}
+.x_ctrl > input {margin-right:10px}
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<input type="month" name="frm_date" title="From" />
+<input type="month" name="to_date" title="To" />
+<input type="button" name="apply" value="apply" class="btn" />
+<input type="button" name="quit" value="quit" class="btn" />
+</div>
+
+<div class="x_body tg_item_list"></div>
+
+</body>
+</html>

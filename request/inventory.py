@@ -5,6 +5,7 @@ import config
 import datetime
 import sys
 import Image
+import hashlib
 
 
 ORIENTATION = [
@@ -50,11 +51,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 else:
                     nim = im.transpose(ori)
         
-        nim.thumbnail((1200, 1200), Image.ANTIALIAS)
-        nim.save("e:/pk.jpg", "JPEG", quality=82)
-        #im.thumbnail((200, 200), Image.ANTIALIAS)
-        #im.save("e:/pk.jpg", "JPEG", quality=82)
+        fnz = hashlib.md5( str(time.time()) ).hexdigest()
         
-        self.req.writefile('finish_upload_img.html', {'lst':''})
+        nim.thumbnail((1200, 1200), Image.ANTIALIAS)
+        nim.save(os.path.join(config.SFILE_DIR, 'upload', fnz + '.jpg'), "JPEG", quality=82)
+        nim.thumbnail((200, 200), Image.ANTIALIAS)
+        nim.save(os.path.join(config.SFILE_DIR, 'upload', fnz + '_200.jpg'), "JPEG", quality=82)
+        
+        lst = json.dumps( (('123','file/upload/' + fnz + '_200.jpg'),) )
+        self.req.writefile('finish_upload_img.html', {'lst': lst})
         
         
