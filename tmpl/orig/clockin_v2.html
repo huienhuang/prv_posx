@@ -13,7 +13,8 @@ G_LANG_T = [
     'WorkingHours': '今天工作小时',
     'Error': '错误',
     'TryAgain': '再试一次',
-    'GoBack': '退回'
+    'GoBack': '退回',
+    'OKMSG': '成功提交'
 },
 {
     'InTime': 'LogIn Time',
@@ -22,7 +23,8 @@ G_LANG_T = [
     'WorkingHours': 'Working Hours',
     'Error': 'Error',
     'TryAgain': 'Try Again',
-    'GoBack': 'Go Back'
+    'GoBack': 'Go Back',
+    'OKMSG': 'Submitted Successfully'
 }
 ];
 
@@ -46,8 +48,10 @@ function load_user_info(user)
     g_cur_user = user;
     g_v_m_info.show();
     g_v_m_pad.hide();
+    g_v_m_msg.stop(true, true).hide();
     g_lang = G_LANG_T[ user['flag'] & 1 ];
     
+    g_v_m_msg.text(g_lang['OKMSG']);
     g_v_m_info.children('.c_btn_quit').text(g_lang['GoBack']);
     g_v_m_info.children('.c_user_name').text(user.user_name);
     if(user.in_ts) {
@@ -123,7 +127,7 @@ $('.c_btn_clockin', g_v_m_info).click(function() {
         data: {'code': g_cur_user.user_code, 'in': g_cur_user.in_ts ? 0 : 1, 'rev': g_cur_user.rev},
         success: function(js) {
             if(!js || !js.ret) { MsgBox(g_lang['Error'], g_lang['TryAgain']); return; }
-            
+            g_v_m_msg.show().fadeOut(3000);
         },
         dataType: 'json',
         error: function(xhr, status, error) { MsgBox(g_lang['Error'], g_lang['TryAgain']); }
@@ -131,6 +135,8 @@ $('.c_btn_clockin', g_v_m_info).click(function() {
     
     g_v_c_btn_quit.click();
 });
+
+g_v_m_msg = $('.m_msg');
 
 g_v_m_title = $('.mcnt > .m_title');
 setInterval(update_ts, 1000);
@@ -145,7 +151,7 @@ body {-webkit-user-select:none}
 
 .mcnt {width:600px;height:546px;margin:10px auto 0 auto;border:1px solid #ddd;border-radius:8px;position:relative;background-color:#fff}
 .mcnt > .m_title {position:absolute;top:5px;left:5px;right:5px;height:50px;background-color:#f2f2f2;line-height:50px;text-align:center;font-size:32px;font-weight:bold}
-.m_pad, .m_info {position:absolute;top:60px;left:0;right:0;bottom:0}
+.m_pad, .m_info, .m_msg {position:absolute;top:60px;left:0;right:0;bottom:0}
 .m_pad > div, .m_info > div {position:absolute;}
 
 .m_pad > .c_num_pad {top:96px;left:55px;right:55px;bottom:0;}
@@ -160,6 +166,8 @@ body {-webkit-user-select:none}
 .m_info > .c_ctn_status {height:60px;width:100%;text-align:center;font-size:32px;line-height:60px;}
 .m_info > .c_last_in_ts {top:100px;}
 .m_info > .c_today_hrs {top:170px;}
+
+.m_msg {background-color:#fff;font-size:72px;;text-align:center;padding:90px;font-weight:bold}
 
 </style>
 
@@ -193,6 +201,7 @@ body {-webkit-user-select:none}
 <div class="c_btn c_btn_quit"></div>
 </div>
 
+<div class="m_msg" style="display:none"></div>
 
 </div>
     
