@@ -185,6 +185,29 @@ class RequestHandler(tinywsgi2.RequestHandler):
         cur.execute('select user_id,user_name,user_lvl from user where user_name=%s limit 1', (user_name,))
         res = cur.fetchall()
         return res and res[0] or None
+    
+    def fn_getusers(self):
+        users = [ user for user in self.getuserlist() if user[2] & (1 << config.USER_PERM_BIT['normal access']) ]
+        self.req.writejs(users)
+    #fn_getusers
+    fn_getusers.PERM = 0
+    
+    def fn_getuser(self):
+        self.login()
+        self.req.writejs({'user_id': self.user_id})
+    #fn_getuser
+    fn_getuser.PERM = 0
+    
+    def fn_login_js(self):
+        ret = {'user_id':0}
+        user_id = self.req.psv_ustr('user_id')
+        user_pass = self.req.psv_ustr('user_passwd')
+        user_id = user_id.isdigit() and int(user_id) or 0
+        if user_id and self.login(user_id, user_pass): ret['user_id'] = self.user_id
+        
+        self.req.writejs(ret)
+    #fn_login_js
+    fn_login_js.PERM = 0
         
     def fn_login(self):
         if self.qsv_str('a'):
@@ -197,7 +220,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         
         d = {'userlist': self.getuserlist(), 'USER_PERM_BIT': config.USER_PERM_BIT}
         self.req.writefile('login.html', d)
-    
+    #fn_login
     fn_login.PERM = 0
     
     def fn_login_by_name_js(self):
@@ -213,7 +236,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         
         ret['user_id'] = self.user_id
         self.req.writejs(ret)
-    
+    #fn_login_by_name_js
     fn_login_by_name_js.PERM = 0
     
     def fn_logout(self):
@@ -221,7 +244,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.req.redirect('?fn=login')
         
         return False
-
+    #fn_logout
     fn_logout.PERM = 0
 
     def qsv_int(self, k, dv=0):

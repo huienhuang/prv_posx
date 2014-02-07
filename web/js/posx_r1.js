@@ -119,3 +119,85 @@ function idx_elements(blk, nz_prefix_len)
     
     blk.data('in_els', in_els);
 }
+
+
+var __timeout_chk_login = null;
+var __g_v_login = null;
+(function() {
+    
+    function load_users()
+    {
+        if(!__g_v_login) return;
+        
+        $.get('?fn=getusers', {}, function(js) {
+            var els = __g_v_login.data('in_els');
+            var v_uid = els.uid[0].empty();
+            v_uid.append('<option value="0"> -- Select -- </option>')
+            for(var i = 0; i < js.length; i++) v_uid.append( $('<option></option>').text(js[i][1]).val(js[i][0]) );
+            
+        }, 'json');
+        
+    }
+    
+    function login()
+    {
+        var els = __g_v_login.data('in_els');
+        var user_id = parseInt(els.uid[0].val());
+        var user_passwd = $.trim(els.pass[0].val());
+        els.pass[0].val('');
+        if(!user_id || !user_passwd) return;
+        
+        $.post('?fn=login_js', {'user_id':user_id, 'user_passwd':user_passwd}, function(js) {
+            if(!js || !js.user_id) return;
+            __g_v_login.dialog('close');
+        }, 'json');
+        
+    }
+    
+    function show_login()
+    {
+        if(__g_v_login && __g_v_login.dialog('isOpen') ) return;
+        
+        if(!__g_v_login) {
+            __g_v_login = $('<div id="__g_v_login" title="Log In" style="line-height:36px;text-align:center"><div><select name="uid" style="width:200px" /></select></div><div><input type="password" name="pass" placeholder="password" style="width:194px" /></div></div>')
+            .appendTo($('body'))
+            .dialog({
+                modal:true,
+                autoOpen:false,
+                width:300,
+                buttons: {
+                    'login': login
+                }
+            });
+            idx_elements(__g_v_login, 0);
+        }
+        
+        load_users();
+        __g_v_login.dialog('open');
+    }
+    
+    
+    function chk_login()
+    {
+        $.get('?fn=getuser', {}, function(js) {
+            if(!js || js.user_id !== 0) {
+                __g_v_login && __g_v_login.dialog('close');
+            } else {
+                show_login();
+            }
+            
+            __timeout_chk_login && clearTimeout(__timeout_chk_login);
+            __timeout_chk_login = setTimeout(chk_login, 5000);
+            
+        }, 'json').error(function() {
+            __g_v_login && __g_v_login.dialog('close');
+            
+            __timeout_chk_login && clearTimeout(__timeout_chk_login);
+            __timeout_chk_login = setTimeout(chk_login, 5000);
+        });
+    }
+    
+    __timeout_chk_login = setTimeout(chk_login, 5000);
+    
+})();
+
