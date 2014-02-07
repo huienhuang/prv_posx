@@ -3,7 +3,9 @@ import os
 import sys
 
 
-app_dir = os.path.dirname(__file__)
-sys.path.append(app_dir)
-application = tinywsgi2.Application(True, app_dir, web_dir='/posx').application
+cur_dir = os.path.dirname(__file__)
+sys.path.append(cur_dir)
+
+import config
+application = tinywsgi2.Application(True, config.APP_DIR, web_dir='/posx').application
 

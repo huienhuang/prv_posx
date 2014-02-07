@@ -5,30 +5,45 @@
 <title>POSX - Item - Report - Sale</title>
 
 <script type="text/javascript">
+g_tg_item_list_data = {'frm_mon':'','to_mon':''};
 
+function apply()
+{
+    var els = g_v_ctrl.data('in_els');
+    
+    var frm_mon = els.frm_mon[0].val().replace('-', '');
+    var to_mon = els.to_mon[0].val().replace('-', '');
+    if(!frm_mon || !to_mon) return;
+    
+    g_tg_item_list_data.frm_mon = frm_mon;
+    g_tg_item_list_data.to_mon = to_mon;
+    
+    g_v_tg_item_list.tinygrid('update', -1, true, true, true);
+}
 
 $(function() {
-
+    
 $('.btn').button();
 
 g_v_ctrl = $('.x_ctrl')
 idx_elements(g_v_ctrl, 0);
 var els = g_v_ctrl.data('in_els');
-
+els.frm_mon[0].change(apply);
+els.to_mon[0].change(apply);
+els.apply[0].click(apply);
 els.quit[0].click(go_home);
 
-
-$('.tg_item_list').tinygrid({
-len:1,
-src:{page:'reportitem?fn=get_items'},
+g_v_tg_item_list = $('.tg_item_list').tinygrid({
+len:0,
+src:{page:'reportitem?fn=get_items', data:g_tg_item_list_data},
 cols: [{name:'ID', width:70},
        {name:'Name', width:"100%"},
        {name:'OnHand', width:90},
        {name:'OnOrder', width:90},
        {name:'T_Qty', width:90},
-       {name:'T_Sale', width:90},
-       {name:'T_Cost', width:90},
-       {name:'Margin', width:90},
+       {name:'T_Sale', width:100},
+       {name:'T_Cost', width:100},
+       {name:'Margin', width:100},
        {name:'Margin%', width:90},
        ],
 });
@@ -47,9 +62,10 @@ cols: [{name:'ID', width:70},
 <body>
 
 <div class="x_ctrl">
-<input type="month" name="frm_date" title="From" />
-<input type="month" name="to_date" title="To" />
+<input type="month" name="frm_mon" title="From" />
+<input type="month" name="to_mon" title="To" />
 <input type="button" name="apply" value="apply" class="btn" />
+<input type="button" name="export" value="export" class="btn" />
 <input type="button" name="quit" value="quit" class="btn" />
 </div>
 

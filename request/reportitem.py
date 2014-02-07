@@ -1,10 +1,10 @@
 import config
 import hashlib
 import json
-
+import bisect
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
-class RequestHandler(App.load('/basehandler').RequestHandler):
+class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
         self.req.writefile('report_item_sale.html')
@@ -18,9 +18,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         eidx = self.qsv_int('eidx')
         if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
         
+        frm_mon = self.qsv_int('frm_mon')
+        to_mon = self.qsv_int('to_mon')
+        
         cur = self.cur()
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            stats = self.get_items_sale_stats()
+            
             cur.execute('select sid,num,name,detail from sync_items order by num asc,sid asc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
@@ -28,7 +33,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             for r in cur.fetchall():
                 d = json.loads(r[3])
                 qty = d['qty']
-                apg.append( [r[1], r[2], qty[0], qty[3]] )
+                
+                stat = stats.get(r[0]) or []
+                s_qty = 0
+                s_price = 0
+                s_cost = 0
+                mon_lst = [ f_x[0] for f_x in stat ]
+                for i in range( bisect.bisect_left(mon_lst, frm_mon),  bisect.bisect_right(mon_lst, to_mon) ):
+                    s = stat[i]
+                    s_qty += s[1]
+                    s_price += s[2]
+                    s_cost += s[3]
+                
+                s_mgn = s_price - s_cost
+                apg.append(
+                    [
+                    r[1],
+                    r[2],
+                    qty[0] and int(qty[0]),
+                    qty[3] and int(qty[3]),
+                    s_qty and int(s_qty) or '',
+                    s_price and '%0.2f' % (s_price,) or '',
+                    s_cost and '%0.2f' % (s_cost,) or '',
+                    s_mgn and '%0.2f' % (s_mgn,) or '',
+                    s_price and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
+                    ]
+                )
         
         cur.execute('select count(*) from sync_items')
         rlen = int(cur.fetchall()[0][0])
