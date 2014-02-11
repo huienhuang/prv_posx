@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v2.html" />
+<%include file="header_inc_v3.html" />
 <title>POSX - Customer > History</title>
 
 <script type="text/javascript">
@@ -236,7 +236,7 @@ els.save[0].button().click(function() {
     var next = els.next[0].val();
     var note = els.note[0].val();
     
-    $.post('district?fn=set_schedule',
+    post_js('district?fn=set_schedule',
     {
         'cid': '${cust_sid}',
         'date': date,
@@ -248,7 +248,7 @@ els.save[0].button().click(function() {
         if(!js || !js.ret) { MsgBox('Error', 'Unexpected Error'); return; };
         els.refresh[0].click();
         
-    }, 'json').error(function() { MsgBox('Error', 'Unexpected Error'); });
+    });
 });
 els.refresh[0].button().click(function() {
     

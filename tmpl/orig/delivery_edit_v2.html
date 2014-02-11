@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc.html" />
+<%include file="header_inc_v3.html" />
 <title>POSX - Delivery V2 > Edit</title>
 
 <script type="text/javascript">
@@ -481,27 +481,24 @@ function save_delivery_record()
     }
     
     var dt = g_v_delivery_date.datepicker('getDate');
-    $.ajax({
-        async: false,
-        type: 'post',
-        url: '?fn=save_delivery_record',
-        data: {
+    post_js('?fn=save_delivery_record',
+        {
             'd_id': g_cur_delivery_id,
             'rev': g_cur_delivery_rev,
             'recs': JSON.stringify(recs),
             'ts': dt ? parseInt(dt.getTime() / 1000) : 0,
             'name': g_v_delivery_name.val()
         },
-        success: function(d) {
+        function(d) {
             if(d.err) { MsgBox('Error', d.err); return; }
             g_delivery_record_changed = 0;
             window.location='?fn=delivery_edit&d_id=' + d.d_id;
         },
-        dataType: 'json',
-        error: function(xhr, status, error) {
+        function() {
             MsgBox('Error', 'saving record #' + (g_cur_delivery_id || 'NEW') + ' - unexpected error');
-        }
-    });
+        },
+        true
+    );
 }
 
 function open_wnd_receipt()

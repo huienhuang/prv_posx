@@ -601,11 +601,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         db = self.db()
         cur = db.cur()
-        cur.execute('select sid,num,name,detail from sync_items where sid=%d limit 1' % (tid,))
+        cur.execute('select s.sid,s.num,s.name,s.detail,i.imgs from sync_items s left join item i on (s.sid=i.sid) where s.sid=%d limit 1' % (tid,))
         res = cur.fetchall()
         if not res: return
         
         res = res[0]
-        item = {'item_sid': res[0], 'item_num': res[1], 'item_name': res[2], 'item_info': json.loads(res[3]), 'dg_type': dg_type}
+        item = {
+            'item_sid': res[0],
+            'item_num': res[1],
+            'item_name': res[2],
+            'item_info': json.loads(res[3]),
+            'dg_type': dg_type,
+            'item_imgs': res[4] and res[4].split('|') or []
+        }
         
         self.req.writefile('hist_item.html', item)

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_r1.html" />
+<script>posx_enable_chk_login = true;</script>
+<%include file="header_inc_v3.html" />
 <title>POSX - Home</title>
 <link rel="icon" type="image/png" sizes="72x72" href="img/main.png">
 
@@ -261,10 +262,10 @@ $('.sys_menu').tinymenu();
 <ul class="pxm_list">
 <li style="display:none"><a href="wrongdate">Wrong Date</a></li>
 <li><a href="hist">History</a></li>
-<li><a href="hist?fn=search">Search</a></li>
+<li style="display:none"><a href="hist?fn=search">Search</a></li>
 <li style="display:none"><a href="sorder">红单</a></li>
 %if user_lvl & (1 << PERM_BIT['admin']):
-<li><a href="receiptstat">红单 Report</a></li>
+<li style="display:none"><a href="receiptstat">红单 Report</a></li>
 <li><a href="receipttotal">Regular Report</a></li>
 %endif
 <li><a href="delivery">Delivery</a></li>

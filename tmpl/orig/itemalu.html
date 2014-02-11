@@ -79,28 +79,6 @@ function chg_uom()
     .append($('<span></span>').text('现有: ' + qtys[0].toFixed(2)))
     .append($('<span></span>').text('订单: ' + qtys[1].toFixed(2)))
     .append($('<span></span>').text('购买: ' + qtys[3].toFixed(2)));
-    
-    g_v_item_alus.empty();
-    if(units.length > 1) {
-        h = $('<table class="pxm_tbl"></table>').append($('<tr><th>单位</th><th>型号</th></tr>'));
-        for(var i = 0; i < units.length; i++) {
-            var u = units[i];
-            h.append($('<tr></tr>').append( $('<td></td>').text(u[2] + (i > 0 ? ' *' + u[3] : '')) ).append( $('<td></td>').text(u[1]) ));
-        }
-        g_v_item_alus.append(h);
-        g_v_item_alus.append('<br/>');
-    }
-    
-    var vends = item_js.vends;
-    if(vends.length > 1) {
-        h = $('<table class="pxm_tbl"></table>').append($('<tr><th>供应商</th><th>型号</th></tr>'));
-        h.append($('<tr></tr>').append( $('<td></td>').text(vends[0][0]) ).append( $('<td></td>').text(units[0][1]) ));
-        for(var i = 1; i < vends.length; i++) {
-            var v = vends[i];
-            h.append($('<tr></tr>').append( $('<td></td>').text(v[0]) ).append( $('<td></td>').text(v[1]) ));
-        }
-        g_v_item_alus.append(h);
-    }
 }
 
 function load_item(item)
@@ -108,10 +86,10 @@ function load_item(item)
     g_item = item;
     
     g_v_item_uom.empty();
-    g_v_item_alus.empty();
-    g_v_item_name.empty();
-    
-    if (!g_item) return;
+    g_v_item_alus.empty().hide();
+    g_v_item_pics.empty().hide();
+    g_v_item_name.empty().show();
+    g_v_item_qtys.empty().show();
     
     g_v_item_name.append($('<span></span>').text(item[1]))
     .append($('<span></span>').text(item[3].vends[0][0]))
@@ -124,8 +102,58 @@ function load_item(item)
         g_v_item_uom.append( $('<option value="'+i+'"></option>').text(u[2] + (i > 0 ? ' *' + u[3] : '')) );
     }
     
+    var item_js = g_item[3];
+    if(units.length > 1) {
+        h = $('<table class="pxm_tbl"></table>').append($('<tr><th>单位</th><th>型号</th></tr>'));
+        for(var i = 0; i < units.length; i++) {
+            var u = units[i];
+            h.append($('<tr></tr>').append( $('<td></td>').text(u[2] + (i > 0 ? ' *' + u[3] : '')) ).append( $('<td></td>').text(u[1]) ));
+        }
+        g_v_item_alus.append(h);
+    }
+    
+    var vends = item_js.vends;
+    if(vends.length > 1) {
+        h = $('<table class="pxm_tbl"></table>').append($('<tr><th>供应商</th><th>型号</th></tr>'));
+        h.append($('<tr></tr>').append( $('<td></td>').text(vends[0][0]) ).append( $('<td></td>').text(units[0][1]) ));
+        for(var i = 1; i < vends.length; i++) {
+            var v = vends[i];
+            h.append($('<tr></tr>').append( $('<td></td>').text(v[0]) ).append( $('<td></td>').text(v[1]) ));
+        }
+        g_v_item_alus.append(h);
+    }
+    if(units.length || vends.length) g_v_item_alus.show();
+    
     g_v_item_uom.val(''+g_item[3].default_uom_idx).change();
     
+    load_imgs(item[0]);
+    
+}
+
+function enlarge_img()
+{
+    var img = $(this).attr('src').replace('_200.jpg', '.jpg');
+    window.open(img, 'posx_img', 'location=0');
+}
+
+g_v_ajax_seq__load_imgs = 0;
+function load_imgs(sid)
+{
+    var seq = ++g_v_ajax_seq__load_imgs;
+    $.get('inventory?fn=get_imgs', {'sid':sid}, function(js) {
+        if(seq !== g_v_ajax_seq__load_imgs || !js || !js.imgs) return;
+        
+        var imgs = js.imgs.split('|');
+        for(var i = 0; i < imgs.length; i++) {
+            g_v_item_pics.append(
+                $('<div></div>').append(
+                    $('<img alt="IMG" onclick="enlarge_img.call(this);return false;"/>').attr('src', imgs[i])
+                )
+            );
+        }
+        g_v_item_pics.show();
+        
+    }, 'json');
 }
 
 function se_name()
@@ -140,6 +168,7 @@ $('.btn_home').button();
 g_v_item_name = $('.cnt_item_name');
 g_v_item_alus = $('.cnt_item_alus');
 g_v_item_qtys = $('.cnt_item_qtys');
+g_v_item_pics = $('.cnt_item_pics');
 
 g_v_ac_item_search = $('#item_search').autocomplete({
     autoFocus: true,
@@ -177,16 +206,19 @@ body {-webkit-user-select:none;}
 .pxm_tbl td {padding:5px;}
 .pxm_tbl tr td:first-child {cursor:pointer}
 
-.cnt_item > div {}
-.cnt_item_name, .cnt_item_qtys {font-weight:bold;padding:10px 0;border-bottom:1px solid #ccc;height:26px;line-height:26px;}
+.cnt_item > div {font-weight:bold;padding:5px 0;border-top:1px solid #ccc;line-height:26px;display:none}
+.cnt_item > div:nth-child(1) {border-top:none}
 .cnt_item_name > span {margin-right:20px;}
 .cnt_item_name > span:nth-child(1) {color:#004C99;cursor:pointer}
 .cnt_item_name > span:nth-child(2) {color:#556B2F;cursor:pointer}
 .cnt_item_name > span:nth-child(3) {color:#994C00;cursor:pointer}
 .cnt_item_name > span:nth-child(4) {color:blue;cursor:pointer}
 .cnt_item_qtys > span {float:left;display:block;height:26px;width:150px;margin-right:20px;cursor:pointer}
+.cnt_item_qtys {height:26px;overflow:hidden}
 .cnt_item_alus {padding:20px 0}
-
+.cnt_item_alus > .pxm_tbl:nth-child(1) {margin-bottom:5px}
+.cnt_item_pics > div {width:200px;line-height:200px;height:200px;text-align:center;float:left;margin-bottom:10px;}
+.cnt_item_pics > div > img {cursor:pointer;max-width:200px;max-height:200px;vertical-align:middle}
 </style>
 
 </head>
@@ -210,6 +242,7 @@ body {-webkit-user-select:none;}
     <div class="cnt_item_name"></div>
     <div class="cnt_item_qtys"></div>
     <div class="cnt_item_alus"></div>
+    <div class="cnt_item_pics"></div>
 </div>
 
 </div></div>
