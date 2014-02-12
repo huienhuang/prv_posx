@@ -39,7 +39,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         nzs = cur.column_names
         user = dict(zip(nzs, rows[0]))
         
-        frm_ts = self.get_day_ts()
+        frm_ts = self.get_day_ts(user['in_ts'] or None)
         to_ts = frm_ts + DAY_SECS
         
         secs = 0
