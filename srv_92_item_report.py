@@ -1,17 +1,25 @@
-import mysql.connector
 import config
 import datetime
 import time
 import cPickle
 import json
-import csv
 import os
+import db as mydb
 
-
-dbc = mysql.connector.connect(**config.mysql)
-cur = dbc.cursor()
+mdb = mydb.db_mdb()
+cur = mdb.cursor()
 
 g_items = {}
+
+def new_item():
+    return {
+        'num': None,
+        'name': '',
+        'l_qty': [0, 0, 0, 0],
+        'd_stats': {},
+        'status': 0,
+        'deptsid': None,
+    }
 
 cur.execute('select * from sync_receipts where sid_type=0 and (type&0xFF00)<0x0200')
 nzs = cur.column_names
@@ -26,7 +34,10 @@ for r in cur:
     
     tp = time.localtime(r['order_date'])
     for t in items:
-        stat = g_items.setdefault(t['itemsid'], {}).setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
+        item = g_items.get(t['itemsid'])
+        if not item: item = g_items[ t['itemsid'] ] = new_item()
+        item['name'] = 'NE - %s - %s' % (t['itemno'], t['desc1'])
+        stat = item['d_stats'].setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
         total_base_qty = t['nunits'] * t['qty']
         total_price =  t['price'] * t['qty'] * disc
         total_cost = t['cost'] * t['qty']
@@ -54,7 +65,10 @@ for r in cur:
     
     tp = time.localtime(r['ord_order_date'])
     for t in items:
-        stat = g_items.setdefault(t['id'], {}).setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
+        item = g_items.get(t['id'])
+        if not item: item = g_items[ t['id'] ] = new_item()
+        item['name'] = 'NE - %s - %s' % (t['num'], t['in_desc'])
+        stat = item['d_stats'].setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
         total_base_qty = t['in_base_qty']
         total_price =  t['in_price'] * t['in_qty'] * disc
         total_cost = t['prev_qty'][4] * total_base_qty
@@ -69,12 +83,27 @@ for r in cur:
         stat[2] += total_cost
 
 
-g_stats = {}
-for sid,stats in g_items.items():
-    g_stats[sid] = [ [f_k] + f_v for f_k,f_v in sorted(stats.items(), key=lambda f_x:f_x[0]) ]
+cur.execute('select * from sync_items')
+nzs = cur.column_names
+for r in cur:
+    r = dict(zip(nzs, r))
+    
+    item = g_items.get(r['sid'])
+    if not item: item = g_items[r['sid']] = new_item()
+    l_qty = json.loads(r['detail'])['qty']
+    item['num'] = r['num']
+    item['name'] = r['name']
+    item['l_qty'] = l_qty
+    item['status'] = r['status']
+    item['deptsid'] = r['deptsid']
+
+
+for v in g_items.values():
+    d_status = v['d_stats']
+    v['d_stats'] = [ [f_k] + f_v for f_k,f_v in sorted(d_status.items(), key=lambda f_x:f_x[0]) ]
     
 fnz = os.path.join(config.DATA_DIR, 'items_sale_stats.txt')
-cPickle.dump(g_stats, open(fnz, 'wb'), 1)
+cPickle.dump(g_items, open(fnz, 'wb'), 1)
 
 print "Done"
 

@@ -1,6 +1,8 @@
 from sync_helper import *
 import sys
 import json
+import const
+
 
 def sync_items(cj_data, mode=0):
     cur,sur = pos_db()
@@ -15,7 +17,7 @@ def sync_items(cj_data, mode=0):
         if not sids: return 0
         where_sql = 'i.itemsid in (%s)' % (','.join(sids),)
     
-    cur.execute("select i.itemsid,i.datastate,i.itemno,i.udf1,i.udf2,i.unitofmeasure,i.sellbyunit,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
+    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
     
     item_upcs = {}
     rep_seq = del_seq = 0
@@ -93,9 +95,14 @@ def sync_items(cj_data, mode=0):
                 if x: desc2 += x + u', '
         if desc2: desc2 = desc2[:-2]
         
+        flag = 0
+        if r['udf5']: flag = const.ITEM_D_STATUS.get(r['udf5'].lower().strip(), 0) & 0x0F
+        
         rep_seq += 1
-        sqlt = "(%d,%d,'%s','%s','%s','%s')," % (
+        sqlt = "(%d,%s,%d,%d,'%s','%s','%s','%s')," % (
             itemsid,
+            r['deptsid'] == None and 'null' or r['deptsid'],
+            flag,
             r['itemno'],
             mdb.escape_string( u' '.join(lookup).encode('utf8') ),
             mdb.escape_string( desc2.encode('utf8') ),
@@ -155,6 +162,8 @@ def sync_items(cj_data, mode=0):
 
 g_sync_cb = ('items', sync_items)
 
-if __name__ == '__main__': sync_main(g_sync_cb)
+if __name__ == '__main__':
+    #sync_items(None, 1)
+    sync_main(g_sync_cb)
 
 

@@ -2,12 +2,15 @@ import config
 import hashlib
 import json
 import bisect
+import const
+
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
-        self.req.writefile('report_item_sale.html')
+        r = {'const':const}
+        self.req.writefile('report_item_sale.html', r)
         
         
     def fn_get_items(self):
@@ -20,11 +23,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         frm_mon = self.qsv_int('frm_mon')
         to_mon = self.qsv_int('to_mon')
+        status = self.qsv_int('status')
+        dept = self.qsv_ustr('dept')
+        cate = self.qsv_ustr('cate')
         
         cur = self.cur()
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            stats = self.get_items_sale_stats()
+            items = self.get_items_sale_stats()
+            for sid,item in items.items():
+                if status and status != item['status']: continue
+                
+                
+            
             
             cur.execute('select sid,num,name,detail from sync_items order by num asc,sid asc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz

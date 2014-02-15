@@ -5,18 +5,47 @@
 <title>POSX - Item - Report - Sale</title>
 
 <script type="text/javascript">
-g_tg_item_list_data = {'frm_mon':'','to_mon':''};
+<%
+import json
+%>
+ITEM_L_DEPT = ${json.dumps(const.ITEM_L_DEPT)};
+ITEM_D_CATE = ${json.dumps(const.ITEM_D_CATE)};
+
+g_tg_item_list_data = {'frm_mon':'','to_mon':'', 'status':0, 'cate':'', 'dept':''};
+
+function cate_apply()
+{
+    var els = g_v_ctrl.data('in_els');
+    var dept = els.dept[0].val('');
+    dept.children().slice(1).remove();
+    
+    var v = $(this).val();
+    if(!v) {
+        for(var i = 0; i < ITEM_L_DEPT.length; i++) dept.append( $('<option></option>').text(ITEM_L_DEPT[i][0]) );
+    } else {
+        var cate = ITEM_D_CATE[v] || [];
+        for(var i = 0; i < cate.length; i++) dept.append( $('<option></option>').text(cate[i]) );
+    }
+    
+    apply.call(this);
+}
 
 function apply()
 {
     var els = g_v_ctrl.data('in_els');
     
+    var status = parseInt(els.status[0].val());
+    var cate = els.cate[0].val();
+    var dept = els.dept[0].val();
     var frm_mon = els.frm_mon[0].val().replace('-', '');
     var to_mon = els.to_mon[0].val().replace('-', '');
     if(!frm_mon || !to_mon) return;
     
     g_tg_item_list_data.frm_mon = frm_mon;
     g_tg_item_list_data.to_mon = to_mon;
+    g_tg_item_list_data.status = status;
+    g_tg_item_list_data.cate = cate;
+    g_tg_item_list_data.dept = dept;
     
     g_v_tg_item_list.tinygrid('update', -1, true, true, true);
 }
@@ -25,19 +54,14 @@ $(function() {
     
 $('.btn').button();
 
-g_v_ctrl = $('.x_ctrl')
-idx_elements(g_v_ctrl, 0);
-var els = g_v_ctrl.data('in_els');
-els.frm_mon[0].change(apply);
-els.to_mon[0].change(apply);
-els.apply[0].click(apply);
-els.quit[0].click(go_home);
-
 g_v_tg_item_list = $('.tg_item_list').tinygrid({
 len:0,
 src:{page:'reportitem?fn=get_items', data:g_tg_item_list_data},
 cols: [{name:'ID', width:70},
        {name:'Name', width:"100%"},
+       {name:'Status', width:100},
+       {name:'Cate', width:100},
+       {name:'Dept', width:100},
        {name:'OnHand', width:90},
        {name:'OnOrder', width:90},
        {name:'T_Qty', width:90},
@@ -47,6 +71,17 @@ cols: [{name:'ID', width:70},
        {name:'Margin%', width:90},
        ],
 });
+
+g_v_ctrl = $('.x_ctrl')
+idx_elements(g_v_ctrl, 0);
+var els = g_v_ctrl.data('in_els');
+els.frm_mon[0].change(apply);
+els.to_mon[0].change(apply);
+els.status[0].change(apply);
+els.dept[0].change(apply);
+els.quit[0].click(go_home);
+els.cate[0].change(cate_apply).change();
+
 
 });
 
@@ -62,9 +97,21 @@ cols: [{name:'ID', width:70},
 <body>
 
 <div class="x_ctrl">
-<input type="month" name="frm_mon" title="From" style="width:200px" />
-<input type="month" name="to_mon" title="To" style="width:200px" />
-<input type="button" name="apply" value="apply" class="btn" />
+<select name="status" style="width:130px">
+<option value="0">- All -</option>
+%for status in const.ITEM_L_STATUS:
+<option value="${status[1]|h}">${status[0]|h}</option>
+%endfor
+</select>
+<select name="cate" style="width:120px">
+<option value="">- All -</option>
+%for cate in const.ITEM_L_CATE:
+<option>${cate[0]}</option>
+%endfor
+</select>
+<select name="dept" style="width:140px"><option value="">- All -</option></select>
+<input type="month" name="frm_mon" title="From" style="width:190px" />
+<input type="month" name="to_mon" title="To" style="width:190px" />
 <input type="button" name="export" value="export" class="btn" />
 <input type="button" name="quit" value="quit" class="btn" />
 </div>
