@@ -24,8 +24,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         frm_mon = self.qsv_int('frm_mon')
         to_mon = self.qsv_int('to_mon')
         status = self.qsv_int('status')
-        dept = self.qsv_ustr('dept')
-        cate = self.qsv_ustr('cate')
+        dept_s = self.qsv_ustr('dept')
+        cate_s = self.qsv_ustr('cate')
+        
+        d_depts = dict(json.loads(config.get_configv2('departments')))
+        s_dept = set()
+        for dept in dept_s.split('|'):
+            deptsid = d_depts.get(dept.strip().lower())
+            if deptsid == None: continue
+            s_dept.add(deptsid)
         
         cur = self.cur()
         apg = []
@@ -33,17 +40,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             items = self.get_items_sale_stats()
             for sid,item in items.items():
                 if status and status != item['status']: continue
-                
-                
-            
-            
-            cur.execute('select sid,num,name,detail from sync_items order by num asc,sid asc limit %d,%d' % (
-                        sidx * pgsz, (eidx - sidx) * pgsz
-                        )
-            )
-            for r in cur.fetchall():
-                d = json.loads(r[3])
-                qty = d['qty']
                 
                 stat = stats.get(r[0]) or []
                 s_qty = 0
