@@ -26,6 +26,6 @@ def sync_departments(cj_data, mode=0):
 g_sync_cb = ('departments', sync_departments)
 
 if __name__ == '__main__':
-    sync_departments(None, 1)
+    #sync_departments(None, 1)
     sync_main(g_sync_cb)
 

@@ -34,12 +34,11 @@ function apply()
 {
     var els = g_v_ctrl.data('in_els');
     
-    var status = parseInt(els.status[0].val());
+    var status = els.status[0].val();
     var cate = els.cate[0].val();
     var dept = els.dept[0].val();
     var frm_mon = els.frm_mon[0].val().replace('-', '');
     var to_mon = els.to_mon[0].val().replace('-', '');
-    if(!frm_mon || !to_mon) return;
     
     g_tg_item_list_data.frm_mon = frm_mon;
     g_tg_item_list_data.to_mon = to_mon;
@@ -48,6 +47,21 @@ function apply()
     g_tg_item_list_data.dept = dept;
     
     g_v_tg_item_list.tinygrid('update', -1, true, true, true);
+}
+
+function export_csv()
+{
+    var els = g_v_ctrl.data('in_els');
+    var data = {
+        'status': els.status[0].val(),
+        'cate': els.cate[0].val(),
+        'dept': els.dept[0].val(),
+        'frm_mon': els.frm_mon[0].val().replace('-', ''),
+        'to_mon': els.to_mon[0].val().replace('-', ''),
+    };
+
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
+    g_v_form_dl.submit();
 }
 
 $(function() {
@@ -59,9 +73,10 @@ len:0,
 src:{page:'reportitem?fn=get_items', data:g_tg_item_list_data},
 cols: [{name:'ID', width:70},
        {name:'Name', width:"100%"},
-       {name:'Status', width:100},
-       {name:'Cate', width:100},
-       {name:'Dept', width:100},
+       {name:'UOM', width:50},
+       {name:'Status', width:120},
+       {name:'Cate', width:110},
+       {name:'Dept', width:200},
        {name:'OnHand', width:90},
        {name:'OnOrder', width:90},
        {name:'T_Qty', width:90},
@@ -70,7 +85,12 @@ cols: [{name:'ID', width:70},
        {name:'Margin', width:100},
        {name:'Margin%', width:90},
        ],
+click: function(r, c, d) {
+        window.open('hist?fn=itemhist&tid='+d[13],'posx_item_hist','location=0,width=992,height=700');
+},
 });
+
+g_v_form_dl = $('#form_dl');
 
 g_v_ctrl = $('.x_ctrl')
 idx_elements(g_v_ctrl, 0);
@@ -79,6 +99,7 @@ els.frm_mon[0].change(apply);
 els.to_mon[0].change(apply);
 els.status[0].change(apply);
 els.dept[0].change(apply);
+els.export[0].click(export_csv);
 els.quit[0].click(go_home);
 els.cate[0].change(cate_apply).change();
 
@@ -110,13 +131,17 @@ els.cate[0].change(cate_apply).change();
 %endfor
 </select>
 <select name="dept" style="width:140px"><option value="">- All -</option></select>
-<input type="month" name="frm_mon" title="From" style="width:190px" />
-<input type="month" name="to_mon" title="To" style="width:190px" />
+<input type="month" name="frm_mon" title="From" style="width:200px" />
+<input type="month" name="to_mon" title="To" style="width:200px" />
 <input type="button" name="export" value="export" class="btn" />
 <input type="button" name="quit" value="quit" class="btn" />
 </div>
 
 <div class="x_body tg_item_list"></div>
+
+<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none">
+<input type="hidden" name="js" />
+</form>
 
 </body>
 </html>

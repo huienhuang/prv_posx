@@ -95,14 +95,14 @@ def sync_items(cj_data, mode=0):
                 if x: desc2 += x + u', '
         if desc2: desc2 = desc2[:-2]
         
-        flag = 0
-        if r['udf5']: flag = const.ITEM_D_STATUS.get(r['udf5'].lower().strip(), 0) & 0x0F
+        status = 0
+        if r['udf5']: status = const.ITEM_D_STATUS.get(r['udf5'].lower().strip(), 0) & 0x0F
         
         rep_seq += 1
         sqlt = "(%d,%s,%d,%d,'%s','%s','%s','%s')," % (
             itemsid,
             r['deptsid'] == None and 'null' or r['deptsid'],
-            flag,
+            status,
             r['itemno'],
             mdb.escape_string( u' '.join(lookup).encode('utf8') ),
             mdb.escape_string( desc2.encode('utf8') ),
