@@ -238,16 +238,16 @@ $('.sys_menu').tinymenu();
 <div class="m_ctrl">
 <span>Customer: </span><input type="text" id="srch_cust" style="width:120px" />
 <span>Item: </span><input type="text" id="srch_item" style="width:120px" />
-<span>Receipt#: </span><input type="text" id="srch_receipt" style="width:80px"/>
-<span>SO#: </span><input type="text" id="srch_salesorder" style="width:80px"/>
+<span>Receipt#: </span><input type="text" id="srch_receipt" style="width:80px" />
+<span>SO#: </span><input type="text" id="srch_salesorder" style="width:80px" />
 
 %if user_id:
 <div class="sys_menu">
 <ul><li>
 <a>${user_name|h}</a>
 <ul>
-<li><a href="?fn=logout">Logout</a><li>
-<li><a href="javascript:g_v_dlg_passwd.dialog('open')">Password</a><li>
+<li><a href="?fn=logout">Logout</a></li>
+<li><a href="javascript:g_v_dlg_passwd.dialog('open')">Password</a></li>
 </ul>
 </li></ul>
 </div>
@@ -257,123 +257,17 @@ $('.sys_menu').tinymenu();
 
 <div class="m_body">
 
-%if user_lvl & ( (1 << PERM_BIT['admin']) | (1 << PERM_BIT['time']) ):
-<div class="pxm_blk blk_admin">
-<div>Admin</div>
-
+%for s_dept,l_tools in tools_map:
+<div class="pxm_blk blk_${s_dept.lower()}">
+<div>${s_dept}</div>
 <ul class="pxm_list">
-%if user_lvl & (1 << PERM_BIT['admin']):
-<li><a href="comm">Commision</a></li>
-<li><a href="comm?fn=comm_by_dept">Comm By Dept</a></li>
-<li><a href="user">User</a></li>
-%endif
-%if user_lvl & (1 << PERM_BIT['time']):
-<li><a href="clockinv2?fn=mgr">Time MGR</a></li>
-%endif
-</ul>
-
-<div style="clear:both"></div>
-</div>
-%endif
-
-<div class="pxm_blk blk_hr">
-<div>HR</div>
-<ul class="pxm_list">
-<li><a href="hist">History</a></li>
-<li><a href="delivery">Delivery</a></li>
+%for tool in l_tools:
+<li><a href="${tool[1]|h}">${tool[0]|h}</a></li>
+%endfor
 </ul>
 <div style="clear:both"></div>
 </div>
-
-<div class="pxm_blk blk_accounting">
-<div>Accounting</div>
-<ul class="pxm_list">
-<li><a href="hist">History</a></li>
-<li><a href="delivery">Delivery</a></li>
-</ul>
-<div style="clear:both"></div>
-</div>
-
-<div class="pxm_blk blk_purchasing">
-<div>Purchasing</div>
-<ul class="pxm_list">
-<li><a href="hist">History</a></li>
-<li><a href="delivery">Delivery</a></li>
-</ul>
-<div style="clear:both"></div>
-</div>
-
-<div class="pxm_blk blk_sales">
-<div>Sales</div>
-<ul class="pxm_list">
-<li><a href="hist">History</a></li>
-<li><a href="delivery">Delivery</a></li>
-</ul>
-<div style="clear:both"></div>
-</div>
-
-<div class="pxm_blk blk_warehouse">
-<div>Warehouse</div>
-<ul class="pxm_list">
-<li><a href="hist">History</a></li>
-<li><a href="delivery">Delivery</a></li>
-</ul>
-<div style="clear:both"></div>
-</div>
-
-<div class="pxm_blk">
-<div>Receipt</div>
-
-<ul class="pxm_list">
-<li style="display:none"><a href="wrongdate">Wrong Date</a></li>
-<li><a href="hist">History</a></li>
-<li style="display:none"><a href="hist?fn=search">Search</a></li>
-<li style="display:none"><a href="sorder">红单</a></li>
-%if user_lvl & (1 << PERM_BIT['admin']):
-<li style="display:none"><a href="receiptstat">红单 Report</a></li>
-<li><a href="receipttotal">Regular Report</a></li>
-%endif
-<li><a href="delivery">Delivery</a></li>
-</ul>
-
-<div style="clear:both"></div>
-</div>
-
-<div class="pxm_blk">
-<div>Item</div>
-
-<ul class="pxm_list">
-<li><a href="simpleinfo?fn=alu">LookUp</a></li>
-<li style="display:none"><a href="errorprice">Error Price</a></li>
-<li style="display:none"><a href="errorquantity">Error Quantity</a></li>
-%if user_lvl & (1 << PERM_BIT['item stat access']):
-<li><a href="itemsold">Sold Report</a></li>
-%endif
-%if user_lvl & (1 << PERM_BIT['admin']):
-<li><a href="reportitem">Sales</a></li>
-%endif
-</ul>
-
-<div style="clear:both"></div>
-</div>
-
-
-<div class="pxm_blk">
-<div>System</div>
-
-<ul class="pxm_list">
-<li><a href="fixup">Fixup</a></li>
-<li><a href="label">Label</a></li>
-%if user_lvl & (1 << PERM_BIT['sys']) & 0:
-<li><a href="sys?fn=mac">Mac</a></li>
-%endif
-%if user_lvl & (1 << PERM_BIT['sys']):
-<li><a href="sys?fn=project">Project</a></li>
-%endif
-</ul>
-
-<div style="clear:both"></div>
-</div>
+%endfor
 
 </div>
 

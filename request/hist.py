@@ -7,6 +7,8 @@ import datetime
 import traceback
 import bisect
 import tools
+import const
+import cPickle
 
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
@@ -601,18 +603,28 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         db = self.db()
         cur = db.cur()
-        cur.execute('select s.sid,s.num,s.name,s.detail,i.imgs from sync_items s left join item i on (s.sid=i.sid) where s.sid=%d limit 1' % (tid,))
+        cur.execute('select s.sid,s.num,s.name,s.detail,i.imgs,s.deptsid,s.status from sync_items s left join item i on (s.sid=i.sid) where s.sid=%d limit 1' % (tid,))
         res = cur.fetchall()
         if not res: return
         
         res = res[0]
+        
+        l_depts = cPickle.loads(self.getconfigv2('departments'))
+        d_r_depts = dict([(f_b, f_a) for f_a,f_b in l_depts])
+        d_r_status = dict([(f_b, f_a) for f_a,f_b in const.ITEM_L_STATUS])
+        dept = d_r_depts.get(res[5])
+        cate = const.ITEM_D_DEPT.get(dept)
+        
         item = {
             'item_sid': res[0],
             'item_num': res[1],
             'item_name': res[2],
             'item_info': json.loads(res[3]),
             'dg_type': dg_type,
-            'item_imgs': res[4] and res[4].split('|') or []
+            'item_imgs': res[4] and res[4].split('|') or [],
+            'item_status': d_r_status.get(res[6]),
+            'item_dept': dept,
+            'item_cate': cate,
         }
         
         self.req.writefile('hist_item.html', item)

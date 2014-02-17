@@ -14,7 +14,8 @@ g_sync_md = (
     'sync_receipts',
     'sync_salesorders',
     'sync_purchaseorders',
-    'sync_vouchers'
+    'sync_vouchers',
+    'sync_departments'
 )
 
 g_quit = 0

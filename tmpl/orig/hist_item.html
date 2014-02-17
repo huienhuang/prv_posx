@@ -341,17 +341,20 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
 <style type="text/css">
 .ui-widget {font-size:18px;}
 .tinygrid {position:absolute;left:0;top:49px;bottom:0;right:0;width:auto;height:auto;}
-.cnt_top {height:70px;padding:5px 5px 0 5px;font-size:20px;line-height:22px;}
+.cnt_top {height:95px;padding:5px 5px 0 5px;font-size:20px;line-height:22px;}
 .cnt_top .item_name {font-size:20px;font-weight:bold;height:24px;line-height:24px;}
 .cnt_top .item_name > span {margin-right:10px;}
 .cnt_top .item_name > span:nth-child(1) {color:#004C99}
 .cnt_top .item_name > span:nth-child(2) {color:#994C00}
 .cnt_top .item_name > span:nth-child(3) {color:blue}
+.cnt_top .item_special {font-weight:bold;height:24px;line-height:24px;background-color:#cae2ff;margin-bottom:5px}
+.cnt_top .item_special > span:nth-child(1) {color:#3d5598;margin-right:20px}
+.cnt_top .item_special > span:nth-child(2) {color:#59740f}
 .item_unit {margin:5px 0;color:#663300;line-height:32px;height:32px;}
 .item_unit > select {width:120px;vertical-align:bottom}
 .item_unit > span {margin-left:20px;font-weight:bold;cursor:pointer}
 
-.item_tabs {font-size:18px;position:absolute;top:75px;bottom:0;left:0;right:0;padding:0;}
+.item_tabs {font-size:18px;position:absolute;top:100px;bottom:0;left:0;right:0;padding:0;}
 .tinygrid .tgft_showall {position:absolute;top:0;bottom:0;right:0;width:150px;font-weight:bold}
 
 .ui-tabs-panel {padding:10px 5px 0 5px !important;}
@@ -361,7 +364,7 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
 .item_tabs > div > .tp_ctrl {margin-bottom:10px}
 
 .item_img {position:absolute;width:120px;height:120px;right:0;top:0;text-align:right}
-.item_img > img {max-width:120px;max-height:120px;border:none}
+.item_img > img {max-width:150px;max-height:150px;border:none}
 
 #item_tab_5_pics .img_lst > li {width:200px;height:200px;line-height:200px;float:left;text-align:center;margin-bottom:10px;position:relative}
 #item_tab_5_pics .img_lst > li > img {max-width:200px;max-height:200px;border:none;vertical-align:middle;}
@@ -371,6 +374,7 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
 </head>
 <body>
 <div class="cnt_top">
+<div class="item_special"><span>${item_cate or ''|h} &gt; ${item_dept or ''|h}</span><span>${item_status or ''|h}</span></div>
 <div class="item_name">
 <span>${item_num|h}</span>
 <span>
