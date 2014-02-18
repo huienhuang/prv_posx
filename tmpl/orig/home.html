@@ -15,7 +15,7 @@
 
 .ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
 .ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
-.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:16px;}
 .ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
 .ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;white-space:nowrap}
 
@@ -24,9 +24,9 @@
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0;}
 
-.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:200px;color:#003366;font-weight:bold}
-.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:90px;color:#994C00;font-weight:bold;text-align:right}
-.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:510px;color:#004C99;}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(1) {width:260px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(2) {width:80px;color:#994C00;font-weight:bold;text-align:right}
+.ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:460px;color:#004C99;}
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
 
 .sys_menu {width:120px;position:absolute;right:0;top:10px;}
@@ -236,10 +236,10 @@ $('.sys_menu').tinymenu();
 <body>
 
 <div class="m_ctrl">
-<span>Customer: </span><input type="text" id="srch_cust" style="width:120px" />
-<span>Item: </span><input type="text" id="srch_item" style="width:120px" />
-<span>Receipt#: </span><input type="text" id="srch_receipt" style="width:80px" />
-<span>SO#: </span><input type="text" id="srch_salesorder" style="width:80px" />
+<input type="text" id="srch_cust" style="width:180px" placeholder="Find Customer" />
+<input type="text" id="srch_item" style="width:180px" placeholder="Find Item" />
+<input type="text" id="srch_receipt" style="width:110px" placeholder="Receipt#" />
+<input type="text" id="srch_salesorder" style="width:110px" placeholder="SalesOrder#" />
 
 %if user_id:
 <div class="sys_menu">

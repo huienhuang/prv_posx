@@ -110,13 +110,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         apg = []
         perm = self.user_lvl & (1 << config.USER_PERM_BIT['item stat access'])
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by last_docdate desc,h.itemsid asc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid,count(*) as pos from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by last_docdate desc,pos desc,h.itemsid asc limit %d,%d' % (
                 cid, sidx * pgsz, (eidx - sidx) * pgsz
                 )
             )
             for r in cur.fetchall():
                 r = list(r)
-                r[4] = 'Find'
+                r[4] = 'Find(%d)' % (r[7],)
                 r[5] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[5]))
                 r[6] = str(r[6])
                 r[3] = '%0.1f' % (r[3], )
