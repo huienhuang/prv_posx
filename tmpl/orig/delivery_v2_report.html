@@ -8,22 +8,22 @@
 
 $(function() {
 
-g_v_m_body = $('.x_body');
-g_v_m_xtbl = $('.xtbl_body', g_v_m_body);
+g_v_rp_pickup_body = $('.rp_pickup_body');
+g_v_rp_pickup_body_xtbl = $('.xtbl_body', g_v_rp_pickup_body);
 
-g_v_m_ctrl = $('.x_ctrl');
-idx_elements(g_v_m_ctrl, 5);
+g_v_rp_pickup_ctrl = $('.rp_pickup_ctrl');
+idx_elements(g_v_rp_pickup_ctrl, 5);
 
-var els = g_v_m_ctrl.data('in_els');
+var els = g_v_rp_pickup_ctrl.data('in_els');
 els.month[0].change(function() {
-    g_v_m_xtbl.empty();
+    g_v_rp_pickup_body_xtbl.empty();
     
     var m = $(this).val();
     if(!m) return;
     
     $.get('?fn=get_report__delivery_pickup', {'m': m}, function(js) {
         
-        g_v_m_xtbl.append(
+        g_v_rp_pickup_body_xtbl.append(
                           $('<div class="xtbl_row"></div>')
                           .append( $('<div></div>').text(js.total) )
                           .append( $('<div></div>').text(js.pickup) )
@@ -37,7 +37,7 @@ els.month[0].change(function() {
 
 //++load month str
 (function() {
-    var els = g_v_m_ctrl.data('in_els');
+    var els = g_v_rp_pickup_ctrl.data('in_els');
     var v_month = els.month[0];
     
     var dt = new Date();
@@ -56,6 +56,36 @@ els.month[0].change(function() {
 })();
 //--load month str
 
+
+
+
+
+g_v_rp_completed_body = $('.rp_completed_body');
+g_v_rp_completed_body_xtbl = $('.xtbl_body', g_v_rp_completed_body);
+
+g_v_rp_completed_ctrl = $('.rp_completed_ctrl');
+idx_elements(g_v_rp_completed_ctrl, 5);
+
+var els = g_v_rp_completed_ctrl.data('in_els');
+els.date[0].datepicker().change(function() {
+    g_v_rp_completed_body_xtbl.empty();
+    
+    var d = $(this).datepicker('getDate');
+    if(!d) return;
+    
+    $.get('?fn=get_report__delivery_completed', {'ts': parseInt(d.getTime()/1000)}, function(js) {
+        
+        g_v_rp_completed_body_xtbl.append(
+                          $('<div class="xtbl_row"></div>')
+                          .append( $('<div></div>').text(js.total) )
+                          .append( $('<div></div>').text(js.completed) )
+        );
+        
+    }, 'json');
+    
+});
+
+
 });
 
 </script>
@@ -64,22 +94,39 @@ els.month[0].change(function() {
 body {-webkit-user-select:none}
 .ui-widget {font-size:18px}
 
+.rp_pickup_body {height:111px}
+.rp_completed_ctrl {top:171px}
+.rp_completed_body {top:222px;height:111px}
 </style>
 
 </head>
 <body>
 
-<div class="x_ctrl">
+<div class="x_ctrl rp_pickup_ctrl">
 <select name="ctrl_month"><option value="">-- Month --</option></select>
 </div>
 
-<div class="x_body">
+<div class="x_body rp_pickup_body">
 <div class="xtbl">
 <div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Pickup</div><div>Line</div><div>Qty</div></div></div>
 <div class="xtbl_body"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
 </div>
+
+
+<div class="x_ctrl rp_completed_ctrl">
+<input type="text" name="ctrl_date" />
+</div>
+
+<div class="x_body rp_completed_body">
+<div class="xtbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Completed</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+</div>
+</div>
+
 
 </body>
 </html>

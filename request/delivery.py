@@ -101,6 +101,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             )
             for r in cur.fetchall():
                 r = list(r)
+                r[3] = '%d/%d' % ((r[3] >> 16) & 0xFF, r[3] & 0xFF)
                 r[4] = time.strftime("%m/%d/%Y", time.localtime(r[4]))
                 apg.append(r)
         
@@ -215,6 +216,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         err = []
         recs_db = []
         recs_js = []
+        completed_count = 0
         for i in range( len(recs) ):
             rec = recs[i]
             r_type = rec.get('type')
@@ -254,6 +256,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         recs_db.append( (rec, r) )
                 recs_js.append( {'type': 0, 'num': rec['num']} )
                 orig_nums_lku.get(rec['num'], [False])[0] = True
+                
+                if rec['delivered'] and not pbs: completed_count += 1
+                
             else:
                 cid = int(rec.get('cid'))
                 amount = round(float(rec.get('amount') or 0.0), 2)
@@ -262,27 +267,29 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     continue
                 recs_js.append( {'type': 1, 'cid': cid, 'amount': amount, 'driver_id': rec['driver_id'], 'js': rec['js']} )
                 
+                if round(sum([ f_x[1] for f_x in pms ]), 2) >= amount and not pbs: completed_count += 1
+                
         if err: self.req.exitjs({'err': '\n'.join(err)})
         
         
         if d_id:
             cur.execute('update deliveryv2 set rev=rev+1,count=%s,ts=%s,mts=%s,name=%s,js=%s where d_id=%s and rev=%s', (
-                len(recs_js), ts, cur_ts, name, json.dumps(recs_js, separators=(',',':')), d_id, rev
+                (completed_count << 16) | len(recs_js), ts, cur_ts, name, json.dumps(recs_js, separators=(',',':')), d_id, rev
                 )
             )
             if cur.rowcount <= 0: self.req.exitjs({'err': 'Can Not Upate Record ID #%s' % (d_id,)})
         else:
             cur.execute('insert into deliveryv2 values (null,0,%s,%s,%s,%s,%s,%s)', (
-                self.user_id, len(recs_js), ts, cur_ts, name, json.dumps(recs_js, separators=(',',':'))
+                self.user_id, (completed_count << 16) | len(recs_js), ts, cur_ts, name, json.dumps(recs_js, separators=(',',':'))
                 )
             )
             d_id = cur.lastrowid
             
         for rec,r in recs_db:
             s_js = json.dumps(rec['js'], separators=(',',':'))
-            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,js=%s', (
-                d_id, rec['num'], rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], s_js,
-                rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], s_js
+            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
+                d_id, rec['num'], rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
+                rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js
                 )
             )
             rc = cur.rowcount
@@ -578,5 +585,33 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         )
         
     fn_get_report__delivery_pickup.PERM = 1 << config.USER_PERM_BIT['admin']
+    
+
+    def fn_get_report__delivery_completed(self):
+        ts = self.req.qsv_int('ts') or int(time.time())
+        
+        frm_ts = self.get_day_ts(ts)
+        to_ts = frm_ts + 3600 * 24
+        
+        cur = self.cur()
+        cur.execute('select count from deliveryv2 where ts>=%s and ts<%s', (
+            frm_ts, to_ts
+            )
+        )
+        count = [0, 0]
+        for row in cur.fetchall():
+            count[0] += row[0] & 0xFF
+            count[1] += (row[0] >> 16) & 0xFF
+            
+        self.req.writejs(
+            {
+            'total': count[0],
+            'completed': count[1],
+            }
+        )
+        
+    fn_get_report__delivery_completed.PERM = 1 << config.USER_PERM_BIT['admin']
+    
+    
     
     
