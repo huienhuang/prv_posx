@@ -139,7 +139,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         fp = cStringIO.StringIO()
         wt = csv.writer(fp)
         wt.writerow(['#ID', 'Name', 'UOM', 'Status', 'Cate', 'Dept', 'OnHand', 'OnOrder', 'T_Qty', 'T_Sale', 'T_Cost', 'Margin', 'Margin%'])
-        for r in apg: wt.writerow(r[:-1])
+        for r in apg: wt.writerow(map(lambda f_x: unicode(f_x).encode('utf8'), r[:-1]))
         
         self.req.out_headers['content-type'] = 'application/octet-stream'
         self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
