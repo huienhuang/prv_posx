@@ -176,8 +176,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             PC = qtys[3] / mul
             row = [
                 str(num),
-                units[0][1] or '',
-                name or '',
+                (units[0][1] or '').encode('utf8'),
+                (name or '').encode('utf8'),
                 '%0.1f' % (OH,),
                 '%0.1f' % (PC,)
             ]

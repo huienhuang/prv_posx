@@ -11,7 +11,7 @@ TOOLS_MAP = (
 
 ('Admin', (
     ('Commision', 'comm', PERM_ADMIN),
-    ('Comm By Dept', 'comm?fn=comm_by_dept', PERM_ADMIN),
+    ('Commision*', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('User', 'user', PERM_ADMIN),
     ('ItemSale', 'reportitem', PERM_ADMIN),
     ('Project', 'sys?fn=project', PERM_ADMIN),

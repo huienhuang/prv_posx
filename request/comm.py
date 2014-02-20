@@ -4,6 +4,7 @@ import glob
 import json
 import config
 import cPickle
+import const
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -44,7 +45,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         perm_sales = 1 << config.USER_PERM_BIT['sales']
         sales = [ x for x in users if x[2] & perm_sales and x[0] != 1 ]
         
-        self.req.writefile('comm_by_dept.html', {'reports': reports, 'sales': sales})
+        self.req.writefile('comm_by_dept.html', {'reports': reports, 'sales': sales, 'const': const})
     
     USER_MAP = {
         'sales1': 'ray',
@@ -55,12 +56,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         'sales6': 'sally',
     }
     def fn_get_comm(self):
-        report_date = self.qsv_str('report_date').replace('-', '')
+        report_date = self.qsv_str('date').replace('-', '')
         if not report_date.isdigit(): return
         
         datafile = '%s/data/%s-%s-%s_df.txt' % (self.req.app.app_dir, report_date[:4], report_date[4:6], report_date[6:8])
         if not os.path.exists(datafile): return
-        receipts, depts, errs = cPickle.load( open(datafile, 'rb') )
+        receipts, depts, cates, errs = cPickle.load( open(datafile, 'rb') )
         
         clerks = {}
         for num,r in receipts.items():
@@ -81,13 +82,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         a_clerks = []
         for f_clerk,f_depts in sorted(clerks.items(), key=lambda f_x: f_x[0]):
-            f_depts = [ (str(f_x[0]), f_x[1], depts.get(f_x[0]) or '') for f_x in f_depts.items() ]
-            f_depts.sort(key=lambda f_x: f_x[2].lower())
+            f_depts = [ (str(f_x[0]), f_x[1], depts.get(f_x[0]) or ['', 0]) for f_x in f_depts.items() ]
+            f_depts.sort(key=lambda f_x: f_x[2][0].lower())
             a_clerks.append( (f_clerk, f_depts) )
         
         r = {
+            'cates': sorted(cates.items(), key=lambda f_x: f_x[0]),
             'clerks': a_clerks,
-            'depts': [ (str(f_k), f_v) for f_k,f_v in sorted(depts.items(), key=lambda f_x: (f_x[1] or '').lower()) ],
+            'depts': depts,
             'err': '\n'.join(errs),
         }
         self.req.writejs(r)

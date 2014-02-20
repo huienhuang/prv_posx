@@ -8,8 +8,8 @@ import datetime
 import config
 import mysql.connector
 import json
+import const
 
-sys.exit()
 
 db_mdb = mysql.connector.connect(**config.mysql)
 cur_mdb = db_mdb.cursor()
@@ -68,8 +68,8 @@ def parse_receipt(r):
     r['discamount'] = float(r['discamount'])
     r['subtotal'] = float(r['subtotal'])
     
-    disc_rate = 1
-    if r['subtotal']: disc_rate = 1 - r['discamount'] / r['subtotal']
+    rate = 1
+    if r['subtotal']: rate = 1 - r['discamount'] / r['subtotal']
     
     items = []
     total_price_tax = 0.0
@@ -86,8 +86,8 @@ def parse_receipt(r):
             price = -price
             price_tax = -price_tax
         
-        price = round(price * qty * disc_rate, 5)
-        price_tax = round(price_tax * qty * disc_rate, 5)
+        price = round(price * qty * rate, 5)
+        price_tax = round(price_tax * qty * rate, 5)
         total_price_tax += price_tax
         
         items.append( (itemsid, clerk.lower(), price, qty, deptsid) )
@@ -143,13 +143,21 @@ for r in cur_qb.rows():
     r['qb'] = (tid, tdate, docnum)
     g_qb_invoices.append( (rnum, g_from_date_mon, json.dumps(r['qb'], separators=(',',':'))) )
 
-cur_pos.execute('select sid,deptname from department where sid in (%s)' % ( ','.join(map(str,g_depts.keys())) ,))
-for r in cur_pos.fetchall(): g_depts[ r[0] ] = r[1]
+k = 0
+g_cates = {}
+cur_pos.execute('select sid,deptname from department where datastate=0 and sid in (%s)' % ( ','.join(map(str,g_depts.keys())) ,))
+for r in cur_pos.fetchall():
+    cate = const.ITEM_D_DEPT.get(r[1].lower())
+    cate_id = g_cates.get(cate)
+    if not cate_id:
+        k += 1
+        cate_id = g_cates[cate] = k
+    g_depts[r[0]] = (r[1], cate_id)
 
 cur_mdb.execute('delete from invoicev2 where inv_date=%s', (g_from_date_mon,))
 if g_qb_invoices: cur_mdb.executemany('insert ignore into invoicev2 values(%s,%s,%s)', g_qb_invoices)
 
-cPickle.dump( (g_receipts, g_depts, g_errs), open(datafile, 'wb'), 1 )
+cPickle.dump( (g_receipts, g_depts, g_cates, g_errs), open(datafile, 'wb'), 1 )
 print "done"
 
 
