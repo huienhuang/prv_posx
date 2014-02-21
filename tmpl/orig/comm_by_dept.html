@@ -76,10 +76,13 @@ function open_dlg_clerk(i)
     var clerk = g_data.clerks[i];
     if(!clerk) return;
     
+    var cate_id = parseInt(g_v_report_cate.val());
     var depts = clerk[1];
     var total_all = [0, 0, 0, 0, 0];
     for(var j = 0; j < depts.length; j++) {
         var dept = depts[j];
+        if(cate_id && dept[2][1] !== cate_id) continue;
+        
         var total = dept[1];
         
         var r_total = total[0] + total[1];

@@ -52,8 +52,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             cur.execute('select SQL_CALC_FOUND_ROWS sid,num,name,status,deptsid,detail from sync_items'+where+' order by num asc,sid asc'
                         + (not mode and ' limit %d,%d' % (sidx * pgsz, (eidx - sidx) * pgsz) or '')
             )
+            nzs = cur.column_names
             for r in cur:
-                jsd = json.loads(r[5])
+                r = dict(zip(nzs, r))
+                r['jsd'] = jsd = json.loads(r['detail'])
                 unit = jsd['units'][ jsd['default_uom_idx'] ]
                 if not unit[3]: unit = jsd['units'][0]
                 
@@ -63,7 +65,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 s_cost = 0
                 
                 if frm_mon <= to_mon and to_mon:
-                    stat = items.get(r[0], (None, None, []))[2]
+                    stat = items.get(r['sid'], (None, None, []))[2]
                     mon_lst = [ f_x[0] for f_x in stat ]
                     for i in range( bisect.bisect_left(mon_lst, frm_mon),  bisect.bisect_right(mon_lst, to_mon) ):
                         s = stat[i]
@@ -75,27 +77,17 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                     s_qty /= unit[3]
                     l_qty = map(lambda f_x: f_x / unit[3], l_qty)
                 
-                dept = d_r_depts.get(r[4])
+                dept = d_r_depts.get(r['deptsid'])
                 cate = const.ITEM_D_DEPT.get(dept)
-                s_mgn = s_price - s_cost
-                apg.append(
-                    [
-                    r[1],
-                    r[2],
-                    unit[2],
-                    d_r_status.get(r[3]) or '',
-                    cate or '',
-                    dept or '',
-                    l_qty[0] and int(l_qty[0]) or '',
-                    l_qty[3] and int(l_qty[3]) or '',
-                    s_qty and int(s_qty) or '',
-                    s_price and '%0.2f' % (s_price,) or '',
-                    s_cost and '%0.2f' % (s_cost,) or '',
-                    s_mgn and '%0.2f' % (s_mgn,) or '',
-                    s_price and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
-                    str(r[0])
-                    ]
-                )
+                
+                r['s_status'] = d_r_status.get(r['status'])
+                r['s_dept'] = dept
+                r['s_cate'] = cate
+                r['unit'] = unit
+                r['l_qty'] = l_qty
+                r['l_stat'] = [s_qty, s_price, s_cost]
+                
+                apg.append(r)
                 
             cur.execute('select FOUND_ROWS()')
             
@@ -120,7 +112,30 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dept_s = self.qsv_str('dept')
         cate_s = self.qsv_str('cate')
         
-        rlen, apg = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, sidx, eidx, pgsz)
+        rlen, apg_ = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, sidx, eidx, pgsz)
+        apg = []
+        for r in apg_:
+            l_stat = r['l_stat']
+            s_mgn = l_stat[1] - l_stat[2]
+            apg.append(
+                [
+                    r['num'],
+                    r['name'],
+                    r['unit'][2],
+                    r['s_status'] or '',
+                    r['s_cate'] or '',
+                    r['s_dept'] or '',
+                    r['l_qty'][0] and int(r['l_qty'][0]) or '',
+                    r['l_qty'][3] and int(r['l_qty'][3]) or '',
+                    l_stat[0] and int(l_stat[0]) or '',
+                    l_stat[1] and '%0.2f' % (l_stat[1],) or '',
+                    l_stat[2] and '%0.2f' % (l_stat[2],) or '',
+                    s_mgn and '%0.2f' % (s_mgn,) or '',
+                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
+                    str(r['sid'])
+                    ]
+            )
+        
         res = ret['res']
         res['len'] = rlen
         res['apg'] = apg
@@ -134,7 +149,29 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dept_s = js['dept'].strip()
         cate_s = js['cate'].strip()
         
-        rlen, apg = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, 0, 0, 0, 1)
+        rlen, apg_ = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, 0, 0, 0, 1)
+        apg = []
+        for r in apg_:
+            l_stat = r['l_stat']
+            s_mgn = l_stat[1] - l_stat[2]
+            apg.append(
+                [
+                    r['num'],
+                    r['name'],
+                    r['unit'][2],
+                    r['s_status'] or '',
+                    r['s_cate'] or '',
+                    r['s_dept'] or '',
+                    r['l_qty'][0] and int(r['l_qty'][0]) or '',
+                    r['l_qty'][3] and int(r['l_qty'][3]) or '',
+                    l_stat[0] and int(l_stat[0]) or '',
+                    l_stat[1] and '%0.2f' % (l_stat[1],) or '',
+                    l_stat[2] and '%0.2f' % (l_stat[2],) or '',
+                    s_mgn and '%0.2f' % (s_mgn,) or '',
+                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
+                    str(r['sid'])
+                    ]
+            )
         
         fp = cStringIO.StringIO()
         wt = csv.writer(fp)
@@ -144,4 +181,34 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.out_headers['content-type'] = 'application/octet-stream'
         self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
         self.req.write( fp.getvalue() )
+
+
+    def _fn_export2_csv(self):
+        rlen, apg_ = self.get_items(0, 0, 0, None, None, 0, 0, 0, 1)
+        apg = []
+        for r in apg_:
+            l_stat = r['l_stat']
+            s_mgn = l_stat[1] - l_stat[2]
+            apg.append(
+                [
+                    r['num'],
+                    r['jsd']['vends'][0][0],
+                    r['jsd']['units'][0][1],
+                    r['name'].encode('utf8'),
+                    r['unit'][2],
+                    r['s_status'] or '',
+                    r['s_cate'] or '',
+                    r['s_dept'] or '',
+                    r['l_qty'][0] and int(r['l_qty'][0]) or '',
+                    r['l_qty'][3] and int(r['l_qty'][3]) or '',
+                    ]
+            )
         
+        fp = cStringIO.StringIO()
+        wt = csv.writer(fp)
+        wt.writerow(['#ID', 'Vend', 'ALU', 'Name', 'UOM', 'Status', 'Cate', 'Dept', 'OnHand', 'OnOrder'])
+        for r in apg: wt.writerow(r)
+        
+        self.req.out_headers['content-type'] = 'application/octet-stream'
+        self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
+        self.req.write( fp.getvalue() )
