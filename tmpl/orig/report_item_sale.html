@@ -111,13 +111,28 @@ els.cate[0].change(cate_apply).change();
 
 <style type="text/css">
 .ui-widget {font-size:18px}
+.x_ctrl {z-index:999}
 .x_ctrl > input {margin-right:10px}
+
+.tinyselect {height:30px;line-height:30px;display:inline-block;width:200px;border:1px solid #ddd;vertical-align:middle;cursor:pointer;background-color:#fff;position:relative}
+.tinyselect > div:nth-child(1) {height:30px;}
+.tinyselect > div:nth-child(2) {top:31px;left:-1px;position:absolute;background-color:#fff;border:1px solid #ddd;min-width:200px;}
+
+
 </style>
 
 </head>
 <body>
 
 <div class="x_ctrl">
+    
+<div class="tinyselect">
+<div>-- Select Cate--</div>
+<div>
+
+</div>
+</div>
+
 <select name="status" style="width:130px">
 <option value="0">- All -</option>
 %for status in const.ITEM_L_STATUS:
