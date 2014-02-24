@@ -37,7 +37,7 @@ TOOLS_MAP = (
 )),
 
 ('Warehouse', (
-    ('Label', 'label', PERM_BASE_ACCESS),
+    ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
     ('Delivery', 'delivery', PERM_NORMAL_ACCESS),
 )),
 
@@ -45,7 +45,7 @@ TOOLS_MAP = (
 
 
 
-DEFAULT_PERM = PERM_BASE_ACCESS | PERM_BASE_ACCESS
+DEFAULT_PERM = PERM_BASE_ACCESS | PERM_NORMAL_ACCESS
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
