@@ -128,6 +128,13 @@ function load_item_imgs()
     }, 'json');
 }
 
+function load_wnd_cust_by_histid(sid, sid_type)
+{
+    get_js('?fn=get_custid_by_histid', {'sid': sid, 'sid_type': sid_type}, function(js) {
+        if(js && js.cid) window.open('hist?fn=custhist&cid='+js.cid,'posx_customer_hist','location=0,width=992,height=700');
+    }, null, true);
+}
+
 $(function() {
 
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
@@ -140,11 +147,16 @@ cols: [{name:'Num', width:120},
        {name:'Date', width:250},
        ],
 click: function(r, c, d) {
-    if (d[6] < 2) {
+    if(d[6] < 2) {
         if (d[7])
             window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
-        else
-            window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+        else {
+            if(c == 2) {
+                load_wnd_cust_by_histid(d[8], d[7]);
+            } else {
+                window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+            }
+        }
     } else if (d[6] < 4) {
         window.open('sync?fn=printorder&type=3&rid=' + d[5],'posx_vo_wnd','location=0,width=992,height=700');
     }
@@ -169,7 +181,12 @@ cols: [{name:'#', width:100},
        {name:'Date', width:100},
        ],
 click: function(r, c, d) {
-    window.open('sync?fn=printorder&type='+d[7]+'&rid=' + d[6],'posx_so_wnd','location=0,width=992,height=700');
+    if(c == 1) {
+        d[8] && window.open('hist?fn=custhist&cid='+d[8],'posx_customer_hist','location=0,width=992,height=700');
+    } else {
+        window.open('sync?fn=printorder&type='+d[7]+'&rid=' + d[6],'posx_so_wnd','location=0,width=992,height=700');
+    }
+    
 },
 getval: function(r, org_getval) {
     var row = org_getval.apply(this, [r]);

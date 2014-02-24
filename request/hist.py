@@ -524,7 +524,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = db.cur()
         rpg = {}
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select docsid,docnum,( if((h.flag>>8)>1, h.flag, (select r.type from sync_receipts r where r.sid=h.docsid and r.sid_type=h.sid_type limit 1)) ) as flag,doctxt,qtydiff,docdate,sid_type from sync_items_hist h where itemsid=%d order by docdate desc,sid desc limit %d,%d' % (
+            cur.execute('select docsid,docnum,( if((h.flag>>8)>1, h.flag, (select r.type from sync_receipts r where r.sid=h.docsid and r.sid_type=h.sid_type limit 1)) ) as flag,doctxt,qtydiff,docdate,sid_type,sid from sync_items_hist h where itemsid=%d order by docdate desc,sid desc limit %d,%d' % (
                 tid,
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
@@ -553,7 +553,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(int(r[5]))),
                         str(r[0]),
                         r_type,
-                        int(r[6])
+                        int(r[6]),
+                        str(r[7])
                     )
                     rpg[sidx].append(r)
                     k += 1
@@ -628,3 +629,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         }
         
         self.req.writefile('hist_item.html', item)
+
+
+    def fn_get_custid_by_histid(self):
+        sid = self.req.qsv_int('sid')
+        sid_type = self.req.qsv_int('sid_type')
+        
+        cur = self.cur()
+        cur.execute('select flag,docsid,sid_type from sync_items_hist where sid=%s and sid_type=%s', (sid, sid_type))
+        rows = cur.fetchall()
+        if not rows: return
+        flag, sid, sid_type = rows[0]
+        
+        r_type = (flag >> 8) & 0xFF
+        if r_type >= 2: return
+        
+        cur.execute('select cid from sync_receipts where sid=%s and sid_type=%s', (sid, sid_type))
+        rows = cur.fetchall()
+        if not rows: return
+        
+        self.req.writejs( {'cid': str(rows[0][0])} )
+        

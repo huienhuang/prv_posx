@@ -281,12 +281,12 @@ function hide_loading_msg()
     v_loading_msg && v_loading_msg.fadeOut(1000);
 }
 
-post_js = function(url, data, cb, err_cb, sync)
+load_js = function(type, msg, url, data, cb, err_cb, sync)
 {
-    show_loading_msg('Saving...');
+    msg && show_loading_msg(msg);
     return $.ajax({
         async: !sync,
-        type: 'post',
+        type: type,
         url: url,
         data: data,
         success: function() {
@@ -303,6 +303,17 @@ post_js = function(url, data, cb, err_cb, sync)
         }
     });
 };
+
+post_js = function(url, data, cb, err_cb, sync)
+{
+    return load_js('post', 'Saving...', url, data, cb, err_cb, sync);
+};
+
+get_js = function(url, data, cb, err_cb, sync)
+{
+    return load_js('get', null, url, data, cb, err_cb, sync);
+};
+
 
 })();
 

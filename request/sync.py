@@ -164,7 +164,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writejs( {'res':{'len':rlen, 'rpg':rpg}} )
         
     
-    ORDER_CLS = [None, ['po', 'purchaseorders'], ['so', 'salesorders']]
+    ORDER_CLS = [None, ['po', 'purchaseorders', 'vend'], ['so', 'salesorders', 'cust']]
     def fn_getitemorders(self):
         rid = self.qsv_int('rid', None)
         if rid == None: return
@@ -185,7 +185,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         rpg = {}
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select i.*,s.'+cls[0]+'num,s.clerk,s.'+cls[0]+'date from sync_link_item i left join sync_'+cls[1]+' s on (s.sid=i.doc_sid) where i.item_sid=%d and i.doc_type=%d%s order by i.doc_sid desc limit %d,%d' % (
+            cur.execute('select i.*,s.'+cls[0]+'num,s.clerk,s.'+cls[0]+'date,s.'+cls[2]+'_sid from sync_link_item i left join sync_'+cls[1]+' s on (s.sid=i.doc_sid) where i.item_sid=%d and i.doc_type=%d%s order by i.doc_sid desc limit %d,%d' % (
                 rid, ord_type, ord_flag == 0 and ' and i.flag=0' or '',
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
@@ -199,7 +199,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         r[7], r[6], r[8],
                         int(r[4]), int(r[5]),
                         time.strftime("%m/%d/%Y", time.localtime(int(r[9]))),
-                        str(r[1]), int(r[2])
+                        str(r[1]), int(r[2]), str(r[10])
                     ]
                     rpg[sidx].append(r)
                     k += 1
