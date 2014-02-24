@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_r1.html" />
+<%include file="header_inc_v3.html" />
 <title>POSX - Label</title>
 
 <script type="text/javascript">
@@ -39,7 +39,7 @@ els.clear[0].click(function() {
 init_item_ac('[name="ctrl_srch"]', function(evt, ui) {
     var add_label = g_v_iframe_tmpl[0].contentWindow.add_label;
     add_label && add_label(ui.item);
-});
+}, {source:'?fn=itemsearch'});
 
 });
 

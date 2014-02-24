@@ -7,6 +7,8 @@ import tinywsgi2
 import config
 import dbref
 
+LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
+
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(tinywsgi2.RequestHandler):
     
@@ -187,7 +189,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         return res and res[0] or None
     
     def fn_getusers(self):
-        users = [ user for user in self.getuserlist() if user[2] & (1 << config.USER_PERM_BIT['normal access']) ]
+        users = [ user for user in self.getuserlist() if user[2] & LOGIN_PERM ]
         self.req.writejs(users)
     #fn_getusers
     fn_getusers.PERM = 0
@@ -218,7 +220,9 @@ class RequestHandler(tinywsgi2.RequestHandler):
                 self.req.redirect('?')
                 return False
         
-        d = {'userlist': self.getuserlist(), 'USER_PERM_BIT': config.USER_PERM_BIT}
+        d = {
+            'userlist': [ user for user in self.getuserlist() if user[2] & LOGIN_PERM ],
+        }
         self.req.writefile('login.html', d)
     #fn_login
     fn_login.PERM = 0

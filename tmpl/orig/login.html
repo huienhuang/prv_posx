@@ -30,9 +30,7 @@ $('.btn_login').button().click(function() {
 <select name="user_id" style="width:300px">
 <option value="0"> - Select User - </option>
 %for u in userlist:
-%if u[2] & (1 << USER_PERM_BIT['normal access']):
 <option value="${u[0]}">${u[1]|h}</option>
-%endif
 %endfor
 </select>
 <br><br>

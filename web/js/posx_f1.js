@@ -232,7 +232,8 @@ function ac_item_search_response(event, ui) {
         
     for(var i = 0; i < ct.length; i++) {
         var c = ct[i];
-        var item = c[3] = $.parseJSON(c[3]);
+        if(typeof(c[3]) === typeof("")) c[3] = $.parseJSON(c[3]);
+        var item = c[3];
         var units = item.units;
             
         if (c[4] !== null) {

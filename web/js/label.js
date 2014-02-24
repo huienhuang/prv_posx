@@ -119,7 +119,7 @@ function load_by_id(label, id)
         refresh_paper(label);
         return;
     }
-    $.get('sync?fn=get_item', {'item_no':id}, function(js) {
+    $.get('?fn=get_item', {'item_no':id}, function(js) {
         if(!js || !js.length) { refresh_paper(label); return; }
         label.addClass('label_active');
         fill_label(label, js);

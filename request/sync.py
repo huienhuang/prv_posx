@@ -9,8 +9,7 @@ import traceback
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
-    def fn_get_item(self):
-        item_no = self.qsv_int('item_no')
+    def get_item(self, item_no):
         cur = self.cur()
         cur.execute('select sid,num,name,detail from sync_items where num=%s', (item_no,))
         rows = cur.fetchall()
@@ -18,7 +17,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         row = list(rows[0])
         row[0] = str(row[0])
         row[3] = json.loads(row[3])
-        
+        return row
+    
+    def fn_get_item(self):
+        row = self.get_item( self.qsv_int('item_no') )
+        if not row: return
         self.req.writejs(row)
     
     def search_item(self, kw, mode, num_row=10):

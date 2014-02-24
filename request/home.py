@@ -6,6 +6,7 @@ PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
 PERM_TIME = 1 << config.USER_PERM_BIT['time']
 PERM_ITEM_STAT_ACCESS = 1 << config.USER_PERM_BIT['item stat access']
 PERM_NORMAL_ACCESS = 1 << config.USER_PERM_BIT['normal access']
+PERM_BASE_ACCESS = 1 << config.USER_PERM_BIT['base access']
 
 TOOLS_MAP = (
 
@@ -36,7 +37,7 @@ TOOLS_MAP = (
 )),
 
 ('Warehouse', (
-    ('Label', 'label', PERM_NORMAL_ACCESS),
+    ('Label', 'label', PERM_BASE_ACCESS),
     ('Delivery', 'delivery', PERM_NORMAL_ACCESS),
 )),
 
@@ -44,7 +45,7 @@ TOOLS_MAP = (
 
 
 
-DEFAULT_PERM = 0x00000001
+DEFAULT_PERM = PERM_BASE_ACCESS | PERM_BASE_ACCESS
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
