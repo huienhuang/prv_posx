@@ -184,10 +184,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         res['apg'] = apg
         self.req.writejs(ret)
     
+    def fn_get_cust_note(self):
+        note_id = self.req.psv_int('note_id')
+        if not note_id: return
+        
+        cur = self.cur()
+        cur.execute('select val from customer_comment where id=%s', (note_id,))
+        rows = cur.fetchall()
+        if not rows: return
+        
+        self.req.writejs( {'note_id': note_id, 'val': rows[0][0]} )
+    
+    def fn_del_cust_comment(self):
+        cid = self.req.psv_int('cid')
+        note_id = self.req.psv_int('note_id')
+        if not cid or not note_id: return
+        
+        cur = self.cur()
+        cur.execute('update customer_comment set flag=flag|1 where id=%s and cid=%s', (note_id, cid))
+    
+        self.req.writejs({'ret':1})
+    
     def fn_add_cust_comment(self):
         cid = self.req.psv_int('cid')
         comment = self.req.psv_ustr('comment')[:256].strip()
         if not cid or not comment: return
+        note_id = self.req.psv_int('note_id')
 
         db = self.db()
         cur = db.cur()
@@ -195,17 +217,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('select count(*) from sync_customers where sid=%s', (cid,))
         if cur.fetchall()[0][0] <= 0: return
         
-        cur.execute('insert into customer_comment values (null,%s,%s,%s,%s)', (
-            cid, int(time.time()), self.user_name, comment
+        if note_id:
+            cur.execute('update customer_comment set val=%s where id=%s and cid=%s', (comment, note_id, cid))
+            mid = note_id
+        else:
+            cur.execute('insert into customer_comment values (null,%s,0,%s,%s,%s)', (
+                cid, int(time.time()), self.user_name, comment
+                )
             )
-        )
-        mid = cur.lastrowid
+            mid = cur.lastrowid
         
         self.req.writejs({'ret':mid})
         
     def fn_get_cust_comment(self):
         ret = {'res':{'len':0, 'apg':[]}}
         cid = self.qsv_int('cid')
+        sql_flag = ''
+        if not self.qsv_int('flag'): sql_flag = '(flag & 1)=0 and '
         
         pgsz = self.qsv_int('pagesize')
         sidx = self.qsv_int('sidx')
@@ -215,19 +243,20 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select SQL_CALC_FOUND_ROWS ts,name,val from customer_comment where cid=%d order by id desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS ts,name,val,flag,id from customer_comment where '+sql_flag+'cid=%d order by id desc limit %d,%d' % (
                 cid, sidx * pgsz, (eidx - sidx) * pgsz
                 )
             )
             for r in cur.fetchall():
                 r = list(r)
                 r[0] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[0]))
+                r[3] = (r[3] & 1) and 'Y' or ''
                 apg.append(r)
         
             cur.execute('select FOUND_ROWS()')
             
         else:
-            cur.execute('select count(*) from customer_comment where cid=%s', (cid,))
+            cur.execute('select count(*) from customer_comment where '+sql_flag+'cid=%s', (cid,))
             
         rlen = int(cur.fetchall()[0][0])
         res = ret['res']

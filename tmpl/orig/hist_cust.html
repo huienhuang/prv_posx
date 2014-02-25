@@ -179,11 +179,22 @@ click: function(r, c, d) {
 
 g_v_datagrid_note = g_v_datagrid[5] = $('#datagrid_note').tinygrid({
 len:0,
-src:{page:'?fn=get_cust_comment&cid=${cust_sid}'},
+src:{page:'?fn=get_cust_comment', data:{'cid': '${cust_sid}'}},
 cols: [{name:'Date', width:210},
        {name:'User', width:120},
        {name:'Note', width:'100%'},
+       {name:'Del', width:40},
        ],
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
+init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 5).change(show_all); },
+click: function(r, c, d) {
+    $.get('?fn=get_cust_note', {'note_id': d[4]}, function(js) {
+        g_v_dlg_comment.data('note_id', js.note_id);
+        $(g_v_dlg_comment.find('input[name="note_val"]')).val(js.val);
+        g_v_dlg_comment.dialog('open');
+    }, 'json');
+}
+
 });
 
 g_v_srch_item = $('#srch_item').autocomplete({
@@ -205,22 +216,37 @@ g_v_dlg_comment = $('#dlg_comment').dialog({
     autoOpen: false,
     width:500,
     height:200,
+    close: function() {
+        g_v_dlg_comment.data('note_id', 0);
+    },
     buttons: {
-        'add': function() {
-            var o = $(g_v_dlg_comment.find('input[name="note_val"]'));
-            var v = $.trim(o.val());
-            if(!v) return;
-            
-            $.post('?fn=add_cust_comment', {'cid': '${cust_sid}', 'comment': v}, function(js) {
+        'del': function() {
+            var note_id = parseInt(g_v_dlg_comment.data('note_id') || 0);
+            if(!note_id) return;
+            $.post('?fn=del_cust_comment', {'cid': '${cust_sid}', 'note_id': note_id}, function(js) {
                 if(!js || !js.ret) return;
                 g_v_dlg_comment.dialog('close');
                 g_v_datagrid_note.tinygrid('update', -1, true, true, true);
             }, 'json');
-        }
+        },
+        'set': function() {
+            var o = $(g_v_dlg_comment.find('input[name="note_val"]'));
+            var v = $.trim(o.val());
+            if(!v) return;
+            
+            var note_id = parseInt(g_v_dlg_comment.data('note_id') || 0);
+            $.post('?fn=add_cust_comment', {'cid': '${cust_sid}', 'comment': v, 'note_id': note_id}, function(js) {
+                if(!js || !js.ret) return;
+                g_v_dlg_comment.dialog('close');
+                g_v_datagrid_note.tinygrid('update', -1, true, true, true);
+            }, 'json');
+        },
+        
     }
 });
 
 $('.cust_add_note').click(function() {
+    g_v_dlg_comment.data('note_id', 0);
     $(g_v_dlg_comment.find('input[name="note_val"]')).val('');
     g_v_dlg_comment.dialog('open');
 });
