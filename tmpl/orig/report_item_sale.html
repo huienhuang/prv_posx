@@ -5,46 +5,28 @@
 <title>POSX - Item - Report - Sale</title>
 
 <script type="text/javascript">
-<%
-import json
-%>
-ITEM_L_DEPT = ${json.dumps(const.ITEM_L_DEPT)};
-ITEM_D_CATE = ${json.dumps(const.ITEM_D_CATE)};
-
-g_tg_item_list_data = {'frm_mon':'','to_mon':'', 'status':0, 'cate':'', 'dept':''};
-
-function cate_apply()
-{
-    var els = g_v_ctrl.data('in_els');
-    var dept = els.dept[0].val('');
-    dept.children().slice(1).remove();
-    
-    var v = $(this).val();
-    if(!v) {
-        for(var i = 0; i < ITEM_L_DEPT.length; i++) dept.append( $('<option></option>').text(ITEM_L_DEPT[i][0]) );
-    } else {
-        var cate = ITEM_D_CATE[v] || [];
-        for(var i = 0; i < cate.length; i++) dept.append( $('<option></option>').text(cate[i]) );
-    }
-    
-    apply.call(this);
-}
+g_tg_item_list_data = {'frm_mon':'', 'to_mon':'', 'status':0, 'dept':''};
 
 function apply()
 {
     var els = g_v_ctrl.data('in_els');
     
-    var status = els.status[0].val();
-    var cate = els.cate[0].val();
-    var dept = els.dept[0].val();
     var frm_mon = els.frm_mon[0].val().replace('-', '');
     var to_mon = els.to_mon[0].val().replace('-', '');
     
+    var v_status_cbs = $('.filter_status input:checked');
+    var status_lst = [];
+    for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
+    
+    var v_dept_cbs = $('.filter_dept input:checked');
+    var dept_lst = [];
+    for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
+    
+    
     g_tg_item_list_data.frm_mon = frm_mon;
     g_tg_item_list_data.to_mon = to_mon;
-    g_tg_item_list_data.status = status;
-    g_tg_item_list_data.cate = cate;
-    g_tg_item_list_data.dept = dept;
+    g_tg_item_list_data.status = status_lst.join('|');
+    g_tg_item_list_data.dept = dept_lst.join('|');
     
     g_v_tg_item_list.tinygrid('update', -1, true, true, true);
 }
@@ -54,7 +36,6 @@ function export_csv()
     var els = g_v_ctrl.data('in_els');
     var data = {
         'status': els.status[0].val(),
-        'cate': els.cate[0].val(),
         'dept': els.dept[0].val(),
         'frm_mon': els.frm_mon[0].val().replace('-', ''),
         'to_mon': els.to_mon[0].val().replace('-', ''),
@@ -92,17 +73,63 @@ click: function(r, c, d) {
 
 g_v_form_dl = $('#form_dl');
 
-g_v_ctrl = $('.x_ctrl')
+g_v_filter_chg = false;
+$('.filter input[type="checkbox"]').change(function() {
+    var d = $(this);
+    var n = d.prop('name').substr(7);
+    var v = d.val();
+    var chk = d.prop('checked');
+    var p = d.parent().parent();
+    if(n === 'cate') {
+        var v_dept = $('.filter_dept').children('div[title="'+v+'"]');
+        if(chk) {
+            v_dept.show().children('input').prop('checked', true);
+        } else {
+            v_dept.hide().children('input').prop('checked', false);
+        }
+    }
+    
+    g_v_filter_chg = true;
+    
+});
+
+function filter_chk_all(chk) {
+    var d = $(this);
+    var p = d.parent().parent();
+    p.find('input[type="checkbox"]').prop('checked', chk);
+    
+    var n = p.attr('class').substr(7);
+    if(n === 'cate') {
+        var c = $($('.filter_dept').children().slice(1));
+        if(chk) {
+            c.show().children('input').prop('checked', true);
+        } else {
+            c.hide().children('input').prop('checked', false);
+        }
+    }
+    
+    g_v_filter_chg = true;
+}
+
+v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
+v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
+v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+
+$('.filter').hover(null, function() {
+    if(!g_v_filter_chg) return;
+    g_v_filter_chg = false;
+    apply();
+})
+
+g_v_ctrl = $('.x_ctrl');
 idx_elements(g_v_ctrl, 0);
 var els = g_v_ctrl.data('in_els');
 els.frm_mon[0].change(apply);
 els.to_mon[0].change(apply);
-els.status[0].change(apply);
-els.dept[0].change(apply);
 els.export[0].click(export_csv);
 els.quit[0].click(go_home);
-els.cate[0].change(cate_apply).change();
 
+apply();
 
 });
 
@@ -112,12 +139,19 @@ els.cate[0].change(cate_apply).change();
 <style type="text/css">
 .ui-widget {font-size:18px}
 .x_ctrl {z-index:999}
-.x_ctrl > input {margin-right:10px}
+.x_ctrl >input {margin-right:10px}
 
-.tinyselect {height:30px;line-height:30px;display:inline-block;width:200px;border:1px solid #ddd;vertical-align:middle;cursor:pointer;background-color:#fff;position:relative}
-.tinyselect > div:nth-child(1) {height:30px;}
-.tinyselect > div:nth-child(2) {top:31px;left:-1px;position:absolute;background-color:#fff;border:1px solid #ddd;min-width:200px;}
+.tiny_popup {position:relative;display:inline-block;line-height:32px;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
+.tiny_popup:hover >div:nth-child(2) {display:block;}
 
+.tiny_popup >div:nth-child(2) {width:715px;}
+.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
+.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
 
 </style>
 
@@ -125,27 +159,35 @@ els.cate[0].change(cate_apply).change();
 <body>
 
 <div class="x_ctrl">
-    
-<div class="tinyselect">
-<div>-- Select Cate--</div>
+
+<div class="tiny_popup filter" style="width:100px">
+<div>Filter</div>
 <div>
 
+<div class="filter_status">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for status in const.ITEM_L_STATUS:
+<div><input type="checkbox" value="${status[1]|h}" name="filter_status" checked="checked" /><span>${status[0]|h}</span></div>
+%endfor
+</div>
+
+<div class="filter_cate">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for cate in const.ITEM_L_CATE:
+<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+<div class="filter_dept">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for dept in const.ITEM_L_DEPT:
+<div title="${dept[1]|h}"><input type="checkbox" value="${dept[0]|h}" name="filter_dept" checked="checked" /><span>${dept[0]|h}</span></div>
+%endfor
+</div>
+
 </div>
 </div>
 
-<select name="status" style="width:130px">
-<option value="0">- All -</option>
-%for status in const.ITEM_L_STATUS:
-<option value="${status[1]|h}">${status[0]|h}</option>
-%endfor
-</select>
-<select name="cate" style="width:120px">
-<option value="">- All -</option>
-%for cate in const.ITEM_L_CATE:
-<option>${cate[0]}</option>
-%endfor
-</select>
-<select name="dept" style="width:140px"><option value="">- All -</option></select>
 <input type="month" name="frm_mon" title="From" style="width:200px" />
 <input type="month" name="to_mon" title="To" style="width:200px" />
 <input type="button" name="export" value="export" class="btn" />

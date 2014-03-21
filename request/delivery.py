@@ -6,8 +6,13 @@ import datetime
 
 PROBLEMS = [
     'Other',
-    'Missing Items',
-    'Need To Call Customer',
+    'Missing Products',
+    'Need To Call Customer(Deprecated)',
+    'Out Of Stock',
+    'Pick Wrong Products',
+    'Customer Exchange',
+    'Took Order Wrong',
+    'Delivered Late'
 ]
 
 

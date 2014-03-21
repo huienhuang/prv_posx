@@ -14,28 +14,23 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = {'const':const}
         self.req.writefile('report_item_sale.html', r)
         
-    def get_items(self, frm_mon, to_mon, status, dept_s, cate_s, sidx, eidx, pgsz, mode=0):
+    def get_items(self, frm_mon, to_mon, status_l, dept_l, sidx, eidx, pgsz, mode=0):
         where = []
-        if status: where.append('status=%d' % (status,))
+        if not status_l or not dept_l: return (0, [])
+        
+        s_status = set([ str(int(f_x)) for f_x in status_l.split('|') ])
+        where.append('status in (%s)' % (','.join(s_status),))
         
         l_depts = cPickle.loads(self.getconfigv2('departments'))
-        if dept_s or cate_s:
-            d_depts = dict(l_depts)
-            if dept_s:
-                s_dept = set()
-                for dept in dept_s.split('|'):
-                    deptsid = d_depts.get(dept.strip().lower())
-                    if deptsid == None: continue
-                    s_dept.add(deptsid)
-            else:
-                s_dept = []
-                for dept in const.ITEM_D_CATE.get(cate_s.lower()) or []:
-                    deptsid = d_depts.get(dept.strip().lower())
-                    if deptsid == None: continue
-                    s_dept.append(deptsid)
+        d_depts = dict(l_depts)
+        s_dept = set()
+        for dept in dept_l.split('|'):
+            deptsid = d_depts.get(dept.strip().lower())
+            if deptsid == None: continue
+            s_dept.add(deptsid)
             
-            if not s_dept: return (0, [])
-            where.append('deptsid in (%s)' % (','.join(map(str, s_dept))))
+        if not s_dept: return (0, [])
+        where.append('deptsid in (%s)' % (','.join(map(str, s_dept))))
         
         if where:
             where = ' where ' + ' AND '.join(where)
@@ -108,11 +103,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         frm_mon = self.qsv_int('frm_mon')
         to_mon = self.qsv_int('to_mon')
-        status = self.qsv_int('status')
-        dept_s = self.qsv_str('dept')
-        cate_s = self.qsv_str('cate')
+        status_l = self.qsv_str('status')
+        dept_l = self.qsv_str('dept')
         
-        rlen, apg_ = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, sidx, eidx, pgsz)
+        rlen, apg_ = self.get_items(frm_mon, to_mon, status_l, dept_l, sidx, eidx, pgsz)
         apg = []
         for r in apg_:
             l_stat = r['l_stat']
