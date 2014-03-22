@@ -125,7 +125,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                     l_stat[1] and '%0.2f' % (l_stat[1],) or '',
                     l_stat[2] and '%0.2f' % (l_stat[2],) or '',
                     s_mgn and '%0.2f' % (s_mgn,) or '',
-                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
+                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / l_stat[1],) or '',
                     str(r['sid'])
                     ]
             )
@@ -139,11 +139,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         js = self.req.psv_js('js')
         frm_mon = js['frm_mon'].isdigit() and int(js['frm_mon']) or 0
         to_mon = js['to_mon'].isdigit() and int(js['to_mon']) or 0
-        status = js['status'].isdigit() and int(js['status']) or 0
-        dept_s = js['dept'].strip()
-        cate_s = js['cate'].strip()
+        status_l = js['status'].strip()
+        dept_l = js['dept'].strip()
         
-        rlen, apg_ = self.get_items(frm_mon, to_mon, status, dept_s, cate_s, 0, 0, 0, 1)
+        rlen, apg_ = self.get_items(frm_mon, to_mon, status_l, dept_l, 0, 0, 0, 1)
         apg = []
         for r in apg_:
             l_stat = r['l_stat']
@@ -162,7 +161,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                     l_stat[1] and '%0.2f' % (l_stat[1],) or '',
                     l_stat[2] and '%0.2f' % (l_stat[2],) or '',
                     s_mgn and '%0.2f' % (s_mgn,) or '',
-                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / s_price,) or '',
+                    l_stat[1] and '%0.2f%%' % (s_mgn * 100 / l_stat[1],) or '',
                     str(r['sid'])
                     ]
             )
