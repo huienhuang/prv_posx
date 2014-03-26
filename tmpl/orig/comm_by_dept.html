@@ -8,6 +8,20 @@
 g_data = null;
 g_ajax_req__get_comm = 0;
 
+
+function apply(do_load)
+{
+    g_v_main_xtbl.empty();
+    
+    var v_cbs = $('.filter_month input:checked');
+    var lst = [];
+    for(var i = 0; i < v_cbs.length; i++) lst.push( $(v_cbs[i]).val() );
+    
+    if(!g_data && !do_load) return;
+    
+}
+
+
 function change__report_date()
 {
     g_data = null;
@@ -138,6 +152,32 @@ g_v_dlg_clerk = $('#dlg_clerk').dialog({
 g_v_clerk_xtbl = $('.xtbl', g_v_dlg_clerk);
 g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 
+
+
+
+
+g_v_filter_chg = false;
+$('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
+
+function filter_chk_all(chk) {
+    var d = $(this);
+    var p = d.parent().parent();
+    p.find('input[type="checkbox"]').prop('checked', chk);
+    
+    g_v_filter_chg = true;
+}
+
+v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
+v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
+v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+
+$('.filter').hover(null, function() {
+    if(!g_v_filter_chg) return;
+    g_v_filter_chg = false;
+    apply();
+})
+
+
 }); //ready
 
 </script>
@@ -148,7 +188,7 @@ g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 .tp_ctrl button {height:32px;vertical-align:middle;}
 
-.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
+.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0;z-index:-1}
 
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:720px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:120px;position:relative}
@@ -168,6 +208,20 @@ g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 #dlg_clerk .xtbl_row {min-width:820px;}
 #dlg_clerk .xtbl_row > div:nth-child(1) {width:220px;}
 
+
+.tiny_popup {position:relative;display:inline-block;line-height:32px;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
+.tiny_popup:hover >div:nth-child(2) {display:block;}
+
+.tiny_popup >div:nth-child(2) {width:510px;}
+.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
+.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+
 </style>
 
 </head>
@@ -175,19 +229,37 @@ g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 
 <div class="tp_ctrl">
 
-<select style="width:180px" name="report_date"><option value="">-- Select Report --</option>
+<div class="tiny_popup filter" style="width:100px">
+<div>Filter</div>
+<div>
+
+
+<div class="filter_month">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
 %for r in reports:
-<option>${r|h}</option>
+<div><input type="checkbox" value="${r|h}" name="filter_month" /><span>${r|h}</span></div>
 %endfor
-</select>
-<select style="width:120px" name="report_cate"><option value="">-- All --</option></select>
+</div>
+
+
+<div class="filter_cate">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><input type="checkbox" value="NotInList" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
+%for cate in const.ITEM_L_CATE:
+<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+</div>
+</div>
+
 <input style="margin-left:10px" type="button" value="export" class="btn" />
 <input style="margin-left:10px" type="button" value="quit" class="btn" />
 
 </div>
 
 <div class="main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>MonthlyBonus</div><div>GroupComm</div><div>IndividualComm</div><div>Total</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>

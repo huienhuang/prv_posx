@@ -33,10 +33,18 @@ function apply()
 
 function export_csv()
 {
+    var v_status_cbs = $('.filter_status input:checked');
+    var status_lst = [];
+    for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
+    
+    var v_dept_cbs = $('.filter_dept input:checked');
+    var dept_lst = [];
+    for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
+    
     var els = g_v_ctrl.data('in_els');
     var data = {
-        'status': els.status[0].val(),
-        'dept': els.dept[0].val(),
+        'status': status_lst.join('|'),
+        'dept': dept_lst.join('|'),
         'frm_mon': els.frm_mon[0].val().replace('-', ''),
         'to_mon': els.to_mon[0].val().replace('-', ''),
     };
