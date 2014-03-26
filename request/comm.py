@@ -41,11 +41,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_comm_by_dept(self):
         reports = map(lambda n: os.path.basename(n)[:-7], glob.glob(self.req.app.app_dir + '/data/*_df.txt'))
-        users = self.getuserlist()
-        perm_sales = 1 << config.USER_PERM_BIT['sales']
-        sales = [ x for x in users if x[2] & perm_sales and x[0] != 1 ]
         
-        self.req.writefile('comm_by_dept.html', {'reports': reports, 'sales': sales, 'const': const})
+        self.req.writefile('comm_by_dept.html', {'reports': reports, 'const': const})
     
     USER_MAP = {
         'sales1': 'ray',

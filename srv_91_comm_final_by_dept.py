@@ -59,7 +59,6 @@ def is_inv_exists(num, cur_date_mon):
     cur_mdb.execute('select count(*) from invoicev2 where inv_num=%s and inv_date!=%s', (num, cur_date_mon))
     return cur_mdb.fetchall()[0][0]
 
-g_depts = {}
 def parse_receipt(r):
     sur_pos.execute('select sum(TenderAmount) from ReceiptTender where SID = ? and TenderType = 6 group by TenderType', (r['sid'],))
     rc = sur_pos.fetchall()
@@ -77,8 +76,6 @@ def parse_receipt(r):
     for s in sur_pos.fetchall():
         itemsid,clerk,price,price_tax,qty,deptsid = s
         
-        if deptsid != None: g_depts[deptsid] = None
-        
         qty = float(qty)
         price = float(price)
         price_tax = float(price_tax)
@@ -90,12 +87,22 @@ def parse_receipt(r):
         price_tax = round(price_tax * qty * rate, 5)
         total_price_tax += price_tax
         
-        items.append( (itemsid, clerk.lower(), price, qty, deptsid) )
+        cate = g_depts.get(deptsid, [None, None])[1]
+        if cate == None: cate = g_items.get(itemsid, {}).get('cate')
+        
+        items.append( (itemsid, clerk.lower(), price, qty, cate) )
     
     r['is_invoice'] = bool(round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
 
+g_items = {}
 
+g_depts = {}
+cur_pos.execute('select sid,deptname from department where datastate=0')
+for r in cur_pos.fetchall():
+    cate = const.ITEM_D_DEPT.get(r[1].lower())
+    g_depts[r[0]] = (r[1], cate)
+    
 g_receipts = {}
 cur_pos.execute("select sid,ReceiptRefSID,ReceiptNum,ReceiptType,ReceiptStatus,Clerk,TenderType,QBFSStatus,DiscAmount,SubTotal,ReceiptDate"
             + " from Receipt r where datastate = 0 and ReceiptType < 2 and ReceiptDate >= ? and ReceiptDate < ? order by receiptnum asc",
@@ -143,21 +150,39 @@ for r in cur_qb.rows():
     r['qb'] = (tid, tdate, docnum)
     g_qb_invoices.append( (rnum, g_from_date_mon, json.dumps(r['qb'], separators=(',',':'))) )
 
-k = 0
-g_cates = {}
-cur_pos.execute('select sid,deptname from department where datastate=0 and sid in (%s)' % ( ','.join(map(str,g_depts.keys())) ,))
-for r in cur_pos.fetchall():
-    cate = const.ITEM_D_DEPT.get(r[1].lower())
-    cate_id = g_cates.get(cate)
-    if not cate_id:
-        k += 1
-        cate_id = g_cates[cate] = k
-    g_depts[r[0]] = (r[1], cate_id)
 
 cur_mdb.execute('delete from invoicev2 where inv_date=%s', (g_from_date_mon,))
 if g_qb_invoices: cur_mdb.executemany('insert ignore into invoicev2 values(%s,%s,%s)', g_qb_invoices)
 
-cPickle.dump( (g_receipts, g_depts, g_cates, g_errs), open(datafile, 'wb'), 1 )
+
+USER_MAP = {
+    'sales1': 'ray',
+    'sales2': 'anthony',
+    'sales3': 'joe',
+    'sales8': 'nicole',
+    'sales5': 'jimmy',
+    'sales6': 'sally',
+}
+
+g_clerks = {}
+for num,r in g_receipts.items():
+    is_invoice = r['is_invoice']
+    included = r['included']
+    qb = r.get('qb')
+    for itemsid, clerk, price, qty, cate in r['items']:
+        clerk = USER_MAP.get(clerk, clerk)
+        p = g_clerks.setdefault(clerk, {}).setdefault(cate, [0, 0, 0])
+        
+        if included:
+            if not is_invoice or qb:
+                p[1] += price
+            else:
+                p[0] += price
+        else:
+            p[2] += price
+
+
+cPickle.dump( (g_clerks, g_errs), open(datafile, 'wb'), 1 )
 print "done"
 
 

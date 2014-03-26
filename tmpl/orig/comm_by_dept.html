@@ -1,67 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc.html" />
+<%include file="header_inc_v3.html" />
 <title>POSX - Comm By Dept</title>
 
 <script type="text/javascript">
-g_data = null;
-g_ajax_req__get_comm = 0;
+g_data = {};
 
+function evt_apply()
+{
+    apply();
+}
 
-function apply(do_load)
+function apply(dont_load)
 {
     g_v_main_xtbl.empty();
     
     var v_cbs = $('.filter_month input:checked');
-    var lst = [];
-    for(var i = 0; i < v_cbs.length; i++) lst.push( $(v_cbs[i]).val() );
+    var lst = [[], []];
+    for(var i = 0; i < v_cbs.length; i++) {
+        var v = $(v_cbs[i]).val();
+        if(!g_data || !g_data[v])
+            lst[1].push(v);
+        else
+            lst[0].push(v);
+    }
     
-    if(!g_data && !do_load) return;
-    
-}
-
-
-function change__report_date()
-{
-    g_data = null;
-    var report_date = g_v_report_date.val();
-    if(!report_date) return;
-    
-    var req = ++g_ajax_req__get_comm;
-    $.get('?fn=get_comm', {'date': report_date}, function(js) {
-        if(req != g_ajax_req__get_comm) return;
-        if(js.err) MsgBox('ERROR', js.err);
-        
-        $(g_v_report_cate.val('').children().slice(1)).empty();
-        for(var i = 0; i < js.cates.length; i++) {
-            var cate = js.cates[i];
-            g_v_report_cate.append( $('<option></option>').val(cate[1]).text(cate[0]) );
+    if (lst[1].length > 0) {
+        if(!dont_load) {
+            get_js('?fn=get_comm', {'months': lst[1].join('|')}, function(js) {
+                for(var k in js) g_data[k] = js[k];
+                apply(true);
+            });
         }
         
-        g_data = js;
-        g_v_report_cate.change();
-    }, 'json');
+        return;
+    }
     
+    Array.push.apply(lst[0], lst[1]);
+    render(lst[0]);
 }
 
-function load_data()
+function render(months, cates)
 {
-    var cate_id = parseInt(g_v_report_cate.val());
     var js = g_data;
-    
-    for(var i = 0; i < js.clerks.length; i++) {
-        var clerk = js.clerks[i];
-        var depts = clerk[1];
-        var total = [0, 0, 0];
-        for(var j = 0; j < depts.length; j++) {
-            var dept = depts[j];
-            if(cate_id && dept[2][1] !== cate_id) continue;
-            total[0] += dept[1][0];
-            total[1] += dept[1][1];
-            total[2] += dept[1][2];
+    var clerks = {};
+    for(var m = 0; m < months.length; m++) {
+        var js = g_data[ months[m] ];
+        for(var cnz in js.clerks) {
+            var clerk = js.clerks[cnz];
+            var total = [0, 0, 0];
+            for(var i = 0; i < cates.length; i++) {
+                cate_total = clerk[ cates[i] ];
+                if(cate_total === undefined) continue;
+                total[0] += cate_total[0];
+                total[1] += cate_total[1];
+                total[2] += cate_total[2];
+            }
         }
         
+    }
+    
+    {
         g_v_main_xtbl.append(
             $('<div class="xtbl_row"></div>')
             .append( $('<div onclick="open_dlg_clerk('+i+');return false;"></div>').text(clerk[0]) )
@@ -74,12 +74,6 @@ function load_data()
     }
 }
 
-function change__report_cate()
-{
-    g_v_main_xtbl.empty();
-    if(!g_data) return;
-    load_data();
-}
 
 
 function open_dlg_clerk(i)
@@ -139,8 +133,6 @@ $('.btn').button();
 $('.tp_ctrl > input[value="quit"]').click(go_home);
 $('.xtbl_header').tooltip();
 
-g_v_report_date = $('.tp_ctrl > [name="report_date"]').change(change__report_date);
-g_v_report_cate = $('.tp_ctrl > [name="report_cate"]').change(change__report_cate);
 g_v_main_xtbl = $('.main_tbl .xtbl');
 
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
