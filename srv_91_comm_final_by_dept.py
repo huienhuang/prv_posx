@@ -42,7 +42,7 @@ def get_date_range(dt=None):
     return (frm_year, frm_month, to_year, to_month)
 
 
-target_dt = datetime.date(2014, 2, 3)
+target_dt = None#datetime.date(2014, 2, 3)
 frm_year, frm_month, to_year, to_month = get_date_range(target_dt)
 g_from_date_mon = frm_year * 100 + frm_month
 g_from_date = '%04d-%02d-01' % (frm_year, frm_month)
