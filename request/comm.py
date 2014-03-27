@@ -40,7 +40,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
 
     def fn_comm_by_dept(self):
-        reports = map(lambda n: os.path.basename(n)[:-7], glob.glob(self.req.app.app_dir + '/data/*_df.txt'))
+        reports = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
         
         self.req.writefile('comm_by_dept.html', {'reports': reports, 'const': const})
     
@@ -53,41 +53,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         'sales6': 'sally',
     }
     def fn_get_comm(self):
-        report_date = self.qsv_str('date').replace('-', '')
-        if not report_date.isdigit(): return
+        months = self.qsv_str('months').split('|')
         
-        datafile = '%s/data/%s-%s-%s_df.txt' % (self.req.app.app_dir, report_date[:4], report_date[4:6], report_date[6:8])
-        if not os.path.exists(datafile): return
-        receipts, depts, cates, errs = cPickle.load( open(datafile, 'rb') )
-        
-        clerks = {}
-        for num,r in receipts.items():
-            is_invoice = r['is_invoice']
-            included = r['included']
-            qb = r.get('qb')
-            for itemsid, clerk, price, qty, deptsid in r['items']:
-                clerk = self.USER_MAP.get(clerk, clerk)
-                p = clerks.setdefault(clerk, {}).setdefault(deptsid, [0, 0, 0])
-                
-                if included:
-                    if not is_invoice or qb:
-                        p[1] += price
-                    else:
-                        p[0] += price
-                else:
-                    p[2] += price
-        
-        a_clerks = []
-        for f_clerk,f_depts in sorted(clerks.items(), key=lambda f_x: f_x[0]):
-            f_depts = [ (str(f_x[0]), f_x[1], depts.get(f_x[0]) or ['', 0]) for f_x in f_depts.items() ]
-            f_depts.sort(key=lambda f_x: f_x[2][0].lower())
-            a_clerks.append( (f_clerk, f_depts) )
-        
-        r = {
-            'cates': sorted(cates.items(), key=lambda f_x: f_x[0]),
-            'clerks': a_clerks,
-            'depts': depts,
-            'err': '\n'.join(errs),
-        }
-        self.req.writejs(r)
-        
+        js = {}
+        for m in months:
+            if not m.replace('-', '').isdigit(): continue
+            datafile = '%s/data/%s_comm_clerks.txt' % (self.req.app.app_dir, m)
+            if not os.path.exists(datafile): return
+            js[ m ] = cPickle.load( open(datafile, 'rb') )
+            
+        self.req.writejs(js)

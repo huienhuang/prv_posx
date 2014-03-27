@@ -29,8 +29,8 @@ def print_err(fmt, *arg):
     print s
     g_errs.append(s)
 
-def get_date_range():
-    dt = datetime.date.today()
+def get_date_range(dt=None):
+    dt = dt or datetime.date.today()
     to_year = dt.year
     to_month = dt.month
     frm_year = to_year
@@ -42,14 +42,16 @@ def get_date_range():
     return (frm_year, frm_month, to_year, to_month)
 
 
-frm_year, frm_month, to_year, to_month = get_date_range()
+target_dt = datetime.date(2014, 2, 3)
+frm_year, frm_month, to_year, to_month = get_date_range(target_dt)
 g_from_date_mon = frm_year * 100 + frm_month
 g_from_date = '%04d-%02d-01' % (frm_year, frm_month)
 g_to_date = '%04d-%02d-01' % (to_year, to_month)
 
 print 'calc comm - %s <= receipts < %s' % (g_from_date, g_to_date)
 if datetime.date.today().day < 3: sys.exit()
-datafile = os.path.join(os.getcwd(), 'data', g_from_date + '_df.txt')
+datafile = os.path.join(os.getcwd(), 'data', g_from_date + '_comm_clerks.txt')
+datafile_a = os.path.join(os.getcwd(), 'data', g_from_date + '_comm_receipts.txt')
 if os.path.exists(datafile):
     print 'datafile exists'
     sys.exit()
@@ -87,21 +89,24 @@ def parse_receipt(r):
         price_tax = round(price_tax * qty * rate, 5)
         total_price_tax += price_tax
         
-        cate = g_depts.get(deptsid, [None, None])[1]
-        if cate == None: cate = g_items.get(itemsid, {}).get('cate')
+        cate = (g_depts.get(deptsid) or [None, None])[1]
+        if cate == None: cate = (g_item_depts.get(itemsid) or [None, None])[1]
         
         items.append( (itemsid, clerk.lower(), price, qty, cate) )
     
     r['is_invoice'] = bool(round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
 
-g_items = {}
-
 g_depts = {}
 cur_pos.execute('select sid,deptname from department where datastate=0')
 for r in cur_pos.fetchall():
     cate = const.ITEM_D_DEPT.get(r[1].lower())
     g_depts[r[0]] = (r[1], cate)
+    
+g_item_depts = {}
+cur_pos.execute('select itemsid,deptsid from inventory where datastate=0')
+for r in cur_pos.fetchall():
+    g_item_depts[ r[0] ] = g_depts.get(r[1])
     
 g_receipts = {}
 cur_pos.execute("select sid,ReceiptRefSID,ReceiptNum,ReceiptType,ReceiptStatus,Clerk,TenderType,QBFSStatus,DiscAmount,SubTotal,ReceiptDate"
@@ -182,6 +187,7 @@ for num,r in g_receipts.items():
             p[2] += price
 
 
+cPickle.dump( g_receipts, open(datafile_a, 'wb'), 1 )
 cPickle.dump( (g_clerks, g_errs), open(datafile, 'wb'), 1 )
 print "done"
 

@@ -17,6 +17,8 @@ function apply(dont_load)
     g_v_main_xtbl.empty();
     
     var v_cbs = $('.filter_month input:checked');
+    if(!v_cbs.length) return;
+    
     var lst = [[], []];
     for(var i = 0; i < v_cbs.length; i++) {
         var v = $(v_cbs[i]).val();
@@ -29,7 +31,7 @@ function apply(dont_load)
     if (lst[1].length > 0) {
         if(!dont_load) {
             get_js('?fn=get_comm', {'months': lst[1].join('|')}, function(js) {
-                for(var k in js) g_data[k] = js[k];
+                for(var k in js) g_data[k] = js[k][0];
                 apply(true);
             });
         }
@@ -37,21 +39,27 @@ function apply(dont_load)
         return;
     }
     
-    Array.push.apply(lst[0], lst[1]);
-    render(lst[0]);
+    Array.prototype.push.apply(lst[0], lst[1]);
+    var months = lst[0];
+    
+    var v_cbs = $('.filter_cate input:checked');
+    var cates = [];
+    for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
+    
+    render(months, cates);
 }
 
 function render(months, cates)
 {
-    var js = g_data;
-    var clerks = {};
+    var clerks_total = {};
     for(var m = 0; m < months.length; m++) {
-        var js = g_data[ months[m] ];
-        for(var cnz in js.clerks) {
-            var clerk = js.clerks[cnz];
-            var total = [0, 0, 0];
+        var clerks = g_data[ months[m] ];
+        for(var cnz in clerks) {
+            var total = clerks_total[cnz];
+            if(total === undefined) total = clerks_total[cnz] = [0, 0, 0];
+            var cates_total = clerks[cnz];
             for(var i = 0; i < cates.length; i++) {
-                cate_total = clerk[ cates[i] ];
+                cate_total = cates_total[ cates[i] || null ];
                 if(cate_total === undefined) continue;
                 total[0] += cate_total[0];
                 total[1] += cate_total[1];
@@ -61,37 +69,62 @@ function render(months, cates)
         
     }
     
-    {
+    var cnzs = [];
+    for(var cnz in clerks_total) cnzs.push(cnz);
+    cnzs.sort();
+    for(var i = 0; i < cnzs.length; i++) {
+        var cnz = cnzs[i];
+        var total = clerks_total[cnz];
         g_v_main_xtbl.append(
             $('<div class="xtbl_row"></div>')
-            .append( $('<div onclick="open_dlg_clerk('+i+');return false;"></div>').text(clerk[0]) )
+            .append( $('<div onclick="open_dlg_clerk(\''+cnz+'\');return false;"></div>').text(cnz) )
             .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
             .append( $('<div></div>').text(total[0].toFixed(2)) )
             .append( $('<div></div>').text(total[1].toFixed(2)) )
             .append( $('<div></div>').text(total[2].toFixed(2)) )
             .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
+            .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) )
         );
+        
     }
+    
+    
 }
 
-
-
-function open_dlg_clerk(i)
+function open_dlg_clerk(cnz)
 {
     g_v_clerk_xtbl_footer.empty();
     g_v_clerk_xtbl.empty();
-    if(!g_data) return;
-    var clerk = g_data.clerks[i];
-    if(!clerk) return;
     
-    var cate_id = parseInt(g_v_report_cate.val());
-    var depts = clerk[1];
-    var total_all = [0, 0, 0, 0, 0];
-    for(var j = 0; j < depts.length; j++) {
-        var dept = depts[j];
-        if(cate_id && dept[2][1] !== cate_id) continue;
+    var v_cbs = $('.filter_month input:checked');
+    if(!v_cbs.length) return;
+    var months = [];
+    for(var i = 0; i < v_cbs.length; i++) months.push( $(v_cbs[i]).val() );
+    
+    var v_cbs = $('.filter_cate input');
+    var cates = [];
+    for(var i = 0; i < v_cbs.length; i++) cates.push( [$(v_cbs[i]).val(), [0, 0, 0]] );
+    
+    for(var m = 0; m < months.length; m++) {
+        var cates_total = g_data[ months[m] ][cnz];
+        if(cates_total === undefined) continue;
         
-        var total = dept[1];
+        for(var i = 0; i < cates.length; i++) {
+            var s = cates[i];
+            cate_total = cates_total[ s[0] || null ];
+            if(cate_total === undefined) continue;
+            
+            var total = s[1];
+            total[0] += cate_total[0];
+            total[1] += cate_total[1];
+            total[2] += cate_total[2];
+        }
+    }
+    
+    var total_all = [0, 0, 0, 0, 0];
+    for(var i = 0; i < cates.length; i++) {
+        var s = cates[i];
+        var total = s[1];
         
         var r_total = total[0] + total[1];
         var r_pending = total[0];
@@ -107,7 +140,7 @@ function open_dlg_clerk(i)
         
         g_v_clerk_xtbl.append(
             $('<div class="xtbl_row"></div>')
-            .append( $('<div></div>').text(dept[2][0]) )
+            .append( $('<div></div>').text(s[0] || '*NotInList*') )
             .append( $('<div></div>').text(r_total.toFixed(2)) )
             .append( $('<div></div>').text(r_pending.toFixed(2)) )
             .append( $('<div></div>').text(r_recved.toFixed(2)))
@@ -123,7 +156,7 @@ function open_dlg_clerk(i)
     .append( $('<div></div>').text(total_all[3].toFixed(2)) )
     .append( $('<div></div>').text(total_all[4].toFixed(2)) )
     
-    g_v_dlg_clerk.dialog('option', 'title', clerk[0]).dialog('open');
+    g_v_dlg_clerk.dialog('option', 'title', cnz).dialog('open');
     
 }
 
@@ -143,9 +176,6 @@ g_v_dlg_clerk = $('#dlg_clerk').dialog({
 
 g_v_clerk_xtbl = $('.xtbl', g_v_dlg_clerk);
 g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
-
-
-
 
 
 g_v_filter_chg = false;
@@ -236,7 +266,7 @@ $('.filter').hover(null, function() {
 
 <div class="filter_cate">
 <div><span>Check All</span> / <span>Uncheck All</span></div>
-<div><input type="checkbox" value="NotInList" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
+<div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
 %for cate in const.ITEM_L_CATE:
 <div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
 %endfor
@@ -251,7 +281,7 @@ $('.filter').hover(null, function() {
 </div>
 
 <div class="main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>MonthlyBonus</div><div>GroupComm</div><div>IndividualComm</div><div>Total</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="NotRcved + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div title="1% of Estimated">*Commission*</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
