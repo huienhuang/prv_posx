@@ -11,11 +11,14 @@ PERM_BASE_ACCESS = 1 << config.USER_PERM_BIT['base access']
 TOOLS_MAP = (
 
 ('Admin', (
-    ('Commision', 'comm', PERM_ADMIN),
-    ('Commision*', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('User', 'user', PERM_ADMIN),
     ('Project', 'sys?fn=project', PERM_ADMIN),
     #('Mac', 'sys?fn=mac', PERM_ADMIN),
+)),
+
+('Report', (
+    ('Commision', 'comm', PERM_ADMIN),
+    ('Commision*', 'comm?fn=comm_by_dept', PERM_ADMIN),
 )),
 
 ('Management', (

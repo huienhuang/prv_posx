@@ -28,7 +28,7 @@ els.month[0].change(function() {
                           .append( $('<div></div>').text(js.total) )
                           .append( $('<div></div>').text(js.pickup) )
                           .append( $('<div></div>').text(js.line) )
-                          .append( $('<div></div>').text(js.qty) )
+                          .append( $('<div></div>').text(js.qty.toFixed(0)) )
         );
         
     }, 'json');
