@@ -107,6 +107,13 @@ margin:60px 50px;
 }
 
 
+.tiny_popup {position:relative;display:inline-block;z-index:99;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {}
+.tiny_popup:hover >div:nth-child(2) {display:block;background-color:#ddd;width:200px;text-align:center}
+
+
 </style>
 
 </head>
@@ -148,9 +155,19 @@ if (r_status >> 16) & 0xFF: status += ' - **Deleted**'
 <div title="PriceLevel: ${price_lvls[r_price_level]|h}">${r_sonum|h}
 %if r_ref_receipts:
 (
-%for i in r_ref_receipts:
+%for i in r_ref_receipts[:2]:
 <span onclick="return open_wnd_receipt('${i["sid"]}')" style="cursor:pointer">#${i['num']}</span>
 %endfor
+%if len(r_ref_receipts) > 2:
+<div class="tiny_popup">
+<div>More..</div>
+<div>
+%for i in r_ref_receipts[2:]:
+    <div onclick="return open_wnd_receipt('${i["sid"]}')" style="cursor:pointer">#${i['num']}</div>
+%endfor
+</div>
+</div>
+%endif
 )
 %endif
 </div>
