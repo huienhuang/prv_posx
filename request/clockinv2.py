@@ -159,7 +159,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         return ts
     
     def get_users_stat(self, frm_ts, to_ts):
-        fw_ts = int(time.mktime(datetime.date(*WEEK_START_DAY).timetuple()))
+        fw_date = datetime.date(*WEEK_START_DAY)
         users_lku = dict([(u[0], u[1]) for u in self.getuserlist()])
         users = self.get_user_hist_stat(frm_ts, to_ts)
 
@@ -174,7 +174,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 total[0] += total_secs
                 total[1] += normal_secs
                 total[3] += overtime_secs
-                if day >= fw_ts: week_overtime.setdefault(int((day - fw_ts)/WEEK_SECS), [0])[0] += normal_secs
+                
+                tp = time.localtime(day)
+                day_date = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
+                week_overtime.setdefault( int((day_date - fw_date).days / 7), [0])[0] += normal_secs
             
             wot_lst = []
             for widx,secs in sorted(week_overtime.items(), key=lambda f_t:f_t[0]):
@@ -359,7 +362,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     
     
     def get_user_report(self, user_id, frm_ts, to_ts):
-        fw_ts = int(time.mktime(datetime.date(*WEEK_START_DAY).timetuple()))
+        fw_date = datetime.date(*WEEK_START_DAY)
         days = self.get_user_hist_stat(frm_ts, to_ts, user_id).get(user_id, {})
         
         data = []
@@ -372,7 +375,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             total[0] += total_secs
             total[1] += normal_secs
             total[3] += overtime_secs
-            if ts_day >= fw_ts: week_overtime.setdefault(int((ts_day - fw_ts)/WEEK_SECS), [0])[0] += normal_secs
+            
+            tp = time.localtime(ts_day)
+            day_date = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
+            week_overtime.setdefault( int((day_date - fw_date).days / 7), [0])[0] += normal_secs
             
             s_hists = []
             for hist in hists:
