@@ -6,6 +6,7 @@ import datetime
 import random
 import cStringIO
 import csv
+import math
 
 HIST_FLAG_TYPE = 1 << 0
 HIST_FLAG_STATUS = 1 << 1
@@ -177,7 +178,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
                 tp = time.localtime(day)
                 day_date = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
-                week_overtime.setdefault( int((day_date - fw_date).days / 7), [0])[0] += normal_secs
+                week_overtime.setdefault( int(math.floor((day_date - fw_date).days / 7)), [0])[0] += normal_secs
             
             wot_lst = []
             for widx,secs in sorted(week_overtime.items(), key=lambda f_t:f_t[0]):
@@ -378,7 +379,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             tp = time.localtime(ts_day)
             day_date = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
-            week_overtime.setdefault( int((day_date - fw_date).days / 7), [0])[0] += normal_secs
+            week_overtime.setdefault( int(math.floor((day_date - fw_date).days / 7)), [0])[0] += normal_secs
             
             s_hists = []
             for hist in hists:
