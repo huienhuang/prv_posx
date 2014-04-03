@@ -57,7 +57,7 @@ TOOLS_MAP = (
 
 
 DEFAULT_PERM = PERM_BASE_ACCESS | PERM_NORMAL_ACCESS
-class RequestHandler(App.load('/basehandler').RequestHandler):
+class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         tools_map_f = []
@@ -89,4 +89,28 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_set_password(self):
         self.req.writefile('set_password.html')
+    
+    
+    def fn_load_dashboard(self):
+        charts = []
+        if self.user_lvl & (1 << config.USER_PERM_BIT['sales']):
+            cr = self.get_customer_report()
+            if cr:
+                dps = []
+                for k,v in cr['active_counts']: dps.append( {'x': k * 1000, 'y': v} );
+                
+                charts = [
+                    {
+                        'name': 'chart_active_customer_count',
+                        'config': {
+                            'zoomEnabled': True,
+                            'theme': "theme2",
+                            'title': {'text': "Active Customers"},
+                            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50},
+                            'data': [ {'type': "line", 'xValueType': "dateTime", 'dataPoints': dps} ]
+                        }    
+                    },
+                ]
         
+        self.req.writejs( {'charts': charts} )
+     

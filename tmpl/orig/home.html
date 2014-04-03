@@ -3,6 +3,7 @@
 <head>
 <script>posx_enable_chk_login = true;</script>
 <%include file="header_inc_v3.html" />
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
 <title>POSX - Home</title>
 <link rel="icon" type="image/png" sizes="72x72" href="img/main.png">
 
@@ -62,8 +63,8 @@
 .blk_warehouse > div {background-color:#1f497d}
 .blk_warehouse li {background-color:#8eb4e3}
 
-.m_body {position:absolute;min-height:500px;padding-right:305px;bottom:0;top:51px;margin-top:0;left:0;right:0}
-.m_body >div:nth-child(2) {position:absolute;top:0;width:300px;right:0;bottom:0;background-color:#f5ffeb}
+.m_body {position:absolute;min-height:500px;bottom:0;top:51px;margin-top:0;left:0;right:0}
+.m_body >div:nth-child(2) {position:absolute;top:0;width:400px;right:0;bottom:0;background-color:#f5ffeb;display:none}
 .blk_dashboard >div:first-child {background-color:#9bbb59}
 
 </style>
@@ -71,6 +72,18 @@
 <script>
 var g_price_level = 0;
 
+
+function render_charts(charts)
+{
+    var ds = $('.dashboard_cnt');
+    
+    for(var i = 0; i < charts.length; i++) {
+        var chart = charts[i];
+        ds.append( $('<div style="height:300px" id="'+chart.name+'"></div>') );
+        new CanvasJS.Chart(chart.name, chart.config).render();
+    }
+    
+}
 
 function itemsearch_render_item(ul, item)
 {
@@ -233,6 +246,14 @@ g_v_ac_cust_search.data("ui-autocomplete")._renderItem = custsearch_render_item;
 
 $('.sys_menu').tinymenu();
 
+get_js('?fn=load_dashboard', {}, function(js) {
+    if(js.charts && js.charts.length) {
+        $('.m_body').css('padding-right', '405px').children('div:nth-child(2)').show();
+        render_charts(js.charts);
+    }
+    
+});
+
 
 });
 
@@ -278,7 +299,7 @@ $('.sys_menu').tinymenu();
 
 <div class="pxm_blk blk_dashboard">
 <div>DashBoard</div>
-<div></div>
+<div class="dashboard_cnt"></div>
 </div>
 
 </div>
