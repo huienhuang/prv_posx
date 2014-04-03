@@ -17,23 +17,28 @@ TOOLS_MAP = (
 )),
 
 ('Report', (
-    ('Commision', 'comm', PERM_ADMIN),
-    ('Commision*', 'comm?fn=comm_by_dept', PERM_ADMIN),
-)),
-
-('Management', (
-    ('ItemSale', 'reportitem', PERM_ADMIN),
+#    ('Commision', 'comm', PERM_ADMIN),
+    ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
+    ('Item Sale', 'reportitem', PERM_ADMIN),
 )),
 
 ('HR', (
-    ('TimeMGR', 'clockinv2?fn=mgr', PERM_TIME),
+    ('Time MGR', 'clockinv2?fn=mgr', PERM_TIME),
+    ('PayRoll', '', PERM_TIME),
+    ('PDT Tracking', '', PERM_TIME),
+    ('Employee File', '', PERM_TIME),
+    ('HR Metrics', '', PERM_TIME),
 )),
 
 ('Accounting', (
 )),
 
 ('Purchasing', (
-    ('ItemSold', 'itemsold', PERM_ITEM_STAT_ACCESS),
+    ('Item Sold', 'itemsold', PERM_ITEM_STAT_ACCESS),
+    ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
+    ('Out Of Stock', '', PERM_NORMAL_ACCESS),
+    ('Cycle Count', '', PERM_NORMAL_ACCESS),
+    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
 )),
 
 ('Sales', (
@@ -42,8 +47,9 @@ TOOLS_MAP = (
 )),
 
 ('Warehouse', (
-    ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
     ('Delivery', 'delivery', PERM_NORMAL_ACCESS),
+    ('Pallet Map', '', PERM_NORMAL_ACCESS),
+    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
 )),
 
 )
