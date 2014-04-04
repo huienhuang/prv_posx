@@ -66,6 +66,15 @@ def parse_receipt(r):
     rc = sur_pos.fetchall()
     acct_amt = rc and float(rc[0][0]) or 0.0
     
+    sur_pos.execute('select count(*) from FinancialDetail where POS_SID = ?', (r['sid'],))
+    rc = sur_pos.fetchall()
+    is_transfered = rc and int(rc[0][0]) or 0
+    
+    if r['receiptstatus'] > 0 and not is_transfered:
+        is_local_reversed = True
+    else:
+        is_local_reversed = False
+    
     r['discamount'] = float(r['discamount'])
     r['subtotal'] = float(r['subtotal'])
     
@@ -94,7 +103,7 @@ def parse_receipt(r):
         
         items.append( (itemsid, clerk.lower(), price, qty, cate) )
     
-    r['is_invoice'] = bool(round(total_price_tax, 2) > 0 and acct_amt)
+    r['is_invoice'] = bool(not is_local_reversed and round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
 
 g_depts = {}
