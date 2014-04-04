@@ -30,12 +30,13 @@ $('.m_ctrl > input[value="print"]').click(function() { window.print(); });
 .vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#f5f5f5}
 .vtable > div:nth-child(1) > div > div:nth-child(1) {left:0;width:40px;}
 .vtable > div:nth-child(1) > div > div:nth-child(2) {left:41px;width:69px;font-weight:bold}
-.vtable > div:nth-child(1) > div > div:nth-child(3) {left:111px;right:603px;}
-.vtable > div:nth-child(1) > div > div:nth-child(4) {right:513px;width:89px;}
-.vtable > div:nth-child(1) > div > div:nth-child(5) {right:452px;width:60px;}
-.vtable > div:nth-child(1) > div > div:nth-child(6) {right:401px;width:50px;}
-.vtable > div:nth-child(1) > div > div:nth-child(7) {right:201px;width:199px;}
-.vtable > div:nth-child(1) > div > div:nth-child(8) {right:0px;width:201px;border-right:none}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:111px;right:619px;}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:529px;width:89px;}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:483px;width:45px;}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:422px;width:60px;}
+.vtable > div:nth-child(1) > div > div:nth-child(7) {right:376px;width:45px;}
+.vtable > div:nth-child(1) > div > div:nth-child(8) {right:185px;width:190px;}
+.vtable > div:nth-child(1) > div > div:nth-child(9) {right:0px;width:185px;border-right:none}
 
 .d_tbl {width:952px;margin:0 auto 20px auto;}
 .d_tbl > .d_hdr {height:30px;line-height:30px;font-weight:bold;margin-bottom:3px;}
@@ -88,7 +89,7 @@ d_recs,d_stat = drv_data
 </div>
 <div class="vtable">
 <div>
-<div><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>应结帐</div><div>已送</div><div>款项回收</div><div>办公室专用</div></div>
+<div><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>数量</div><div>应结帐</div><div>已送</div><div>款项回收</div><div>办公室专用</div></div>
 <%
 k = 0
 %>
@@ -100,9 +101,9 @@ k += 1
 <div>${k}</div>
 <div>${rec['type'] and '收款'.decode('utf8') or rec.get('num') or ''}</div>
 %if rec:
-<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${rec.get('payment_required') and '要收钱'.decode('utf8') or ''|h}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div></div><div></div>
+<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('payment_required') and '要收钱'.decode('utf8') or ''|h}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div></div><div></div>
 %else:
-<div></div><div></div><div></div><div></div><div></div><div></div>
+<div></div><div></div><div></div><div></div><div></div><div></div><div></div>
 %endif
 </div>
 %endfor
