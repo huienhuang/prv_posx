@@ -103,7 +103,7 @@ def parse_receipt(r):
         
         items.append( (itemsid, clerk.lower(), price, qty, cate) )
     
-    r['is_invoice'] = bool(not is_local_reversed and round(total_price_tax, 2) > 0 and acct_amt)
+    r['is_invoice'] = bool(round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
 
 g_depts = {}
