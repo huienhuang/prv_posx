@@ -121,7 +121,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         rpg = {}
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select sso.sid,sso.status,sso.sonum,sso.clerk,sso.sodate,sso.global_js,so.delivery_date from sync_salesorders sso left join salesorder so on (sso.sid=so.sid) where sso.cust_sid=%d%s order by sso.sid desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS sso.sid,sso.status,sso.sonum,sso.clerk,sso.sodate,sso.global_js,so.delivery_date from sync_salesorders sso left join salesorder so on (sso.sid=so.sid) where sso.cust_sid=%d%s order by sso.sid desc limit %d,%d' % (
                 cid, ord_flag == 0 and ' and sso.status=0' or '',
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
@@ -154,11 +154,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     if k == pgsz:
                         sidx += 1
                         k = 0
-        
-        cur.execute('select count(*) from sync_salesorders where cust_sid=%d%s' % (
-            cid, ord_flag == 0 and ' and status=0' or '',
+                        
+            cur.execute('select FOUND_ROWS()')
+        else:
+            cur.execute('select count(*) from sync_salesorders where cust_sid=%d%s' % (
+                cid, ord_flag == 0 and ' and status=0' or '',
+                )
             )
-        )
         rlen = int(cur.fetchall()[0][0])
         
         self.req.writejs( {'res':{'len':rlen, 'rpg':rpg}} )
@@ -185,7 +187,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         rpg = {}
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select i.*,s.'+cls[0]+'num,s.clerk,s.'+cls[0]+'date,s.'+cls[2]+'_sid from sync_link_item i left join sync_'+cls[1]+' s on (s.sid=i.doc_sid) where i.item_sid=%d and i.doc_type=%d%s order by i.doc_sid desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS i.*,s.'+cls[0]+'num,s.clerk,s.'+cls[0]+'date,s.'+cls[2]+'_sid from sync_link_item i left join sync_'+cls[1]+' s on (s.sid=i.doc_sid) where i.item_sid=%d and i.doc_type=%d%s order by i.doc_sid desc limit %d,%d' % (
                 rid, ord_type, ord_flag == 0 and ' and i.flag=0' or '',
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
@@ -207,10 +209,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         sidx += 1
                         k = 0
         
-        cur.execute('select count(*) from sync_link_item where item_sid=%d and doc_type=%d%s' % (
-            rid, ord_type, ord_flag == 0 and ' and flag=0' or '',
+            cur.execute('select FOUND_ROWS()')
+        else:
+            cur.execute('select count(*) from sync_link_item where item_sid=%d and doc_type=%d%s' % (
+                rid, ord_type, ord_flag == 0 and ' and flag=0' or '',
+                )
             )
-        )
         rlen = int(cur.fetchall()[0][0])
         
         self.req.writejs( {'res':{'len':rlen, 'rpg':rpg}} )
