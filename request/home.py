@@ -25,8 +25,8 @@ TOOLS_MAP = (
 
 ('HR', (
     ('Time MGR', 'clockinv2?fn=mgr', PERM_TIME),
-    ('PayRoll', '', PERM_TIME),
-    ('PDT Tracking', '', PERM_TIME),
+    ('Payroll', '', PERM_TIME),
+    ('PTO Tracking', '', PERM_TIME),
     ('Employee File', '', PERM_TIME),
     ('HR Metrics', '', PERM_TIME),
 )),
@@ -44,7 +44,7 @@ TOOLS_MAP = (
 
 ('Sales', (
     ('History', 'hist', PERM_NORMAL_ACCESS),
-    ('Error', 'fixup', PERM_NORMAL_ACCESS),
+    ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
 )),
 
 ('Warehouse', (

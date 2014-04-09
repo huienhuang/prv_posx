@@ -33,17 +33,21 @@ for r in cur.fetchall():
     dt = datetime.date(*map(int, r['transaction_date'].split('/')))
     if cur_dt.year == d[0] and cur_dt.month == d[1]: continue
     
-    if r['is_paid_bool'] and pm_date:
-        days = (datetime.date(*map(int, pm_date.split('/'))) - dt).days
-    else:
-        days = (cur_dt - dt).days
-    
-    g_invs[ r['transaction_id'] ] = (r['doc_num'], r['is_paid_bool'], dt.year * 10000 + dt.month * 100 + dt.day, days)
-    s = g_dues.setdefault(dt.year * 100 + dt.month, [0, 0, 0, 0, 0])
+    s = g_dues.setdefault(time.mktime(datetime.date(dt.year, dt.month, 1).timetuple()), [0, 0, 0, 0, 0])
     s[-1] += 1
-    s[ min(max(int(days / 30), 0), 3) ] += 1
+    
+    days = 0
+    if r['is_paid_bool']:
+        days = pm_date and (datetime.date(*map(int, pm_date.split('/'))) - dt).days or 0
+        s[ min(max(int(days / 30), 0), 3) ] += 1
+    
+    g_invs[ r['transaction_id'] ] = (r['doc_num'], r['is_paid_bool'], time.mktime(dt.timetuple()), days)
+
+
+dues = g_dues.items()
+dues.sort(key=lambda f_x:f_x[0])
 
 cPickle.dump({'invs': g_invs}, open(os.path.join(config.DATA_DIR, 'qb_ar_invs.txt'), "wb"), 1)
-cPickle.dump({'dues': g_dues}, open(os.path.join(config.DATA_DIR, 'qb_ar_dues.txt'), "wb"), 1)
+cPickle.dump({'dues': dues}, open(os.path.join(config.DATA_DIR, 'qb_ar_dues.txt'), "wb"), 1)
 
 

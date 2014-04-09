@@ -33,7 +33,7 @@ for r in cur:
     total_price *= disc
 
     tp = time.localtime(r['order_date'])
-    dt = tp.tm_year * 100 + tp.tm_mon
+    dt = time.mktime(datetime.date(tp.tm_year, tp.tm_mon, 1).timetuple())
     s = g_s.setdefault(dt, [0, 0, 0])
     if rtype > 0:
         s[0] -= 1
@@ -64,7 +64,7 @@ for r in cur:
     total_price *= disc
 
     tp = time.localtime(r['ord_order_date'])
-    dt = tp.tm_year * 100 + tp.tm_mon
+    dt = time.mktime(datetime.date(tp.tm_year, tp.tm_mon, 1).timetuple())
     s = g_s.setdefault(dt, [0, 0, 0])
     if rtype > 0:
         s[0] -= 1
@@ -76,6 +76,8 @@ for r in cur:
         s[2] += total_cost
 
 
-cPickle.dump({'summary': g_s}, open(os.path.join(config.DATA_DIR, 'receipt_report.txt'), "wb"), 1)
+s = g_s.items()
+s.sort(key=lambda f_x:f_x[0])
+cPickle.dump({'summary': s}, open(os.path.join(config.DATA_DIR, 'receipt_report.txt'), "wb"), 1)
 
 

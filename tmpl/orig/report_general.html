@@ -4,8 +4,7 @@
 <script>posx_enable_chk_login = true;</script>
 <%include file="header_inc_v3.html" />
 <script type="text/javascript" src="js/canvasjs.min.js"></script>
-<title>POSX - Home</title>
-<link rel="icon" type="image/png" sizes="72x72" href="img/main.png">
+<title>POSX - General Report</title>
 
 <style type="text/css">
 .m_ctrl {min-width:900px}
@@ -15,9 +14,34 @@
 
 <script>
 
+function render_chart(js)
+{
+    new CanvasJS.Chart('m_body', js.config).render();
+}
+
+function load_report()
+{
+    $('#m_body').empty();
+    
+    var els = g_v_x_ctrl.data('in_els');
+    var idx = els.report[0].val();
+    if(!idx) return;
+    
+    get_js('?fn=get_report', {'idx': idx}, function(js) {
+        if(js.type=="chart") render_chart(js);
+        
+    });
+}
+
 $(function() {
 
+g_v_x_ctrl = $('.x_ctrl');
+idx_elements(g_v_x_ctrl, 5);
 
+$('.btn', g_v_x_ctrl).button();
+
+var els = g_v_x_ctrl.data('in_els');
+els.report[0].change(load_report);
 
 });
 
@@ -25,6 +49,21 @@ $(function() {
 
 </head>
 <body>
+
+<div class="x_ctrl">
+
+<select style="width:300px" name="ctrl_report">
+<option value="">-- Select Report Type --</option>
+%for r in reports:
+<option value="${r[0]}">${r[1]|h}</option>
+%endfor
+</select>
+<input style="margin-left:20px" type="button" value="export" class="btn" name="ctrl_export" />
+<input style="margin-left:20px" type="button" value="quit" class="btn" name="ctrl_quit" />
+
+</div>
+<div class="x_body" id="m_body">
+</div>
 
 </body>
 </html>

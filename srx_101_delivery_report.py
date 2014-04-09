@@ -3,6 +3,8 @@ import db as mydb
 import datetime
 import time
 import json
+import cPickle
+import os
 
 mdb = mydb.db_mdb()
 cur = mdb.cursor()
@@ -13,7 +15,7 @@ g_d_records = {}
 cur.execute("select d_id,ts from deliveryv2")
 for r in cur.fetchall():
     dt = time.localtime(r[1])
-    g_d_records[ r[0] ] = (dt.tm_year * 100 + dt.tm_mon, r[1])
+    g_d_records[ r[0] ] = ( time.mktime(datetime.date(dt.tm_year, dt.tm_mon, 1).timetuple()), r[1] )
 
 g_d_mons = {}
 g_d_receipts = {}
@@ -97,11 +99,15 @@ for r in cur.fetchall():
             stat[2] += out_ts_mon - in_ts_mon
             
         in_ts = out_ts_mon
+        
 
-for uid,mons_ts in g_users.items():
-    print uid, mons_ts
+for k, v in g_d_mons.items():
+    print k, len(v['nums']), v['perfect']
 
-for mon,m_data in g_d_mons.items():
-    print mon, len(m_data['nums']), m_data['completed'], m_data['perfect'], m_data['lines'], m_data['qtys']
+
+mons = g_d_mons.items()
+mons.sort(key=lambda f_x:f_x[0])
+cPickle.dump({'mons': mons}, open(os.path.join(config.DATA_DIR, 'delivery_report.txt'), 'wb'), 1)
+
 
 
