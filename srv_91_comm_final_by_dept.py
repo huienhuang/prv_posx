@@ -128,13 +128,13 @@ for r in cur_pos.rows():
     parse_receipt(r)
     r['included'] = True
     
-    if not r['qbfsstatus']: print_err('receipt(%d) not transfered yet!', rnum)
+    if not r['qbfsstatus']: print_err('unreliable, receipt(%d) not transfered yet!', rnum)
     g_receipts[ r['receiptnum'] ] = r
 
 g_qb_invoices = []
 regx_posnum = re.compile('pos receipt #([0-9]+)', re.S|re.I|re.M)
 cur_qb.execute("select h.transaction_id,l.memo,h.transaction_date,h.doc_num from abmc_invoice_header h left join abmc_invoice_lineitem l on(h.transaction_id=l.transaction_id and h.target_id=l.target_id) where h.is_paid_bool = 1 and h.transaction_id in"
-               + " (select transaction_id from abmc_transaction_link where link_type in (3,4) and is_t1_source_bool = 0 group by transaction_id having max(transaction_date) >= ? and max(transaction_date) < ?)",
+               + " (select transaction_id from abmc_transaction_link where link_type in (3,4,5,22) and is_t1_source_bool = 0 group by transaction_id having max(transaction_date) >= ? and max(transaction_date) < ?)",
                (g_from_date, g_to_date)
                )
 for r in cur_qb.rows():

@@ -7,6 +7,29 @@ import time
 import datetime
 
 
+cur_dir = os.path.dirname( os.path.join(os.getcwd(), __file__) )
+
+sa_path = r"C:\Program Files\SQL Anywhere 12\Bin32\dbsrv12.exe"
+taskkill_path = r"C:\WINDOWS\system32\taskkill.exe"
+cmd_path = r"C:\WINDOWS\system32\cmd.exe"
+qb_restore_path = r"C:\Program Files (x86)\Intuit\QuickBooks 2009\backup_restore.exe"
+zip_path = r"C:\Program Files\7-Zip\7z.exe"
+pyi_path = r"C:\Python27\python.exe"
+
+db_start_cmd= '"%s" -sb 0 -xd -x tcpip(ServerPort=%d;LO=YES) -os 1024K -o "%s" -n %s "%s"'
+db_kill_cmd = '"%s" /F /IM "%s"'
+db_rmdir_cmd = '"%s" /C "rmdir /S /Q "%s""'
+qb_restore_cmd = '"%s" "%s" "%s"'
+pos_unzip_cmd = '"%s" x "%s" -o"%s" -p"QBPOS" -y'
+
+
+print "running services...."
+for srv in sorted(glob.glob(os.path.join(cur_dir, 'srx_*.py'))):
+    print srv
+    os.spawnv(os.P_WAIT, cmd_path, ('"%s" /C ""%s" "%s" >"%s" 2>&1"' % (cmd_path, pyi_path, srv, os.path.join(cur_dir, 'log', os.path.basename(srv)+'.txt')), ) )
+print ">Done<"
+
+
 def qb_sort_key(n):
     ts = 0
     try:
@@ -29,7 +52,6 @@ def pos_sort_key(n):
     return ts
 
 
-cur_dir = os.path.dirname( os.path.join(os.getcwd(), __file__) )
 db_dst_dir = os.path.join(cur_dir, 'prv', 'db')
 db_src_dir = os.path.join(cur_dir, 'shr')
 db_qb_src_file = os.path.join(db_src_dir, '*.QBB')
@@ -89,18 +111,6 @@ if r and int(r[0][0]) >= db_pos_src_ts:
     print "pos: up to date"
     sys.exit()
 
-sa_path = r"C:\Program Files\SQL Anywhere 12\Bin32\dbsrv12.exe"
-taskkill_path = r"C:\WINDOWS\system32\taskkill.exe"
-cmd_path = r"C:\WINDOWS\system32\cmd.exe"
-qb_restore_path = r"C:\Program Files (x86)\Intuit\QuickBooks 2009\backup_restore.exe"
-zip_path = r"C:\Program Files\7-Zip\7z.exe"
-
-db_start_cmd= '"%s" -sb 0 -xd -x tcpip(ServerPort=%d;LO=YES) -os 1024K -o "%s" -n %s "%s"'
-db_kill_cmd = '"%s" /F /IM "%s"'
-db_rmdir_cmd = '"%s" /C "rmdir /S /Q "%s""'
-qb_restore_cmd = '"%s" "%s" "%s"'
-pos_unzip_cmd = '"%s" x "%s" -o"%s" -p"QBPOS" -y'
-
 print ">killing database server ..."
 os.spawnv(os.P_WAIT, taskkill_path, (db_kill_cmd % (taskkill_path, os.path.basename(sa_path)), ) )
 print ">done"
@@ -151,11 +161,9 @@ db.close()
 print ">>>>>Done .. sleep(60sec)"
 time.sleep(60)
 
-print "running services...."
-pyi = r"C:\Python27\python.exe"
-cmd = cmd_path
+print "running QBDEP services...."
 for srv in sorted(glob.glob(os.path.join(cur_dir, 'srv_*.py'))):
     print srv
-    os.spawnv(os.P_WAIT, cmd, ('"%s" /C ""%s" "%s" >"%s" 2>&1"' % (cmd, pyi, srv, os.path.join(cur_dir, 'log', os.path.basename(srv)+'.txt')), ) )
+    os.spawnv(os.P_WAIT, cmd_path, ('"%s" /C ""%s" "%s" >"%s" 2>&1"' % (cmd_path, pyi_path, srv, os.path.join(cur_dir, 'log', os.path.basename(srv)+'.txt')), ) )
 print ">Done<"
 

@@ -20,6 +20,7 @@ TOOLS_MAP = (
 #    ('Commision', 'comm', PERM_ADMIN),
     ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('Item Sale', 'reportitem', PERM_ADMIN),
+    ('General Report', 'reportgeneral', PERM_ADMIN),
 )),
 
 ('HR', (
@@ -111,6 +112,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                         }    
                     },
                 ]
+        
         
         self.req.writejs( {'charts': charts} )
      
