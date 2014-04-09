@@ -6,6 +6,7 @@
 
 <script type="text/javascript">
 g_data = {};
+g_sales = {'anthony':1, 'ray': 1, 'hilda': 1};
 
 function evt_apply()
 {
@@ -15,6 +16,7 @@ function evt_apply()
 function apply(dont_load)
 {
     g_v_main_xtbl.empty();
+    g_v_main_xtbl_footer.empty();
     
     var v_cbs = $('.filter_month input:checked');
     if(!v_cbs.length) return;
@@ -46,15 +48,19 @@ function apply(dont_load)
     var cates = [];
     for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
     
-    render(months, cates);
+    var sales_only = parseInt(g_v_ctrl_clerk.val()) || 0;
+    
+    render(months, cates, sales_only);
 }
 
-function render(months, cates)
+function render(months, cates, sales_only)
 {
     var clerks_total = {};
     for(var m = 0; m < months.length; m++) {
         var clerks = g_data[ months[m] ];
         for(var cnz in clerks) {
+            if(sales_only && !g_sales[cnz]) continue;
+            
             var total = clerks_total[cnz];
             if(total === undefined) total = clerks_total[cnz] = [0, 0, 0];
             var cates_total = clerks[cnz];
@@ -69,12 +75,18 @@ function render(months, cates)
         
     }
     
+    overall_total = [0, 0, 0];
     var cnzs = [];
     for(var cnz in clerks_total) cnzs.push(cnz);
     cnzs.sort();
     for(var i = 0; i < cnzs.length; i++) {
         var cnz = cnzs[i];
         var total = clerks_total[cnz];
+        
+        overall_total[0] += total[0];
+        overall_total[1] += total[1];
+        overall_total[2] += total[2];
+        
         g_v_main_xtbl.append(
             $('<div class="xtbl_row"></div>')
             .append( $('<div onclick="open_dlg_clerk(\''+cnz+'\');return false;"></div>').text(cnz) )
@@ -88,7 +100,16 @@ function render(months, cates)
         
     }
     
-    
+    var total = overall_total;
+    g_v_main_xtbl_footer
+    .append( $('<div></div>') )
+    .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
+    .append( $('<div></div>').text(total[0].toFixed(2)) )
+    .append( $('<div></div>').text(total[1].toFixed(2)) )
+    .append( $('<div></div>').text(total[2].toFixed(2)) )
+    .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
+    .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) );
+
 }
 
 function open_dlg_clerk(cnz)
@@ -166,7 +187,10 @@ $('.btn').button();
 $('.tp_ctrl > input[value="quit"]').click(go_home);
 $('.xtbl_header').tooltip();
 
+g_v_tp_ctrl = $('.tp_ctrl');
+g_v_ctrl_clerk = $('select[name="ctrl_clerk"]', g_v_tp_ctrl).change(evt_apply);
 g_v_main_xtbl = $('.main_tbl .xtbl');
+g_v_main_xtbl_footer = $('.main_tbl .xtbl_footer .xtbl_row');
 
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
     autoOpen: false,
@@ -275,6 +299,7 @@ $('.filter').hover(null, function() {
 </div>
 </div>
 
+<select name="ctrl_clerk" style="width:130px"><option value="0">All Clerks</option><option value="1">Sales Only</option></select>
 <input style="margin-left:10px" type="button" value="export" class="btn" />
 <input style="margin-left:10px" type="button" value="quit" class="btn" />
 
