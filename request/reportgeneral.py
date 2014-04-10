@@ -45,7 +45,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not js: return
         
         dps = []
-        for k,v in js['summary']: dps.append( {'x': k * 1000, 'y': round(v[1] / float(v[0] or 1), 2), 'count': v[0]} );
+        for k,v in js['summary']:
+            if not v[0]: continue
+            dps.append( {'x': k * 1000, 'y': round(v[1] / float(v[0]), 2), 'count': v[0]} );
         
         chart_config = {
             'zoomEnabled': True,
@@ -83,7 +85,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dps_2 = []
         dps_3 = []
         for k,v in js['dues']:
-            b = float(v[-1] or 1)
+            if not v[-1]: continue
+            b = float(v[-1])
             dps_0.append({'x': k * 1000, 'y': round(v[0] / b, 2)})
             dps_1.append({'x': k * 1000, 'y': round(v[1] / b, 2)})
             dps_2.append({'x': k * 1000, 'y': round(v[2] / b, 2)})
@@ -108,6 +111,30 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def report_customer_retention_rate(self):
         js = self.get_data_file_cached('customer_report', 'customer_report.txt')
         if not js: return
+        
+        dps_0 = []
+        dps_1 = []
+        for k,v in js['retention_rate']:
+            if not v[0]: continue
+            b = float(v[0])
+            r = round(v[1] / b, 2)
+            if r >= 10: continue
+            dps_0.append({'x': k * 1000, 'y': r})
+            dps_1.append({'x': k * 1000, 'y': round(v[2] / b, 2)})
+        
+        chart_config = {
+            'zoomEnabled': True,
+            'theme': "theme2",
+            'title': {'text': "Customer Retention Rate"},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50},
+            'data': [
+                {'showInLegend': True, 'type': "line", 'xValueType': "dateTime", 'name': 'New+Old', 'dataPoints': dps_0},
+                {'showInLegend': True, 'type': "line", 'xValueType': "dateTime", 'name': 'Old Only', 'dataPoints': dps_1},
+            ]
+        }
+        
+        self.req.writejs({'type':'chart', 'config': chart_config})
+        
         
     def report_delivery_perfect_order(self):
         js = self.get_data_file_cached('delivery_report', 'delivery_report.txt')
