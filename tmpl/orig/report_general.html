@@ -25,7 +25,7 @@ function render_dashboard(js)
 {
     for(var i = 0; i < js.length; i++) {
         var j = js[i];
-        if(j.type=="chart") {
+        if(j && j.type == "chart") {
             $('#m_body').append('<div id="m_ds_' + i + '" class="ds_chart"></div>');
             new CanvasJS.Chart('m_ds_' + i, j.config).render();
         }
@@ -61,6 +61,19 @@ idx_elements(g_v_x_ctrl, 5);
 $('.btn', g_v_x_ctrl).button();
 
 var els = g_v_x_ctrl.data('in_els');
+
+els.export[0].click(function() {
+    var els = g_v_x_ctrl.data('in_els');
+    var frm_date = els.frm_date[0].val();
+    var to_date = els.to_date[0].val();
+    if(!frm_date || !to_date) return;
+    
+    var v_form = $('#form_dl');
+    v_form.find('input[name="js"]').val( JSON.stringify({'frm_date':frm_date, 'to_date':to_date}) );
+    v_form.submit();
+    
+});
+
 els.quit[0].click(go_home);
 els.frm_date[0].change(load_report);
 els.to_date[0].change(load_report);
@@ -89,6 +102,12 @@ els.report[0].change(load_report).change();
 </div>
 <div class="x_body" id="m_body">
 </div>
+
+
+
+<form id="form_dl" target="form_dl_target_frame" action="?fn=export_reports" method="post" style="display:none"><input type="hidden" name="js" /></form>
+<iframe name="form_dl_target_frame" style="display:none"></iframe>
+
 
 </body>
 </html>
