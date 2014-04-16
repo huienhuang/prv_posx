@@ -15,7 +15,7 @@ g_d_records = {}
 cur.execute("select d_id,ts from deliveryv2")
 for r in cur.fetchall():
     dt = time.localtime(r[1])
-    g_d_records[ r[0] ] = ( time.mktime(datetime.date(dt.tm_year, dt.tm_mon, 1).timetuple()), r[1] )
+    g_d_records[ r[0] ] = ( int(time.mktime(datetime.date(dt.tm_year, dt.tm_mon, 1).timetuple())), r[1] )
 
 g_d_mons = {}
 g_d_receipts = {}
@@ -79,17 +79,20 @@ def get_mon_ds(ts=None):
         next_yr += 1
     end_ts = int(time.mktime(datetime.date(next_yr, next_mon, 1).timetuple()))
     
-    return ( start_ts, end_ts, tp.tm_year * 100 + tp.tm_mon )
-    
-g_users = {}
-cur.execute('select user_id,in_ts,out_ts from clockin_hist where flag&2=0 order by in_ts asc')
-for r in cur.fetchall():
-    user_id,in_ts,out_ts = r
+    return ( start_ts, end_ts )
 
+
+PERM_WAREHOUSE = 1 << config.USER_PERM_BIT['warehouse']
+g_users = {}
+cur.execute('select user_id,user_lvl,in_ts,out_ts from clockin_hist where flag&2=0 order by in_ts asc')
+for r in cur.fetchall():
+    user_id,user_lvl,in_ts,out_ts = r
+    if not (user_id & PERM_WAREHOUSE): continue
+    
     days = g_users.setdefault(user_id, {})
     while(in_ts < out_ts):
-        start_ts_mon, end_ts_mon, cur_mon = get_mon_ds(in_ts)
-        stat = days.setdefault(cur_mon, [in_ts, 0, 0])
+        start_ts_mon, end_ts_mon = get_mon_ds(in_ts)
+        stat = days.setdefault(start_ts_mon, [in_ts, 0, 0])
         
         in_ts_mon = max(in_ts, stat[1])
         out_ts_mon = min(out_ts, end_ts_mon)
@@ -99,11 +102,14 @@ for r in cur.fetchall():
             stat[2] += out_ts_mon - in_ts_mon
             
         in_ts = out_ts_mon
-        
 
-for k, v in g_d_mons.items():
-    print k, len(v['nums']), v['perfect']
 
+for mon,m_data in g_d_mons.items():
+    work_secs = 0
+    for user_id, days in g_users.items():
+        if not days.has_key(mon): continue
+        work_secs += days.get(mon)[2]
+    m_data['work_secs'] = work_secs
 
 mons = g_d_mons.items()
 mons.sort(key=lambda f_x:f_x[0])

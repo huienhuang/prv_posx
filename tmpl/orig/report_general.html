@@ -10,6 +10,8 @@
 .m_ctrl {min-width:900px}
 .m_ctrl input[type="text"] {margin-right:10px}
 
+.ds_chart {width:50%;height:350px;float:left}
+
 </style>
 
 <script>
@@ -19,18 +21,36 @@ function render_chart(js)
     new CanvasJS.Chart('m_body', js.config).render();
 }
 
+function render_dashboard(js)
+{
+    for(var i = 0; i < js.length; i++) {
+        var j = js[i];
+        if(j.type=="chart") {
+            $('#m_body').append('<div id="m_ds_' + i + '" class="ds_chart"></div>');
+            new CanvasJS.Chart('m_ds_' + i, j.config).render();
+        }
+    }
+}
+
 function load_report()
 {
     $('#m_body').empty();
     
     var els = g_v_x_ctrl.data('in_els');
     var idx = els.report[0].val();
-    if(!idx) return;
+    var frm = els.frm_date[0].val();
+    var to = els.to_date[0].val();
     
-    get_js('?fn=get_report', {'idx': idx}, function(js) {
-        if(js.type=="chart") render_chart(js);
-        
-    });
+    if(!frm ^ !to) return;
+    if(!idx) {
+        get_js('?fn=get_reports', {'frm': frm, 'to': to}, function(js) {
+            render_dashboard(js);
+        });
+    } else {
+        get_js('?fn=get_report', {'idx': idx, 'frm': frm, 'to': to}, function(js) {
+            if(js.type=="chart") render_chart(js);
+        });
+    }
 }
 
 $(function() {
@@ -41,8 +61,10 @@ idx_elements(g_v_x_ctrl, 5);
 $('.btn', g_v_x_ctrl).button();
 
 var els = g_v_x_ctrl.data('in_els');
-els.report[0].change(load_report);
 els.quit[0].click(go_home);
+els.frm_date[0].change(load_report);
+els.to_date[0].change(load_report);
+els.report[0].change(load_report).change();
 
 });
 
@@ -59,6 +81,8 @@ els.quit[0].click(go_home);
 <option value="${r[0]}">${r[1]|h}</option>
 %endfor
 </select>
+<input type="month" name="ctrl_frm_date" />
+<input type="month" name="ctrl_to_date" />
 <input style="margin-left:20px" type="button" value="export" class="btn" name="ctrl_export" />
 <input style="margin-left:20px" type="button" value="quit" class="btn" name="ctrl_quit" />
 

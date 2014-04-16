@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>posx_enable_chk_login = true;</script>
+<%include file="header_inc_v3.html" />
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+<title>POSX - Camera</title>
+
+<style type="text/css">
+.m_ctrl {min-width:900px}
+.m_ctrl input[type="text"] {margin-right:10px}
+
+</style>
+
+<script>
+
+
+$(function() {
+
+g_v_x_ctrl = $('.x_ctrl');
+idx_elements(g_v_x_ctrl, 5);
+
+$('.btn', g_v_x_ctrl).button();
+
+var els = g_v_x_ctrl.data('in_els');
+els.report[0].change(load_report);
+els.quit[0].click(go_home);
+
+});
+
+</script>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+
+<select style="width:300px" name="ctrl_report">
+<option value="">--  --</option>
+</select>
+<input style="margin-left:20px" type="button" value="export" class="btn" name="ctrl_export" />
+<input style="margin-left:20px" type="button" value="quit" class="btn" name="ctrl_quit" />
+
+</div>
+<div class="x_body" id="m_body">
+    
+<video width="320" hright="180" src="http://10.0.1.188/camera/archive/officev2/13971/1397103790-210678.mp4" type="video/mp4" preload="metadata" controls></video>
+    
+    
+</div>
+
+</body>
+</html>

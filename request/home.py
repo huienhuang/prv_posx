@@ -94,7 +94,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_load_dashboard(self):
         charts = []
-        if self.user_lvl & (1 << config.USER_PERM_BIT['sales']):
+        
+        if False and self.user_lvl & (1 << config.USER_PERM_BIT['sales']):
             cr = self.get_customer_report()
             if cr:
                 dps = []

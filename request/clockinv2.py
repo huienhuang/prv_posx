@@ -63,7 +63,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         u_in = self.req.psv_int('in')
         
         cur = self.cur()
-        cur.execute('select * from clockin_user where user_code=%s and rev=%s', (code, rev))
+        cur.execute('select cu.*,u.user_lvl from clockin_user cu left join user u on cu.user_id=u.user_id where cu.user_code=%s and cu.rev=%s and u.user_id is not null', (code, rev))
         rows = cur.fetchall()
         if not rows: self.req.exitjs(ret)
         nzs = cur.column_names
@@ -77,8 +77,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         )
         if cur.rowcount:
             if not u_in:
-                cur.execute("insert into clockin_hist values (null,%s,%s,%s,'',0)", (
-                    user['user_id'], user['in_ts'], ts
+                cur.execute("insert into clockin_hist values (null,%s,%s,%s,'',0,%s)", (
+                    user['user_id'], user['in_ts'], ts, user['user_lvl']
                     )
                 )
             ret['ret'] = 1
@@ -112,7 +112,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         cur.execute('select count(*) from user where user_id=%s', (user_id,))
         if not cur.fetchall()[0][0]: return
-        cur.execute('insert ignore into clockin_user values (%s,%s,0,0,0)', (user_id, user_code))
+        cur.execute('insert into clockin_user values (%s,%s,0,0,0) on duplicate key update user_code=%s,in_ts=0,rev=rev+1', (user_id, user_code, user_code))
         
         self.req.writejs({'ret':1})
         
@@ -122,6 +122,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('delete from clockin_user where user_id=%s', (user_id,))
         
         self.req.writejs({'ret':1})
+    
+    def fn_update_name_clocking_user(self):
+        user_id = self.req.psv_int('user_id')
+        user_name = self.req.psv_str('user_name')
+        if user_id <= 1 or not user_name: return
+        
+        cur = self.cur()
+        cur.execute("update user set user_name=%s where user_id=%s", (user_name, user_id))
+        ret = cur.rowcount
+        
+        self.req.writejs({'ret':ret})
     
     def fn_update_code_clocking_user(self):
         user_id = self.req.psv_int('user_id')
@@ -210,7 +221,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         to_ts = self.req.qsv_int('to_ts')
         
         cur = self.cur()
-        cur.execute('select c.user_id,u.user_name from clockin_user c left join user u on (c.user_id=u.user_id) order by u.user_name asc')
+        cur.execute('select user_id,user_name from user order by user_name asc')
         nzs = cur.column_names
         users = []
         for r in cur.fetchall():
@@ -267,8 +278,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             self.req.exitjs({'err': 'error date input'})
         
         cur = self.cur()
-        cur.execute('select count(*) from user where user_id=%s', (user_id,))
-        if not cur.fetchall()[0][0]: self.req.exitjs({'err': 'user not exists'})
+        cur.execute('select user_lvl from user where user_id=%s', (user_id,))
+        rows = cur.fetchall()
+        if not rows: self.req.exitjs({'err': 'user not exists'})
+        user_lvl = rows[0][0]
         
         h_type = HIST_FLAG_TYPE
         if hist_id:
@@ -301,8 +314,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 )
         else:
             flag = (status and HIST_FLAG_STATUS or 0) | HIST_FLAG_TYPE
-            cur.execute('insert into clockin_hist values(null,%s,%s,%s,%s,%s)', (
-                    user_id, in_ts, out_ts, memo, flag
+            cur.execute('insert into clockin_hist values(null,%s,%s,%s,%s,%s,%s)', (
+                    user_id, in_ts, out_ts, memo, flag, user_lvl
                 )
             )
             hist_id = cur.lastrowid

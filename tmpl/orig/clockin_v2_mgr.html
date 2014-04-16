@@ -61,6 +61,21 @@ function delete_clockin_user(user_id)
     }, 'json');
 }
 
+function update_name_clocking_user()
+{
+    var user = g_v_dlg_edit_user.data('user');
+    if(!user) return;
+    
+    var els = g_v_dlg_edit_user.data('in_els');
+    var user_name = $.trim(els.name[0].val());
+    if(!user_name) return;
+    
+    post_js('?fn=update_name_clocking_user', {'user_id': user['user_id'], 'user_name': user_name}, function(js) {
+        load_users();
+    });
+    
+}
+
 function update_code_clocking_user()
 {
     var user = g_v_dlg_edit_user.data('user');
@@ -73,11 +88,9 @@ function update_code_clocking_user()
     var user_lang = parseInt(els.lang[0].val());
     if(!user_id || !user_code || user_code.length > 4) return;
     
-    $.post('?fn=update_code_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_code':user_code, 'user_lang':user_lang}, function(js) {
-        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'Unexpected Error'); return; }
+    post_js('?fn=update_code_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_code':user_code, 'user_lang':user_lang}, function(js) {
         load_users();
-        
-    }, 'json');
+    });
 }
 
 function update_status_clocking_user()
@@ -92,20 +105,20 @@ function update_status_clocking_user()
     var user_in_time = $.trim(els.in_time[0].val());
     if(!user_id || user_in && !user_in_time) return;
     
-    $.post('?fn=update_status_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_in':user_in, 'user_in_time':user_in_time}, function(js) {
-        if(!js || !js.ret || js.err) { MsgBox('Error', js.err || 'Unexpected Error'); return; }
+    post_js('?fn=update_status_clocking_user', {'user_id':user_id, 'user_rev':user_rev, 'user_in':user_in, 'user_in_time':user_in_time}, function(js) {
         load_users();
-        
-    }, 'json');
+    });
 }
 
 function open_dlg_edit_user(idx)
 {
+    g_v_dlg_edit_user.data('user', null);
     var user = g_clockin_users && g_clockin_users[idx];
     if(!user) return;
     
     var els = g_v_dlg_edit_user.data('in_els');
-    els.code[0].val( user['user_code'] );
+    els.name[0].val( user['user_name'] );
+    els.code[0].val( str_pad(user['user_code'], 4, '0') );
     els.lang[0].val( user['flag'] & 1 ? '1' : '0' );
     els.in[0].val( user['in_ts'] ? '1' : '0' );
     els.in_time[0].val( user['in_ts'] ? user['in_time'] : fmt_time() );
@@ -138,7 +151,7 @@ function load_users()
                 .append( $('<div><span title="Delete" onclick="return confirm(\'delete this user?\') && delete_clockin_user('+u['user_id']+')"></span><span title="Add"></span><span title="Edit" onclick="return open_dlg_edit_user('+i+')"></span></div>') )
                 .append( $('<div onclick="open_wnd_user_time_report('+u['user_id']+', 0, 0);return false"></div>').text(u['user_name']) )
                 .append( $('<div></div>').text(u['flag'] & 1 ? 'English' : 'Chinese') )
-                .append( $('<div></div>').text(u['user_code']) )
+                .append( $('<div></div>').text(str_pad(u['user_code'], 4, '0')) )
                 .append( $('<div></div>').text(u['in_ts'] ? 'IN' : 'OUT') )
                 .append( $('<div></div>').text(u['in_time']) )
             );
@@ -199,10 +212,11 @@ g_v_dlg_edit_user = $('#dlg_edit_user').dialog({
     autoOpen: false,
     modal: true,
     width:530,
-    height:200
+    height:300
 });
 idx_elements(g_v_dlg_edit_user, 5);
 els = g_v_dlg_edit_user.data('in_els');
+els.name_save[0].click(update_name_clocking_user);
 els.code_save[0].click(update_code_clocking_user);
 els.status_save[0].click(update_status_clocking_user);
 
@@ -308,7 +322,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div id="tabs_employee">
 <div class="tp_ctrl">
 <select style="width:180px" name="ctrl_user_id"><option value="0">-- Select User --</option></select>
-<input type="text" name="ctrl_code" style="width:100px" maxlength="4" />
+<input type="text" name="ctrl_code" style="width:100px" maxlength="4" placeholder="code" />
 <input type="button" value="add" name="ctrl_add" class="btn" />
 <input type="button" value="refresh" name="ctrl_refresh" class="btn" />
 <input type="button" value="new" name="ctrl_new" class="btn" />
@@ -342,6 +356,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 
 
 <div id="dlg_edit_user" class="dlg_cls" title="Edit User">
+<div class="xlabel"><div>Name:</div><div><input type="text" name="user_name" style="width:200px" /> <input type="button" value="save" name="user_name_save" class="btn" /></div></div>
 <div class="xlabel"><div>Code:</div><div><input type="text" name="user_code" maxlength="4" style="width:50px" /> <select name="user_lang" style="width:100px"><option value="0">Chinese</option><option value="1">English</option></select> <input type="button" value="save" name="user_code_save" class="btn" /></div></div>
 <div class="xlabel"><div>Status:</div><div><select name="user_in" style="width:70px"><option value="1">IN</option><option value="0">OUT</option></select> <input type="text" name="user_in_time" style="width:210px" /> <input type="button" value="save" name="user_status_save" class="btn" /></div></div>
 </div>

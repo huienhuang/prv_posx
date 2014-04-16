@@ -40,7 +40,7 @@ for r in cur.fetchall():
 
 
 tp = time.localtime()
-dt = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
+dt = int(time.mktime(datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday).timetuple()))
 cur.execute("replace into daily_inventory values(%s,%s,%s,%s)", (
     dt, overall_ext_price, overall_ext_cost, cPickle.dumps(g_items, 1)
     )
