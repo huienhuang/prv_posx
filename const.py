@@ -1,17 +1,18 @@
 
 ITEM_L_STATUS = (
-('active', 1),
+('active(InStock)', 1),
+('active(OutOfStock)', 127),
 ('customized', 2),
 ('discontinued', 3),
 ('display/sample', 4),
 ('inactive', 5),
 ('internal use', 6),
 ('obsolete', 7),
-('special order', 8)
+('special order', 8),
 )
 
 ITEM_D_STATUS = dict(ITEM_L_STATUS)
-
+ITEM_D_STATUS['active'] = 1
 
 ITEM_L_DEPT = (
 ('apparel', 'other'),

@@ -96,7 +96,9 @@ def sync_items(cj_data, mode=0):
         if desc2: desc2 = desc2[:-2]
         
         status = 0
-        if r['udf5']: status = const.ITEM_D_STATUS.get(r['udf5'].lower().strip(), 0) & 0x0F
+        if r['udf5']:
+            status = const.ITEM_D_STATUS.get(r['udf5'].lower().strip(), 0) & 0x0F
+            if status == 1 and jsd['qty'][0] <= 0: status = 127
         
         rep_seq += 1
         sqlt = "(%d,%s,%d,%d,'%s','%s','%s','%s')," % (
