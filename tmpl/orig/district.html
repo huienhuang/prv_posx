@@ -277,7 +277,7 @@ g_v_dist_nz = els.dist_nz[0].change(function() {
                 .append( $('<div onclick="open_wnd_customer(\''+r['sid']+'\')"></div>').text(r['name']) )
                 .append( $('<div></div>').text(r['period_start']) )
                 .append( $('<div></div>').text(r['period_end']) )
-                .append( $('<div></div>').text(r['so_maxdate']) )
+                .append( $('<div></div>').text(r['so_maxdate'] + ' (' + r['period_count_since_last_order'] + ')') )
                 .append( $('<div onclick="show_regular_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['rc_count']+'/'+r['so_count']) )
                 .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+r['period_start']+'\',\''+r['period_end']+'\');return false"></div>').text(r['period_marked_count']) )
                 .append( $('<div onclick="show_marked_so(\''+r['sid']+'\',\''+delivery_date+'\',\''+delivery_date+'\');return false"></div>').text(r['marked_count']) )

@@ -92,7 +92,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         while i < period_len:
             k = (k + 1) % len(a_rule)
             d = a_rule[k]
-            end_ts = start_ts + d[1] * DAY_SECS
+            end_ts = int(time.mktime((datetime.date.fromtimestamp(start_ts) + datetime.timedelta(d[1])).timetuple()))
             if not d[0]:
                 i += 1
                 periods.append( (start_ts, end_ts) )
@@ -100,21 +100,54 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
         return periods
     
+    def get_periods_count(self, ref_date, a_rule, frm_date_s, to_date_s):
+        if frm_date_s < to_date_s:
+            frm_date = frm_date_s
+            to_date = to_date_s
+        else:
+            frm_date = to_date_s
+            to_date = frm_date_s
+        
+        res = self.get_period(ref_date, a_rule, to_date)
+        if not res: return 0
+        frm_ts, to_ts, s_ts, t_ts, k = res
+        
+        fd_ts = int(time.mktime(datetime.date(*frm_date).timetuple()))
+        end_ts = frm_ts
+        i = 0
+        while True:
+            k = (k - 1) % len(a_rule)
+            d = a_rule[k]
+            start_ts = int(time.mktime((datetime.date.fromtimestamp(end_ts) - datetime.timedelta(d[1])).timetuple()))
+            if fd_ts >= start_ts: break
+            if not d[0]: i += 1
+            end_ts = start_ts
+            
+        return i
+    
     def get_period(self, schedule_date, a_rule, target_date):
         if not a_rule: return
-        target_date = max(schedule_date, target_date)
         
-        s_dt = datetime.date(*schedule_date)
-        t_dt = datetime.date(*target_date)
+        s_ts = int(time.mktime(datetime.date(*schedule_date).timetuple()))
+        t_ts = int(time.mktime(datetime.date(*target_date).timetuple()))
         
-        s_ts = time.mktime(s_dt.timetuple())
-        t_ts = time.mktime(t_dt.timetuple())
-        
-        frm_ts = s_ts
         k = 0
+        frm_ts = s_ts
+        
+        if t_ts < frm_ts:
+            to_ts = frm_ts
+            while True:
+                d = a_rule[k]
+                frm_ts = int(time.mktime((datetime.date.fromtimestamp(to_ts) - datetime.timedelta(d[1])).timetuple()))
+                if t_ts >= frm_ts:
+                    if not d[0]: return (frm_ts, to_ts, s_ts, t_ts, k)
+                    break
+                to_ts = frm_ts
+                k = (k - 1) % len(a_rule)
+                
         while True:
             d = a_rule[k]
-            to_ts = frm_ts + d[1] * DAY_SECS
+            to_ts = int(time.mktime((datetime.date.fromtimestamp(frm_ts) + datetime.timedelta(d[1])).timetuple()))
             if not d[0] and t_ts < to_ts: return (frm_ts, to_ts, s_ts, t_ts, k)
             frm_ts = to_ts
             k = (k + 1) % len(a_rule)
@@ -165,7 +198,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         t_dt = self.parse_date_century(self.req.qsv_ustr('delivery_date'))
         if not t_dt: return
         t_year,t_mon,t_day = t_dt
-        t_ts = time.mktime(datetime.date(*t_dt).timetuple())
+        t_ts = int(time.mktime(datetime.date(*t_dt).timetuple()))
+        
+        w_dt = datetime.date.today()
+        w_dt = (w_dt.year, w_dt.month, w_dt.day)
         
         cur = self.cur()
         
@@ -192,8 +228,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 m_year,m_mon = divmod(m_r, 100)
                 n_dt = (m_year, m_mon, m_day)
                 if n_dt > a_dt: a_dt = n_dt
-                
-            period = self.get_period(s_dt, self.parse_rule_no_check(r['schedule_rule']), a_dt)
+            
+            
+            rule = self.parse_rule_no_check(r['schedule_rule'])
+            period = self.get_period(s_dt, rule, a_dt)
 
             cur.execute('select ss.sid,(select sid from sync_receipts where so_sid=ss.sid limit 1) from sync_salesorders ss where ss.cust_sid=%s and ss.sodate>=%s and ss.sodate<%s and ss.status<=1', (
                 r['sid'], period[0], period[1]
@@ -208,6 +246,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['so_count'] = so_count
             so_maxdate = r['so_maxdate']
             r['so_maxdate'] = so_maxdate and time.strftime("%m/%d/%Y", time.localtime(so_maxdate)) or ''
+            
+            period_count = 0
+            if so_maxdate:
+                u_dt = datetime.date.fromtimestamp(so_maxdate)
+                u_dt = (u_dt.year, u_dt.month, u_dt.day)
+                period_count = self.get_periods_count(s_dt, rule, min(u_dt, w_dt), w_dt)
+            r['period_count_since_last_order'] = period_count
+            
             ps_dt = time.localtime(period[0])
             r['period_start'] = time.strftime("%m/%d/%Y", ps_dt)
             pe_dt = time.localtime(period[1] - 11 * 3600)
@@ -227,7 +273,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             rating = (
                 int(bool(so_count)),
-                -(t_ts - max(so_maxdate or 0, t_ts)) / (period[1] - period[0]),
+                -r['period_count_since_last_order'],
                 abs(period[1] - t_ts)
             )
             rows.append( (rating, r) )
@@ -465,8 +511,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         to = self.parse_date_century(to) or 0
         if not frm or not to: return
         
-        frm_ts = time.mktime(datetime.date(*frm).timetuple())
-        to_ts = time.mktime(datetime.date(*to).timetuple()) + DAY_SECS
+        frm_ts = int(time.mktime(datetime.date(*frm).timetuple()))
+        to_ts = int(time.mktime((datetime.date(*to) + datetime.timedelta(1)).timetuple()))
         
         cur = self.cur()
         cur.execute('select sso.sid,sso.sonum,sso.cust_sid,so.delivery_date,so.delivery_zip,sso.global_js,c.schedule_date from sync_salesorders sso left join salesorder so on (sso.sid=so.sid) left join customer c on(sso.cust_sid=c.cid) where sso.cust_sid=%s and sso.sodate>=%s and sso.sodate<%s and sso.status<=1 order by sso.sid desc', (
