@@ -21,6 +21,7 @@ TOOLS_MAP = (
     ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('Item Sale', 'reportitem', PERM_ADMIN),
     ('General Report', 'reportgeneral', PERM_ADMIN),
+    ('Daily Report', 'reportdaily', PERM_ADMIN),
 )),
 
 ('HR', (

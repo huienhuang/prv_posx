@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>posx_enable_chk_login = true;</script>
+<%include file="header_inc_v3.html" />
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+<title>POSX - Daily Report</title>
+
+<style type="text/css">
+.m_ctrl {min-width:900px}
+.m_ctrl input[type="text"] {margin-right:10px}
+
+.ds_chart {width:50%;height:350px;float:left}
+
+</style>
+
+<script>
+
+function render_chart(js)
+{
+    new CanvasJS.Chart('m_body', js.config).render();
+}
+
+function render_dashboard(js)
+{
+    for(var i = 0; i < js.length; i++) {
+        var j = js[i];
+        if(j && j.type == "chart") {
+            $('#m_body').append('<div id="m_ds_' + i + '" class="ds_chart"></div>');
+            new CanvasJS.Chart('m_ds_' + i, j.config).render();
+        }
+    }
+}
+
+function load_report()
+{
+    $('#m_body').empty();
+    
+    var els = g_v_x_ctrl.data('in_els');
+    var idx = els.report[0].val();
+    var frm = els.frm_date[0].val();
+    
+    if(!idx) {
+        get_js('?fn=get_reports', {'frm': frm}, function(js) {
+            render_dashboard(js);
+        });
+    } else {
+        get_js('?fn=get_report', {'idx': idx, 'frm': frm}, function(js) {
+            if(js.type=="chart") render_chart(js);
+        });
+    }
+}
+
+$(function() {
+
+g_v_x_ctrl = $('.x_ctrl');
+idx_elements(g_v_x_ctrl, 5);
+
+$('.btn', g_v_x_ctrl).button();
+
+var els = g_v_x_ctrl.data('in_els');
+
+els.export[0].click(function() {
+    var els = g_v_x_ctrl.data('in_els');
+    var frm_date = els.frm_date[0].val();
+    if(!frm_date) return;
+    
+    var v_form = $('#form_dl');
+    v_form.find('input[name="js"]').val( JSON.stringify({'frm_date':frm_date}) );
+    v_form.submit();
+    
+});
+
+els.quit[0].click(go_home);
+els.frm_date[0].change(load_report);
+els.report[0].change(load_report).change();
+
+});
+
+</script>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+
+<select style="width:300px" name="ctrl_report">
+<option value="">-- Select Report Type --</option>
+%for r in reports:
+<option value="${r[0]}">${r[1]|h}</option>
+%endfor
+</select>
+<input type="month" name="ctrl_frm_date" />
+<input style="margin-left:20px" type="button" value="export" class="btn" name="ctrl_export" />
+<input style="margin-left:20px" type="button" value="quit" class="btn" name="ctrl_quit" />
+
+</div>
+<div class="x_body" id="m_body">
+</div>
+
+
+
+<form id="form_dl" target="form_dl_target_frame" action="?fn=export_reports" method="post" style="display:none"><input type="hidden" name="js" /></form>
+<iframe name="form_dl_target_frame" style="display:none"></iframe>
+
+
+</body>
+</html>
