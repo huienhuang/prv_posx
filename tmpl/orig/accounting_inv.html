@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Project OnGoing</title>
+
+<script type="text/javascript">
+
+function load_data(js)
+{
+    var c = $('.xtbl_body');
+    
+    var t = [0, 0, 0, 0, 0, 0];
+    for(var i = 0; i < js.length; i++) {
+        var j = js[i];
+        var j1 = j[1];
+        c.append( $('<div class="xtbl_row"></div>')
+                 .append( $('<div></div>').text(j[0]) )
+                 .append( $('<div></div>').text(j1[0].toFixed(2)) )
+                 .append( $('<div></div>').text(j1[1].toFixed(2)) )
+                 .append( $('<div></div>').text(j1[2].toFixed(2)) )
+                 .append( $('<div></div>').text(j1[3].toFixed(2)) )
+                 .append( $('<div></div>').text(j1[4].toFixed(2)) )
+                 .append( $('<div></div>').text(j1[5].toFixed(2)) )
+        );
+        
+        for(var u = 0; u < 6; u++) t[u] += j1[u];
+        
+    }
+    
+    var f = $('.xtbl_footer >.xtbl_row > div');
+    for(var u = 0; u < 6; u++) $(f[u]).text(t[u].toFixed(2));
+    
+}
+
+$(function() {
+
+
+$('.tp_ctrl input[value="quit"]').button().click(function() {
+    go_home();
+});
+
+
+$('input[name="frm_date"]').change(function() {
+    var d = $(this).val();
+    if(!d) return;
+    
+    get_js('?fn=get_inv', {'frm_date': d}, load_data);
+    
+});
+
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+
+.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
+.main_tbl .xtbl_row > div:nth-child(1) {width:180px}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="date" name="frm_date" />
+<input type="button" value="quit" class="btn" />
+</div>
+
+<div class="xtbl main_tbl">
+<div class="xtbl_header"><div class="xtbl_row"><div>DeptName</div><div>CurQty</div><div>CurExtCost</div><div>CurExtPrice</div><div>SoldQty</div><div>SoldExtCost</div><div>SoldExtPrice</div></div></div>
+<div class="xtbl_body"></div>
+<div class="xtbl_footer"><div class="xtbl_row"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+</div>
+
+</body>
+</html>

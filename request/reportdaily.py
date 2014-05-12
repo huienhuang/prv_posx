@@ -6,6 +6,7 @@ import re
 import datetime
 import cStringIO
 import csv
+import cPickle
 
 
 PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
@@ -226,57 +227,23 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         return {'type':'chart', 'config': chart_config}
     
     
-    def fn__export_reports(self):
-        js = self.req.psv_js('js')
+    def fn_get_inv(self):
+        tp = map(int, self.req.qsv_str('frm_date').split('-'))
+        frm_ts = int(time.mktime(datetime.date(tp[0], tp[1], tp[2]).timetuple()))
         
-        frm_ts = to_ts = 0
-        dt = js['frm_date']
-        if dt: frm_ts = int(time.mktime(time.strptime(dt, "%Y-%m")))
-        dt = js['to_date']
-        if dt: to_ts = int(time.mktime(time.strptime(dt, "%Y-%m")))
-        if not frm_ts or not to_ts: return
+        cur = self.cur()
+        cur.execute('select di_js from daily_inventory where di_ts=%s', (frm_ts,))
+        rows = cur.fetchall()
+        if not rows: return
         
-        frm_tp = time.localtime(frm_ts)
-        to_tp = time.localtime(to_ts)
-        min_d = frm_tp.tm_year * 12 + frm_tp.tm_mon
-        max_d = to_tp.tm_year * 12 + to_tp.tm_mon
-        len_d = max_d - min_d + 1
-        
-        hdr = ['', ]
-        for i in range(min_d, max_d + 1):
-            y,m = divmod(i, 12)
-            hdr.append('%04d-%02d' % (y, m))
-        
-        rows = [hdr, ]
-        for report in G_MAP_REPORTS:
-            if not(self.user_lvl & report[1]): continue
-            js = getattr(self, 'export_report_%s' % (report[2], ))(frm_ts, to_ts)
-            if not js: continue
-            
-            i_rows = []
-            hdr, lst = js
-            for h in range( len(hdr) ):
-                row = ['', ] * (len_d + 1)
-                row[0] = hdr[h]
-                i_rows.append(row)
-            
-            for l in lst:
-                if l[0] == None: continue
-                cur_tp = time.localtime(l[0])
-                idx = cur_tp.tm_year * 12 + cur_tp.tm_mon - min_d
-                
-                for i in range(1, len(l)):
-                    i_rows[i - 1][idx + 1] = (l[i] != None and str(l[i]) or '')
-            
-            i_rows.append( ['', ] * (len_d + 1) )
-            rows.extend(i_rows)
-        
-        fp = cStringIO.StringIO()
-        wt = csv.writer(fp)
-        for r in rows: wt.writerow(r)
-        
-        self.req.out_headers['content-type'] = 'application/octet-stream'
-        self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
-        self.req.write( fp.getvalue() )
-        
+        depts = sorted(cPickle.loads(rows[0][0])[1].items(), key=lambda f_x: f_x[0])
     
+        self.req.writejs(depts)
+    
+    fn_get_inv.PERM = 1 << config.USER_PERM_BIT['accountingv2']
+    
+    def fn_view_inv(self):
+        self.req.writefile('accounting_inv.html')
+    
+    fn_view_inv.PERM = 1 << config.USER_PERM_BIT['accountingv2']
+

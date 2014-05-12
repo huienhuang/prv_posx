@@ -7,6 +7,8 @@ PERM_TIME = 1 << config.USER_PERM_BIT['time']
 PERM_ITEM_STAT_ACCESS = 1 << config.USER_PERM_BIT['item stat access']
 PERM_NORMAL_ACCESS = 1 << config.USER_PERM_BIT['normal access']
 PERM_BASE_ACCESS = 1 << config.USER_PERM_BIT['base access']
+PERM_ACCOUNTINGV2 = 1 << config.USER_PERM_BIT['accountingv2']
+
 
 TOOLS_MAP = (
 
@@ -33,6 +35,7 @@ TOOLS_MAP = (
 )),
 
 ('Accounting', (
+    ('Daily Inventory', 'reportdaily?fn=view_inv', PERM_ACCOUNTINGV2),
 )),
 
 ('Purchasing', (
