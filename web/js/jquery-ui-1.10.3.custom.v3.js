@@ -5836,7 +5836,8 @@ $.widget( "ui.autocomplete", {
 		open: null,
 		response: null,
 		search: null,
-		select: null
+		select: null,
+		autoSelect: false
 	},
 
 	pending: 0,
@@ -6267,7 +6268,7 @@ $.widget( "ui.autocomplete", {
 		}
 		this._trigger( "response", null, { content: content } );
 		if ( !this.options.disabled && content && content.length && !this.cancelSearch ) {
-			if (content.length == 1 && this.search_auto_select) {
+			if (content.length == 1 && (this.search_auto_select || this.options.autoSelect)) {
 				var item = content[0];
 				if( false !== this._trigger("select", null, {item:item}) ) this._value( item.value );
 				this.term = this._value();
