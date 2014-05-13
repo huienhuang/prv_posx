@@ -29,7 +29,7 @@ function load_data(js)
     }
     
     var f = $('.xtbl_footer >.xtbl_row > div');
-    for(var u = 0; u < 6; u++) $(f[u]).text(t[u].toFixed(2));
+    for(var u = 0; u < 6; u++) $(f[u + 1]).text(t[u].toFixed(2));
     
 }
 
