@@ -934,6 +934,10 @@ $('.tab_ctrl > input[value="delete"]').click(delete_delivery_record);
 g_v_delivery_name.change(function() { delivery_record_changed(); });
 g_v_delivery_date.change(function() { delivery_record_changed(); });
 
+$('.receipt_tbl_header input[name="cb_chkall_delivered"]').change(function() {
+    g_v_receipt_tbl.find('input[name="rec_delivered"]').prop('checked', $(this).prop('checked'));
+});
+
 window.onbeforeunload = function(e) {
     if(g_delivery_record_changed) return "Discard?";
     return undefined;
@@ -1059,7 +1063,11 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div>Amount</div>
 <div>Driver</div>
 <div title="Payment Required">应结帐</div>
-<div title="Delivered">已送货</div>
+<div title="Delivered">已送货
+%if not read_only:
+<input type="checkbox" name="cb_chkall_delivered" />
+%endif
+</div>
 <div title="Payment Received">款项回收</div>
 <div title="Problem">有问题</div>
 </div>

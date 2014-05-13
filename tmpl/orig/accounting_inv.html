@@ -2,7 +2,7 @@
 <html>
 <head>
 <%include file="header_inc_v3.html" />
-<title>POSX - Project OnGoing</title>
+<title>POSX - Daily Inventory</title>
 
 <script type="text/javascript">
 
@@ -41,6 +41,11 @@ $('.tp_ctrl input[value="quit"]').button().click(function() {
 });
 
 
+$('.tp_ctrl input[value="print"]').button().click(function() {
+    window.print();
+});
+
+
 $('input[name="frm_date"]').change(function() {
     var d = $(this).val();
     if(!d) return;
@@ -62,8 +67,34 @@ $('input[name="frm_date"]').change(function() {
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
 
-.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
-.main_tbl .xtbl_row > div:nth-child(1) {width:180px}
+
+
+@media print {
+.tp_ctrl {display:none}
+.main_tbl {margin:0 auto;}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+
+
+
+}
+@page {
+margin:60px 50px;
+}
+
+.prntbl {position:absolute;top:0;bottom:0;right:0;left:0}
+.prntbl .prntbl_row {position:relative;page-break-inside:avoid;height:36px;font-size:16px;line-height:36px;border:1px solid #eeeeee;border-bottom:none;}
+.prntbl .prntbl_row >div {float:left;height:100%;width:120px;white-space:nowrap;text-align:center;overflow:hidden;border-right:1px solid #eeeeee;}
+
+
+@media print {
+.prntbl {position:static}
+.prntbl > div, .prntbl > div > div, .prntbl > div:last-child {border-color:#000;}
+
+}
+
+
+.prntbl {position:absolute;top:50px;bottom:0;right:0;left:0}
+
 
 </style>
 
@@ -73,12 +104,12 @@ $('input[name="frm_date"]').change(function() {
 <div class="tp_ctrl">
 <input type="date" name="frm_date" />
 <input type="button" value="quit" class="btn" />
+<input type="button" value="print" class="btn" />
 </div>
 
-<div class="xtbl main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>DeptName</div><div>CurQty</div><div>CurExtCost</div><div>CurExtPrice</div><div>SoldQty</div><div>SoldExtCost</div><div>SoldExtPrice</div></div></div>
-<div class="xtbl_body"></div>
-<div class="xtbl_footer"><div class="xtbl_row"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+<div class="prntbl">
+<div class="prntbl_row"><div>DeptName</div><div>CurQty</div><div>CurExtCost</div><div>CurExtPrice</div><div>SoldQty</div><div>SoldExtCost</div><div>SoldExtPrice</div></div>
+<div class="prntbl_row"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
 </div>
 
 </body>
