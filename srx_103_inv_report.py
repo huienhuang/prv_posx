@@ -46,8 +46,8 @@ for r in cur.fetchall():
 
 
 tp = time.localtime()
-frm_dt = datetime.date(2014, 5, 12)
-#frm_dt = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
+#frm_dt = datetime.date(2014, 5, 12)
+frm_dt = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
 frm_ts = int(time.mktime(frm_dt.timetuple()))
 to_dt = frm_dt + datetime.timedelta(1)
 to_ts = int(time.mktime(to_dt.timetuple()))
