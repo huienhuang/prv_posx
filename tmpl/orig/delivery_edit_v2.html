@@ -85,6 +85,12 @@ function update__receipt_tbl_row_2(rec_v, rec)
     rec_v.children('.rec_problem').text( pba.length ? '有(' + pba.length + ')' : '' );
 }
 
+function update__receipt_tbl_row_3(rec_v, rec)
+{
+    var inst = (rec['js'] || {})['inst'];
+    rec_v.children('.rec_instruction').text( inst ? '$'+(inst['cash'] + inst['check']).toFixed(2) : '' );
+}
+
 function update__receipt_tbl_row(rec_v, rec)
 {
     rec_v.children('.rec_num').text(rec.type ? '' : (rec['dup'] ? '*' : '') + rec['num']);
@@ -98,6 +104,7 @@ function update__receipt_tbl_row(rec_v, rec)
     update__receipt_tbl_row_0(rec_v, rec);
     update__receipt_tbl_row_1(rec_v, rec);
     update__receipt_tbl_row_2(rec_v, rec);
+    update__receipt_tbl_row_3(rec_v, rec);
     update__receipt_tbl_row_color(rec_v, rec);
 }
 
@@ -138,6 +145,24 @@ function get_pr_content()
     return o;
 }
 
+function get_instruction_content()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    var inst = (rec['js'] || {})['inst'];
+    if(!inst) return null;
+    
+
+    var o = $('<div></div>');
+    if(inst.cash) o.append($('<div></div>').text('cash: $' + inst.cash.toFixed(2)));
+    if(inst.check) o.append($('<div></div>').text('check: $' + inst.check.toFixed(2) + (inst.check_no ? ' ('+inst.check_no+')' : '')));
+    if(inst.contact) o.append($('<div></div>').text('contact: ' + inst.contact));
+    if(inst.memo) o.append($('<div></div>').text('memo: ' + inst.memo));
+    
+    return o;
+}
+
 function new__receipt_tbl_row(pos, rec)
 {
     rec = rec || {};
@@ -159,6 +184,11 @@ function new__receipt_tbl_row(pos, rec)
     rec_v.children('.rec_payment_received').tooltip({
        items: '.rec_payment_received',
        content: get_pr_content
+    });
+    
+    rec_v.children('.rec_instruction').tooltip({
+       items: '.rec_instruction',
+       content: get_instruction_content
     });
     
     return rec_v;
@@ -380,6 +410,24 @@ function open_dlg_problem()
     in_els.problem_note[0].val('');
     
     g_v_dlg_problem.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Problem - Row #' + rec_v.children('.rec_pos').text());
+}
+
+function open_dlg_instruction()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    var inst = (rec['js'] || {})['inst'] || {};
+    var in_els = g_v_dlg_instruction.data('in_els');
+    
+    in_els.inst_cash[0].val(inst['cash'] ? inst['cash'].toFixed(2) : '');
+    in_els.inst_check[0].val(inst['check'] ? inst['check'].toFixed(2) : '');
+    in_els.inst_check_no[0].val(inst['check'] && inst['check_no'] ? inst['check_no'] : '');
+    in_els.inst_contact[0].val(inst['contact'] || '');
+    in_els.inst_memo[0].val(inst['memo'] || '');
+    
+    g_v_dlg_instruction.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Instruction - Row #' + rec_v.children('.rec_pos').text());
 }
 
 function delivery_record_changed(rec)
@@ -746,6 +794,31 @@ function change__problem_attr()
     delivery_record_changed(rec);
 }
 
+function change__instruction()
+{
+    var in_els = g_v_dlg_instruction.data('in_els');
+    var rec_v = g_v_dlg_instruction.data('rec_v');
+    var rec = rec_v.data('rec');
+    var js = rec['js'] || {};
+    
+    var amt_cash = parseFloat($.trim(in_els.inst_cash[0].val())) || 0;
+    var amt_check = parseFloat($.trim(in_els.inst_check[0].val())) || 0;
+    if(!amt_cash && !amt_check) {
+        js['inst'] = undefined;
+
+    } else {
+        var inst = js['inst'] = js['inst'] || {};
+        inst['cash'] = amt_cash;
+        inst['check'] = amt_check;
+        inst['check_no'] = $.trim(in_els.inst_check_no[0].val());;
+        inst['contact'] = $.trim(in_els.inst_contact[0].val());
+        inst['memo'] = $.trim(in_els.inst_memo[0].val());
+        
+    }
+    
+    delivery_record_changed(rec);
+}
+
 function delete_delivery_record()
 {
     if(!g_cur_delivery_id || !confirm('Delete this record? All data will be lost!')) return;
@@ -786,6 +859,18 @@ g_v_dlg_payment = $('#dlg_payment').dialog({
         g_v_dlg_payment.data('rec_v', null);
     },
 });
+g_v_dlg_instruction = $('#dlg_instruction').dialog({
+    autoOpen: false,
+    modal: true,
+    width:480,
+    height:280,
+    close:function() {
+        var rec_v = g_v_dlg_instruction.data('rec_v');
+        var rec = rec_v.data('rec');
+        update__receipt_tbl_row_3(rec_v, rec);
+        g_v_dlg_instruction.data('rec_v', null);
+    },
+});
 g_v_dlg_problem = $('#dlg_problem').dialog({
     autoOpen: false,
     modal: true,
@@ -802,6 +887,7 @@ g_v_dlg_problem = $('#dlg_problem').dialog({
 idx_elements(g_v_dlg_data_input, 4);
 idx_elements(g_v_dlg_payment, 4);
 idx_elements(g_v_dlg_problem, 4);
+idx_elements(g_v_dlg_instruction, 4);
 g_v_dlg_data_input_msg = g_v_dlg_data_input.find('.dlg_msg');
 
 g_v_receipt_tbl_row_tmpl = $('.receipt_tbl_row_tmpl').removeClass('receipt_tbl_row_tmpl');
@@ -906,6 +992,13 @@ in_els.problem_id[0].change(change__problem_id);
 in_els.problem_sales[0].change(change__problem_attr);
 in_els.problem_note[0].change(change__problem_attr);
 
+in_els = g_v_dlg_instruction.data('in_els');
+in_els.inst_cash[0].change(change__instruction);
+in_els.inst_check[0].change(change__instruction);
+in_els.inst_check_no[0].change(change__instruction);
+in_els.inst_contact[0].change(change__instruction);
+in_els.inst_memo[0].change(change__instruction);
+
 g_v_receipt_tbl.sortable({
     items: '> div',
     update: function(event, ui) {
@@ -935,7 +1028,21 @@ g_v_delivery_name.change(function() { delivery_record_changed(); });
 g_v_delivery_date.change(function() { delivery_record_changed(); });
 
 $('.receipt_tbl_header input[name="cb_chkall_delivered"]').change(function() {
-    g_v_receipt_tbl.find('input[name="rec_delivered"]').prop('checked', $(this).prop('checked'));
+    var lst = g_v_receipt_tbl.children();
+    
+    var chk = $(this).prop('checked');
+    for(var i = 0; i < lst.length; i++) {
+        var rec_v = $(lst[i]);
+        var rec = rec_v.data('rec');
+        
+        var d = rec_v.find('input[name="rec_delivered"]');
+        if(d.prop('checked') !== chk) {
+            d.prop('checked', chk);
+            d.change();
+        }
+        
+    }
+    
 });
 
 window.onbeforeunload = function(e) {
@@ -967,10 +1074,11 @@ load_delivery_record("${d_id or ''}");
 .receipt_tbl_row > div:nth-child(4) {width:300px;font-style:italic;color:#0050a1}
 .receipt_tbl_row > div:nth-child(5) {width:80px;}
 .receipt_tbl_row > div:nth-child(6) {width:80px;}
-.receipt_tbl_row > div:nth-child(7) {width:80px;}
+.receipt_tbl_row > div:nth-child(7) {width:0px;}
 .receipt_tbl_row > div:nth-child(8) {width:80px;}
 .receipt_tbl_row > div:nth-child(9) {width:210px;cursor:pointer}
 .receipt_tbl_row > div:nth-child(10) {width:80px;cursor:pointer}
+.receipt_tbl_row > div:nth-child(11) {width:80px;cursor:pointer}
 .receipt_tbl .receipt_tbl_row:nth-child(even) {background-color:#f9f9f9}
 .receipt_tbl_header,.receipt_tbl_footer {position:absolute;top:0;left:0;right:0;background-color:#f1f1f1;font-weight:bold;}
 .receipt_tbl_header {top:50px}
@@ -1070,6 +1178,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 </div>
 <div title="Payment Received">款项回收</div>
 <div title="Problem">有问题</div>
+<div title="Special Instruction">收钱</div>
 </div>
 <div class="receipt_tbl_row receipt_tbl_row_tmpl" style="display:none">
 <div class="rec_tools">
@@ -1086,6 +1195,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div><input type="checkbox" name="rec_delivered" onchange="return change__row_cb.call(this)" /></div>
 <div class="rec_payment_received"${not read_only and ' onclick="return open_dlg_payment.call(this)"' or ''}></div>
 <div class="rec_problem"${not read_only and ' onclick="return open_dlg_problem.call(this)"' or ''}></div>
+<div class="rec_instruction"${not read_only and ' onclick="return open_dlg_instruction.call(this)"' or ''}></div>
 </div>
 <div class="receipt_tbl"></div>
 <div class="receipt_tbl_row receipt_tbl_footer"><div></div><div></div></div>
@@ -1116,6 +1226,15 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div class="xlabel"><div>Amount:</div><div><input type="text" name="rec_payment_amount" /></div></div>
 <div class="xlabel"><div>Memo:</div><div><input type="text" name="rec_payment_memo" /></div></div>
 </div>
+
+
+<div id="dlg_instruction" class="dlg_cls">
+<div class="xlabel"><div>Cash:</div><div><input type="text" name="rec_inst_cash" placeholder="$XXX.XX" /></div></div>
+<div class="xlabel"><div>Check:</div><div><input type="text" name="rec_inst_check" placeholder="$XXX.XX" /> <input type="text" name="rec_inst_check_no" placeholder="Check No#" style="width:100px" /></div></div>
+<div class="xlabel"><div>Contact:</div><div><input type="text" name="rec_inst_contact" /></div></div>
+<div class="xlabel"><div>Memo:</div><div><input type="text" name="rec_inst_memo" /></div></div>
+</div>
+
 
 <div id="dlg_problem" class="dlg_cls">
 <div class="xlabel"><div>Type:</div><div>

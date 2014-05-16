@@ -73,11 +73,9 @@ $('input[name="frm_date"]').change(function() {
 .prntbl {top:50px;bottom:0;right:0;left:0}
 .prntbl .prntbl_row >div:nth-child(1) {width:200px}
 
-
-
 @media print {
 .tp_ctrl {display:none}
-.prntbl {margin:0 auto;width:928px;position:static}
+.prntbl {margin:0 auto;width:928px;position:relative;top:auto;}
 .prntbl .prntbl_row {height:20px;line-height:20px;}
 .prntbl .prntbl_cnt {top:21px;bottom:21px;}
 .prn_hdr {display:block}

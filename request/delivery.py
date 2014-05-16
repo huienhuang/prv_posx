@@ -238,6 +238,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 err.append('row#%d no driver assigned' % (i + 1,))
                 continue
             
+            usr_inst = rec['js'].get('inst') or {}
+            
             pms = [ (int(p[0]), round(float(p[1]), 2), p[2][:128].strip() ) for p in rec['js'].get('payments') or [] ]
             pbs = {}
             problem_flag = 0
@@ -250,6 +252,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 pbs[ str(k) ] = (s, v[1][:128].strip())
             rec['js'] = {'payments': pms, 'problems': pbs, 'note': rec['js'].get('note') or ''}
             rec['problem_flag'] = problem_flag
+            
+            inst_cash = float(usr_inst.get('cash') or 0)
+            inst_check = float(usr_inst.get('check') or 0)
+            if inst_cash or inst_check:
+                rec['js']['inst'] = {
+                    'cash': inst_cash,
+                    'check': inst_check,
+                    'check_no': (usr_inst.get('check_no') or '').strip(),
+                    'contact': (usr_inst.get('contact') or '').strip(),
+                    'memo': (usr_inst.get('memo') or '').strip(),
+                }
             
             if r_type == 0:
                 if rec['changed'] or not orig_nums_lku.has_key(rec['num']):
@@ -341,7 +354,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def prepare_record_per_driver(self, d_id):
         cur = self.cur()
         
-        cur.execute('select * from deliveryv2 where d_id=%s', (d_id,))
+        cur.execute('select *,(select user_name from user where user_id=d.user_id) as user_name from deliveryv2 d where d_id=%s', (d_id,))
         rows = cur.fetchall()
         if not rows: return
         dv = dict(zip(cur.column_names, rows[0]))
@@ -352,7 +365,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'd_id': d_id,
             'd_date': time.strftime("%m/%d/%Y", time.localtime(dv['ts'])),
             'auto_print': self.req.qsv_int('auto_print'),
-            'cur_driver_id': self.req.qsv_int('driver_id')
+            'cur_driver_id': self.req.qsv_int('driver_id'),
+            'user_name': dv['user_name']
         }
         users = self.getuserlist()
         users_lku = dr['users_lku'] = {}

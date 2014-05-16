@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc.html" />
+<%include file="header_inc_v3.html" />
 <title>POSX - Delivery V2 > Printing</title>
 
 <script type="text/javascript">
@@ -18,41 +18,54 @@ $('.m_ctrl > input[value="print"]').click(function() { window.print(); });
 .ui-widget {font-size:18px;}
 .m_ctrl input, .m_ctrl select {margin-right:10px;}
 
-.vtable {width:952px;}
-.vtable > div > div {position:relative;page-break-inside:avoid;}
-.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;border-right:1px solid #eeeeee;}
-.vtable > div:nth-child(1) > div {height:50px;line-height:50px;font-size:18px;border:1px solid #eeeeee;border-bottom:none;}
-.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
-.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #eeeeee;}
-.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
-.vtable > div:nth-child(1) > div:nth-child(odd) {background-color:#fafafa}
-.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
-.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#f5f5f5}
-.vtable > div:nth-child(1) > div > div:nth-child(1) {left:0;width:40px;}
-.vtable > div:nth-child(1) > div > div:nth-child(2) {left:41px;width:69px;font-weight:bold}
-.vtable > div:nth-child(1) > div > div:nth-child(3) {left:111px;right:619px;}
-.vtable > div:nth-child(1) > div > div:nth-child(4) {right:529px;width:89px;}
-.vtable > div:nth-child(1) > div > div:nth-child(5) {right:483px;width:45px;}
-.vtable > div:nth-child(1) > div > div:nth-child(6) {right:422px;width:60px;}
-.vtable > div:nth-child(1) > div > div:nth-child(7) {right:376px;width:45px;}
-.vtable > div:nth-child(1) > div > div:nth-child(8) {right:185px;width:190px;}
-.vtable > div:nth-child(1) > div > div:nth-child(9) {right:0px;width:185px;border-right:none}
-
-.d_tbl {width:952px;margin:0 auto 20px auto;}
+.d_tbl {width:1040px;margin:0 auto 20px auto;}
 .d_tbl > .d_hdr {height:30px;line-height:30px;font-weight:bold;margin-bottom:3px;}
 .d_tbl > .d_hdr > span {float:left;width:150px;display:block;height:30px;}
 .d_tbl > .d_hdr > span:nth-child(3) {width:600px;text-align:right;float:right}
 .d_tbl > .d_hdr > .hdr_el_print_only {display:none}
 
+.d_ftr {page-break-inside:avoid;position:relative;height:64px;margin-top:8px;display:none}
+.d_ftr .xlabel {position:absolute;width:320px;margin:0}
+.d_ftr div.xlabel > div:nth-child(1) {width:125px}
+.d_ftr div.xlabel > div:nth-child(2) {left:135px;border-bottom:1px solid #000}
+.d_ftr div.xlabel:nth-child(1) {top:0;left:0}
+.d_ftr div.xlabel:nth-child(2) {top:32px;left:0}
+.d_ftr div.xlabel:nth-child(4) {top:0;right:0}
+.d_ftr div.xlabel:nth-child(5) {top:32px;right:0}
+.d_ftr div.xlabel:nth-child(3) {top:0;left:360px}
+.d_ftr div.xlabel:nth-child(6) {top:32px;left:360px}
+
+.prntbl {position:relative;margin:0 auto;width:1040px}
+.prntbl .prntbl_row {height:50px;line-height:50px;}
+.prntbl .prntbl_cnt {top:51px;bottom:51px;}
+.prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr, .prntbl >.prntbl_cnt {overflow:visible;position:static}
+.prntbl .prntbl_row_hdr {border-bottom:none}
+.prntbl .prntbl_row >div:last-child {border-right:none}
+.prntbl .prntbl_row_ftr {display:none}
+
+.prntbl .prntbl_row >div:nth-child(1) {width:40px}
+.prntbl .prntbl_row >div:nth-child(2) {width:60px}
+.prntbl .prntbl_row >div:nth-child(3) {width:310px}
+.prntbl .prntbl_row >div:nth-child(4) {width:79px}
+.prntbl .prntbl_row >div:nth-child(5) {width:45px}
+.prntbl .prntbl_row >div:nth-child(6) {width:45px}
+.prntbl .prntbl_row >div:nth-child(7) {width:60px}
+.prntbl .prntbl_row >div:nth-child(8) {width:60px}
+.prntbl .prntbl_row >div:nth-child(9) {width:60px}
+.prntbl .prntbl_row >div:nth-child(10) {width:120px}
+.prntbl .prntbl_row >div:nth-child(11) {width:149px}
+
+.prntbl .prntbl_cnt .prntbl_row >div.ml {line-height:25px;white-space:normal}
+
+
 @media print {
 .m_ctrl {display:none}
 .m_body {margin:0 auto;}
-.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
 .d_tbl {page-break-after:always;margin:0 auto;}
-.d_tbl > .d_hdr > .hdr_el_print_only {display:block}
+.d_tbl > .d_hdr > .hdr_el_print_only, .d_ftr {display:block}
 }
 @page {
-margin:60px 50px;
+margin:50px 50px;
 size:landscape;
 }
 
@@ -85,29 +98,56 @@ d_recs,d_stat = drv_data
 <div class="d_hdr">
 <span>司机: ${drv_id and users_lku.get(drv_id, 'UNK') or ''|h}</span>
 <span>总单数: ${len(d_recs)}</span>
-<span class="hdr_el_print_only">#${d_id} - ${d_name and (d_name + ' - ') or ''|h}${d_date}</span>
+<span class="hdr_el_print_only">${user_name|h} - #${d_id} - ${d_name and (d_name + ' - ') or ''|h}${d_date}</span>
 </div>
-<div class="vtable">
-<div>
-<div><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>数量</div><div>应结帐</div><div>已送</div><div>款项回收</div><div>办公室专用</div></div>
+<div class="prntbl">
+<div class="prntbl_row prntbl_row_hdr"><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>数量</div><div>已送</div><div>现金</div><div>支票</div><div>共计</div><div>联络人</div><div>司机注解</div></div>
+<div class="prntbl_cnt">
 <%
 k = 0
 %>
 %for rec in d_recs:
 <%
 k += 1
+inst = rec['js'].get('inst')
+inst_amt = inst_cash = inst_check = inst_check_no = inst_contact = ''
+if inst:
+    if inst.has_key('cash'): inst_cash = inst['cash'] and '$%0.2f' % (inst['cash'], ) or ''
+    if inst.has_key('check'):
+        inst_check = inst['check'] and '$%0.2f' % (inst['check'], ) or ''
+        if inst.has_key('check_no'): inst_check_no = inst['check_no'] or ''
+    if inst.has_key('contact'): inst_contact = inst['contact']
+    
+    inst_amt = (inst.get('cash') or 0) + (inst.get('check') or 0)
+    inst_amt = inst_amt and '$%0.2f' % (inst_amt, ) or ''
+    
 %>
-<div>
+<div class="prntbl_row">
 <div>${k}</div>
 <div>${rec['type'] and '收款'.decode('utf8') or rec.get('num') or ''}</div>
 %if rec:
-<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('payment_required') and '要收钱'.decode('utf8') or ''|h}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div></div><div></div>
+<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div>${inst_cash|h}</div>
+%if inst_check_no:
+<div class="ml">${inst_check|h}<br/>#${inst_check_no|h}</div>
 %else:
-<div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+<div>${inst_check|h}</div>
+%endif
+<div>${inst_amt|h}</div><div class="ml">${inst_contact|h}</div><div></div>
+%else:
+<div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
 %endif
 </div>
 %endfor
 </div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+<div class="d_ftr">
+<div class="xlabel"><div>开始时间:</div><div></div></div>
+<div class="xlabel"><div>结束时间:</div><div></div></div>
+<div class="xlabel"><div>A/R:</div><div></div></div>
+<div class="xlabel"><div>Supervisor:</div><div></div></div>
+<div class="xlabel"><div>Cash Depositer:</div><div></div></div>
+<div class="xlabel"><div>经手人:</div><div>${user_name|h}</div></div>
 </div>
 </div>
 %endif
