@@ -49,11 +49,11 @@ $('.m_ctrl > input[value="print"]').click(function() { window.print(); });
 .prntbl .prntbl_row >div:nth-child(4) {width:79px}
 .prntbl .prntbl_row >div:nth-child(5) {width:45px}
 .prntbl .prntbl_row >div:nth-child(6) {width:45px}
-.prntbl .prntbl_row >div:nth-child(7) {width:60px}
-.prntbl .prntbl_row >div:nth-child(8) {width:60px}
+.prntbl .prntbl_row >div:nth-child(7) {width:70px}
+.prntbl .prntbl_row >div:nth-child(8) {width:70px}
 .prntbl .prntbl_row >div:nth-child(9) {width:60px}
 .prntbl .prntbl_row >div:nth-child(10) {width:120px}
-.prntbl .prntbl_row >div:nth-child(11) {width:149px}
+.prntbl .prntbl_row >div:nth-child(11) {width:129px}
 
 .prntbl .prntbl_cnt .prntbl_row >div.ml {line-height:25px;white-space:normal}
 
@@ -126,13 +126,14 @@ if inst:
 <div>${k}</div>
 <div>${rec['type'] and '收款'.decode('utf8') or rec.get('num') or ''}</div>
 %if rec:
-<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div>${inst_cash|h}</div>
-%if inst_check_no:
+<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('delivered') and 'Y' or ''}</div>
+<div class="ml">${inst_cash and 'X' or ''}</div>
+%if False and inst_check_no:
 <div class="ml">${inst_check|h}<br/>#${inst_check_no|h}</div>
 %else:
-<div>${inst_check|h}</div>
+<div class="ml">${inst_check and 'X' or ''}</div>
 %endif
-<div>${inst_amt|h}</div><div class="ml">${inst_contact|h}</div><div></div>
+<div>${inst_amt|h}</div><div class="ml">${inst_contact|h}</div><div>*放行&nbsp;&nbsp;&nbsp;*不交货</div>
 %else:
 <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
 %endif
