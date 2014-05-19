@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Cash Drawer</title>
+
+<script type="text/javascript">
+
+function get_media_total()
+{
+    var sum = 0.00;
+    for(var i = 0; i < g_v_media_qty_ins.length; i++) {
+        var cd = $(g_v_media_qty_ins[i]);
+        var lbl = cd.parent().prev().text();
+        if(lbl[0] !== '$') continue;
+        
+        sum += parseFloat(lbl.split(' ')[0].substr(1)) * (parseFloat(cd.val()) || 0.0);
+    }
+    
+    return sum;
+}
+
+function media_qty_chg()
+{
+    var cd = $(this);
+    var lbl = cd.parent().prev().text();
+    if(lbl[0] === '$')
+        cd.next('input').val( (parseFloat(lbl.split(' ')[0].substr(1)) * (parseFloat(cd.val()) || 0.0) ).toFixed(2) );
+    
+    g_v_dlg_media.find('.media_total').val( get_media_total().toFixed(2) );
+}
+
+
+$(function() {
+
+$('.btn').button();
+$('.tp_ctrl input[value="Quit"]').click(go_home);
+$('.tp_ctrl input[value="Drawer Count"]').click(function() { g_v_dlg_drawer_count.dialog('open'); });
+
+g_v_dlg_drawer_count = $('#dlg_drawer_count').dialog({
+    autoOpen: false,
+    modal: true,
+    width:480,
+    height:280,
+});
+$('input[value="Media"]', g_v_dlg_drawer_count).click(function() { g_v_dlg_media.dialog('open'); });
+
+g_v_dlg_media = $('#dlg_media').dialog({
+    autoOpen: false,
+    modal: true,
+    width:400,
+    height:570,
+    close: function(event, ui) {
+        get_media_total();
+    }
+});
+g_v_media_qty_ins = g_v_dlg_media.find('.xlabel input:nth-child(1)').change(media_qty_chg);
+
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+
+#dlg_media .xlabel input:nth-child(1) {width:60px}
+#dlg_media .xlabel input:nth-child(2) {width:100px}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="button" value="Drawer Count" class="btn" />
+<input type="button" value="Quit" class="btn" style="float:right;margin-top:9px" />
+</div>
+<div class="main_tbl">
+
+</div>
+
+<div id="dlg_drawer_count" title="Drawer Count">
+<div class="xlabel"><div>Date:</div><div><input type="date" /></div></div>
+<div class="xlabel"><div>Station#:</div><div><select><option>1</option><option>2</option></select></div></div>
+<div class="xlabel"><div>Begin$:</div><div><input type="text" name="dc_begin" /></div></div>
+<div class="xlabel"><div>Count$:</div><div><input type="text" name="dc_count" /> <input type="button" value="Media" class="btn"/></div></div>
+</div>
+
+<div id="dlg_media" title="Media">
+<div class="xlabel"><div>$100 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$50 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$20 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$10 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$5 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$1 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$0.50 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$0.25 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$0.10 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$0.05 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>$0.01 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
+<div class="xlabel"><div>Total</div><div><input type="text" style="visibility:hidden" /> = <input type="text" disabled="disabled" class="media_total" /></div></div>
+</div>
+
+</body>
+</html>
