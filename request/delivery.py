@@ -38,16 +38,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rec_lku = {}
         cur.execute('select dr.*,sr.sid,sr.sid_type,sr.cid,sr.global_js,(select count(*) from deliveryv2_receipt sdr where sdr.num=dr.num) as dup from deliveryv2_receipt dr left join sync_receipts sr on (dr.num=sr.num) where dr.d_id=%s', (d_id,))
         nzs = cur.column_names
+        cids = set()
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
             r['dup'] = r['dup'] > 1 and 1 or 0
             rec_lku[ r['num'] ] = r
+            cids.add(r['cid'])
         
-        cids = [ x['cid'] for x in js if x['type'] == 1 ]
+        for x in js:
+            if x['type'] == 1:
+                cids.add(x['cid'])
+        
+        cids.discard(None)
         cids_lku = {}
         if cids:
-            cur.execute('select sid,name from sync_customers where sid in (%s)' % (','.join(map(str,cids)),))
-            for r in cur.fetchall(): cids_lku[ r[0] ] = {'company': r[1]}
+            cur.execute('select sid,name,detail from sync_customers where sid in (%s)' % (','.join(map(str,cids)),))
+            for r in cur.fetchall():
+                cust_gjs = r[2] and json.loads(r[2]) or {}
+                cids_lku[ r[0] ] = {'company': r[1], 'terms': cust_gjs.get('udf5') or ''}
         
         msgs = []
         recs = []
@@ -61,13 +69,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 else:
                     r['inc'] = 1
             
+                cid = r.get('cid')
                 r['global_js'] = r.has_key('global_js') and json.loads(r['global_js']) or {}
                 r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
                 r['amount'] = r['global_js'].get('total') or 0
                 r['global_js'] = ''
                 r['sid'] = r.get('sid') != None and str(r['sid']) or ''
-                r['cid'] = r.get('cid') != None and str(r['cid']) or ''
+                r['cid'] = cid != None and str(cid) or ''
                 l['js'] = r.get('js') != None and json.loads(r['js']) or {}
+                if cid and cids_lku.has_key(cid): r['terms'] = cids_lku[cid]['terms']
+                
             else:
                 r = cids_lku.get(l['cid'])
                 if not r:
@@ -152,7 +163,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_id = self.req.qsv_int('d_id')
         
         cur = self.cur()
-        cur.execute('select num,cid,sid,sid_type,global_js from sync_receipts where num=%s', (num,))
+        cur.execute('select sr.num,sr.cid,sr.sid,sr.sid_type,sr.global_js,sc.detail from sync_receipts sr left join sync_customers sc on (sc.sid=sr.cid) where sr.num=%s', (num,))
         rows = cur.fetchall()
         if not rows: self.req.exitjs({'err': 'No Such Receipt(%s)' % (num,)})
         r = dict(zip(cur.column_names, rows[0]))
@@ -163,6 +174,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
         r['amount'] = r['global_js']['total']
         r['global_js'] = ''
+        
+        r['detail'] = r['detail'] and json.loads(r['detail']) or {}
+        r['terms'] = r['detail'].get('udf5') or ''
+        r['detail'] = ''
         
         cur.execute('select count(*) from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
         r['dup'] = cur.fetchall()[0][0]
@@ -381,16 +396,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rec_lku = {}
         cur.execute('select dr.*,sr.sid,sr.sid_type,sr.cid,sr.global_js from deliveryv2_receipt dr left join sync_receipts sr on (dr.num=sr.num) where dr.d_id=%s', (d_id,))
         nzs = cur.column_names
+        cids = set()
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
             rec_lku[ r['num'] ] = r
+            cids.add(r['cid'])
         
-        cids = set([ x['cid'] for x in js if x['type'] == 1 ])
+        for x in js:
+            if x['type'] == 1:
+                cids.add(x['cid'])
+        
+        cids.discard(None)
         cids_lku = {}
         if cids:
-            cur.execute('select sid,name from sync_customers where sid in (%s)' % (','.join(map(str,cids)),))
-            for r in cur.fetchall(): cids_lku[ r[0] ] = {'company': r[1]}
-        
+            cur.execute('select sid,name,detail from sync_customers where sid in (%s)' % (','.join(map(str,cids)),))
+            for r in cur.fetchall():
+                cust_gjs = r[2] and json.loads(r[2]) or {}
+                cids_lku[ r[0] ] = {'company': r[1], 'terms': cust_gjs.get('udf5') or ''}
         
         dr['payments'] = list(self.PAYMENTS[:]) + ['other']
         dr['overall_stat'] = overall_stat = [0,] * (len(self.PAYMENTS) + 1) * 2
@@ -404,6 +426,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
                 r['amount'] = r['global_js'].get('total') or 0
                 l['js'] = r.get('js') != None and json.loads(r['js']) or {}
+                
+                cid = r.get('cid')
+                if cid and cids_lku.has_key(cid): r['terms'] = cids_lku[cid]['terms']
+                
             else:
                 r = cids_lku.get(l['cid'])
                 if not r: r = {}

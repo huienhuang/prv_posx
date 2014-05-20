@@ -38,7 +38,7 @@ def sync_customers(cj_data, mode=0):
 
     rep_seq = del_seq = 0
     sql = ''
-    cur.execute("select sid,datastate,pricelevel,disctype,creditused,discallowed,type,lname,company,address1,address2,city,state,zip,country,phone1,phone2,phone3,phone4,email,udf1,udf2,udf3,taxarea,customerid from customer where " + where_sql)
+    cur.execute("select sid,datastate,pricelevel,disctype,creditused,discallowed,type,lname,company,address1,address2,city,state,zip,country,phone1,phone2,phone3,phone4,email,udf1,udf2,udf3,udf5,taxarea,customerid from customer where " + where_sql)
     cur_nzs = [ d[0].lower() for d in cur.description ]
     for r in cur.rows():
         r = list(r[:3]) + map(rf2, r[3:5]) + [ x or '' for x in r[5:] ]

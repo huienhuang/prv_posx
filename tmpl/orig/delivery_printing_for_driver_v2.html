@@ -43,17 +43,19 @@ $('.m_ctrl > input[value="print"]').click(function() { window.print(); });
 .prntbl .prntbl_row >div:last-child {border-right:none}
 .prntbl .prntbl_row_ftr {display:none}
 
-.prntbl .prntbl_row >div:nth-child(1) {width:40px}
+.prntbl .prntbl_row >div:nth-child(1) {width:25px}
 .prntbl .prntbl_row >div:nth-child(2) {width:60px}
-.prntbl .prntbl_row >div:nth-child(3) {width:310px}
-.prntbl .prntbl_row >div:nth-child(4) {width:79px}
-.prntbl .prntbl_row >div:nth-child(5) {width:45px}
-.prntbl .prntbl_row >div:nth-child(6) {width:45px}
+.prntbl .prntbl_row >div:nth-child(3) {width:280px}
+.prntbl .prntbl_row >div:nth-child(4) {width:48px}
+.prntbl .prntbl_row >div:nth-child(5) {width:79px}
+.prntbl .prntbl_row >div:nth-child(6) {width:35px}
 .prntbl .prntbl_row >div:nth-child(7) {width:70px}
 .prntbl .prntbl_row >div:nth-child(8) {width:70px}
-.prntbl .prntbl_row >div:nth-child(9) {width:60px}
-.prntbl .prntbl_row >div:nth-child(10) {width:120px}
-.prntbl .prntbl_row >div:nth-child(11) {width:129px}
+.prntbl .prntbl_row >div:nth-child(9) {width:70px}
+.prntbl .prntbl_row >div:nth-child(10) {width:85px}
+.prntbl .prntbl_row >div:nth-child(11) {width:35px}
+.prntbl .prntbl_row >div:nth-child(12) {width:69px}
+.prntbl .prntbl_row >div:nth-child(13) {width:100px}
 
 .prntbl .prntbl_cnt .prntbl_row >div.ml {line-height:25px;white-space:normal}
 
@@ -101,7 +103,7 @@ d_recs,d_stat = drv_data
 <span class="hdr_el_print_only">${user_name|h} - #${d_id} - ${d_name and (d_name + ' - ') or ''|h}${d_date}</span>
 </div>
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>#</div><div>号码</div><div>公司</div><div>数额</div><div>数量</div><div>已送</div><div>现金</div><div>支票</div><div>共计</div><div>联络人</div><div>司机注解</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>#</div><div>号码</div><div>公司</div><div>TERM</div><div>数额</div><div>数量</div><div>现金</div><div>支票</div><div>共计</div><div>联络人</div><div>已送</div><div>总收</div><div>司机注解</div></div>
 <div class="prntbl_cnt">
 <%
 k = 0
@@ -126,16 +128,16 @@ if inst:
 <div>${k}</div>
 <div>${rec['type'] and '收款'.decode('utf8') or rec.get('num') or ''}</div>
 %if rec:
-<div>${rec.get('company') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div><div>${rec.get('delivered') and 'Y' or ''}</div>
-<div class="ml">${inst_cash and 'X' or ''}</div>
+<div>${rec.get('company') or ''|h}</div><div>${rec.get('terms') or ''|h}</div><div>${rec.get('amount') and '$%0.2f' % rec['amount'] or ''}</div><div>${int(rec.get('global_js', {}).get('qtycount', 0)) or ''}</div>
+<div>${inst_cash|h}</div>
 %if False and inst_check_no:
 <div class="ml">${inst_check|h}<br/>#${inst_check_no|h}</div>
 %else:
-<div class="ml">${inst_check and 'X' or ''}</div>
+<div>${inst_check|h}</div>
 %endif
-<div>${inst_amt|h}</div><div class="ml">${inst_contact|h}</div><div>*放行&nbsp;&nbsp;&nbsp;*不交货</div>
+<div>${inst_amt|h}</div><div class="ml">${inst_contact|h}</div><div>${rec.get('delivered') and 'Y' or ''}</div><div></div><div></div>
 %else:
-<div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+<div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
 %endif
 </div>
 %endfor
@@ -143,8 +145,8 @@ if inst:
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
 <div class="d_ftr">
-<div class="xlabel"><div>开始时间:</div><div></div></div>
-<div class="xlabel"><div>结束时间:</div><div></div></div>
+<div class="xlabel" style="display:none"><div>开始时间:</div><div></div></div>
+<div class="xlabel" style="display:none"><div>结束时间:</div><div></div></div>
 <div class="xlabel"><div>A/R:</div><div></div></div>
 <div class="xlabel"><div>Supervisor:</div><div></div></div>
 <div class="xlabel"><div>Cash Depositer:</div><div></div></div>

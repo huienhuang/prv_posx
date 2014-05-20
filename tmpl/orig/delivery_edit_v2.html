@@ -95,6 +95,7 @@ function update__receipt_tbl_row(rec_v, rec)
 {
     rec_v.children('.rec_num').text(rec.type ? '' : (rec['dup'] ? '*' : '') + rec['num']);
     rec_v.children('.rec_company').text(rec['company'] || '');
+    rec_v.children('.rec_terms').text(rec['terms'] || '');
     rec_v.children('.rec_amount').text(rec['amount'] ? '$' + rec['amount'].toFixed(2) : '');
     
     rec_v.find('input[name="rec_delivered"]').prop('checked', !!rec['delivered']);
@@ -227,6 +228,7 @@ function click_save__data_input()
         rec['type'] = 1;
         rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
         rec['company'] = customer;
+        rec['terms'] = in_els['terms'][0].val();
         rec['cid'] = cid;
         rec['amount'] = parseFloat(in_els['amount'][0].val()) || 0.0;
         rec['payment_required'] = 1;
@@ -971,6 +973,7 @@ in_els.customer[0].autocomplete({
     select: function(event, ui) {
         var els = g_v_dlg_data_input.data('in_els');
         els.cid[0].val(ui.item[0]);
+        els.terms[0].val(ui.item[2].udf5 || '');
     },
     response: function(event, ui) {
         var ct = ui.content;
@@ -1066,19 +1069,20 @@ load_delivery_record("${d_id or ''}");
 .tab_ctrl {height:50px;line-height:50px;padding-left:10px;}
 .tab_ctrl input, .tab_ctrl select {margin-right:10px;}
 
-.receipt_tbl_row {height:42px;font-size:20px;line-height:42px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:1129px;}
+.receipt_tbl_row {height:42px;font-size:20px;line-height:42px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:1119px;}
 .receipt_tbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;}
 .receipt_tbl_row > div:nth-child(1) {${read_only and 'width:0' or 'width:89px'}}
 .receipt_tbl_row > div:nth-child(2) {width:50px;color:#1d4500}
 .receipt_tbl_row > div:nth-child(3) {width:80px;font-weight:bold}
 .receipt_tbl_row > div:nth-child(4) {width:300px;font-style:italic;color:#0050a1}
-.receipt_tbl_row > div:nth-child(5) {width:80px;}
+.receipt_tbl_row > div:nth-child(5) {width:60px;}
 .receipt_tbl_row > div:nth-child(6) {width:80px;}
-.receipt_tbl_row > div:nth-child(7) {width:0px;}
-.receipt_tbl_row > div:nth-child(8) {width:80px;}
-.receipt_tbl_row > div:nth-child(9) {width:210px;cursor:pointer}
-.receipt_tbl_row > div:nth-child(10) {width:80px;cursor:pointer}
+.receipt_tbl_row > div:nth-child(7) {width:80px;}
+.receipt_tbl_row > div:nth-child(8) {width:0px;}
+.receipt_tbl_row > div:nth-child(9) {width:80px;}
+.receipt_tbl_row > div:nth-child(10) {width:110px;cursor:pointer}
 .receipt_tbl_row > div:nth-child(11) {width:80px;cursor:pointer}
+.receipt_tbl_row > div:nth-child(12) {width:110px;cursor:pointer}
 .receipt_tbl .receipt_tbl_row:nth-child(even) {background-color:#f9f9f9}
 .receipt_tbl_header,.receipt_tbl_footer {position:absolute;top:0;left:0;right:0;background-color:#f1f1f1;font-weight:bold;}
 .receipt_tbl_header {top:50px}
@@ -1087,7 +1091,7 @@ load_delivery_record("${d_id or ''}");
 .receipt_tbl_footer > div:nth-child(1) {width:120px;}
 .receipt_tbl_footer > div:nth-child(2) {width:780px;}
 
-.receipt_tbl {position:absolute;top:93px;bottom:43px;right:0;left:0;overflow:hidden;overflow-y:scroll;min-width:1129px;}
+.receipt_tbl {position:absolute;top:93px;bottom:43px;right:0;left:0;overflow:hidden;overflow-y:scroll;min-width:1119px;}
 .receipt_tbl_row input[name="rec_memo"] {width:224px}
 .receipt_tbl_row .rec_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
 .receipt_tbl_row .rec_tools > span {position:absolute;display:block;top:8px;left:2px;width:26px;height:26px;cursor:pointer}
@@ -1168,6 +1172,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div>#</div>
 <div>Receipt#</div>
 <div>Customer</div>
+<div>Terms</div>
 <div>Amount</div>
 <div>Driver</div>
 <div title="Payment Required">应结帐</div>
@@ -1189,6 +1194,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div class="rec_pos"></div>
 <div class="rec_num" onclick="return open_wnd_receipt.call(this)"></div>
 <div class="rec_company" onclick="return open_wnd_customer.call(this)"></div>
+<div class="rec_terms"></div>
 <div class="rec_amount"></div>
 <div class="rec_driver"></div>
 <div class="rec_payment_required"><input type="checkbox" name="rec_payment_required" onchange="return change__row_cb.call(this)" /></div>
@@ -1214,6 +1220,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div class="xlabel"><div>Company:</div><div><input type="text" name="rec_customer" /></div></div>
 <div class="xlabel"><div>Amount:</div><div><input type="text" name="rec_amount" /></div></div>
 <input type="hidden" name="rec_cid" />
+<input type="hidden" name="rec_terms" />
 </div>
 
 <div id="dlg_payment" class="dlg_cls">

@@ -5,29 +5,49 @@
 <title>POSX - Cash Drawer</title>
 
 <script type="text/javascript">
-
-function get_media_total()
+function load_media()
 {
-    var sum = 0.00;
+    var lst = g_v_dlg_drawer_count.data('lst');
+    var sum = 0;
     for(var i = 0; i < g_v_media_qty_ins.length; i++) {
         var cd = $(g_v_media_qty_ins[i]);
         var lbl = cd.parent().prev().text();
         if(lbl[0] !== '$') continue;
+        var val = parseFloat(lbl.split(' ')[0].substr(1));
+        var qty = lst[val.toFixed(2)] || 0;
+        if(qty < 0) qty = 0;
+        var ttl = val * qty;
         
-        sum += parseFloat(lbl.split(' ')[0].substr(1)) * (parseFloat(cd.val()) || 0.0);
+        cd.val(qty || '');
+        cd.next('input').val(qty ? ttl.toFixed(2) : '');
+        
+        sum += ttl;
     }
     
-    return sum;
+    lst['sum'] = sum;
+    g_v_dlg_media.find('.media_total').val( sum.toFixed(2) );
 }
 
 function media_qty_chg()
 {
+    var lst = g_v_dlg_drawer_count.data('lst');
     var cd = $(this);
     var lbl = cd.parent().prev().text();
-    if(lbl[0] === '$')
-        cd.next('input').val( (parseFloat(lbl.split(' ')[0].substr(1)) * (parseFloat(cd.val()) || 0.0) ).toFixed(2) );
+    if(lbl[0] === '$') {
+        var val = parseFloat(lbl.split(' ')[0].substr(1));
+        var qty = parseFloat(cd.val()) || 0.0;
+        var sal = val.toFixed(2);
+        if(qty < 0) qty = 0;
+        
+        var old_ttl = (lst[sal] || 0) * val;
+        lst[sal] = qty;
+        var new_ttl = val * qty;
+        lst['sum'] -= old_ttl - new_ttl;
+        
+        cd.next('input').val( qty ? new_ttl.toFixed(2) : '' );
+    }
     
-    g_v_dlg_media.find('.media_total').val( get_media_total().toFixed(2) );
+    g_v_dlg_media.find('.media_total').val( lst.sum.toFixed(2) );
 }
 
 
@@ -35,15 +55,22 @@ $(function() {
 
 $('.btn').button();
 $('.tp_ctrl input[value="Quit"]').click(go_home);
-$('.tp_ctrl input[value="Drawer Count"]').click(function() { g_v_dlg_drawer_count.dialog('open'); });
+$('.tp_ctrl input[value="Drawer Count"]').click(function() { g_v_dlg_drawer_count.data('lst', {}).dialog('open'); });
 
 g_v_dlg_drawer_count = $('#dlg_drawer_count').dialog({
     autoOpen: false,
     modal: true,
     width:480,
-    height:280,
+    height:300,
+    close: function(event, ui) {
+        g_v_dlg_drawer_count.data('lst', undefined);
+    }
 });
-$('input[value="Media"]', g_v_dlg_drawer_count).click(function() { g_v_dlg_media.dialog('open'); });
+$('input[value="Media"]', g_v_dlg_drawer_count).click(function() {
+    load_media();
+    g_v_dlg_media.dialog('open');
+});
+idx_elements(g_v_dlg_drawer_count, 3);
 
 g_v_dlg_media = $('#dlg_media').dialog({
     autoOpen: false,
@@ -51,10 +78,13 @@ g_v_dlg_media = $('#dlg_media').dialog({
     width:400,
     height:570,
     close: function(event, ui) {
-        get_media_total();
+        g_v_dlg_drawer_count.data('in_els').count[0].val( g_v_dlg_drawer_count.data('lst').sum.toFixed(2) );
     }
 });
 g_v_media_qty_ins = g_v_dlg_media.find('.xlabel input:nth-child(1)').change(media_qty_chg);
+
+
+
 
 
 });
@@ -86,10 +116,11 @@ g_v_media_qty_ins = g_v_dlg_media.find('.xlabel input:nth-child(1)').change(medi
 </div>
 
 <div id="dlg_drawer_count" title="Drawer Count">
-<div class="xlabel"><div>Date:</div><div><input type="date" /></div></div>
-<div class="xlabel"><div>Station#:</div><div><select><option>1</option><option>2</option></select></div></div>
+<div class="xlabel"><div>Date:</div><div><input type="date" name="dc_date" /></div></div>
+<div class="xlabel"><div>Station#:</div><div><select name="dc_station"><option>-</option><option>1</option><option>2</option></select></div></div>
 <div class="xlabel"><div>Begin$:</div><div><input type="text" name="dc_begin" /></div></div>
-<div class="xlabel"><div>Count$:</div><div><input type="text" name="dc_count" /> <input type="button" value="Media" class="btn"/></div></div>
+<div class="xlabel"><div>Count$:</div><div><input type="text" name="dc_count" /> <input type="button" value="Media" class="btn" name="dc_btn_media" /></div></div>
+<div class="xlabel"><div></div><div><input type="button" value="Save" class="btn" name="dc_btn_save" /></div></div>
 </div>
 
 <div id="dlg_media" title="Media">
