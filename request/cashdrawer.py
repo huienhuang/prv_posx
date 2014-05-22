@@ -7,10 +7,8 @@ import datetime
 STATIONS_MAP = {
     13: 1,
     8: 2,
-    12: 3,
-    6: 3,
-    3: 3
 }
+DEFAULT_STATION_ID = 3
 
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
@@ -38,8 +36,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r = dict(zip(nzs, r))
             
             glbs = json.loads(r['global_js'])
-            sidx = STATIONS_MAP.get(int(glbs.get('station') or 0), 4)
-            if sidx != station: continue
+            sid = STATIONS_MAP.get(int(glbs.get('station') or 0), DEFAULT_STATION_ID)
+            if sid != station: continue
             
             for v in glbs['tender']:
                 if v['type'] == 1:
