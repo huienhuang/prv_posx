@@ -14,6 +14,7 @@ G_MAP_REPORTS = [
     ('AR Ages', PERM_ADMIN, 'ar_ages'),
     ('Active Customers', PERM_ADMIN, 'active_customers'),
     ('Average Order Value', PERM_ADMIN, 'average_order_value'),
+    ('Delivery Receipts', PERM_ADMIN, 'delivery_receipts'),
     ('Delivery Perfect Order', PERM_ADMIN, 'delivery_perfect_order'),
     ('Worker Productivity', PERM_ADMIN, 'worker_productivity'),
     ('Inventory To Sales Ratio', PERM_ADMIN, 'inventory_to_sales_ratio'),
@@ -292,8 +293,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dps = []
         for k,v in js['summary']:
             if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
-            if not v[3]: continue
-            dps.append( {'x': k * 1000, 'y': round(v[1] * 100 / float(v[3][0]), 2)} );
+            if not v[-1]: continue
+            dps.append( {'x': k * 1000, 'y': round(v[1] * 100 / float(v[-1][0]), 2)} );
         
         chart_config = {
             'zoomEnabled': True,
@@ -313,10 +314,51 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         lst = []
         for k,v in js['summary']:
             if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
-            if not v[3]: continue
-            lst.append( (k, round(v[1] * 100 / float(v[3][0]), 2)) )
+            if not v[-1]: continue
+            lst.append( (k, round(v[1] * 100 / float(v[-1][0]), 2)) )
     
         return (('Inventory/Sales',), lst)
+    
+    
+    def report_delivery_receipts(self, frm_ts, to_ts):
+        js = self.get_data_file_cached('receipt_report', 'receipt_report.txt')
+        if not js: return
+        
+        dps0 = []
+        dps1 = []
+        dps2 = []
+        for k,v in js['summary']:
+            if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
+            dps0.append( {'x': k * 1000, 'y': round(v[1], 2)} )
+            dps1.append( {'x': k * 1000, 'y': round(v[4], 2)} )
+            if v[1]: dps2.append( {'x': k * 1000, 'y': round(v[4] * 100 / v[1], 2)} )
+        
+        chart_config = {
+            'zoomEnabled': True,
+            'theme': "theme2",
+            'title': {'text': "Delivery Receipts"},
+            'axisY': {'title':"All"},
+            'axisY2': {'title':"Rate"},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50},
+            'data': [
+                {'showInLegend': True, 'name': 'All', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps0},
+                {'showInLegend': True, 'name': 'Delivery Only', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps1},
+                {'showInLegend': True, 'name': 'Rate', 'axisYType': 'secondary', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps2}
+            ]
+        }
+        return {'type':'chart', 'config': chart_config}
+        
+    def export_report_delivery_receipts(self, frm_ts, to_ts):
+        js = self.get_data_file_cached('receipt_report', 'receipt_report.txt')
+        if not js: return
+        
+        lst = []
+        for k,v in js['summary']:
+            if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
+            lst.append( (k, round(v[1], 2), round(v[4], 2)) )
+    
+        return (('All','DeliveryOnly'), lst)
+    
     
     def fn_export_reports(self):
         js = self.req.psv_js('js')
