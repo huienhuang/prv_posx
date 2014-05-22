@@ -36,6 +36,7 @@ TOOLS_MAP = (
 
 ('Accounting', (
     ('Daily Inventory', 'reportdaily?fn=view_inv', PERM_ACCOUNTINGV2),
+    ('Cash Drawer', 'cashdrawer', PERM_ADMIN),
 )),
 
 ('Purchasing', (

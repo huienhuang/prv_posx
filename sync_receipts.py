@@ -97,7 +97,7 @@ def sync_receipts(cj_data, mode=0):
 
     seq = 0
     sql = ''
-    cur.execute("select sid,billtosid,receiptnum,receipttype,receiptstatus,receiptrefsid,sorefsid,sotype,sonum,tendertype,cashier,clerk,total,subtotal,taxamount,discamount,discpercent,receiptdate,receipttime,feeamount,creationdate,comments,pricelevel,comments from Receipt where " + where_sql + ' order by sid asc')
+    cur.execute("select sid,billtosid,receiptnum,receipttype,receiptstatus,receiptrefsid,sorefsid,sotype,sonum,tendertype,cashier,clerk,total,subtotal,taxamount,discamount,discpercent,receiptdate,receipttime,feeamount,creationdate,comments,pricelevel,comments,workstation from Receipt where " + where_sql + ' order by sid asc')
     cur_nzs = [ d[0].lower() for d in cur.description ]
     for r in cur.rows():
         r = dict(zip(cur_nzs, r))
@@ -194,6 +194,7 @@ def sync_receipts(cj_data, mode=0):
             'itemcount': len(item_sids),
             'qtycount': qty_count,
             'memo': r['comments'] or '',
+            'station': r['workstation']
         }, separators=(',',':'))
         
         seq += 1

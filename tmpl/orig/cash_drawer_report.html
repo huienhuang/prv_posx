@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Cash Drawer > Printing</title>
+
+<script type="text/javascript">
+
+function load_data(jss)
+{
+    var o = $('.report_blk').empty();
+    
+    for(var i = 0; i < jss.length; i++) {
+        var d = jss[i];
+        var js = d[4];
+        o
+        .append($('<div></div>').text( '*** RID#' + d[0] + ' - Station#' + d[1] + ' - ' + d[3] + ' ***'))
+        .append($('<div></div>').text('begin: $' + js.begin.toFixed(2)))
+        .append($('<div></div>').text('cash: $' + js.cash.toFixed(2) + '  vs $' + js.total[0][0].toFixed(2) + ' (' + js.total[0][1] + ')'))
+        .append($('<div></div>').text('check: $' + js.check.toFixed(2) + ' vs $' + js.total[1][0].toFixed(2) + ' (' + js.total[1][1] + ')'))
+        .append($('<div style="margin-bottom:10px"></div>').text('result: ' + (d[2] ? 'error: ' + d[2] : 'ok')));
+    }
+}
+
+$(function() {
+
+
+$('.tp_ctrl input[value="quit"]').button().click(function() {
+    go_home();
+});
+
+
+$('.tp_ctrl input[value="print"]').button().click(function() {
+    window.print();
+});
+
+
+$('input[name="frm_date"]').datepicker().change(function() {
+    var d = $(this).datepicker('getDate');
+    get_js('?fn=get_report', {'frm_date': d ? parseInt(d.getTime() / 1000) : 0 }, load_data);
+}).change();
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+@media print {
+.tp_ctrl {display:none}
+}
+
+@page {
+margin:30px 50px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="text" name="frm_date" />
+<input type="button" value="print" class="btn" />
+<input type="button" value="quit" class="btn" style="float:right;margin-top:9px" />
+</div>
+
+<div class="report_blk"></div>
+
+</body>
+</html>

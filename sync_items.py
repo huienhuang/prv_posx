@@ -72,7 +72,7 @@ def sync_items(cj_data, mode=0):
             'vends': vends,
         }
         jsp = {
-            'cost': rf2(r['cost']),
+            'cost': rf(r['cost'], 5),
             'costs': costs,
         }
         
