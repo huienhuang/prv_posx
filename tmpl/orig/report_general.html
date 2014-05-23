@@ -74,9 +74,12 @@ els.export[0].click(function() {
     
 });
 
+var cur_dt = new Date()
+var pre_dt = new Date(cur_dt.getFullYear(), cur_dt.getMonth() - 12);
+
 els.quit[0].click(go_home);
-els.frm_date[0].change(load_report);
-els.to_date[0].change(load_report);
+els.frm_date[0].val(pre_dt.getFullYear() + '-' + str_pad(pre_dt.getMonth() + 1, 2, '0')).change(load_report);
+els.to_date[0].val(cur_dt.getFullYear() + '-' + str_pad(cur_dt.getMonth() + 1, 2, '0')).change(load_report);
 els.report[0].change(load_report).change();
 
 });

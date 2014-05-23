@@ -5,6 +5,7 @@ import json
 import config
 import cPickle
 import const
+import time
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -41,6 +42,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_comm_by_dept(self):
         reports = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
+        reports.sort()
+        
+        tp = time.localtime()
+        dt = "%04d-%02d-%02d" % (tp.tm_year, tp.tm_mon, 1)
+        if not reports or reports[-1] != dt: reports.append(dt)
         
         self.req.writefile('comm_by_dept.html', {'reports': reports, 'const': const})
     
@@ -59,7 +65,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for m in months:
             if not m.replace('-', '').isdigit(): continue
             datafile = '%s/data/%s_comm_clerks.txt' % (self.req.app.app_dir, m)
-            if not os.path.exists(datafile): return
+            if not os.path.exists(datafile):
+                datafile = '%s/data/%s_comm.txt' % (self.req.app.app_dir, m)
+                if not os.path.exists(datafile): return
+                
             js[ m ] = cPickle.load( open(datafile, 'rb') )
             
         self.req.writejs(js)
