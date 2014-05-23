@@ -82,7 +82,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'title': {'text': "Receipts"},
             'axisY': {'title':"Average"},
             'axisY2': {'title':"Count"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'showInLegend': True, 'name': 'Average', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps},
                 {'showInLegend': True, 'name': 'Count', 'axisYType': 'secondary', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps_1}
@@ -137,7 +137,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'zoomEnabled': True,
             'theme': "theme2",
             'title': {'text': "AR Ages"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'showInLegend': True, 'type': "line", 'xValueType': "dateTime", 'name': '<=30', 'dataPoints': dps_0},
                 {'showInLegend': True, 'type': "line", 'xValueType': "dateTime", 'name': '<=60', 'dataPoints': dps_1},
@@ -173,7 +173,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'zoomEnabled': True,
             'theme': "theme2",
             'title': {'text': "Active Customers"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'axisY': {'title':"Retention Rate"},
             'axisY2': {'title':"Active Count"},
             'data': [
@@ -246,7 +246,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'zoomEnabled': True,
             'theme': "theme2",
             'title': {'text': "Delivery Perfect Order"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'toolTipContent': '{x}: {y}, Count: {count}', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps}
             ]
@@ -279,7 +279,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'zoomEnabled': True,
             'theme': "theme2",
             'title': {'text': "Worker Productivity"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'toolTipContent': '{x}: {y}, Lines: {lines}', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps}
             ]
@@ -300,7 +300,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'zoomEnabled': True,
             'theme': "theme2",
             'title': {'text': "Inventory To Sales Ratio"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'toolTipContent': '{x}: {y}', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps}
             ]
@@ -339,7 +339,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'title': {'text': "Delivery Receipts"},
             'axisY': {'title':"All"},
             'axisY2': {'title':"Rate"},
-            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "day", 'interval': 1},
+            'axisX': {'valueFormatString': "MMM-YYYY", 'labelAngle': -50, 'intervalType': "month", 'interval': 1},
             'data': [
                 {'showInLegend': True, 'name': 'All', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps0},
                 {'showInLegend': True, 'name': 'Delivery Only', 'type': "line", 'xValueType': "dateTime", 'dataPoints': dps1},
