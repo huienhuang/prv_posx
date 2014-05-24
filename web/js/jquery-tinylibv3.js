@@ -998,3 +998,85 @@ $.fn.tinymenu = function() {
 })(jQuery);
 
 
+(function($) {
+
+function load_cb(js)
+{
+    
+}
+
+function load()
+{
+    var ctx = this;
+    var data = ctx.data;
+    var seq = ++data.seq;
+    var render = ctx.render;
+    $.get(ctx.src, {}, function(js) {
+        if(seq != data.seq || !js.lst) return;
+        if(js.direction === 0 || js.direction === 1 || js.direction === -1) {
+            var dlst = [];
+            for(var i = 0; i < js.lst.length; i++) dlst.push(render.call(js.lst[i]));
+            if(js.direction === -1) ctx.cnt.prepend(dlst);
+            else ctx.cnt.append(dlst);
+        }
+        
+    }, 'json');
+}
+
+function setup_timer(direction)
+{
+    var ctx = this;
+    var data = ctx.data;
+    if(data.load_timer) window.clearTimeout(data.load_timer);
+    data.direction = direction;
+    data.load_timer = window.setTimeout(function() { load.call(ctx); }, 200);
+}
+
+function scroll()
+{
+    var ctx = $(this).data('tinylist');
+    var i = ctx.self.scrollTop();
+    var j = ctx.cnt.outerHeight() - ctx.cnt.height();
+    if(i <= 0) {
+        ctx.self.scrollTop(1);
+        setup_timer.call(ctx, -1);
+    } else if(i >= j) {
+        ctx.self.scrollTop(j - 1);
+        setup_timer.call(ctx, 1);
+    }
+}
+
+function init(a)
+{
+    ctx = {};
+    $.extend(ctx, a);
+    this.addClass('tinylist');
+    
+    ctx.self = this;
+    ctx.cnt = $('<div></div>');
+    ctx.data = {seq: 0};
+    
+    this.append(ctx.cnt);
+    this.data('tinylist', ctx);
+    
+    this.scrollTop(1).scroll(scroll);
+}
+
+$.fn.tinylist = function() {
+    var k = arguments[0];
+    if(k === undefined) k = {}
+    
+    if(typeof k === "object") {
+        for(var i = 0; i < this.length; i++)
+            init.apply( $(this[i]), [k] );
+        
+    }
+
+    return this;
+}
+
+})(jQuery);
+
+
+
+

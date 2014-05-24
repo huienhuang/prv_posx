@@ -177,26 +177,6 @@ click: function(r, c, d) {
 }
 });
 
-g_v_datagrid_note = g_v_datagrid[5] = $('#datagrid_note').tinygrid({
-len:0,
-src:{page:'?fn=get_cust_comment', data:{'cid': '${cust_sid}'}},
-cols: [{name:'Date', width:210},
-       {name:'User', width:120},
-       {name:'Note', width:'100%'},
-       {name:'Del', width:40},
-       ],
-footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
-init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 5).change(show_all); },
-click: function(r, c, d) {
-    $.get('?fn=get_cust_note', {'note_id': d[4]}, function(js) {
-        g_v_dlg_comment.data('note_id', js.note_id);
-        $(g_v_dlg_comment.find('input[name="note_val"]')).val(js.val);
-        g_v_dlg_comment.dialog('open');
-    }, 'json');
-}
-
-});
-
 g_v_srch_item = $('#srch_item').autocomplete({
     position: {my:"right top", at:"right bottom"},
     source: '?fn=srch_item_with_cid&cid=${cust_sid}',
@@ -243,12 +223,6 @@ g_v_dlg_comment = $('#dlg_comment').dialog({
         },
         
     }
-});
-
-$('.cust_add_note').click(function() {
-    g_v_dlg_comment.data('note_id', 0);
-    $(g_v_dlg_comment.find('input[name="note_val"]')).val('');
-    g_v_dlg_comment.dialog('open');
 });
 
 g_v_schedule = $('#item_tab_4_schedule');
@@ -308,8 +282,10 @@ g_v_item_tabs = $('.item_tabs').tabs({
         }
         
     },
-    active:${dg_type}
+    active:5//${dg_type}
 });
+
+$('#t_chat').tinylist();
 
 });
 
@@ -353,6 +329,9 @@ g_v_item_tabs = $('.item_tabs').tabs({
 #item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(2) {width:190px}
 #item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(3) {width:190px}
 
+
+#t_chat {position:absolute;top:49px;left:0;right:0;bottom:0;overflow-y:scroll}
+
 </style>
 
 </head>
@@ -388,7 +367,7 @@ ${cust_info['address2']|h}
 <li><a href="#item_tab_2_item">Item</a></li>
 <li><a href="#item_tab_3_receipt">Receipt</a></li>
 <li><a href="#item_tab_4_delivery">Delivery</a></li>
-<li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
+<li><a href="#item_tab_5_note">Note</a></li>
 <li style="float:right"><a href="#item_tab_4_schedule">Schedule</a></li>
 </ul>
 
@@ -397,7 +376,7 @@ ${cust_info['address2']|h}
 <div id="item_tab_2_item"><div id="datagrid_item"></div></div>
 <div id="item_tab_3_receipt"><div id="datagrid_receipt"></div></div>
 <div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
-<div id="item_tab_5_note"><div id="datagrid_note"></div></div>
+<div id="item_tab_5_note"><div id="t_chat"></div></div>
 <div id="item_tab_4_schedule">
 <div>
 <div class="xlabel"><div>OrderDate:</div><div><input type="text" name="schedule_next" style="width:300px" /></div></div>
@@ -416,10 +395,6 @@ ${cust_info['address2']|h}
 </div>
 
 </div>
-</div>
-
-<div id="dlg_comment" title="Add Note">
-<div class="xlabel"><div>Note:</div><div><input type="text" name="note_val" style="width:300px" /></div></div>
 </div>
 
 </body>

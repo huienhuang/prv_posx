@@ -55,7 +55,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_save(self):
         station = self.req.psv_int('station')
-        if station < 1 or station > len(STATIONS): return
+        #if station < 1 or station > len(STATIONS): return
         
         cur_ts = int(time.time())
         
