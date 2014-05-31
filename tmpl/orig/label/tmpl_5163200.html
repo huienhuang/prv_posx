@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header.html" />
+
+<script type="text/javascript">
+
+function setup_data(item)
+{
+    return [];
+}
+
+function add_label(item)
+{
+    var s_item = setup_data(item);
+    for(var i = 0; i < g_labels.length; i++) _fill_label(g_labels[i], s_item);
+}
+
+function change_elem()
+{
+    var wrap_elem = $(this);
+    var js = wrap_elem.data('js');
+    var elem = js.v;
+    if(elem === undefined) return;
+    js.v = undefined;
+    
+    var val = wrap_elem.detach().val();
+    var c_elem = js.type ? elem.find('td') : elem;
+    if(html_to_text(c_elem) === val) return;
+    
+    var idx = elem.index();
+    var new_val = text_to_html(val);
+    var s = 0;
+    for(var i = 0; i < g_labels.length; i++) {
+        elem = $( g_labels[i].children()[idx] );
+        var i_elem = (js.type ? elem.find('td') : elem).html(new_val);
+        if(i == 0) s = maximize_size(i_elem);
+        if(s) i_elem.css('font-size', s + 'px');
+    }
+}
+
+function maximize_size(i_elem)
+{
+    var html = i_elem.html();
+    var div = $('<div></div>').html(html);
+    i_elem.empty().append(div);
+    
+    var s = 0;
+    for(var i = 200; i >= 8; i--) {
+        i_elem.css('font-size', i + 'px');
+        if(div.prop('scrollWidth') <= div.width() && div.prop('scrollHeight') <= div.height()) {
+            s = i - 1;
+            break;
+        }
+    }
+
+    i_elem.html(html);
+    
+    return s;
+}
+
+$(function() {
+
+g_labels = [];
+var lst = create_new_paper().children('div').addClass('label_active');
+for(var i = 0; i < lst.length; i++) g_labels.push($(lst[i]));
+
+window.onbeforeunload = undefined;
+
+});
+
+</script>
+
+<style type="text/css">
+.labelpaper > div > div {line-height:20px;height:20px;}
+.labelpaper > div > div.item_desc {top:3px;bottom:3px;font-size:20px;line-height:1 !important;font-weight:bold}
+
+.labelpaper > div > div.le_elem_multi td {position:relative}
+.labelpaper > div > div.le_elem_multi td div {position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;white-space:nowrap}
+
+.labelpaper > div:nth-child(1) {top:0.5in;left:0.16in}
+.labelpaper > div:nth-child(2) {top:0.5in;left:4.34in}
+.labelpaper > div:nth-child(3) {top:2.5in;left:0.16in}
+.labelpaper > div:nth-child(4) {top:2.5in;left:4.34in}
+.labelpaper > div:nth-child(5) {top:4.5in;left:0.16in}
+.labelpaper > div:nth-child(6) {top:4.5in;left:4.34in}
+.labelpaper > div:nth-child(7) {top:6.5in;left:0.16in}
+.labelpaper > div:nth-child(8) {top:6.5in;left:4.34in}
+.labelpaper > div:nth-child(9) {top:8.5in;left:0.16in}
+.labelpaper > div:nth-child(10) {top:8.5in;left:4.34in}
+</style>
+
+</head>
+<body>
+
+<div class="labelpaper">
+%for i in range(10):
+<div>
+<div class="item_desc le_elem le_elem_multi" title="Desc"><table><tr><td></td></tr></table></div>
+</div>
+%endfor
+</div>
+
+</body>
+</html>

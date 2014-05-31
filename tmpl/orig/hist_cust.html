@@ -73,6 +73,28 @@ function change__schedule_val()
     }, 'json');
 }
 
+function note_user_click()
+{
+    var o = $(this);
+    var c = o.data('note');
+    
+    open_dlg_note(c.nid, c.uid, c.name);
+}
+
+function open_dlg_note(note_id, to_user_id, to_user_name)
+{
+    g_v_dlg_comment.data('note', {'note_id':note_id || 0, 'to_user_id':to_user_id || 0, 'to_user_name':to_user_name || ''});
+    g_v_dlg_comment.find('textarea[name="note_val"]').val('');
+    
+    var title = 'New';
+    if(note_id) {
+        title = 'Reply #' + note_id;
+        if(to_user_name) title += ' @' + to_user_name;
+    }
+    g_v_dlg_comment.dialog('option', 'title', title).dialog('open');
+}
+
+
 $(function() {
 
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
@@ -192,39 +214,6 @@ g_v_srch_item = $('#srch_item').autocomplete({
 }).focus();
 g_v_srch_item.data("ui-autocomplete")._renderItem = srch_item_render_item;
 
-g_v_dlg_comment = $('#dlg_comment').dialog({
-    autoOpen: false,
-    width:500,
-    height:200,
-    close: function() {
-        g_v_dlg_comment.data('note_id', 0);
-    },
-    buttons: {
-        'del': function() {
-            var note_id = parseInt(g_v_dlg_comment.data('note_id') || 0);
-            if(!note_id) return;
-            $.post('?fn=del_cust_comment', {'cid': '${cust_sid}', 'note_id': note_id}, function(js) {
-                if(!js || !js.ret) return;
-                g_v_dlg_comment.dialog('close');
-                g_v_datagrid_note.tinygrid('update', -1, true, true, true);
-            }, 'json');
-        },
-        'set': function() {
-            var o = $(g_v_dlg_comment.find('input[name="note_val"]'));
-            var v = $.trim(o.val());
-            if(!v) return;
-            
-            var note_id = parseInt(g_v_dlg_comment.data('note_id') || 0);
-            $.post('?fn=add_cust_comment', {'cid': '${cust_sid}', 'comment': v, 'note_id': note_id}, function(js) {
-                if(!js || !js.ret) return;
-                g_v_dlg_comment.dialog('close');
-                g_v_datagrid_note.tinygrid('update', -1, true, true, true);
-            }, 'json');
-        },
-        
-    }
-});
-
 g_v_schedule = $('#item_tab_4_schedule');
 g_v_schedule_periods_xtbl = $('.periods_xtbl .xtbl_body', g_v_schedule);
 idx_elements(g_v_schedule, 9);
@@ -271,6 +260,42 @@ els.date[0].datepicker().change(change__schedule_val);
 els.rule[0].change(change__schedule_val);
 els.next[0].datepicker().change(change__schedule_val);
 
+
+g_v_note = $('#c_note').tinylist({
+    src: {url:'?fn=get_cust_note&len=10&cid=${cust_sid}'},
+    render: function(js) {
+        var id = js[0];
+        var n = $.parseJSON('[' + js[1] + ']');
+        var m = n[0];
+        var a = $('<div></div>');
+        var o = $('<div class="cust_note"></div>').data('hint', id)
+        .append(
+            $('<div></div>')
+            .append( $('<span class="note_user"></span>').text(m[1]).data('note', {'name':m[1], 'uid': m[0], 'nid':id}) )
+            .append( $('<div></div>').text( '#' + id + ' - ' + fmt_time(m[5])) )
+        )
+        .append(
+            $('<div></div>').append( $('<pre></pre>').text(m[4]) )
+        )
+        .append(a);
+        
+        
+        for(var i = 1; i < n.length; i++) {
+            var s = $('<div></div>');
+            var j = n[i];
+            s.append( $('<span class="note_user"></span>').text(j[1]).data('note', {'name':j[1], 'uid': j[0], 'nid':id}) );
+            if(j[2]) s.append('@').append( $('<span class="note_user"></span>').text(j[3]).data('note', {'name':j[3], 'uid': j[2], 'nid':id}) );
+            
+            a.append(s.append(': ').append($('<span class="note_reply"></span>').text(j[4])));
+        }
+        
+        o.find('.note_user').click(note_user_click);
+        
+        return o;
+    }
+});
+
+
 g_v_item_tabs = $('.item_tabs').tabs({
     activate: function(event, ui) {
         var idx = $(this).tabs('option', 'active');
@@ -279,13 +304,42 @@ g_v_item_tabs = $('.item_tabs').tabs({
         var nz = ui.newTab.children('a').prop('hash').substr(12);
         if(nz === 'schedule') {
             g_v_schedule.data('in_els').refresh[0].click();
+        } else if (nz === 'note') {
+            g_v_note.tinylist('refresh');
         }
         
     },
-    active:5//${dg_type}
+    active:${dg_type}
 });
 
-$('#t_chat').tinylist();
+
+
+g_v_dlg_comment = $('#dlg_comment').dialog({
+    autoOpen: false,
+    width:500,
+    height:300,
+    buttons: {
+        'add': function() {
+            var val = $.trim(g_v_dlg_comment.find('textarea[name="note_val"]').val());
+            if(!val) return;
+            
+            var note = g_v_dlg_comment.data('note');
+            note.note_val = val;
+            
+            post_js('?fn=add_cust_comment&cid=${cust_sid}', note, function(js) {
+                g_v_dlg_comment.dialog('close');
+                if(note.note_id)
+                    g_v_note.tinylist('refresh', note.note_id);
+                else
+                    g_v_note.tinylist('load', -1);
+            });
+        }
+    }
+});
+
+$('.cust_add_note').click(function() {
+    open_dlg_note();
+});
 
 });
 
@@ -329,9 +383,17 @@ $('#t_chat').tinylist();
 #item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(2) {width:190px}
 #item_tab_4_schedule .periods_xtbl .xtbl_row div:nth-child(3) {width:190px}
 
+#dlg_comment {text-align:center}
+#c_note {position:absolute;top:49px;left:0;right:0;bottom:0;overflow-y:scroll}
 
-#t_chat {position:absolute;top:49px;left:0;right:0;bottom:0;overflow-y:scroll}
-
+.cust_note {border-radius:8px;border:1px solid #ccc;min-height:70px;margin:15px 5px;padding:5px 5px;background-color:#f7fff0}
+.cust_note:nth-child(even) {background-color:#f0f5ff}
+.cust_note >div:nth-child(1) {border-bottom:1px solid #ccc;position:relative;height:26px;line-height:26px;}
+.cust_note >div:nth-child(1) >div:nth-child(2) {position:absolute;width:300px;height:26px;top:0;right:0;font-weight:bold;font-style:italic;text-align:right;color:#818181;font-size:16px;}
+.cust_note >div:nth-child(1) >span:nth-child(1) {font-size:18px;}
+.cust_note pre {margin:5px 8px;padding:0;}
+.cust_note .note_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
+.cust_note .note_reply {font-size:16px;}
 </style>
 
 </head>
@@ -367,7 +429,7 @@ ${cust_info['address2']|h}
 <li><a href="#item_tab_2_item">Item</a></li>
 <li><a href="#item_tab_3_receipt">Receipt</a></li>
 <li><a href="#item_tab_4_delivery">Delivery</a></li>
-<li><a href="#item_tab_5_note">Note</a></li>
+<li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
 <li style="float:right"><a href="#item_tab_4_schedule">Schedule</a></li>
 </ul>
 
@@ -376,7 +438,7 @@ ${cust_info['address2']|h}
 <div id="item_tab_2_item"><div id="datagrid_item"></div></div>
 <div id="item_tab_3_receipt"><div id="datagrid_receipt"></div></div>
 <div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
-<div id="item_tab_5_note"><div id="t_chat"></div></div>
+<div id="item_tab_5_note"><div id="c_note"></div></div>
 <div id="item_tab_4_schedule">
 <div>
 <div class="xlabel"><div>OrderDate:</div><div><input type="text" name="schedule_next" style="width:300px" /></div></div>
@@ -395,6 +457,10 @@ ${cust_info['address2']|h}
 </div>
 
 </div>
+</div>
+
+<div id="dlg_comment">
+<textarea name="note_val" style="height:90%;width:90%"></textarea>
 </div>
 
 </body>

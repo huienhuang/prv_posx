@@ -1000,9 +1000,30 @@ $.fn.tinymenu = function() {
 
 (function($) {
 
-function load_cb(js)
+function update_ui(direction, lst)
 {
+    var ctx = this;
+    var data = ctx.data;
     
+    var load_data = data.load_data;
+    data.load_data = false;
+    
+    if(!direction)
+        ctx.cnt.empty();
+    else if(direction === -1) {
+        var clst = ctx.cnt.children('div');
+        ctx.cnt.prepend(lst);
+    }
+    else
+        ctx.cnt.append(lst);
+    
+    var h = Math.max(ctx.self.height() - 20, 1);
+    ctx.padding = Math.max( Math.ceil(ctx.cnt.outerHeight(false) * 1.0 / h), ctx.min_padding );
+    
+    ctx.cnt.css('padding', ctx.padding + 'px 0');
+    
+    scroll.call(ctx.self);
+    data.load_data = load_data;
 }
 
 function load()
@@ -1011,13 +1032,21 @@ function load()
     var data = ctx.data;
     var seq = ++data.seq;
     var render = ctx.render;
-    $.get(ctx.src, {}, function(js) {
-        if(seq != data.seq || !js.lst) return;
-        if(js.direction === 0 || js.direction === 1 || js.direction === -1) {
+    
+    var args = $.extend({}, ctx.src.args || {});
+    var direction = args.direction = data.direction;
+    args.token = data.token;
+    
+    $.get(ctx.src.url, args, function(js) {
+        if(seq != data.seq || !js || !js.token) return;
+        
+        data.token = js.token;
+        var lst = js.lst;
+        if(lst) {
             var dlst = [];
-            for(var i = 0; i < js.lst.length; i++) dlst.push(render.call(js.lst[i]));
-            if(js.direction === -1) ctx.cnt.prepend(dlst);
-            else ctx.cnt.append(dlst);
+            for(var i = 0; i < lst.length; i++) dlst.push(render.call(ctx, lst[i]));
+            
+            update_ui.call(ctx, direction, dlst);
         }
         
     }, 'json');
@@ -1029,20 +1058,48 @@ function setup_timer(direction)
     var data = ctx.data;
     if(data.load_timer) window.clearTimeout(data.load_timer);
     data.direction = direction;
-    data.load_timer = window.setTimeout(function() { load.call(ctx); }, 200);
+    data.load_timer = window.setTimeout(function() { load.call(ctx); }, 300);
+}
+
+function refresh(hint) {
+    var ctx = this;
+    var data = ctx.data;
+    data.seq++;
+    data.token = undefined;
+    
+    if(hint === undefined) {
+        var lst = ctx.cnt.children('div');
+        for(var i = 0; i < lst.length; i++) {
+            var o = $(lst[i]);
+            if(o.position().top + o.outerHeight(false) >= 0) {
+                if(!ctx.src.args) ctx.src.args = {};
+                ctx.src.args.hint = o.data('hint');
+                break;
+            }
+        }
+    } else {
+        if(!ctx.src.args) ctx.src.args = {};
+        ctx.src.args.hint = hint;
+    }
+    
+    update_ui.call(ctx, 0);
+    
+    data.load_data = true;
+    setup_timer.call(ctx, 1);
 }
 
 function scroll()
 {
     var ctx = $(this).data('tinylist');
+    
     var i = ctx.self.scrollTop();
-    var j = ctx.cnt.outerHeight() - ctx.cnt.height();
-    if(i <= 0) {
-        ctx.self.scrollTop(1);
-        setup_timer.call(ctx, -1);
-    } else if(i >= j) {
-        ctx.self.scrollTop(j - 1);
-        setup_timer.call(ctx, 1);
+    var j = ctx.cnt.outerHeight(false) - ctx.self.height() - ctx.padding;
+    if(i < ctx.padding) {
+        ctx.self.scrollTop(ctx.padding);
+        ctx.data.load_data && setup_timer.call(ctx, -1);
+    } else if(i > j) {
+        ctx.self.scrollTop(j);
+        ctx.data.load_data && setup_timer.call(ctx, 1);
     }
 }
 
@@ -1054,13 +1111,31 @@ function init(a)
     
     ctx.self = this;
     ctx.cnt = $('<div></div>');
-    ctx.data = {seq: 0};
+    ctx.data = {seq: 0, load_data: ctx.preload};
     
     this.append(ctx.cnt);
-    this.data('tinylist', ctx);
+    ctx.min_padding = ctx.padding = Math.ceil((ctx.cnt.outerHeight() - ctx.cnt.height()) / 2);
     
-    this.scrollTop(1).scroll(scroll);
+    this.data('tinylist', ctx);
+
+    this.scrollTop(ctx.padding).scroll(scroll);
+    if(ctx.data.load_data) setup_timer.call(ctx, 1);
 }
+
+var call = {
+    'load': function(direction) {
+        for(var i = 0; i < this.length; i++)
+            setup_timer.call($(this[i]).data('tinylist'), direction);
+        return this;
+    },
+    
+    'refresh': function(hint) {
+        for(var i = 0; i < this.length; i++)
+            refresh.call($(this[i]).data('tinylist'), hint);
+        return this;
+    }
+    
+};
 
 $.fn.tinylist = function() {
     var k = arguments[0];
@@ -1070,12 +1145,16 @@ $.fn.tinylist = function() {
         for(var i = 0; i < this.length; i++)
             init.apply( $(this[i]), [k] );
         
+    } else if (typeof k === "string" && call[k] && this.length) {
+        return call[k].apply(this, Array.prototype.slice.call(arguments, 1));
+    
     }
 
     return this;
 }
 
 })(jQuery);
+
 
 
 

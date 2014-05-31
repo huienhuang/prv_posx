@@ -10,10 +10,12 @@ body {background-color:#ddd}
 .labelpaper > div > div.item_divider {top:35px;left:0;right:0;height:0px;border-bottom:3px solid #000}
 .labelpaper > div > div.item_price {bottom:5px;left:8px;right:8px;font-weight:bold;font-size:26px}
 .labelpaper > div > div.item_desc {height:auto;top:40px;bottom:40px;left:8px;right:8px;font-size:32px;line-height:36px;}
-.labelpaper > div > div.item_desc table {width:100%;height:100%;padding:0}
+.labelpaper > div > div.item_desc table {width:100%;height:100%}
 .labelpaper > div > div.item_desc table td {vertical-align:middle}
 
-.labelpaper > div > div.le_elem_multi td {white-space:normal}
+.labelpaper > div > div.le_elem_multi table {border-collapse:collapse}
+.labelpaper > div > div.le_elem_multi table, .labelpaper > div > div.le_elem_multi tbody, .labelpaper > div > div.le_elem_multi tr, .labelpaper > div > div.le_elem_multi td {padding:0;margin:0;border:none !important}
+.labelpaper > div > div.le_elem_multi td {white-space:normal;}
 .labelpaper > div.label_active {background-color:#9dc3e0}
 .labelpaper > div > div.le_elem:hover {background-color:#fff0df}
 

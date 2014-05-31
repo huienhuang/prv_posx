@@ -185,44 +185,81 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writejs(ret)
     
     def fn_get_cust_note(self):
-        note_id = self.req.psv_int('note_id')
-        if not note_id: return
+        cid = self.req.qsv_int('cid')
+        direction = self.req.qsv_int('direction')
+        if direction not in (1, -1): return
+        a_token = json.loads(self.req.qsv_ustr('token') or '{}')
+        rlen = min(max(self.req.qsv_int('len'), 10), 50)
+        goto = self.req.qsv_int('hint')
         
         cur = self.cur()
-        cur.execute('select val from customer_comment where id=%s', (note_id,))
-        rows = cur.fetchall()
-        if not rows: return
+        token = {}
+        if not a_token:
+            lst = None
+            if goto:
+                cur.execute('select id,js from customer_comment where cid=%d and id<=%d order by id desc limit 0,%d' % (
+                    cid, goto, rlen,
+                    )
+                )
+                lst = cur.fetchall()
+                
+            if not lst:
+                cur.execute('select id,js from customer_comment where cid=%d order by id desc limit 0,%d' % (
+                    cid, rlen,
+                    )
+                )
+                lst = cur.fetchall()
+                
+            if lst: token = {'t': lst[0][0], 'b': lst[-1][0]}
+            
+        else:
+            token = {'t': int(a_token.get('t')), 'b': int(a_token.get('b'))}
+            if direction == 1:
+                cur.execute('select id,js from customer_comment where cid=%d and id<%d order by id desc limit 0,%d' % (
+                    cid, token['b'], rlen,
+                    )
+                )
+                lst = cur.fetchall()
+                if lst: token['b'] = lst[-1][0]
+                
+            else:
+                cur.execute('select id,js from customer_comment where cid=%d and id>%d order by id asc limit 0,%d' % (
+                    cid, token['t'], rlen,
+                    )
+                )
+                lst = cur.fetchall()
+                lst.reverse()
+                if lst: token['t'] = lst[0][0]
         
-        self.req.writejs( {'note_id': note_id, 'val': rows[0][0]} )
-    
-    def fn_del_cust_comment(self):
-        cid = self.req.psv_int('cid')
-        note_id = self.req.psv_int('note_id')
-        if not cid or not note_id: return
+        self.req.writejs({'token': json.dumps(token, separators=(',',':')), 'lst': lst})
         
-        cur = self.cur()
-        cur.execute('update customer_comment set flag=flag|1 where id=%s and cid=%s', (note_id, cid))
-    
-        self.req.writejs({'ret':1})
     
     def fn_add_cust_comment(self):
         cid = self.req.psv_int('cid')
-        comment = self.req.psv_ustr('comment')[:256].strip()
-        if not cid or not comment: return
-        note_id = self.req.psv_int('note_id')
-
-        db = self.db()
-        cur = db.cur()
+        note_val = self.req.psv_ustr('note_val')[:512].strip()
+        if not note_val: return
         
+        note_id = self.req.psv_int('note_id')
+        to_user_id = self.req.psv_int('to_user_id')
+        to_user_name = self.req.psv_ustr('to_user_name')
+        if self.user_id == to_user_id:
+            to_user_id = 0
+            to_user_name = ''
+        
+        cur = self.cur()
         cur.execute('select count(*) from sync_customers where sid=%s', (cid,))
         if cur.fetchall()[0][0] <= 0: return
         
+        n = json.dumps([self.user_id, self.user_name, to_user_id, to_user_name, note_val, int(time.time())], separators=(',',':'))
         if note_id:
-            cur.execute('update customer_comment set val=%s where id=%s and cid=%s', (comment, note_id, cid))
+            cur.execute("update customer_comment set js=concat(js,',',%s) where id=%s and cid=%s", (
+                n, note_id, cid
+                )
+            )
             mid = note_id
         else:
-            cur.execute('insert into customer_comment values (null,%s,0,%s,%s,%s)', (
-                cid, int(time.time()), self.user_name, comment
+            cur.execute('insert into customer_comment values (null,%s,%s)', (
+                cid, n
                 )
             )
             mid = cur.lastrowid

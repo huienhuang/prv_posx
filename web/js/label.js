@@ -132,7 +132,7 @@ function load_by_id(label, id)
 $(function() {
 
 g_v_body = $('body');
-g_v_labelpaper = $('.labelpaper').remove();
+g_v_labelpaper = $('body >.labelpaper').remove();
 g_v_escape = $('<div></div>');
 
 g_v_le_single = $('<input type="text" id="le_single" />').data('js', {'type':0}).click(function(evt) {

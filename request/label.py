@@ -14,8 +14,11 @@ class RequestHandler(App.load('/request/sync').RequestHandler):
         d = {
             'templates': (
                 ('5163', '5163 2 x 4 - large'),
-                ('5160', '5160 1 x 2 5/8 - small'),
-                ('5160009', '5160 1 x 2 5/8 - small - repeat'),
+                ('5160', '5960 1 x 2 5/8 - small'),
+                ('5160009', '5960 1 x 2 5/8 - small - repeat'),
+                
+                ('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x'),
+                ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x')
             )
         }
         self.req.writefile('label.html', d)

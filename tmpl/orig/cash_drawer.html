@@ -7,7 +7,7 @@
 <script type="text/javascript">
 function load_media()
 {
-    var lst = g_v_dlg_drawer_count.data('lst');
+    var lst = g_v_dlg_drawer_count.data('js').lst;
     var sum = 0;
     for(var i = 0; i < g_v_media_qty_ins.length; i++) {
         var cd = $(g_v_media_qty_ins[i]);
@@ -30,12 +30,12 @@ function load_media()
 
 function media_qty_chg()
 {
-    var lst = g_v_dlg_drawer_count.data('lst');
+    var lst = g_v_dlg_drawer_count.data('js').lst;
     var cd = $(this);
     var lbl = cd.parent().prev().text();
     if(lbl[0] === '$') {
         var val = parseFloat(lbl.split(' ')[0].substr(1));
-        var qty = parseFloat(cd.val()) || 0.0;
+        var qty = parseInt(cd.val()) || 0;
         var sal = val.toFixed(2);
         if(qty < 0) qty = 0;
         
@@ -52,34 +52,57 @@ function media_qty_chg()
 
 function dc_station_chg()
 {
-    var station = parseInt( $(this).val() ) || 0;
-    var status = $('.drawer_status', g_v_dlg_drawer_count).empty();
-    if(!station) return;
+    var els = g_v_dlg_drawer_count.data('in_els');
+    var v_cash_diff = els.cash[0].next('span').text('');
+    var v_check_diff = els.check[0].next('span').text('');
+    var v_reason = els.reason[0].parent().parent().hide();
     
-    get_js('?fn=get_total_by_station', {'station': station}, function(js) {
-        status.empty()
-        .append( $('<div></div>').text('cash: $' + js[0][0].toFixed(2) + ' (' + js[0][1] + '), check: $' + js[1][0].toFixed(2) + ' (' + js[1][1] + ')') );
-    });
+    var total = g_v_dlg_drawer_count.data('js').total[ els.station[0].val() ];
+    if (!total) return;
+    
+    var inp_cash = parseFloat(els.cash[0].val());
+    var cash_diff = (inp_cash || 0) - total[0][0];
+    if(!isNaN(inp_cash)) {
+        v_cash_diff
+        .css('color', cash_diff >= 0 ? '#1a4cd9' : '#d44343')
+        .text(cash_diff ? '$' + cash_diff.toFixed(2) : '');
+    }
+    
+    var inp_check = parseFloat(els.check[0].val());
+    var check_diff = (inp_check || 0) - total[1][0];
+    if(!isNaN(inp_check)) {
+        v_check_diff
+        .css('color', check_diff >= 0 ? '#1a4cd9' : '#d44343')
+        .text(check_diff ? '$' + check_diff.toFixed(2) : '');
+    }
+    
+    if(isNaN(inp_cash) || isNaN(inp_check)) return;
+    if(cash_diff + check_diff) v_reason.show();
 }
-
 
 function dc_save()
 {
     var els = g_v_dlg_drawer_count.data('in_els');
-    var station = parseInt( els.station[0].val() ) || 0;
-    var begin_amt = parseFloat( els.begin[0].val() ) || 0;
-    var count_amt = parseFloat( els.count[0].val() ) || 0;
-    var check_amt = parseFloat( els.check[0].val() ) || 0;
+    var station = els.station[0].val();
     if(!station) return;
-    var reason = g_v_dlg_drawer_unmatched.data('in_els').reason[0].val();
+    
+    var cash = parseFloat( els.cash[0].val() );
+    var check = parseFloat( els.check[0].val() );
+    if(isNaN(cash) || isNaN(check)) return;
+    
+    var reason = $.trim(els.reason[0].val());
+    var js = g_v_dlg_drawer_count.data('js');
+    var total = js.total[ station ] || [[0, 0], [0, 0], []];
+
+    var diff = cash - total[0][0] + check - total[1][0];
+    if(diff && !reason) return;
     
     post_js('?fn=save',
-    {'station': station, 'begin_amt': begin_amt, 'count_amt': count_amt, 'check_amt': check_amt, 'reason': reason},
+    {'js': JSON.stringify({'station': station, 'cash': cash, 'check': check, 'reason': reason, 'cash_lst': js.lst, 'check_lst': js.chklst}) },
     function(js) {
         if(js.ret) {
-            var in_els = g_v_dlg_drawer_unmatched.data('in_els');
-            in_els.error[0].val(js.err_amt.toFixed(2));
-            g_v_dlg_drawer_unmatched.dialog('open');
+            MsgBox('Error', js.err || 'Unknown Error');
+            refresh_station_total();
         } else {
             g_v_dlg_drawer_count.dialog('close');
             g_v_dc_lst.tinygrid('update', -1, true, true, true);
@@ -87,6 +110,83 @@ function dc_save()
     });
     
 }
+
+function onchg__check_inp()
+{
+    var o = $(this);
+    var p = o.parent().parent();
+    var n = p.next('div.xlabel');
+    if( $.trim(o.val()) ) {
+        if(n.length) return;
+        
+        var l = g_v_dlg_check.children('div.xlabel');
+        g_v_dlg_check.append(
+            $('<div class="xlabel"></div>')
+            .append( $('<div></div>').text(l.length + 1) )
+            .append( $('<div></div>')
+                    .append( $('<input type="text" placeholder="Check Amount" />').change(onchg__check_inp) )
+                    .append( $('<input type="text" placeholder="Check Number" />') )
+            )
+        );
+    } else {
+        if(!n.length) return;
+        
+        var l = g_v_dlg_check.children('div.xlabel');
+        var i = parseInt($(p.children('div')[0]).text());
+        for(; i < l.length; i++) $($(l[i]).children('div')[0]).text(i);
+        
+        p.remove();
+        
+    }
+}
+
+function load_check()
+{
+    var lst = g_v_dlg_drawer_count.data('js').chklst;
+    g_v_dlg_check.empty().append(
+        $('<div class="xlabel"></div>')
+        .append( $('<div>' + (lst.length + 1) + '</div>') )
+        .append( $('<div></div>')
+                .append( $('<input type="text" placeholder="Check Amount" />').change(onchg__check_inp) )
+                .append( $('<input type="text" placeholder="Check Number" />') )
+        )
+    );
+    
+    var olst = [];
+    for(var i = 0; i < lst.length; i++) {
+        var v = lst[i];
+        olst.push(
+            $('<div class="xlabel"></div>')
+            .append( $('<div>' + (i + 1) + '</div>') )
+            .append( $('<div></div>')
+                    .append( $('<input type="text" placeholder="Check Amount" />').val(v[0].toFixed(2)).change(onchg__check_inp) )
+                    .append( $('<input type="text" placeholder="Check Number" />').val(v[1]) )
+            )
+        );
+    }
+    g_v_dlg_check.prepend(olst);
+}
+
+function refresh_station_total()
+{
+    var data = g_v_dlg_drawer_count.data('js');
+    var els = g_v_dlg_drawer_count.data('in_els');
+    var o = els.station[0];
+    var d = o.val();
+    get_js('?fn=get_total', {}, function(js) {
+        $(o.val('').children().slice(1)).remove();
+        
+        data.total = js.total;
+        for(var i = 0; i < js.stations.length; i++) {
+            var s = js.stations[i];
+            var v = js.total[s];
+            o.append( $('<option></option>').val(s).text(s + ' - ' + v[2].join(',')) );
+        }
+        
+        o.val(d).change();
+    });
+}
+
 
 $(function() {
 
@@ -96,12 +196,16 @@ $('.tp_ctrl input[value="Report"]').click(function() {
     window.open('?fn=report','posx_print_wnd','location=0,width=992,height=700');
 });
 $('.tp_ctrl input[value="Drawer Count"]').click(function() {
-    var els = g_v_dlg_drawer_count.data('in_els');
-    els.station[0].val('').change();
-    els.begin[0].val('');
-    els.count[0].val('');
+    var data = {'lst': {}, 'chklst': [], 'total': {}};
+    var els = g_v_dlg_drawer_count.data('js', data).data('in_els');
+    els.cash[0].val('');
     els.check[0].val('');
-    g_v_dlg_drawer_count.data('lst', {}).dialog('open');
+    els.reason[0].val('');
+    $(els.station[0].val('').change().children().slice(1)).remove();
+    
+    g_v_dlg_drawer_count.dialog('open');
+    
+    refresh_station_total();
 });
 
 g_v_dlg_drawer_unmatched = $('#dlg_drawer_unmatched').dialog({
@@ -110,7 +214,7 @@ g_v_dlg_drawer_unmatched = $('#dlg_drawer_unmatched').dialog({
     width:480,
     height:250,
     buttons: {
-        'save': function() { g_v_dlg_drawer_unmatched.dialog('close'); dc_save(); }
+        'save': dc_save
     }
 });
 idx_elements(g_v_dlg_drawer_unmatched, 5);
@@ -118,21 +222,24 @@ idx_elements(g_v_dlg_drawer_unmatched, 5);
 g_v_dlg_drawer_count = $('#dlg_drawer_count').dialog({
     autoOpen: false,
     modal: true,
-    width:480,
-    height:370,
-    close: function(event, ui) {
-        g_v_dlg_drawer_count.data('lst', undefined);
-    },
+    width:550,
+    height:330,
     buttons: {
-        'save': function() { g_v_dlg_drawer_unmatched.data('in_els').reason[0].val(''); dc_save(); }
+        'submit': dc_save
     }
 });
-$('input[value="Media"]', g_v_dlg_drawer_count).click(function() {
+
+idx_elements(g_v_dlg_drawer_count, 3);
+var els = g_v_dlg_drawer_count.data('in_els');
+els.btn_cash[0].click(function() {
     load_media();
     g_v_dlg_media.dialog('open');
 });
-idx_elements(g_v_dlg_drawer_count, 3);
-g_v_dlg_drawer_count.data('in_els').station[0].change(dc_station_chg);
+els.btn_check[0].click(function() {
+    load_check();
+    g_v_dlg_check.dialog('open');
+});
+els.station[0].change(dc_station_chg);
 
 g_v_dlg_media = $('#dlg_media').dialog({
     autoOpen: false,
@@ -140,35 +247,100 @@ g_v_dlg_media = $('#dlg_media').dialog({
     width:400,
     height:570,
     close: function(event, ui) {
-        g_v_dlg_drawer_count.data('in_els').count[0].val( g_v_dlg_drawer_count.data('lst').sum.toFixed(2) );
+        g_v_dlg_drawer_count.data('in_els').cash[0].val( g_v_dlg_drawer_count.data('js').lst.sum.toFixed(2) );
+        dc_station_chg();
     }
 });
 g_v_media_qty_ins = g_v_dlg_media.find('.xlabel input:nth-child(1)').change(media_qty_chg);
 
 
+g_v_dlg_check = $('#dlg_check').dialog({
+    autoOpen: false,
+    modal: true,
+    width:400,
+    height:570,
+    close: function(event, ui) {
+        var l = g_v_dlg_check.children('div.xlabel');
+        var chklst = g_v_dlg_drawer_count.data('js').chklst;
+        chklst.splice(0, chklst.length);
+        var sum = 0;
+        for(i = 0; i < l.length; i++) {
+            var o = $(l[i]);
+            var p = o.find('input[type="text"]');
+            var v0 = parseFloat($(p[0]).val()) || 0;
+            if(v0 <= 0) continue;
+            var v1 = $.trim($(p[1]).val());
+            chklst.push( [v0, v1] );
+            sum += v0;
+        }
+        g_v_dlg_drawer_count.data('in_els').check[0].val( sum.toFixed(2) );
+        dc_station_chg();
+    }
+});
+
+
 g_v_dlg_drawer_log = $('#dlg_drawer_log').dialog({
     autoOpen: false,
     width:460,
-    height:200,
+    height:500,
+    buttons: [
+        {
+            'id': 'ddl_btn_print',
+            'text': 'Print',
+            'click' : function() {
+                g_v_dlg_drawer_log.find('iframe')[0].contentWindow.print();
+            },
+        },
+        
+        {
+            'id': 'ddl_btn_delete',
+            'text': 'Delete',
+            'click' : function() {
+                post_js('?fn=delete', {'rid':g_v_dlg_drawer_log.data('data')[4]}, function(js) {
+                    g_v_dc_lst.tinygrid('update', -1, true, true, true);
+                    g_v_dlg_drawer_log.dialog('close');
+                });
+            },
+        },
+        
+        
+%if is_sale_mgr:
+        {
+            'id': 'ddl_btn_approve',
+            'text': 'Approve',
+            'click' : function() {
+                post_js('?fn=approve', {'rid':g_v_dlg_drawer_log.data('data')[4]}, function(js) {
+                    g_v_dc_lst.tinygrid('update', -1, true, true, true);
+                    g_v_dlg_drawer_log.dialog('close');
+                });
+            },
+        },
+%endif
+        
+    ]
 });
 
 
 g_v_dc_lst = $('#dc_lst').tinygrid({
 len:1,
 src:{page:'?fn=get_lst'},
-cols: [{name:'RID', width:100},
-       {name:'Station', width:100},
-       {name:'Error', width:"100%"},
+cols: [
        {name:'Date', width:200},
+       {name:'Station', width:100},
+       {name:'Approved', width:100},
+       {name:'Diff', width:"100%"},
        ],
 click: function(r, c, d) {
-    var js = d[4];
-    g_v_dlg_drawer_log.dialog('option', 'title', 'RID#' + d[0] + ' - Station#' + d[1] + ' - ' + d[3]).dialog('open');
-    g_v_dlg_drawer_log.empty()
-    .append($('<div></div>').text('begin: $' + js.begin.toFixed(2)))
-    .append($('<div></div>').text('cash: $' + js.cash.toFixed(2) + '  vs $' + js.total[0][0].toFixed(2) + ' (' + js.total[0][1] + ')'))
-    .append($('<div></div>').text('check: $' + js.check.toFixed(2) + ' vs $' + js.total[1][0].toFixed(2) + ' (' + js.total[1][1] + ')'))
-    .append($('<div></div>').text('result: ' + (d[2] ? 'error: ' + d[2] : 'ok')));
+    if(d[5]['flag'] & 1) {
+        $('#ddl_btn_delete').hide();
+        $('#ddl_btn_approve').hide();
+    } else {
+        $('#ddl_btn_delete').show();
+        $('#ddl_btn_approve').show();
+    }
+    
+    g_v_dlg_drawer_log.find('iframe').attr('src', '?fn=view_record&rid='+d[4]);
+    g_v_dlg_drawer_log.data('data', d).dialog('option', 'title', 'RID#' + d[4] + ' Station#' + d[1] + ' ' + d[3]).dialog('open');
 }
 });
 
@@ -191,7 +363,14 @@ click: function(r, c, d) {
 
 #dlg_drawer_count .drawer_status {border:1px solid #ccc;background-color:#f8f8f8;height:30px;line-height:30px;font-weight:bold;text-align:center}
 
-#dlg_drawer_log {background-color:#fafafa}
+#dlg_drawer_log {background-color:#fafafa;padding:0;overflow:hidden}
+#dlg_drawer_log iframe {width:100%;height:100%;margin:0;padding:0;border:none}
+
+#dlg_check input[type="text"] {width:120px}
+
+#dlg_check div.xlabel > div:nth-child(1) {width:50px}
+#dlg_check div.xlabel > div:nth-child(2) {left:60px}
+#dlg_check div.xlabel > div:nth-child(2) >input[type="text"]:nth-child(1) {margin-right:10px}
 
 </style>
 
@@ -208,14 +387,13 @@ click: function(r, c, d) {
 </div>
 
 <div id="dlg_drawer_count" title="Drawer Count">
-<div class="xlabel"><div>Station #</div><div><select name="dc_station" style="width:190px"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div></div>
-<div class="drawer_status"></div>
-<div class="xlabel"><div>Begin $</div><div><input type="text" name="dc_begin" /></div></div>
-<div class="xlabel"><div>Cash $</div><div><input type="text" name="dc_count" /> <input type="button" value="Media" class="btn" name="dc_btn_media" /></div></div>
-<div class="xlabel"><div>Check $</div><div><input type="text" name="dc_check" /></div></div>
+<div class="xlabel"><div>Station #</div><div><select name="dc_station" style="width:350px"><option value=""> -- </option></select></div></div>
+<div class="xlabel"><div>Cash $</div><div><input type="button" value="input" class="btn" name="dc_btn_cash" /> <input type="text" name="dc_cash" disabled="disabled" style="width:80px" title="cash in drawer" />&nbsp;&nbsp;&nbsp;<span></span></div></div>
+<div class="xlabel"><div>Check $</div><div><input type="button" value="input" class="btn" name="dc_btn_check" /> <input type="text" name="dc_check" disabled="disabled" style="width:80px" title="check in drawer" />&nbsp;&nbsp;&nbsp;<span></span></div></div>
+<div class="xlabel"><div>Reason:</div><div><input type="text" name="dc_reason" style="width:350px" placeholder="Overage/Shortage, Enter A Reason"/></div></div>
 </div>
 
-<div id="dlg_media" title="Media">
+<div id="dlg_media" title="Cash">
 <div class="xlabel"><div>$100 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
 <div class="xlabel"><div>$50 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
 <div class="xlabel"><div>$20 X</div><div><input type="text" /> = <input type="text" disabled="disabled" /></div></div>
@@ -230,12 +408,15 @@ click: function(r, c, d) {
 <div class="xlabel"><div>Total</div><div><input type="text" style="visibility:hidden" /> = <input type="text" disabled="disabled" class="media_total" /></div></div>
 </div>
 
+
+<div id="dlg_check" title="Check"></div>
+
 <div id="dlg_drawer_unmatched" title="Unmatched">
 <div class="xlabel"><div>Error $</div><div><input type="text" name="dcum_error" disabled="disabled" /></div></div>
 <div class="xlabel"><div>Reason:</div><div><input type="text" name="dcum_reason" /></div></div>
 </div>
 
-<div id="dlg_drawer_log" title="Log"></div>
+<div id="dlg_drawer_log" title="Log"><iframe></iframe></div>
 
 
 </body>

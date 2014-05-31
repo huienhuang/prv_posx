@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+
+<script type="text/javascript">
+    
+</script>
+
+<style type="text/css">
+body {padding:10px}
+.record pre {margin:10px 0}
+.record >div.rec_b {margin-top:10px}
+.record >div.rec_approved {color:blue}
+
+
+@media print {
+body {padding:0}
+}
+
+@page {
+margin:30px 50px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="record">
+<div>Date: ${rec['ds']|h}</div>
+<div>Station: ${rec['sid']|h}</div>
+<div>Status: ${rec['status']|h}</div>
+<div>Submitted By: ${rec['user'] and rec['user'][1] or 'UNK'|h}</div>
+%if rec['flag'] & 1:
+<div class="rec_approved">Approved By: ${rec['s_user'] and rec['s_user'][1] or 'UNK'|h}</div>
+%endif
+
+<div class="rec_b">Cash: ${'$%0.2f' % (rec['js']['cash'],)}
+%if rec['cash_status']:
+ (${rec['cash_status']|h})
+%endif
+</div>
+%if rec['js']['cash_lst']:
+<pre>
+%for f_k,f_v in sorted(rec['js']['cash_lst'].items(), key=lambda f_x: float(f_x[0]), reverse=True):
+$${f_k} (${f_v})
+%endfor
+</pre>
+%endif
+<div>Check: ${'$%0.2f' % (rec['js']['check'],)}
+%if rec['check_status']:
+ (${rec['check_status']|h})
+%endif
+</div>
+%if rec['js']['cash_lst']:
+<pre>
+%for f_k,f_v in rec['js']['check_lst']:
+$${'%0.2f' % (f_k,)} (#${f_v})
+%endfor
+</pre>
+%endif
+
+</div>
+
+</body>
+</html>

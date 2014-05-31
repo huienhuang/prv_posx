@@ -50,6 +50,6 @@ outline:none;background-color:#e2fcdb;z-index:1;
 
 
 .tinylist {overflow-y:scroll}
-.tinylist >div {min-height:100%;width:100%;padding:1px 0}
+.tinylist >div {min-height:100%;width:100%;padding:5px 0}
 
 
