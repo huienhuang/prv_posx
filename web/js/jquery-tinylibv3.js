@@ -1011,8 +1011,11 @@ function update_ui(direction, lst)
     if(!direction)
         ctx.cnt.empty();
     else if(direction === -1) {
-        var clst = ctx.cnt.children('div');
+        var sc = ctx.self.scrollTop();
+        var oh = ctx.cnt.height();
         ctx.cnt.prepend(lst);
+        var dh = ctx.cnt.height() - oh;
+        dh && ctx.self.scrollTop(sc + dh);
     }
     else
         ctx.cnt.append(lst);
