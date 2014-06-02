@@ -265,41 +265,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             mid = cur.lastrowid
         
         self.req.writejs({'ret':mid})
-        
-    def fn_get_cust_comment(self):
-        ret = {'res':{'len':0, 'apg':[]}}
-        cid = self.qsv_int('cid')
-        sql_flag = ''
-        if not self.qsv_int('flag'): sql_flag = '(flag & 1)=0 and '
-        
-        pgsz = self.qsv_int('pagesize')
-        sidx = self.qsv_int('sidx')
-        eidx = self.qsv_int('eidx')
-        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
-        
-        cur = self.cur()
-        apg = []
-        if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select SQL_CALC_FOUND_ROWS ts,name,val,flag,id from customer_comment where '+sql_flag+'cid=%d order by id desc limit %d,%d' % (
-                cid, sidx * pgsz, (eidx - sidx) * pgsz
-                )
-            )
-            for r in cur.fetchall():
-                r = list(r)
-                r[0] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[0]))
-                r[3] = (r[3] & 1) and 'Y' or ''
-                apg.append(r)
-        
-            cur.execute('select FOUND_ROWS()')
-            
-        else:
-            cur.execute('select count(*) from customer_comment where '+sql_flag+'cid=%s', (cid,))
-            
-        rlen = int(cur.fetchall()[0][0])
-        res = ret['res']
-        res['len'] = rlen
-        res['apg'] = apg
-        self.req.writejs(ret) 
     
     def fn_get_item_custs(self):
         ret = {'res':{'len':0, 'apg':[]}}

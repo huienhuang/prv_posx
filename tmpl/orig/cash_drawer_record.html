@@ -13,9 +13,14 @@ body {padding:10px}
 .record >div.rec_b {margin-top:10px}
 .record >div.rec_approved {color:blue}
 
+.w_sign {font-weight:bold;border-top:1px dotted #000;margin-top:20px;padding-top:20px;display:none}
+.w_sign div.xlabel {margin:0;width:350px}
+.w_sign div.xlabel >div:nth-child(1) {width:125px}
+.w_sign div.xlabel >div:nth-child(2) {left:135px;border-bottom:1px solid #000}
 
 @media print {
 body {padding:0}
+.w_sign {display:block}
 }
 
 @page {
@@ -59,6 +64,13 @@ $${'%0.2f' % (f_k,)} (#${f_v})
 %endfor
 </pre>
 %endif
+
+<div class="w_sign">
+<div class="xlabel"><div>Submitted By:</div><div></div></div>
+%if rec['flag'] & 1:
+<div class="xlabel"><div>Approved By:</div><div></div></div>
+%endif
+</div>
 
 </div>
 

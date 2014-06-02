@@ -7,8 +7,19 @@ import datetime
 STATIONS_MAP = {
     13: 1,
     8: 2,
+    
+    12: 3,
+    6: 3,
+    3: 3,
+    24: 3,
+    23: 3,
+    25: 3,
+    
 }
-DEFAULT_STATION_ID = 3
+DEFAULT_STATION_ID = 9
+
+DEFAULT_BEGIN_CASH_AMOUNT = 150
+
 
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['cashier']
@@ -40,16 +51,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             glbs = json.loads(r['global_js'])
             sid = STATIONS_MAP.get(int(glbs.get('station') or 0), DEFAULT_STATION_ID)
-            s = total.setdefault(sid, [[0, 0], [0, 0], set()])
-            s[2].add((r['cashier'] or '').lower())
+            s = total.setdefault(sid, [[DEFAULT_BEGIN_CASH_AMOUNT, 0], [0, 0], set(), DEFAULT_BEGIN_CASH_AMOUNT])
             
             for v in glbs['tender']:
                 if v['type'] == 1:
                     s[0][0] += v['amount']
                     s[0][1] += 1
+                    s[2].add((r['cashier'] or '').lower())
                 elif v['type'] == 2:
                     s[1][0] += v['amount']
                     s[1][1] += 1
+                    s[2].add((r['cashier'] or '').lower())
         
         for v in total.values(): v[2] = list(v[2])
         return total
