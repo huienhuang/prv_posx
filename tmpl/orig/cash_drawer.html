@@ -28,37 +28,66 @@ function load_media()
         sum += ttl;
     }
     
-    lst['sum'] = sum;
     g_v_dlg_media.find('.media_total').val( sum.toFixed(2) );
 }
 
-function media_qty_chg()
+function get_media_total(lst)
 {
     var els = g_v_dlg_drawer_count.data('in_els');
     var js = g_v_dlg_drawer_count.data('js');
     var count = js.count[els.station[0].val()];
     
-    var lst = count && count.lst || {};
-    var cd = $(this);
-    var lbl = cd.parent().prev().text();
-    if(lbl[0] === '$') {
+    var sum = 0;
+    for(var i = 0; i < g_v_media_qty_ins.length; i++) {
+        var cd = $(g_v_media_qty_ins[i]);
+        var lbl = cd.parent().prev().text();
+        if(lbl[0] !== '$') continue;
         var val = parseFloat(lbl.split(' ')[0].substr(1));
         var qty = parseInt(cd.val()) || 0;
-        var sal = val.toFixed(2);
-        if(qty < 0) qty = 0;
-        
-        var old_ttl = (lst[sal] || 0) * val;
-        lst[sal] = qty;
-        var new_ttl = val * qty;
-        lst['sum'] -= old_ttl - new_ttl;
-        
-        cd.next('input').val( qty ? new_ttl.toFixed(2) : '' );
+        if(qty <= 0) continue;
+        if(lst) lst[ val.toFixed(2) ] = qty;
+        sum += val * qty;
     }
     
-    g_v_dlg_media.find('.media_total').val( lst.sum.toFixed(2) );
+    return sum;
+}
+
+function media_qty_chg()
+{
+    g_v_dlg_media.find('.media_total').val( get_media_total().toFixed(2) );
 }
 
 function dc_station_chg()
+{
+    var els = g_v_dlg_drawer_count.data('in_els');
+    var sid = els.station[0].val();
+    var js = g_v_dlg_drawer_count.data('js');
+    var count = js.count[sid];
+    
+    els.cash[0].val('');
+    els.check[0].val('');
+    
+    if(count) {
+        if(count.lst) {
+            var sum = 0;
+            for(var k in count.lst) if(k != 'sum') sum += parseFloat(k) * count.lst[k];
+            els.cash[0].val( sum.toFixed(2) );
+        }
+        
+        if(count.chklst) {
+            var sum = 0;
+            for(var i = 0; i < count.chklst.length; i++) sum += count.chklst[i][0];
+            els.check[0].val( sum.toFixed(2) );
+        }
+        
+    }
+    
+    els.reason[0].val('');
+    
+    dc_station_upd();
+}
+
+function dc_station_upd()
 {
     var els = g_v_dlg_drawer_count.data('in_els');
     var v_cash_diff = els.cash[0].next('span').text('');
@@ -69,14 +98,6 @@ function dc_station_chg()
     var js = g_v_dlg_drawer_count.data('js');
     var total = js.total[sid];
     if(!total) return;
-    
-    var count = js.count[sid];
-    if(!count) count = js.count[sid] = {'lst': {}, 'chklst': []};
-    
-    if(!count.chklst.length) {
-        var chknums = total[1][2];
-        for(var i = 0; i < chknums.length; i++) count.chklst.push( [0, chknums[i]] );
-    }
     
     var inp_cash = parseFloat(els.cash[0].val());
     var cash_diff = (inp_cash || 0) - total[0][0];
@@ -111,13 +132,13 @@ function dc_save()
     var reason = $.trim(els.reason[0].val());
     var js = g_v_dlg_drawer_count.data('js');
     var total = js.total[ station ] || [[0, 0], [0, 0], []];
-    var count = js.count[ station ] || {'lst': {}, 'chklst': []};
+    var count = js.count[ station ];
     
     var diff = cash - total[0][0] + check - total[1][0];
     if(diff && !reason) return;
     
     post_js('?fn=save',
-    {'js': JSON.stringify({'station': station, 'cash': cash, 'check': check, 'reason': reason, 'cash_lst': count.lst, 'check_lst': count.chklst}) },
+    {'js': JSON.stringify({'station': station, 'cash': cash, 'check': check, 'reason': reason, 'cash_lst': count && count.lst || {}, 'check_lst': count && count.chklst || []}) },
     function(js) {
         if(js.ret) {
             MsgBox('Error', js.err || 'Unknown Error');
@@ -162,9 +183,20 @@ function onchg__check_inp()
 function load_check()
 {
     var els = g_v_dlg_drawer_count.data('in_els');
-    var station = els.station[0].val();
-    var count = g_v_dlg_drawer_count.data('js').count[station];
-    var lst = count && count.chklst || [];
+    var sid = els.station[0].val();
+    var js = g_v_dlg_drawer_count.data('js');
+    var count = js.count[sid];
+    var total = js.total[sid];
+    var lst = count && count.chklst;
+    
+    if(!lst) {
+        lst = [];
+        if(total && total[1][2]) {
+            var chknums = total[1][2];
+            for(var i = 0; i < chknums.length; i++) lst.push( [0, chknums[i]] );
+        }
+    }
+    
     g_v_dlg_check.empty().append(
         $('<div class="xlabel"></div>')
         .append( $('<div>' + (lst.length + 1) + '</div>') )
@@ -271,9 +303,12 @@ g_v_dlg_media = $('#dlg_media').dialog({
     close: function(event, ui) {
         var els = g_v_dlg_drawer_count.data('in_els');
         var js = g_v_dlg_drawer_count.data('js');
-        var count = js.count[els.station[0].val()];
-        els.cash[0].val( (count && count.lst.sum || 0).toFixed(2) );
-        dc_station_chg();
+        var sid = els.station[0].val();
+        var count = js.count[sid];
+        if(!count) count = js.count[sid] = {};
+        var lst = count.lst = {};
+        els.cash[0].val( get_media_total(lst).toFixed(2) );
+        dc_station_upd();
     }
 });
 g_v_media_qty_ins = g_v_dlg_media.find('.xlabel input:nth-child(1)').change(media_qty_chg);
@@ -289,10 +324,11 @@ g_v_dlg_check = $('#dlg_check').dialog({
         
         var els = g_v_dlg_drawer_count.data('in_els');
         var js = g_v_dlg_drawer_count.data('js');
-        var count = js.count[els.station[0].val()];
+        var sid = els.station[0].val();
+        var count = js.count[sid];
+        if(!count) count = js.count[sid] = {};
         
-        var chklst = count && count.chklst || [];
-        chklst.splice(0, chklst.length);
+        var chklst = count.chklst = [];
         var sum = 0;
         for(i = 0; i < l.length; i++) {
             var o = $(l[i]);
@@ -305,7 +341,7 @@ g_v_dlg_check = $('#dlg_check').dialog({
             sum += v0;
         }
         els.check[0].val( sum.toFixed(2) );
-        dc_station_chg();
+        dc_station_upd();
     }
 });
 
