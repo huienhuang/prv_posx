@@ -57,8 +57,9 @@ $${f_k} (${f_v})
  (${rec['check_status']|h})
 %endif
 </div>
-%if rec['js']['cash_lst']:
+%if rec['js']['check_lst']:
 <pre>
+---- count: ${len(rec['js']['check_lst'])} ----
 %for f_k,f_v in rec['js']['check_lst']:
 $${'%0.2f' % (f_k,)} (#${f_v})
 %endfor

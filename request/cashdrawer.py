@@ -18,7 +18,7 @@ STATIONS_MAP = {
 }
 DEFAULT_STATION_ID = 9
 
-DEFAULT_BEGIN_CASH_AMOUNT = 150
+DEFAULT_BEGIN_CASH_AMOUNT = 198.25
 
 
 
@@ -51,7 +51,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             glbs = json.loads(r['global_js'])
             sid = STATIONS_MAP.get(int(glbs.get('station') or 0), DEFAULT_STATION_ID)
-            s = total.setdefault(sid, [[DEFAULT_BEGIN_CASH_AMOUNT, 0], [0, 0], set(), DEFAULT_BEGIN_CASH_AMOUNT])
+            s = total.setdefault(sid, [[DEFAULT_BEGIN_CASH_AMOUNT, 0], [0, 0, []], set(), DEFAULT_BEGIN_CASH_AMOUNT])
             
             for v in glbs['tender']:
                 if v['type'] == 1:
@@ -61,6 +61,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 elif v['type'] == 2:
                     s[1][0] += v['amount']
                     s[1][1] += 1
+                    s[1][2].append(v['numlst'])
                     s[2].add((r['cashier'] or '').lower())
         
         for v in total.values(): v[2] = list(v[2])
