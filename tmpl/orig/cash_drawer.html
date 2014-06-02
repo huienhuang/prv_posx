@@ -304,6 +304,7 @@ g_v_dlg_media = $('#dlg_media').dialog({
         var els = g_v_dlg_drawer_count.data('in_els');
         var js = g_v_dlg_drawer_count.data('js');
         var sid = els.station[0].val();
+        if(!sid) return;
         var count = js.count[sid];
         if(!count) count = js.count[sid] = {};
         var lst = count.lst = {};
@@ -325,6 +326,7 @@ g_v_dlg_check = $('#dlg_check').dialog({
         var els = g_v_dlg_drawer_count.data('in_els');
         var js = g_v_dlg_drawer_count.data('js');
         var sid = els.station[0].val();
+        if(!sid) return;
         var count = js.count[sid];
         if(!count) count = js.count[sid] = {};
         
