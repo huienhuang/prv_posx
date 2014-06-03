@@ -64,7 +64,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     s[1][2].append(v['numlst'])
                     s[2].add((r['cashier'] or '').lower())
         
-        for v in total.values(): v[2] = list(v[2])
+        for k,v in total.items():
+            if not v[0][1] and not v[1][1]:
+                del total[k]
+            else:
+                v[2] = list(v[2])
         return total
 
     def get_total_by_station(self, station, cur_ts=None):
