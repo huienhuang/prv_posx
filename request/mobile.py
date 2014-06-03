@@ -11,7 +11,7 @@ import re
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
-    def fn_view_item_mobile(self):
+    def fn_default(self):
         self.req.writefile('view_item_mobile.html')
         
     REGX_FNZ_SUB = re.compile("[^0-9a-z-_=]", re.I|re.M|re.S)
