@@ -105,7 +105,7 @@ function save_item_imgs()
     var imgs = g_v_img_lst.find('img:visible');
     for(var i = 0; i < imgs.length; i++) srcs.push( $(imgs[i]).attr('src') );
     
-    post_js('inventory?fn=set_imgs', {'sid':'${item_sid}', 'imgs':srcs.join('|')}, function(js) {
+    post_js('mobile?fn=set_imgs', {'sid':'${item_sid}', 'imgs':srcs.join('|')}, function(js) {
         if (!js || !js.ret) { MsgBox('Error', js.msg || 'unexpected error'); }
     });
 }
@@ -113,7 +113,7 @@ function save_item_imgs()
 function load_item_imgs()
 {
     g_v_img_lst.empty();
-    $.get('inventory?fn=get_imgs', {'sid':'${item_sid}'}, function(js) {
+    $.get('mobile?fn=get_imgs', {'sid':'${item_sid}'}, function(js) {
         g_v_img_lst.empty();
         if(!js || !js.imgs) return;
         

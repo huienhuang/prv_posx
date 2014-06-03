@@ -140,7 +140,7 @@ g_v_ajax_seq__load_imgs = 0;
 function load_imgs(sid)
 {
     var seq = ++g_v_ajax_seq__load_imgs;
-    $.get('inventory?fn=get_imgs', {'sid':sid}, function(js) {
+    $.get('mobile?fn=get_imgs', {'sid':sid}, function(js) {
         if(seq !== g_v_ajax_seq__load_imgs || !js || !js.imgs) return;
         
         var imgs = js.imgs.split('|');
