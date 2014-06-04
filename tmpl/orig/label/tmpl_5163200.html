@@ -25,36 +25,36 @@ function change_elem()
     js.v = undefined;
     
     var val = wrap_elem.detach().val();
-    var c_elem = js.type ? elem.find('td') : elem;
+    var c_elem = js.type ? elem.find('div') : elem;
     if(html_to_text(c_elem) === val) return;
     
     var idx = elem.index();
     var new_val = text_to_html(val);
     var s = 0;
+    var h = elem.height();
     for(var i = 0; i < g_labels.length; i++) {
         elem = $( g_labels[i].children()[idx] );
-        var i_elem = (js.type ? elem.find('td') : elem).html(new_val);
+        var i_elem = (js.type ? elem.find('div') : elem).html(new_val);
         if(i == 0) s = maximize_size(i_elem);
-        if(s) i_elem.css('font-size', s + 'px');
+        if(s) i_elem.css('font-size', s + 'px').css('top', Math.floor((h - i_elem.height()) / 2) + 'px');
     }
 }
 
 function maximize_size(i_elem)
 {
-    var html = i_elem.html();
-    var div = $('<div></div>').html(html);
-    i_elem.empty().append(div);
+    i_elem.css('top', '0px').css('right', 'auto');
     
     var s = 0;
     for(var i = 200; i >= 8; i--) {
+        var p = i_elem.parent();
         i_elem.css('font-size', i + 'px');
-        if(div.prop('scrollWidth') <= div.width() && div.prop('scrollHeight') <= div.height()) {
-            s = i - 1;
+        if(i_elem.width() <= p.width() && i_elem.height() <= p.height()) {
+            s = i;
             break;
         }
     }
-
-    i_elem.html(html);
+    
+    i_elem.css('right', '0px');
     
     return s;
 }
@@ -73,10 +73,9 @@ window.onbeforeunload = undefined;
 
 <style type="text/css">
 .labelpaper > div > div {line-height:20px;height:20px;}
-.labelpaper > div > div.item_desc {top:3px;bottom:3px;font-size:20px;line-height:1 !important;font-weight:bold}
+.labelpaper > div > div.item_desc {top:3px;bottom:3px;font-size:20px;line-height:1.2 !important;font-weight:bold}
 
-.labelpaper > div > div.le_elem_multi td {position:relative}
-.labelpaper > div > div.le_elem_multi td div {position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;white-space:nowrap}
+.labelpaper > div > div.le_elem_multi > div {position:absolute;top:0;left:0;right:0;width:auto;height:auto;white-space:nowrap;overflow:hidden}
 
 .labelpaper > div:nth-child(1) {top:0.5in;left:0.16in}
 .labelpaper > div:nth-child(2) {top:0.5in;left:4.34in}
@@ -96,7 +95,7 @@ window.onbeforeunload = undefined;
 <div class="labelpaper">
 %for i in range(10):
 <div>
-<div class="item_desc le_elem le_elem_multi" title="Desc"><table><tr><td></td></tr></table></div>
+<div class="item_desc le_elem le_elem_multi" title="Desc"><div></div></div>
 </div>
 %endfor
 </div>

@@ -69,7 +69,14 @@ function _fill_label(label, data)
     for(var i = 0; i < lst.length; i++) {
         var v = $(lst[i]);
         var a = text_to_html(data[i] || '');
-        (v.hasClass('le_elem_multi') ? v.find('td') : v).html(a);
+        
+        var i_elem = v;
+        if(v.hasClass('le_elem_multi')) {
+            var _i_elem = i_elem.find('td');
+            i_elem = _i_elem.length ? _i_elem : i_elem.find('div');
+        }
+        
+        i_elem.html(a);
     }
 }
 
@@ -81,7 +88,14 @@ function edit_elem()
     if(js.v !== undefined) return;
     
     js.v = elem;
-    wrap_elem.val( html_to_text(js.type ? elem.find('td') : elem) );
+    
+    var i_elem = elem;
+    if(js.type) {
+        var _i_elem = i_elem.find('td');
+        i_elem = _i_elem.length ? _i_elem : i_elem.find('div');
+    }
+    
+    wrap_elem.val( html_to_text(i_elem) );
     elem.append(wrap_elem);
     wrap_elem.width(elem.width()).height(elem.height());
     wrap_elem.focus();
@@ -103,7 +117,14 @@ function change_elem()
     js.v = undefined;
     
     var val = wrap_elem.detach().val();
-    var c_elem = js.type ? elem.find('td') : elem;
+    
+    var i_elem = elem;
+    if(js.type) {
+        var _i_elem = i_elem.find('td');
+        i_elem = _i_elem.length ? _i_elem : i_elem.find('div');
+    }
+    
+    var c_elem = i_elem;
     if(html_to_text(c_elem) === val) return;
     c_elem.html( text_to_html(val) );
     
