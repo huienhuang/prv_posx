@@ -6,6 +6,8 @@ import struct
 import tinywsgi2
 import config
 import dbref
+import urllib
+import urlparse
 
 LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 
@@ -98,6 +100,10 @@ class RequestHandler(tinywsgi2.RequestHandler):
             aid_ = self.gen_pre_auth(rip, uid, self.genpasswd(in_pass))
             aid = self.gen_auth(aid_, ts_idx - 1)
             
+            self.out_cookie['__uid__'] = str(uid)
+            self.out_cookie['__uid__']['expires'] = 3600 * 24 * 360
+            
+            
         if uid:
             cur = self.cur()
             cur.execute('select user_name,user_passwd,user_lvl from user where user_id=%d limit 1' % (uid, ))
@@ -147,7 +153,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         if self.user_id and self.user_lvl & rlvl:
             return True
         else:
-            self.req.redirect('?fn=login')
+            self.req.redirect('?' + urllib.urlencode({'fn': 'login', 'req_qs': self.environ.get('QUERY_STRING') or ''}))
             return False
     
     def genpasswd(self, s):
@@ -212,15 +218,22 @@ class RequestHandler(tinywsgi2.RequestHandler):
     fn_login_js.PERM = 0
         
     def fn_login(self):
-        if self.qsv_str('a'):
-            user_id = self.req.psv_ustr('user_id')
+        req_qs = self.qsv_str('req_qs')
+        
+        user_id = self.req.psv_int('user_id')
+        if user_id:
             user_pass = self.req.psv_ustr('user_passwd')
-            user_id = user_id.isdigit() and int(user_id) or 0
-            if user_id and self.login(user_id, user_pass):
-                self.req.redirect('?')
+            if self.login(user_id, user_pass):
+                qsl = [(f_k, f_v[0]) for f_k,f_v in urlparse.parse_qs(req_qs, keep_blank_values=True).items()]
+                self.req.redirect('?' + urllib.urlencode(qsl, True))
                 return False
         
+        ck_uid = self.out_cookie.get('__uid__') or self.cookie.get('__uid__')
+        ck_uid = unicode(ck_uid and ck_uid.value or '')
+        ck_uid = ck_uid.isdigit() and int(ck_uid) or 0
         d = {
+            'action_url': urllib.urlencode({'fn': 'login', 'req_qs': req_qs}),
+            'ck_uid': ck_uid,
             'userlist': [ user for user in self.getuserlist() if user[2] & LOGIN_PERM ],
         }
         self.req.writefile('login.html', d)
