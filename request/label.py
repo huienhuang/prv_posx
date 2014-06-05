@@ -18,7 +18,8 @@ class RequestHandler(App.load('/request/sync').RequestHandler):
                 ('5160009', '5960 1 x 2 5/8 - small - repeat'),
                 
                 ('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x'),
-                ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x')
+                ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x'),
+                ('5960201', u"NowPak Logo" + ' 30x'),
             )
         }
         self.req.writefile('label.html', d)

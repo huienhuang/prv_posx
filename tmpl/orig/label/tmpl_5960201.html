@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header.html" />
+
+<script type="text/javascript">
+
+function setup_data(item)
+{
+    return [];
+}
+
+$(function() {
+
+g_labels = [];
+var lst = create_new_paper().children('div').addClass('label_active');
+for(var i = 0; i < lst.length; i++) g_labels.push($(lst[i]));
+
+window.onbeforeunload = undefined;
+
+});
+
+</script>
+
+<style type="text/css">
+.labelpaper > div {position:absolute;width:250px;height:94px;}
+.labelpaper > div > div.logo {top:5px;left:5px;right:5px;bottom:5px;height:auto;}
+
+%for i in range(10):
+%for j in range(3):
+.labelpaper > div:nth-child(${i * 3 + j + 1}) {top:${'%0.2f' % (i * 1 + 0.5,)}in;left:${'%0.2f' % (j * 2.76 + 0.19,)}in}
+%endfor
+%endfor
+</style>
+
+</head>
+<body>
+
+<div class="labelpaper">
+%for i in range(10):
+%for j in range(3):
+<div>
+<div class="logo" title=""><img src="img/label/nowpak_logo.png" alt="" border="0" /></div>
+</div>
+%endfor
+%endfor
+</div>
+
+</body>
+</html>

@@ -304,6 +304,35 @@ load_js = function(type, msg, url, data, cb, err_cb, sync)
     });
 };
 
+load_js_ex = function(type, msg, url, data, cb, err_cb, sync)
+{
+    msg && show_loading_msg(msg);
+    return $.ajax({
+        async: !sync,
+        type: type,
+        url: url,
+        data: data,
+        success: function(js) {
+            hide_loading_msg();
+            if(js.err) {
+                if(err_cb)
+                    err_cb.apply(this, 1, arguments);
+                else
+                    MsgBox('Erorr Code - ' + (js.err || 'None'), js.err_s || 'unexpected error');
+            } else
+                cb && cb.apply(this, arguments);
+        },
+        dataType: 'json',
+        error: function() {
+            hide_loading_msg();
+            if(err_cb)
+                err_cb.apply(this, 0, arguments);
+            else
+                MsgBox('Erorr', 'unexpected error');
+        }
+    });
+};
+
 post_js = function(url, data, cb, err_cb, sync)
 {
     return load_js('post', 'Saving...', url, data, cb, err_cb, sync);
@@ -314,6 +343,15 @@ get_js = function(url, data, cb, err_cb, sync)
     return load_js('get', null, url, data, cb, err_cb, sync);
 };
 
+post_js_ex = function(url, data, cb, err_cb, sync, pop_msg)
+{
+    return load_js('post', pop_msg !== undefined ? pop_msg : 'Saving...', url, data, cb, err_cb, sync);
+};
+
+get_js_ex = function(url, data, cb, err_cb, sync, pop_msg)
+{
+    return load_js('get', pop_msg, url, data, cb, err_cb, sync);
+};
 
 })();
 
