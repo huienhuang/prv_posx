@@ -3,6 +3,7 @@ import config
 
 
 PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
+PERM_SYS = 1 << config.USER_PERM_BIT['sys']
 PERM_TIME = 1 << config.USER_PERM_BIT['time']
 PERM_ITEM_STAT_ACCESS = 1 << config.USER_PERM_BIT['item stat access']
 PERM_NORMAL_ACCESS = 1 << config.USER_PERM_BIT['normal access']
@@ -14,7 +15,7 @@ TOOLS_MAP = (
 
 ('Admin', (
     ('User', 'user', PERM_ADMIN),
-    ('Project', 'project', PERM_ADMIN),
+    ('Project', 'project', PERM_SYS),
     #('Mac', 'sys?fn=mac', PERM_ADMIN),
 )),
 

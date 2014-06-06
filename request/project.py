@@ -68,6 +68,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'err':int(rc <= 0)})
     
+    fn_approve.PERM = 1 << config.USER_PERM_BIT['admin']
+    
     def fn_setprogress(self):
         p_id = self.req.psv_int('p_id')
         p_percent = self.req.psv_int('percent')
