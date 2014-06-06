@@ -14,7 +14,7 @@ TOOLS_MAP = (
 
 ('Admin', (
     ('User', 'user', PERM_ADMIN),
-    ('Project', 'sys?fn=project', PERM_ADMIN),
+    ('Project', 'project', PERM_ADMIN),
     #('Mac', 'sys?fn=mac', PERM_ADMIN),
 )),
 

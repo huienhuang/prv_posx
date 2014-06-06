@@ -1,52 +1,308 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v2.html" />
-<title>POSX - Project OnGoing</title>
+<%include file="header_inc_v3.html" />
+<title>POSX - Project</title>
 
 <script type="text/javascript">
+g_v_tg = [];
+
+
+function load_project(rd)
+{
+    var state = rd[9];
+    
+    if(state < ${P_STATES['completed']})
+        g_v_dvp_btn_delete.show();
+    else
+        g_v_dvp_btn_delete.hide();
+    
+    if(state < ${P_STATES['approved']})
+        g_v_dvp_btn_approve.show();
+    else
+        g_v_dvp_btn_approve.hide();
+        
+    if(state >= ${P_STATES['approved']} && state < ${P_STATES['completed']})
+        g_v_dvp_btn_setprogress.show();
+    else
+        g_v_dvp_btn_setprogress.hide();
+
+    g_v_dlg_view_project.data('rd', rd).dialog('open');
+}
 
 $(function() {
+    
+    
+$('.btn').button();
+
+g_v_tabs = $('#m_tabs').tabs({
+    'heightStyle': 'fill',
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'quit') {
+            go_home();
+            return false;
+        } else if(nz == "new") {
+            var els = g_v_dlg_new_project.data('in_els');
+            var name = els.name[0].val('');
+            var desc = els.desc[0].val('');
+            g_v_dlg_new_project.dialog('open');
+            return false;
+        }
+        
+        return true;
+    },
+    activate: function(event, ui) {
+        var idx = $(this).tabs('option', 'active');
+        if(g_v_tg[idx]) {
+            g_v_tg[idx].tinygrid('update', -1, true, true, true);
+            return;
+        }
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        
+    },
+    active: 0
+});
+
+g_v_tg[0] = $('#tg_in_progress', g_v_tabs).tinygrid({
+len:0,
+src:{page:'?fn=get&state=1'},
+cols: [
+    {name:'ID', width:80},
+    {name:'Desc', width:'100%'},
+    {name:'State', width:0},
+    {name:'Progress', width:100},
+    {name:'Deadline', width:250},
+    {name:'Beginning', width:250},
+    {name:'Completion', width:0},
+    {name:'CreatedBy', width:120},
+    {name:'ApprovedBy', width:120},
+    
+],
+click: function(r, c, d) {
+   load_project(d);
+}
+});
+
+g_v_tg[3] = $('#tg_completed', g_v_tabs).tinygrid({
+len:0,
+src:{page:'?fn=get&state=1'},
+cols: [
+    {name:'ID', width:80},
+    {name:'Desc', width:'100%'},
+    {name:'State', width:0},
+    {name:'Progress', width:0},
+    {name:'Deadline', width:250},
+    {name:'Beginning', width:250},
+    {name:'Completion', width:250},
+    {name:'CreatedBy', width:120},
+    {name:'ApprovedBy', width:120},
+],
+click: function(r, c, d) {
+    load_project(d);
+}
+});
 
 
-$('.tp_ctrl input[value="quit"]').button().click(function() {
-    go_home();
+g_v_tg[1] = $('#tg_pending', g_v_tabs).tinygrid({
+len:0,
+src:{page:'?fn=get&state=0'},
+cols: [
+    {name:'ID', width:80},
+    {name:'Desc', width:'100%'},
+    {name:'State', width:0},
+    {name:'Progress', width:0},
+    {name:'Deadline', width:0},
+    {name:'Beginning', width:0},
+    {name:'Completion', width:0},
+    {name:'CreatedBy', width:120},
+    {name:'ApprovedBy', width:0},
+],
+click: function(r, c, d) {
+    load_project(d);
+}
+});
+
+g_v_tg[2] = $('#tg_approved', g_v_tabs).tinygrid({
+len:0,
+src:{page:'?fn=get&state=0'},
+cols: [
+    {name:'ID', width:80},
+    {name:'Desc', width:'100%'},
+    {name:'State', width:0},
+    {name:'Progress', width:0},
+    {name:'Deadline', width:0},
+    {name:'Beginning', width:0},
+    {name:'Completion', width:0},
+    {name:'CreatedBy', width:120},
+    {name:'ApprovedBy', width:0},
+],
+click: function(r, c, d) {
+    load_project(d);
+}
+});
+
+
+g_v_dlg_new_project = $('#dlg_new_project').dialog({
+    autoOpen: false,
+    width:500,
+    height:310,
+    buttons: {
+        'create': function() {
+            var els = g_v_dlg_new_project.data('in_els');
+            var name = $.trim(els.name[0].val());
+            var desc = $.trim(els.desc[0].val());
+            if(!name || !desc) return;
+            
+            post_js_ex('?fn=new', {name:name, desc:desc}, function(js) {
+                g_v_dlg_new_project.dialog('close');
+                
+                var idx = g_v_tabs.tabs('option', 'active');
+                g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+            });
+        }
+    }
+});
+idx_elements(g_v_dlg_new_project, 2);
+
+
+g_v_dlg_view_project = $('#dlg_view_project').dialog({
+    autoOpen: false,
+    width:700,
+    height:600,
+    buttons: [
+        {
+            'id': 'dvp_btn_setprogress',
+            'text': 'SetProgress',
+            'click': function() {
+                
+            }
+        },
+        {
+            'id': 'dvp_btn_approve',
+            'text': 'Approve',
+            'click': function() {
+                var rd = g_v_dlg_view_project.data('rd');
+                post_js_ex('?fn=approve', {'p_id': rd[0]}, function(js) {
+                    g_v_dlg_view_project.dialog('close');
+                    var idx = g_v_tabs.tabs('option', 'active');
+                    g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+                });
+            }
+        },
+        {
+            'id': 'dvp_btn_delete',
+            'text': 'Delete',
+            'click': function() {
+                var rd = g_v_dlg_view_project.data('rd');
+                post_js_ex('?fn=delete', {'p_id': rd[0]}, function(js) {
+                    g_v_dlg_view_project.dialog('close');
+                    var idx = g_v_tabs.tabs('option', 'active');
+                    g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+                });
+            }
+        },
+        {
+            'id': 'dvp_btn_message',
+            'text': 'Message',
+            'click': function() {
+            
+            }
+        }
+    ]
+});
+
+g_v_dvp_btn_setprogress = $('#dvp_btn_setprogress');
+g_v_dvp_btn_approve = $('#dvp_btn_approve');
+g_v_dvp_btn_delete = $('#dvp_btn_delete');
+g_v_dvp_btn_message = $('#dvp_btn_message');
+
+
+g_v_msg = $('#p_msg').tinylist({
+    src: {url:'?fn=get_msg&len=10'},
+    render: function(js) {
+        var id = js[0];
+        var n = $.parseJSON('[' + js[1] + ']');
+        var m = n[0];
+        var a = $('<div></div>');
+        var o = $('<div class="cust_note"></div>').data('hint', id)
+        .append(
+            $('<div></div>')
+            .append( $('<span class="note_user"></span>').text(m[1]).data('note', {'name':m[1], 'uid': m[0], 'nid':id}) )
+            .append( $('<div></div>').text( '#' + id + ' - ' + fmt_time(m[5])) )
+        )
+        .append(
+            $('<div></div>').append( $('<pre></pre>').text(m[4]) )
+        )
+        .append(a);
+        
+        
+        for(var i = 1; i < n.length; i++) {
+            var s = $('<div></div>');
+            var j = n[i];
+            s.append( $('<span class="note_user"></span>').text(j[1]).data('note', {'name':j[1], 'uid': j[0], 'nid':id}) );
+            if(j[2]) s.append('@').append( $('<span class="note_user"></span>').text(j[3]).data('note', {'name':j[3], 'uid': j[2], 'nid':id}) );
+            
+            a.append(s.append(': ').append($('<span class="note_reply"></span>').text(j[4])));
+        }
+        
+        o.find('.note_user').click(note_user_click);
+        
+        return o;
+    }
 });
 
 
 });
-
 
 </script>
 
 <style type="text/css">
+body {-webkit-user-select:none;}
 .ui-widget {font-size:18px;}
 
-.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
-.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+#m_tabs {position:absolute;top:0;left:0;right:0;bottom:0;font-size:18px;padding:0px;}
+#m_tabs > div {position:absolute;top:49px;left:0;right:0;bottom:0;height:auto !important;width:auto !important;padding:0px;}
+#m_tabs > div > iframe {border:0;margin:0;padding:0;position:absolute;top:0;bottom:0;width:100%;height:100%;}
 
-
-.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0}
-.main_tbl .xtbl_row > div:nth-child(1) {width:180px}
-.main_tbl .xtbl_row > div:nth-child(2) {width:80px}
-.main_tbl .xtbl_row > div:nth-child(3) {width:80px}
-.main_tbl .xtbl_row > div:nth-child(4) {width:320px}
+#p_msg {position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:scroll}
+.cust_note {border-radius:8px;border:1px solid #ccc;min-height:70px;margin:15px 5px;padding:5px 5px;background-color:#f8f8f8}
+.cust_note >div:nth-child(1) {border-bottom:1px solid #ccc;position:relative;height:26px;line-height:26px;}
+.cust_note >div:nth-child(1) >div:nth-child(2) {position:absolute;width:300px;height:26px;top:0;right:0;font-weight:bold;font-style:italic;text-align:right;color:#818181;font-size:16px;}
+.cust_note >div:nth-child(1) >span:nth-child(1) {font-size:18px;}
+.cust_note pre {margin:5px 8px;padding:0;}
+.cust_note .note_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
+.cust_note .note_reply {font-size:16px;}
 
 </style>
 
 </head>
 <body>
 
-<div class="tp_ctrl">
-<input type="button" value="quit" class="btn" />
+<div id="m_tabs">
+<ul>
+    <li><a href="#tabs_in_progress">In Progress</a></li>
+    <li><a href="#tabs_pending">Pending</a></li>
+    <li><a href="#tabs_approved">Approved</a></li>
+    <li><a href="#tabs_completed">Completed</a></li>
+    <li style="float:right"><a href="#tabs_quit">Quit</a></li>
+    <li style="float:right"><a href="#tabs_new">Create New Project</a></li>
+</ul>
+
+<div id="tabs_in_progress"><div id="tg_in_progress"></div></div>
+<div id="tabs_pending"><div id="tg_pending"></div></div>
+<div id="tabs_approved"><div id="tg_approved"></div></div>
+<div id="tabs_completed"><div id="tg_completed"></div></div>
+
 </div>
 
-<div class="xtbl main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Name</div><div>Priority</div><div>Progress</div><div>Note</div></div></div>
-<div class="xtbl_body">
-<div class="xtbl_row"><div>Special CRM</div><div>Normal</div><div>0%</div><div>Integrate with POSX</div></div>
+<div id="dlg_new_project" title="New Project">
+<div class="xlabel"><div>Name:</div><div><input type="text" name="p_name" style="width:300px"/></div></div>
+<div class="xlabel" style="height:100px"><div>Desc:</div><div><textarea name="p_desc" style="width:300px;height:92px"></textarea></div></div>
 </div>
-<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+
+<div id="dlg_view_project" title="Project">
+<div id="p_msg"></div>
 </div>
 
 </body>

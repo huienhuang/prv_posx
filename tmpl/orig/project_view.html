@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Project ${p_id and '#%d' % (p_id,) or 'New'}</title>
+
+<script type="text/javascript">
+
+$(function() {
+    
+g_v_project_form = $('#project_form');
+idx_elements(g_v_project_form, 2);
+
+var els = g_v_project_form.data('in_els');
+els.btn_approve[0].button();
+
+
+els.btn_save[0].button().click(function() {
+    var els = g_v_project_form.data('in_els');
+    var data = {
+        'name': els.name[0].val(),
+        'desc': els.desc[0].val(),
+        
+    };
+    post_js_ex('?fn=save', {}, function(js) {
+        
+    });
+});
+
+});
+
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+.ui-widget {font-size:18px;}
+
+#project_form .p_desc {height:100px}
+
+</style>
+
+</head>
+<body>
+
+<div id="project_form">
+
+
+<div class="xlabel"><div>ID:</div><div>${p_id}</div></div>
+<div class="xlabel"><div>State:</div><div></div></div>
+<div class="xlabel"><div>Name:</div><div><input type="text" name="p_name" /></div></div>
+<div class="xlabel p_desc"><div>Desc:</div><div><textarea name="p_desc"></textarea></div></div>
+
+<div>
+<input type="button" value="approve" name="p_btn_approve" />
+<input type="button" value="delete" name="p_btn_delete" />
+<input type="button" value="" name="p_btn_save" />
+</div>
+
+</div>
+
+</body>
+</html>

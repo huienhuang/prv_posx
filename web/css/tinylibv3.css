@@ -2,8 +2,8 @@
 .tinygrid {-moz-user-select:none;-webkit-user-select:none;}
 .tinygrid {position:absolute;top:0;right:0;left:0;bottom:0;border:1px solid #dddddd;overflow:hidden;background-color:#eaeaea;}
 .tinygrid > div {position:absolute;right:0;left:0;line-height:39px;}
-.tinygrid > div.tg_header {top:0;height:39px;border-bottom:1px solid #dddddd;font-weight:bold}
-.tinygrid > div.tg_footer {bottom:0;height:39px;border-top:1px solid #dddddd;text-align:center;}
+.tinygrid > div.tg_header {top:0;height:39px;border-bottom:1px solid #dddddd;font-weight:bold;background:#ffffff;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(47%,#f6f6f6), color-stop(100%,#ededed))}
+.tinygrid > div.tg_footer {bottom:0;height:39px;border-top:1px solid #dddddd;text-align:center;background:#ffffff;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(47%,#f6f6f6), color-stop(100%,#ededed))}
 .tinygrid > div.tg_body {top:40px;bottom:40px;overflow-x:auto;overflow-y:scroll;background-color:#ffffff;}
 .tinygrid > div.tg_body > div.tg_table {position:relative;overflow:hidden}
 .tinygrid > div.tg_body > div.tg_meter {height:0px;}
@@ -22,8 +22,8 @@ float:left;border-right:1px solid #dddddd;height:100%;width:30px;
 text-align:center;cursor:default;overflow:hidden;white-space:nowrap;
 }
 
-.tinygrid .tg_col_sort_asc {background-color:#CCCCCC;}
-.tinygrid .tg_col_sort_desc {background-color:#bfdcff;}
+.tinygrid .tg_col_sort_asc {background:#eeeeee;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#eeeeee), color-stop(100%,#cccccc));}
+.tinygrid .tg_col_sort_desc {background:#f2f5f6;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
 
 .tinygrid .tg_body input, .tinygrid .tg_body select {
 position:absolute;left:0;top:-100px;width:100px;height:20px;padding:0;margin:0;border:0px;text-align:center;

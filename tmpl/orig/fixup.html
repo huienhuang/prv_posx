@@ -8,7 +8,7 @@
 <script type="text/javascript" src="js/jquery-ui-1.10.3.custom.v3.js"></script>
 <script type="text/javascript" src="js/jquery-tinylibv3.js"></script>
 <script type="text/javascript" src="js/posx_v2.js"></script>
-<link type="text/css" href="css/tinylibv3.css" rel="stylesheet" />
+<link type="text/css" href="css/tinylibv3.css?rev=1253" rel="stylesheet" />
 <link type="text/css" href="css/default_v3.css" rel="stylesheet" />
 
 <script type="text/javascript">
@@ -31,7 +31,7 @@ g_v_tabs = $('#m_tabs').tabs({
     activate: function(event, ui) {
         var nz = ui.newTab.children('a').prop('hash').substr(6);
         if(nz == 'inconsistent_customers') {
-            g_v_records.tinygrid('update', -1, true, true, true);
+            g_v_inconsistent_customers.tinygrid('update', -1, true, true, true);
             
         }
     },
