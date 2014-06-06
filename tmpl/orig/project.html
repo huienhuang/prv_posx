@@ -27,6 +27,8 @@ function load_project(rd)
     else
         g_v_dvp_btn_setprogress.hide();
 
+    g_msg_tl_args.p_id = rd[0];
+    g_v_msg.tinylist('refresh', null);
     g_v_dlg_view_project.data('rd', rd).dialog('open');
 }
 
@@ -58,7 +60,7 @@ g_v_tabs = $('#m_tabs').tabs({
             g_v_tg[idx].tinygrid('update', -1, true, true, true);
             return;
         }
-        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        //var nz = ui.newTab.children('a').prop('hash').substr(6);
         
     },
     active: 0
@@ -66,7 +68,7 @@ g_v_tabs = $('#m_tabs').tabs({
 
 g_v_tg[0] = $('#tg_in_progress', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=1'},
+src:{page:'?fn=get&state=64'},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
@@ -86,7 +88,7 @@ click: function(r, c, d) {
 
 g_v_tg[3] = $('#tg_completed', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=1'},
+src:{page:'?fn=get&state=128'},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
@@ -125,17 +127,17 @@ click: function(r, c, d) {
 
 g_v_tg[2] = $('#tg_approved', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=0'},
+src:{page:'?fn=get&state=32'},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
     {name:'State', width:0},
     {name:'Progress', width:0},
-    {name:'Deadline', width:0},
+    {name:'Deadline', width:110},
     {name:'Beginning', width:0},
     {name:'Completion', width:0},
     {name:'CreatedBy', width:120},
-    {name:'ApprovedBy', width:0},
+    {name:'ApprovedBy', width:120},
 ],
 click: function(r, c, d) {
     load_project(d);
@@ -175,7 +177,9 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
             'id': 'dvp_btn_setprogress',
             'text': 'SetProgress',
             'click': function() {
-                
+                var rd = g_v_dlg_view_project.data('rd');
+                g_v_dlg_setprogress.find('select').val(rd[3].substr(0, rd[3].length - 1))
+                g_v_dlg_setprogress.data('p_id', rd[0]).dialog('open');
             }
         },
         {
@@ -183,17 +187,15 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
             'text': 'Approve',
             'click': function() {
                 var rd = g_v_dlg_view_project.data('rd');
-                post_js_ex('?fn=approve', {'p_id': rd[0]}, function(js) {
-                    g_v_dlg_view_project.dialog('close');
-                    var idx = g_v_tabs.tabs('option', 'active');
-                    g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
-                });
+                g_v_dlg_approve.find('input[type="date"]').val('');
+                g_v_dlg_approve.data('p_id', rd[0]).dialog('open');
             }
         },
         {
             'id': 'dvp_btn_delete',
             'text': 'Delete',
             'click': function() {
+                if(!confirm("Delete?")) return;
                 var rd = g_v_dlg_view_project.data('rd');
                 post_js_ex('?fn=delete', {'p_id': rd[0]}, function(js) {
                     g_v_dlg_view_project.dialog('close');
@@ -204,9 +206,11 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
         },
         {
             'id': 'dvp_btn_message',
-            'text': 'Message',
+            'text': 'Note',
             'click': function() {
-            
+                var rd = g_v_dlg_view_project.data('rd');
+                g_v_dlg_note.find('textarea').val('');
+                g_v_dlg_note.data('p_id', rd[0]).dialog('open');
             }
         }
     ]
@@ -217,40 +221,89 @@ g_v_dvp_btn_approve = $('#dvp_btn_approve');
 g_v_dvp_btn_delete = $('#dvp_btn_delete');
 g_v_dvp_btn_message = $('#dvp_btn_message');
 
-
+g_msg_tl_args = {};
 g_v_msg = $('#p_msg').tinylist({
-    src: {url:'?fn=get_msg&len=10'},
-    render: function(js) {
-        var id = js[0];
-        var n = $.parseJSON('[' + js[1] + ']');
-        var m = n[0];
-        var a = $('<div></div>');
-        var o = $('<div class="cust_note"></div>').data('hint', id)
+    src: {url:'?fn=get_msg&len=10', args: g_msg_tl_args},
+    render: function(m) {
+        var id = m[0];
+        var o = $('<div class="note_cnt"></div>').data('hint', id)
         .append(
             $('<div></div>')
-            .append( $('<span class="note_user"></span>').text(m[1]).data('note', {'name':m[1], 'uid': m[0], 'nid':id}) )
-            .append( $('<div></div>').text( '#' + id + ' - ' + fmt_time(m[5])) )
+            .append( $('<span class="note_user"></span>').text(m[2]).data('note', {'nid':id}) )
+            .append( $('<div></div>').text( '#' + (id + 1) + ' - ' + fmt_time(m[4])) )
         )
         .append(
-            $('<div></div>').append( $('<pre></pre>').text(m[4]) )
-        )
-        .append(a);
-        
-        
-        for(var i = 1; i < n.length; i++) {
-            var s = $('<div></div>');
-            var j = n[i];
-            s.append( $('<span class="note_user"></span>').text(j[1]).data('note', {'name':j[1], 'uid': j[0], 'nid':id}) );
-            if(j[2]) s.append('@').append( $('<span class="note_user"></span>').text(j[3]).data('note', {'name':j[3], 'uid': j[2], 'nid':id}) );
-            
-            a.append(s.append(': ').append($('<span class="note_reply"></span>').text(j[4])));
-        }
-        
-        o.find('.note_user').click(note_user_click);
+            $('<div></div>').append( $('<pre></pre>').text(m[3]) )
+        );
+        if(!m[5]) o.addClass('note_sys');
         
         return o;
     }
 });
+
+g_v_dlg_note = $('#dlg_note').dialog({
+    modal: true,
+    autoOpen: false,
+    width:500,
+    height:300,
+    buttons: {
+        'add': function() {
+            var val = $.trim(g_v_dlg_note.find('textarea').val());
+            if(!val) return;
+            var p_id = g_v_dlg_note.data('p_id');
+            
+            post_js_ex('?fn=add_msg', {p_id:p_id, val:val}, function(js) {
+                g_v_dlg_note.dialog('close');
+                g_v_msg.tinylist('load', -1);
+            });
+        }
+    }
+});
+
+
+g_v_dlg_setprogress = $('#dlg_setprogress').dialog({
+    modal: true,
+    autoOpen: false,
+    width:300,
+    height:200,
+    buttons: {
+        'update': function() {
+            var percent = g_v_dlg_setprogress.find('select').val();
+            var p_id = g_v_dlg_setprogress.data('p_id');
+            post_js_ex('?fn=setprogress', {p_id:p_id, percent:percent}, function(js) {
+                g_v_dlg_setprogress.dialog('close');
+                g_v_dlg_view_project.dialog('close');
+                var idx = g_v_tabs.tabs('option', 'active');
+                g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+            });
+        }
+    }
+});
+
+g_v_dlg_approve = $('#dlg_approve').dialog({
+    modal: true,
+    autoOpen: false,
+    width:380,
+    height:200,
+    buttons: {
+        'approve': function() {
+            var deadline = g_v_dlg_approve.find('input[type="date"]').val();
+            var p_id = g_v_dlg_approve.data('p_id');
+            post_js_ex('?fn=approve', {'p_id': p_id, 'deadline': deadline}, function(js) {
+                g_v_dlg_approve.dialog('close');
+                g_v_dlg_view_project.dialog('close');
+                var idx = g_v_tabs.tabs('option', 'active');
+                g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+            });
+        }
+    }
+});
+
+
+(function() {
+    var idx = g_v_tabs.tabs('option', 'active');
+    g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+})();
 
 
 });
@@ -266,13 +319,19 @@ body {-webkit-user-select:none;}
 #m_tabs > div > iframe {border:0;margin:0;padding:0;position:absolute;top:0;bottom:0;width:100%;height:100%;}
 
 #p_msg {position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:scroll}
-.cust_note {border-radius:8px;border:1px solid #ccc;min-height:70px;margin:15px 5px;padding:5px 5px;background-color:#f8f8f8}
-.cust_note >div:nth-child(1) {border-bottom:1px solid #ccc;position:relative;height:26px;line-height:26px;}
-.cust_note >div:nth-child(1) >div:nth-child(2) {position:absolute;width:300px;height:26px;top:0;right:0;font-weight:bold;font-style:italic;text-align:right;color:#818181;font-size:16px;}
-.cust_note >div:nth-child(1) >span:nth-child(1) {font-size:18px;}
-.cust_note pre {margin:5px 8px;padding:0;}
-.cust_note .note_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
-.cust_note .note_reply {font-size:16px;}
+.note_cnt {border-radius:8px;border:1px solid #ccc;min-height:70px;margin:15px 5px;padding:5px 5px;background-color:#f8f8f8}
+.note_cnt >div:nth-child(1) {border-bottom:1px solid #ccc;position:relative;height:26px;line-height:26px;}
+.note_cnt >div:nth-child(1) >div:nth-child(2) {position:absolute;width:300px;height:26px;top:0;right:0;font-weight:bold;font-style:italic;text-align:right;color:#818181;font-size:16px;}
+.note_cnt >div:nth-child(1) >span:nth-child(1) {font-size:18px;}
+.note_cnt pre {margin:5px 8px;padding:0;}
+.note_cnt .note_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
+.note_cnt .note_reply {font-size:16px;}
+
+.note_sys {background-color:#efe8ca}
+
+#dlg_note {position:relative}
+#dlg_note >div {position:absolute;top:3px;left:3px;bottom:3px;right:3px;padding:2px;border:1px solid #ccc}
+#dlg_note >div >textarea {height:100%;width:100%;border:none !important;padding:0 !important}
 
 </style>
 
@@ -303,6 +362,24 @@ body {-webkit-user-select:none;}
 
 <div id="dlg_view_project" title="Project">
 <div id="p_msg"></div>
+</div>
+
+<div id="dlg_note" title="Add Note">
+<div><textarea></textarea></div>
+</div>
+
+<div id="dlg_approve" title="Approval">
+<div class="xlabel"><div>Percent:</div><div><input type="date" /></div><div>
+</div>
+
+<div id="dlg_setprogress" title="Set Progress">
+<div class="xlabel"><div>Percent:</div><div>
+<select>
+%for i in range(0, 101, 10):
+<option value="${i}">${i}%</option>
+%endfor
+</select>
+</div></div>
 </div>
 
 </body>

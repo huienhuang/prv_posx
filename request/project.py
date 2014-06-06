@@ -30,7 +30,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_new(self):
         name = self.req.psv_ustr('name')
         desc = self.req.psv_ustr('desc')
-        msg = json.dumps([self.user_id, self.user_name, 0, '', '', int(time.time()), 0], separators=(',',':'))
+        msg = json.dumps([self.user_id, self.user_name, '', int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
         cur.execute("insert into project values(null,0,0,%s,0,%s,%s,0,0,0,%s)", (
@@ -46,22 +46,69 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('delete from project where p_id=%s and p_state<%s', (p_id, P_STATES['completed']))
         rc = cur.rowcount
         
-        self.req.writejs({'err':int(not rc)})
+        self.req.writejs({'err':int(rc <= 0)})
     
     def fn_approve(self):
         p_id = self.req.psv_int('p_id')
-        msg = json.dumps([self.user_id, self.user_name, 0, '', 'Approved', int(time.time()), 0], separators=(',',':'))
+        deadline = self.req.psv_ustr('deadline')
+        
+        deadline_ts = 0
+        if deadline:
+            m_yr,m_mon,m_day = map(int, deadline.split('-', 3))
+            deadline_ts = int(time.mktime(datetime.date(m_yr, m_mon, m_day).timetuple()))
+        
+        msg = json.dumps([self.user_id, self.user_name, 'Approved', int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
-        cur.execute("update project set p_state=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state<%s", (
-            P_STATES['approved'], msg, p_id, P_STATES['approved']
+        cur.execute("update project set p_state=%s,p_approved_by_uid=%s,p_deadline_ts=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state<%s", (
+            P_STATES['approved'], self.user_id, deadline_ts, msg, p_id, P_STATES['approved']
             )
         )
         rc = cur.rowcount
         
-        self.req.writejs({'err':int(not rc)})
+        self.req.writejs({'err':int(rc <= 0)})
     
-    def fn_msg(self):
+    def fn_setprogress(self):
+        p_id = self.req.psv_int('p_id')
+        p_percent = self.req.psv_int('percent')
+        if not p_id or p_percent < 0 or p_percent > 100: return
+        
+        cts = int(time.time())
+        
+        cur = self.cur()
+        if p_percent == 100:
+            msg = json.dumps([self.user_id, self.user_name, 'Completed', cts, 0], separators=(',',':'))
+            cur.execute("update project set p_state=%s,p_progress=100,p_completion_ts=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state>=%s and p_state<%s", (
+                P_STATES['completed'], cts, msg, p_id, P_STATES['approved'], P_STATES['completed']
+            ))
+        else:
+            msg = json.dumps([self.user_id, self.user_name, 'In progress: %d%%' % (p_percent,), int(time.time()), 0], separators=(',',':'))
+            cur.execute("update project set p_state=%s,p_progress=%s,p_beginning_ts=if(p_beginning_ts,p_beginning_ts,%s),p_msg=concat(p_msg,',',%s) where p_id=%s and p_state>=%s and p_state<%s", (
+                P_STATES['in progress'], p_percent, cts, msg, p_id, P_STATES['approved'], P_STATES['completed']
+            ))
+        
+        rc = cur.rowcount
+        
+        self.req.writejs({'err':int(rc <= 0)})
+        
+    def fn_add_msg(self):
+        p_id = self.req.psv_int('p_id')
+        val = self.req.psv_ustr('val')[:512].strip()
+        if not p_id or not val: return
+        
+        msg = json.dumps([self.user_id, self.user_name, val, int(time.time()), 1], separators=(',',':'))
+        
+        cur = self.cur()
+        cur.execute("update project set p_msg=concat(p_msg,',',%s) where p_id=%s", (
+            msg, p_id
+            )
+        )
+        rc = cur.rowcount
+        
+        self.req.writejs({'err': int(rc <= 0)})
+        
+    
+    def fn_get_msg(self):
         p_id = self.req.qsv_int('p_id')
         direction = self.req.qsv_int('direction')
         if direction not in (1, -1): return
@@ -76,34 +123,54 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not r: return
         r = dict(zip(nzs, r[0]))
         
-        msgs = json.loads(r['p_msg'])
-        msg[0][4] = 'Created'
+        msgs = json.loads('['+r['p_msg']+']')
+        k = 0
+        for m in msgs:
+            m.insert(0, k)
+            k += 1
+            
+        mms = [
+            r['p_name'], r['p_desc'],
+            '- state: ' + P_STATES_R.get(r['p_state']),
+        ]
+        if r['p_state'] >= P_STATES['approved']:
+            if r['p_deadline_ts']: mms.append( '- deadline ' + time.strftime("%m/%d/%Y", time.localtime(r['p_deadline_ts'])) )
+            
+            a_user = self.finduser(r['p_approved_by_uid'])
+            mms.append('- approved by ' + (a_user and a_user[1] or 'UNK'))
+        
+        if r['p_state'] >= P_STATES['in progress']:
+            if r['p_state'] == P_STATES['in progress']:
+                mms.append( '- in progress: %d%%' % (r['p_progress'],))
+                
+            mms.append( '- beginning date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_beginning_ts'])) )
+            
+            if r['p_state'] == P_STATES['completed']:
+                mms.append( '- completion date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_completion_ts'])) )
+        
+        msgs[0][3] = '\n'.join(mms)
         
         token = {}
         if not a_token:
             lst = None
-            msgs = reversed(msgs)
-            if goto: lst = msgs[goto:goto-rlen]
-            if not lst: lst = msgs[-1:goto-rlen]
-                
+            msgs.reverse()
+            if goto:
+                idx = len(msgs) - 1 - goto
+                lst = msgs[ idx : idx + rlen ]
+            if not lst: lst = msgs[ 0 : rlen ]
             if lst: token = {'t': lst[0][0], 'b': lst[-1][0]}
             
         else:
             token = {'t': int(a_token.get('t')), 'b': int(a_token.get('b'))}
             if direction == 1:
-                cur.execute('select id,js from customer_comment where cid=%d and id<%d order by id desc limit 0,%d' % (
-                    cid, token['b'], rlen,
-                    )
-                )
-                lst = cur.fetchall()
+                msgs.reverse()
+                idx = len(msgs) - token['b']
+                lst = msgs[ idx : idx + rlen ]
                 if lst: token['b'] = lst[-1][0]
                 
             else:
-                cur.execute('select id,js from customer_comment where cid=%d and id>%d order by id asc limit 0,%d' % (
-                    cid, token['t'], rlen,
-                    )
-                )
-                lst = cur.fetchall()
+                idx = token['t'] + 1
+                lst = msgs[ idx : idx + rlen ]
                 lst.reverse()
                 if lst: token['t'] = lst[0][0]
         
@@ -135,8 +202,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     p_id,
                     p_name +' - '+ p_desc,
                     P_STATES_R[p_state],
-                    '%%%d' % (p_progress,),
-                    p_deadline_ts and time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(p_deadline_ts)) or '',
+                    '%d%%' % (p_progress,),
+                    p_deadline_ts and time.strftime("%m/%d/%Y", time.localtime(p_deadline_ts)) or '',
                     p_beginning_ts and time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(p_beginning_ts)) or '',
                     p_completion_ts and time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(p_completion_ts)) or '',
                     users.get(p_created_by_uid, 'UNK'),
