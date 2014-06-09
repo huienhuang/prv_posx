@@ -6,13 +6,17 @@ import datetime
 
 P_STATES = {
 'pending' : 0,
-'approved' : 32,
-'in progress' : 64,
-'completed' : 128,
+'approved' : 16,
+'in progress' : 32,
+'completed' : 64,
+'validated' : 128,
 }
 
 P_STATES_R = dict([(f_v,f_k) for f_k,f_v in P_STATES.items()])
 
+
+P_QUALITY = ['No Credit', 'Poor', 'Fair', 'Good', 'Excellent']
+P_ON_TIME = ['NO', 'YES']
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['sys']
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -33,7 +37,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         msg = json.dumps([self.user_id, self.user_name, '', int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
-        cur.execute("insert into project values(null,0,0,%s,0,%s,%s,0,0,0,%s)", (
+        cur.execute("insert into project values(null,0,0,%s,0,%s,%s,0,0,0,'',%s)", (
             self.user_id, name, desc, msg
             )
         )
@@ -47,6 +51,29 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rc = cur.rowcount
         
         self.req.writejs({'err':int(rc <= 0)})
+    
+    def fn_validate(self):
+        p_id = self.req.psv_int('p_id')
+        quality = self.req.psv_int('quality')
+        on_time = self.req.psv_int('on_time')
+        if not p_id or quality < 1 or quality > 5 or on_time < 1 or on_time > 2: return
+        
+        cts = int(time.time())
+        
+        js = json.dumps({'validation': {'uid': self.user_id, 'quality': quality, 'on_time': on_time, 'cts': cts}}, separators=(',',':'))
+        msg = json.dumps([self.user_id, self.user_name, 'Validated', cts, 0], separators=(',',':'))
+        
+        cur = self.cur()
+        cur.execute("update project set p_state=%s,p_js=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state=%s", (
+            P_STATES['validated'], js, msg, p_id, P_STATES['completed']
+            )
+        )
+        rc = cur.rowcount
+        
+        self.req.writejs({'err':int(rc <= 0)})
+        
+    fn_validate.PERM = 1 << config.USER_PERM_BIT['admin']    
+    
     
     def fn_approve(self):
         p_id = self.req.psv_int('p_id')
@@ -125,6 +152,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not r: return
         r = dict(zip(nzs, r[0]))
         
+        js = r['p_js'] and json.loads(r['p_js']) or {}
+        
         msgs = json.loads('['+r['p_msg']+']')
         k = 0
         for m in msgs:
@@ -147,8 +176,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
             mms.append( '- beginning date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_beginning_ts'])) )
             
-            if r['p_state'] == P_STATES['completed']:
+            if r['p_state'] >= P_STATES['completed']:
                 mms.append( '- completion date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_completion_ts'])) )
+        
+                if r['p_state'] >= P_STATES['validated']:
+                    v = js['validation']
+                    a_user = self.finduser(v['uid'])
+                    mms.append('- validated by %s, Quality: %s, OnTime: %s' % (
+                        a_user and a_user[1] or 'UNK',
+                        P_QUALITY[v['quality'] - 1],
+                        P_ON_TIME[v['on_time'] - 1]
+                        )
+                    )
         
         msgs[0][3] = '\n'.join(mms)
         
@@ -178,10 +217,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'token': json.dumps(token, separators=(',',':')), 'lst': lst})
     
+    
     def fn_get(self):
         ret = {'res':{'len':0, 'apg':[]}}
         
-        state = self.qsv_int('state')
+        state = map(str, map(int, self.req.qsv_ustr('state').split('|')))
+        if not state: return
+        if len(state) > 1:
+            state_s = 'p_state in (' + ','.join(state) + ')'
+        else:
+            state_s = 'p_state=%s' % (state[0],)
         
         pgsz = self.qsv_int('pagesize')
         sidx = self.qsv_int('sidx')
@@ -193,8 +238,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             users = dict([(v[0], v[1])for v in self.getuserlist()])
             
-            cur.execute('select SQL_CALC_FOUND_ROWS p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts from project where p_state=%d order by p_id desc limit %d,%d' % (
-                        state, sidx * pgsz, (eidx - sidx) * pgsz
+            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts from project where '+state_s+' order by p_id desc limit %d,%d') % (
+                        sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
@@ -216,10 +261,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
             cur.execute('select FOUND_ROWS()')
         else:
-            cur.execute('select count(*) from project where p_state=%d' % (
-                state,
-                )
-            )
+            cur.execute('select count(*) from project where ' + state_s)
         
         rlen = int(cur.fetchall()[0][0])
         res = ret['res']

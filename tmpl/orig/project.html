@@ -26,6 +26,11 @@ function load_project(rd)
         g_v_dvp_btn_setprogress.show();
     else
         g_v_dvp_btn_setprogress.hide();
+        
+    if(state == ${P_STATES['completed']})
+        g_v_dvp_btn_validate.show();
+    else
+        g_v_dvp_btn_validate.hide();
 
     g_msg_tl_args.p_id = rd[0];
     g_v_msg.tinylist('refresh', null);
@@ -68,7 +73,7 @@ g_v_tabs = $('#m_tabs').tabs({
 
 g_v_tg[0] = $('#tg_in_progress', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=64'},
+src:{page:"?fn=get&state=${P_STATES['in progress']}"},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
@@ -88,11 +93,11 @@ click: function(r, c, d) {
 
 g_v_tg[3] = $('#tg_completed', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=128'},
+src:{page:"?fn=get&state=${P_STATES['completed']}|${P_STATES['validated']}"},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
-    {name:'State', width:0},
+    {name:'State', width:90},
     {name:'Progress', width:0},
     {name:'Deadline', width:250},
     {name:'Beginning', width:250},
@@ -108,7 +113,7 @@ click: function(r, c, d) {
 
 g_v_tg[1] = $('#tg_pending', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=0'},
+src:{page:"?fn=get&state=${P_STATES['pending']}"},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
@@ -127,7 +132,7 @@ click: function(r, c, d) {
 
 g_v_tg[2] = $('#tg_approved', g_v_tabs).tinygrid({
 len:0,
-src:{page:'?fn=get&state=32'},
+src:{page:"?fn=get&state=${P_STATES['approved']}"},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
@@ -174,6 +179,18 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
     height:600,
     buttons: [
         {
+            'id': 'dvp_btn_validate',
+            'text': 'Validate',
+            'click': function() {
+                var rd = g_v_dlg_view_project.data('rd');
+                
+                g_v_dlg_validate.find('select[name="v_quality"]').val('');
+                g_v_dlg_validate.find('select[name="v_on_time"]').val('');
+                
+                g_v_dlg_validate.data('p_id', rd[0]).dialog('open');
+            }
+        },
+        {
             'id': 'dvp_btn_setprogress',
             'text': 'SetProgress',
             'click': function() {
@@ -216,6 +233,8 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
     ]
 });
 
+
+g_v_dvp_btn_validate = $('#dvp_btn_validate');
 g_v_dvp_btn_setprogress = $('#dvp_btn_setprogress');
 g_v_dvp_btn_approve = $('#dvp_btn_approve');
 g_v_dvp_btn_delete = $('#dvp_btn_delete');
@@ -255,6 +274,28 @@ g_v_dlg_note = $('#dlg_note').dialog({
             post_js_ex('?fn=add_msg', {p_id:p_id, val:val}, function(js) {
                 g_v_dlg_note.dialog('close');
                 g_v_msg.tinylist('load', -1);
+            });
+        }
+    }
+});
+
+
+g_v_dlg_validate = $('#dlg_validate').dialog({
+    modal: true,
+    autoOpen: false,
+    width:300,
+    height:250,
+    buttons: {
+        'validate': function() {
+            var quality = g_v_dlg_validate.find('select[name="v_quality"]').val();
+            var on_time = g_v_dlg_validate.find('select[name="v_on_time"]').val();
+            if(!quality || !on_time) return;
+            var p_id = g_v_dlg_validate.data('p_id');
+            post_js_ex('?fn=validate', {p_id:p_id, quality:quality, on_time:on_time}, function(js) {
+                g_v_dlg_validate.dialog('close');
+                g_v_dlg_view_project.dialog('close');
+                var idx = g_v_tabs.tabs('option', 'active');
+                g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
             });
         }
     }
@@ -328,6 +369,7 @@ body {-webkit-user-select:none;}
 .note_cnt .note_reply {font-size:16px;}
 
 .note_sys {background-color:#efe8ca}
+.note_cnt:last-child {background-color:#c8deff}
 
 #dlg_note {position:relative}
 #dlg_note >div {position:absolute;top:3px;left:3px;bottom:3px;right:3px;padding:2px;border:1px solid #ccc}
@@ -381,6 +423,30 @@ body {-webkit-user-select:none;}
 </select>
 </div></div>
 </div>
+
+<div id="dlg_validate" title="Validation">
+
+<div class="xlabel"><div>Quality:</div><div>
+<select name="v_quality">
+<option value=""> -- </option>
+<option value="1">No Credit</option>
+<option value="2">Poor</option>
+<option value="3">Fair</option>
+<option value="4">Good</option>
+<option value="5">Excellent</option>
+</select>
+</div></div>
+
+<div class="xlabel"><div>OnTime:</div><div>
+<select name="v_on_time">
+<option value=""> -- </option>
+<option value="1">No</option>
+<option value="2">Yes</option>
+</select>
+</div></div>
+
+</div>
+
 
 </body>
 </html>
