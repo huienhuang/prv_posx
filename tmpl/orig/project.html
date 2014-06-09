@@ -71,7 +71,7 @@ g_v_tabs = $('#m_tabs').tabs({
     active: 0
 });
 
-g_v_tg[0] = $('#tg_in_progress', g_v_tabs).tinygrid({
+g_v_tg[2] = $('#tg_in_progress', g_v_tabs).tinygrid({
 len:0,
 src:{page:"?fn=get&state=${P_STATES['in progress']}"},
 cols: [
@@ -97,7 +97,7 @@ src:{page:"?fn=get&state=${P_STATES['completed']}|${P_STATES['validated']}"},
 cols: [
     {name:'ID', width:80},
     {name:'Desc', width:'100%'},
-    {name:'State', width:90},
+    {name:'State / Quality / OnTime', width:250},
     {name:'Progress', width:0},
     {name:'Deadline', width:250},
     {name:'Beginning', width:250},
@@ -111,7 +111,7 @@ click: function(r, c, d) {
 });
 
 
-g_v_tg[1] = $('#tg_pending', g_v_tabs).tinygrid({
+g_v_tg[0] = $('#tg_pending', g_v_tabs).tinygrid({
 len:0,
 src:{page:"?fn=get&state=${P_STATES['pending']}"},
 cols: [
@@ -130,7 +130,7 @@ click: function(r, c, d) {
 }
 });
 
-g_v_tg[2] = $('#tg_approved', g_v_tabs).tinygrid({
+g_v_tg[1] = $('#tg_approved', g_v_tabs).tinygrid({
 len:0,
 src:{page:"?fn=get&state=${P_STATES['approved']}"},
 cols: [
@@ -382,9 +382,9 @@ body {-webkit-user-select:none;}
 
 <div id="m_tabs">
 <ul>
-    <li><a href="#tabs_in_progress">In Progress</a></li>
     <li><a href="#tabs_pending">Pending</a></li>
     <li><a href="#tabs_approved">Approved</a></li>
+    <li><a href="#tabs_in_progress">In Progress</a></li>
     <li><a href="#tabs_completed">Completed</a></li>
     <li style="float:right"><a href="#tabs_quit">Quit</a></li>
     <li style="float:right"><a href="#tabs_new">Create New Project</a></li>

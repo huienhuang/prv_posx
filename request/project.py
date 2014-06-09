@@ -238,17 +238,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             users = dict([(v[0], v[1])for v in self.getuserlist()])
             
-            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts from project where '+state_s+' order by p_id desc limit %d,%d') % (
+            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js from project where '+state_s+' order by p_id desc limit %d,%d') % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
-                p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts = r
+                p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js = r
+                
+                if p_state == P_STATES['validated']:
+                    v = json.loads(p_js)['validation']
+                    ss = '%s / %s / %s' % (P_STATES_R[p_state], P_QUALITY[v['quality'] - 1], P_ON_TIME[v['on_time'] - 1])
+                else:
+                    ss = P_STATES_R[p_state]
                 
                 apg.append((
                     p_id,
                     p_name +' - '+ p_desc,
-                    P_STATES_R[p_state],
+                    ss,
                     '%d%%' % (p_progress,),
                     p_deadline_ts and time.strftime("%m/%d/%Y", time.localtime(p_deadline_ts)) or '',
                     p_beginning_ts and time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(p_beginning_ts)) or '',

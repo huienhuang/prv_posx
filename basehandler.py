@@ -25,6 +25,8 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.user_name = None
         self.user_lvl = 0
         self.__db = None
+        
+        self.is_ajax = bool(self.qsv_int('ajax'))
     
     def cleanup(self):
         tinywsgi2.RequestHandler.cleanup(self)
@@ -152,6 +154,9 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.login()
         if self.user_id and self.user_lvl & rlvl:
             return True
+        elif self.is_ajax:
+            self.req.exitjs({'err':-999})
+            return False
         else:
             self.req.redirect('?' + urllib.urlencode({'fn': 'login', 'req_qs': self.environ.get('QUERY_STRING') or ''}))
             return False

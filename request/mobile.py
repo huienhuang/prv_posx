@@ -12,7 +12,7 @@ DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
-        self.req.writefile('view_item_mobile.html')
+        self.req.writefile('mobile/home.html')
         
     REGX_FNZ_SUB = re.compile("[^0-9a-z-_=]", re.I|re.M|re.S)
     def fn_set_imgs(self):
