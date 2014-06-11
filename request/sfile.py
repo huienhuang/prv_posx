@@ -8,6 +8,7 @@ import hashlib
 import struct
 import base64
 import config
+import cStringIO
 
 
 ORIENTATION = [
@@ -67,5 +68,42 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         lst = json.dumps( (('IMG', '%s/%s_200.jpg' % (wdir, fnz)),) )
         self.req.writefile('finish_upload_img.html', {'lst': lst})
+        
+    
+    def fn_upload_img_v1(self):
+        img = base64.b64decode(self.req.psv_ustr('img'))
+        
+        now = datetime.datetime.now()
+        sdir = config.SFILE_DIR + '/upload/%04d%02d/%02d' % (now.year, now.month, now.day)
+        wdir = 'file/upload/%04d%02d/%02d' % (now.year, now.month, now.day)
+        try:
+            os.makedirs(sdir)
+        except:
+            pass
+        
+        im = Image.open(cStringIO.StringIO(img))
+        try:
+            orien = (im._getexif() or {}).get(0x0112, 1)
+        except:
+            orien = 1
+        
+        nim = im
+        if orien >= 0 and orien < len(ORIENTATION):
+            ori = ORIENTATION[orien]
+            if ori != None:
+                if type(ori) == tuple:
+                    nim = im.transpose(ori[0])
+                    nim = im.transpose(ori[1])
+                else:
+                    nim = im.transpose(ori)
+        
+        fnz = base64.urlsafe_b64encode(struct.pack('L', int(time.time())) + hashlib.md5(os.urandom(128)).digest())
+        
+        nim.thumbnail((1200, 1200), Image.ANTIALIAS)
+        nim.save('%s/%s.jpg' % (sdir, fnz), "JPEG", quality=82)
+        nim.thumbnail((200, 200), Image.ANTIALIAS)
+        nim.save('%s/%s_200.jpg' % (sdir, fnz), "JPEG", quality=82)
+        
+        self.req.writejs( (('IMG', '%s/%s_200.jpg' % (wdir, fnz)),) )
         
         

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<meta name="viewport" content="width=480,user-scalable=no">
+<title>POSX - View Item</title>
+
+<script type="text/javascript">
+
+var g_item = null;
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function finish_upload_img(lst)
+{
+    //g_v_img_upload_form[0].reset();
+    
+    for(var i = 0; i < lst.length; i++) {
+        var img = lst[i];
+        g_v_item_tbl.picture.prepend( $('<img />').attr('alt', img[0]).attr('src', img[1]) );
+    }
+    
+    var srcs = [];
+    var imgs = g_v_item_tbl.picture.children('img');
+    for(var i = 0; i < imgs.length; i++) srcs.push( $(imgs[i]).attr('src') );
+    
+    $.post('?fn=set_imgs', {'sid':g_item[0], 'imgs':srcs.join('|')}, function(js) {}, 'json');
+}
+
+g_v_ajax_seq__load_imgs = 0;
+function load_imgs(sid)
+{
+    g_v_item_tbl.picture.empty();
+    var seq = ++g_v_ajax_seq__load_imgs;
+    $.get('?fn=get_imgs', {'sid':sid}, function(js) {
+        if(seq !== g_v_ajax_seq__load_imgs || !js || !js.imgs) return;
+        
+        var imgs = js.imgs.split('|');
+        for(var i = 0; i < imgs.length; i++)
+            g_v_item_tbl.picture.append( $('<img alt="IMG" />').attr('src', imgs[i]) );
+        
+    }, 'json');
+}
+
+function OnPictureReady()
+{
+    var pic = window.Android.getPicture();
+    $.post('sfile?fn=upload_img_v1', {'img': pic}, finish_upload_img, 'json');
+}
+
+function OnBarcodeReady()
+{
+    var barcode = window.Android.getBarcode();
+    g_v_itemsearch.val(barcode).autocomplete('searchNow');
+}
+
+
+$(function() {
+
+g_v_m_top = $('.m_top');
+
+$('input[name="ctrl_add_img"]', g_v_m_top).button().click(function() {
+    if(g_item) window.Android && window.Android.takePicture();
+});
+
+$('input[name="ctrl_scan_barcode"]', g_v_m_top).button().click(function() {
+    window.Android && window.Android.scanBarcode();
+});
+
+$('input[name="ctrl_clear_search"]', g_v_m_top).button().click(function() {
+    g_v_itemsearch.val('');
+});
+
+g_v_itemsearch = $('[name="ctrl_search"]', g_v_m_top);
+
+init_item_ac(
+    '[name="ctrl_search"]',
+    function(evt, ui) {
+        var item = g_item = ui.item;
+        g_v_item_tbl.no.text(item[1]);
+        g_v_item_tbl.name.text(item[2]);
+        
+        g_v_item_tbl.unit.empty();
+        var units = item[3].units;
+        for(var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            g_v_item_tbl.unit.append(
+                $('<div></div>')
+                .append( $('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '') + ' ' ) )
+                .append( $('<span></span>').text( unit[1] + ' ' ) )
+                .append( $('<span></span>').text( unit[4]) )
+            );
+        }
+        
+        g_v_item_tbl.vend.empty();
+        var vends = item[3].vends;
+        for(var i = 0; i < vends.length; i++) {
+            var vend = vends[i];
+            if(vend[1] || vend[2]) {
+                g_v_item_tbl.vend.append(
+                    $('<div></div>')
+                    .append( $('<span></span>').text(vend[1] + ' ') )
+                    .append( $('<span></span>').text(vend[2]) )
+                );
+            }
+        }
+        
+        load_imgs(item[0]);
+    },
+    {
+        source: "sync?fn=itemsearch",
+        delay: 500,
+        position: {mode:1},
+        autoSelect: true
+    },
+    itemsearch_render_item
+    
+); //init_item_ac
+
+var lst = $('.item_info_tbl > div > div:nth-child(2)');
+g_v_item_tbl = {
+    'no': $(lst[0]),
+    'name': $(lst[1]),
+    'unit': $(lst[2]),
+    'vend': $(lst[3]),
+    'picture': $(lst[4]),
+}
+
+}); //-ready
+
+</script>
+
+<style type="text/css">
+body {margin:0 auto;padding-top:50px;}
+
+input {height:36px !important;font-size:26px !important}
+input[type="button"] {height:42px !important;padding:2px 10px !important;}
+
+.m_top {position:fixed;top:0;left:0;right:0;height:42px;padding:4px;line-height:42px;background-color:#f9f9f9;z-index:1}
+.m_top input {vertical-align:bottom;margin-left:10px;}
+
+.item_info_tbl > div {position:relative;border-top:1px solid #ddd;margin:0;min-height:32px;padding-left:60px;line-height:32px}
+.item_info_tbl > div:last-child {border-bottom:1px solid #ddd}
+.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:50px;padding-right:10px;text-align:right}
+.item_info_tbl > div > div:nth-child(2) {text-align:center}
+
+.ui-autocomplete {top:50px;left:0;bottom:0;right:0;border:none;padding:0;position:fixed}
+.ui-menu > .ui-menu-item {width:auto;height:66px}
+.ui-menu > .ui-menu-item > a {font-size:20px;width:auto;height:60px}
+.ui-menu > .ui-menu-item > a > span {height:30px;line-height:30px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:160px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:240px;margin-right:0;}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:auto;margin-right:0;clear:left}
+
+.item_unit > div > span:nth-child(1) {color:#394c8a}
+.item_unit > div > span:nth-child(2) {color:#4e6f15}
+.item_unit > div > span:nth-child(3) {color:#833f16}
+.item_unit > div:nth-child(even) {background-color:#fdf3e4}
+
+.item_vend > div > span:nth-child(1) {color:#833f16}
+.item_vend > div > span:nth-child(2) {color:#4e6f15}
+.item_vend > div:nth-child(even) {background-color:#fdf3e4}
+
+.item_pics > img {max-width:120px;max-height:120px;padding-left:5px;}
+
+</style>
+
+</head>
+<body>
+<div class="m_top">
+<input type="text" name="ctrl_search" style="width:230px" />
+<input type="button" value="清空" name="ctrl_clear_search" />
+<input type="button" value="扫描" name="ctrl_scan_barcode" />
+<input type="button" value="上传照片" name="ctrl_add_img" />
+</div>
+
+<div class="item_info_tbl">
+<div><div>号码</div><div></div></div>
+<div><div>名称</div><div></div></div>
+<div><div>单位</div><div class="item_unit"></div></div>
+<div><div>厂商</div><div class="item_vend"></div></div>
+<div><div>图片</div><div class="item_pics"></div></div>
+</div>
+
+</body>
+</html>

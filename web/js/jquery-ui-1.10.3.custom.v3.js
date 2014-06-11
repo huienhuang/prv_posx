@@ -6193,6 +6193,11 @@ $.widget( "ui.autocomplete", {
 		}
 	},
 
+	searchNow: function() {
+		this.term = null;
+		this.__searchNow(null);
+	},
+	
 	__searchNow: function( event ) {
 		this.search_auto_select = 1;
 		if(this.searching !== null) {
