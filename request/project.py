@@ -183,7 +183,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if r['p_state'] == P_STATES['in progress']:
                 mms.append( '- in progress: %d%%' % (r['p_progress'],))
                 
-            mms.append( '- beginning date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_beginning_ts'])) )
+            if r['p_beginning_ts']: mms.append( '- beginning date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_beginning_ts'])) )
             
             if r['p_state'] >= P_STATES['completed']:
                 mms.append( '- completion date: ' + time.strftime("%m/%d/%Y", time.localtime(r['p_completion_ts'])) )
