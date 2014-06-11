@@ -12,6 +12,8 @@ P_STATES = {
 'validated' : 128,
 }
 
+P_CLASSES = ['', 'A', 'B', 'C', 'D', 'E']
+
 P_STATES_R = dict([(f_v,f_k) for f_k,f_v in P_STATES.items()])
 
 
@@ -22,7 +24,7 @@ DEFAULT_PERM = 1 << config.USER_PERM_BIT['sys']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
-        self.req.writefile('project.html', {'P_STATES': P_STATES})
+        self.req.writefile('project.html', {'P_STATES': P_STATES, 'P_CLASSES': P_CLASSES})
 
     def fn_view(self):
         r = {
@@ -37,7 +39,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         msg = json.dumps([self.user_id, self.user_name, '', int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
-        cur.execute("insert into project values(null,0,0,%s,0,%s,%s,0,0,0,'',%s)", (
+        cur.execute("insert into project values(null,0,0,0,%s,0,%s,%s,0,0,0,'',%s)", (
             self.user_id, name, desc, msg
             )
         )
@@ -78,17 +80,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_approve(self):
         p_id = self.req.psv_int('p_id')
         deadline = self.req.psv_ustr('deadline')
-        
+        p_class_idx = P_CLASSES.index( self.req.psv_ustr('p_class') )
+
         deadline_ts = 0
         if deadline:
             m_yr,m_mon,m_day = map(int, deadline.split('-', 3))
             deadline_ts = int(time.mktime(datetime.date(m_yr, m_mon, m_day).timetuple()))
         
-        msg = json.dumps([self.user_id, self.user_name, 'Approved', int(time.time()), 0], separators=(',',':'))
+        i_msg = 'Approved - Class: %s, Deadline: %s' % (
+            P_CLASSES[p_class_idx],
+            deadline_ts and time.strftime("%m/%d/%Y", time.localtime(deadline_ts)) or ''
+        )
+        msg = json.dumps([self.user_id, self.user_name, i_msg, int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
-        cur.execute("update project set p_state=%s,p_approved_by_uid=%s,p_deadline_ts=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state<%s", (
-            P_STATES['approved'], self.user_id, deadline_ts, msg, p_id, P_STATES['approved']
+        cur.execute("update project set p_state=%s,p_approved_by_uid=%s,p_deadline_ts=%s,p_class=%s,p_msg=concat(p_msg,',',%s) where p_id=%s and p_state<%s", (
+            P_STATES['approved'], self.user_id, deadline_ts, p_class_idx, msg, p_id, P_STATES['approved']
             )
         )
         rc = cur.rowcount
@@ -164,6 +171,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['p_name'], r['p_desc'],
             '- state: ' + P_STATES_R.get(r['p_state']),
         ]
+        if r['p_class']: mms.append('- class: ' + P_CLASSES[r['p_class']])
+
         if r['p_state'] >= P_STATES['approved']:
             if r['p_deadline_ts']: mms.append( '- deadline ' + time.strftime("%m/%d/%Y", time.localtime(r['p_deadline_ts'])) )
             
@@ -238,12 +247,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             users = dict([(v[0], v[1])for v in self.getuserlist()])
             
-            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js from project where '+state_s+' order by p_id desc limit %d,%d') % (
+            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js from project where '+state_s+' order by p_id desc limit %d,%d') % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
-                p_id,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js = r
+                p_id,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js = r
                 
                 if p_state == P_STATES['validated']:
                     v = json.loads(p_js)['validation']
@@ -253,6 +262,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
                 apg.append((
                     p_id,
+                    P_CLASSES[p_class],
                     p_name +' - '+ p_desc,
                     ss,
                     '%d%%' % (p_progress,),

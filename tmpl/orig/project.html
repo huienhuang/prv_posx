@@ -10,7 +10,7 @@ g_v_tg = [];
 
 function load_project(rd)
 {
-    var state = rd[9];
+    var state = rd[10];
     
     if(state < ${P_STATES['completed']})
         g_v_dvp_btn_delete.show();
@@ -76,6 +76,7 @@ len:0,
 src:{page:"?fn=get&state=${P_STATES['in progress']}"},
 cols: [
     {name:'ID', width:80},
+    {name:'Class', width:60},
     {name:'Desc', width:'100%'},
     {name:'State', width:0},
     {name:'Progress', width:100},
@@ -96,6 +97,7 @@ len:0,
 src:{page:"?fn=get&state=${P_STATES['completed']}|${P_STATES['validated']}"},
 cols: [
     {name:'ID', width:80},
+    {name:'Class', width:60},
     {name:'Desc', width:'100%'},
     {name:'State / Quality / OnTime', width:250},
     {name:'Progress', width:0},
@@ -116,6 +118,7 @@ len:0,
 src:{page:"?fn=get&state=${P_STATES['pending']}"},
 cols: [
     {name:'ID', width:80},
+    {name:'Class', width:60},
     {name:'Desc', width:'100%'},
     {name:'State', width:0},
     {name:'Progress', width:0},
@@ -135,6 +138,7 @@ len:0,
 src:{page:"?fn=get&state=${P_STATES['approved']}"},
 cols: [
     {name:'ID', width:80},
+    {name:'Class', width:60},
     {name:'Desc', width:'100%'},
     {name:'State', width:0},
     {name:'Progress', width:0},
@@ -195,7 +199,7 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
             'text': 'SetProgress',
             'click': function() {
                 var rd = g_v_dlg_view_project.data('rd');
-                g_v_dlg_setprogress.find('select').val(rd[3].substr(0, rd[3].length - 1))
+                g_v_dlg_setprogress.find('select').val(rd[4].substr(0, rd[4].length - 1))
                 g_v_dlg_setprogress.data('p_id', rd[0]).dialog('open');
             }
         },
@@ -205,6 +209,7 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
             'click': function() {
                 var rd = g_v_dlg_view_project.data('rd');
                 g_v_dlg_approve.find('input[type="date"]').val('');
+                g_v_dlg_approve.find('select').val('');
                 g_v_dlg_approve.data('p_id', rd[0]).dialog('open');
             }
         },
@@ -325,12 +330,13 @@ g_v_dlg_approve = $('#dlg_approve').dialog({
     modal: true,
     autoOpen: false,
     width:380,
-    height:200,
+    height:250,
     buttons: {
         'approve': function() {
             var deadline = g_v_dlg_approve.find('input[type="date"]').val();
+            var p_class = g_v_dlg_approve.find('select').val();
             var p_id = g_v_dlg_approve.data('p_id');
-            post_js_ex('?fn=approve', {'p_id': p_id, 'deadline': deadline}, function(js) {
+            post_js_ex('?fn=approve', {'p_id': p_id, 'deadline': deadline, 'p_class': p_class}, function(js) {
                 g_v_dlg_approve.dialog('close');
                 g_v_dlg_view_project.dialog('close');
                 var idx = g_v_tabs.tabs('option', 'active');
@@ -411,7 +417,13 @@ body {-webkit-user-select:none;}
 </div>
 
 <div id="dlg_approve" title="Approval">
-<div class="xlabel"><div>Deadline:</div><div><input type="date" /></div><div>
+<div class="xlabel"><div>Deadline:</div><div><input type="date" /></div></div>
+<div class="xlabel"><div>Class:</div><div><select>
+%for c in P_CLASSES:
+<option>${c|h}</option>
+%endfor
+</select></div>
+</div>
 </div>
 
 <div id="dlg_setprogress" title="Set Progress">
