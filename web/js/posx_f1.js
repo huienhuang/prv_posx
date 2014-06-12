@@ -173,18 +173,18 @@ function show_login()
             modal:true,
             autoOpen:false,
             width:300,
-            buttons: {
-                'login': login
-            }
+            close: function() { v_login.data('in_els').pass[0].val(''); },
+            buttons: {'login': login}
         });
         idx_elements(v_login, 0);
+        v_login.data('in_els').pass[0].keyup(function(e) { e.which === 13 && login(); });
     }
-        
+    
     load_users();
     v_login.dialog('open');
 }
-    
-    
+
+
 function chk_login()
 {
     $.get('?fn=getuser', {}, function(js) {
@@ -315,7 +315,9 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync)
         success: function(js) {
             hide_loading_msg();
             if(js.err) {
-                if(err_cb)
+                if(js.err === -999) {
+                    show_login();
+                } else if(err_cb)
                     err_cb.apply(this, 1, arguments);
                 else
                     MsgBox('Erorr Code - ' + (js.err || 'None'), js.err_s || 'unexpected error');

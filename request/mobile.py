@@ -7,7 +7,6 @@ import config
 import re
 
 
-
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
@@ -33,7 +32,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         imgs = '|'.join(lst)
         cur = self.cur()
-        cur.execute('insert into item values(%s,0,%s) on duplicate key update rev=rev+1,imgs=%s', (
+        cur.execute('insert into item (sid,rev,imgs) values(%s,0,%s) on duplicate key update rev=rev+1,imgs=%s', (
             sid, imgs, imgs
             )
         )
@@ -48,5 +47,41 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rows = cur.fetchall()
         if not rows: return
         
-        self.req.writejs({'imgs':rows[0][0], 'sid':str(sid)})
+        self.req.writejs({'imgs':rows[0][0] or '', 'sid':str(sid)})
+        
+        
+    def fn_set_single_inv_flag(self):
+        sid = self.req.psv_int('sid')
+        idx = self.req.psv_int('idx')
+        on = self.req.psv_int('on')
+        if idx < 0 or idx > 31: return
+        
+        cur = self.cur()
+        if on:
+            cur.execute('insert into item (sid,inv_flag) values(%s,%s) on duplicate key update inv_flag=inv_flag|%s', (
+                sid, 1 << idx, 1 << idx
+                )
+            )
+        else:
+            #update only
+            cur.execute('insert into item (sid,inv_flag) values(%s,%s) on duplicate key update inv_flag=inv_flag&%s', (
+                sid, 0, ~(1 << idx)
+                )
+            )
+        
+        rc = cur.rowcount
+        self.req.writejs({'err': int(not (rc > 0))})
+        
+    def fn_get_inv_flag(self):
+        sid = self.req.psv_int('sid')
+    
+        cur = self.cur()
+        cur.execute('select inv_flag from item where sid=%s', (sid,))
+        rows = cur.fetchall()
+        flag = 0
+        if rows: flag = rows[0][0]
+            
+        self.req.writejs({'flag': flag})
+        
+        
         
