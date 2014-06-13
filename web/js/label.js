@@ -77,7 +77,13 @@ function _fill_label(label, data)
         }
         
         i_elem.html(a);
+        resize_elem(i_elem);
     }
+}
+
+function resize_elem(i_elem)
+{
+    
 }
 
 function edit_elem()
@@ -127,6 +133,7 @@ function change_elem()
     var c_elem = i_elem;
     if(html_to_text(c_elem) === val) return;
     c_elem.html( text_to_html(val) );
+    resize_elem(c_elem);
     
     if(!elem.hasClass('le_id')) return;
     load_by_id(elem.parent(), val);
