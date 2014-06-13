@@ -143,7 +143,7 @@ init_item_ac(
         var vends = item[3].vends;
         for(var i = 0; i < vends.length; i++) {
             var vend = vends[i];
-            if(vend[1] || vend[2]) {
+            if(vend[0]) {
                 g_v_item_tbl.vend.append(
                     $('<div></div>')
                     .append( $('<div></div>').text(vend[0]) )
