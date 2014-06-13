@@ -271,7 +271,7 @@ init_item_ac = function(sel, cb, option, fn_render)
 var v_loading_msg = null;
 function show_loading_msg(msg)
 {
-    if(!v_loading_msg) { v_loading_msg = $('<div class="center_blk" style="display:none"></div>').appendTo($('body')); }
+    if(!v_loading_msg) { v_loading_msg = $('<div class="center_blk" style="display:none;z-index:99"></div>').appendTo($('body')); }
     
     v_loading_msg.text(msg).stop(true, true).show();
 }

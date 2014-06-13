@@ -5,9 +5,11 @@
 <title>POSX - Label</title>
 
 <script type="text/javascript">
+g_loaded_sids = {};
+
 
 $(function() {
-    
+
 $('.btn').button();
 
 g_v_m_ctrl = $('.m_ctrl');
@@ -17,6 +19,7 @@ g_v_iframe_tmpl = $('.m_body iframe');
 
 var els = g_v_m_ctrl.data('in_els');
 els.tmpl[0].change(function() {
+    g_loaded_sids = {};
     var tmpl = $(this).val();
     if(!tmpl)
         g_v_iframe_tmpl.attr('src', 'about:blank');
@@ -26,20 +29,62 @@ els.tmpl[0].change(function() {
 els.preview[0].click(function() {
     g_v_iframe_tmpl[0].contentWindow.print();
     
-})
+});
 els.quit[0].click(function() {
     go_home();
     
-})
+});
 els.clear[0].click(function() {
     g_v_m_ctrl.data('in_els').tmpl[0].change();
     
-})
+});
+els.auto[0].change(function() {
+    var els = g_v_m_ctrl.data('in_els');
+    var type = parseInt(els.auto[0].val());
+    els.auto[0].val('');
+    var tmpl = els.tmpl[0].val();
+    if (!tmpl || !type) return;
+    
+    var data = null;
+    var msg = null;
+    if(type == 1) {
+        msg = 'Loading...';
+        
+    } else if(type == 2) {
+        var ks = [];
+        for(var k in g_loaded_sids) ks.push(k);
+        g_loaded_sids = {};
+        if(!ks.length) return;
+        data = ks.join('|');
+        msg = 'Removing...';
+        
+    } else if(type == 3) {
+        g_loaded_sids = {};
+        msg = 'Removing...';
+        
+    }
+    
+    post_js_ex('?fn=auto', {'type': type, 'tmpl': tmpl, data: data}, function(js) {
+        
+        if(js.type === 1) {
+            var add_label = g_v_iframe_tmpl[0].contentWindow.add_label;
+            if(!add_label) return;
+            for(var i = 0; i < js.lst.length; i++) {
+                var r = js.lst[i];
+                g_loaded_sids[ r[0] ] = null;
+                add_label(r);
+            }
+        }
+        
+    }, undefined, undefined, msg);
+    
+});
 
 init_item_ac('[name="ctrl_srch"]', function(evt, ui) {
     var add_label = g_v_iframe_tmpl[0].contentWindow.add_label;
     add_label && add_label(ui.item);
 }, {source:'?fn=itemsearch'});
+
 
 });
 
@@ -58,14 +103,23 @@ body {-webkit-user-select:none;}
 <div class="m_ctrl">
 <select name="ctrl_tmpl" style="width:300px">
 <option value="">-- Select Template --</option>
-%for t_id,t_val in templates:
+%for t_id,t_val,t_load_idx in templates:
 <option value="${t_id|h}">${t_val|h}</option>
 %endfor
 </select>
 <input type="text" name="ctrl_srch" style="width:150px" />
 <input type="button" name="ctrl_preview" value="preview" class="btn" />
 <input type="button" name="ctrl_clear" value="clear" class="btn" />
-<input type="button" name="ctrl_quit" value="quit" class="btn" />
+
+<input type="button" name="ctrl_quit" value="quit" class="btn" style="float:right;margin-top:11px;" />
+
+<select style="float:right;margin:11px 20px 0 0;" name="ctrl_auto">
+<option value=""> -- Load Labels -- </option>
+<option value="1">Load</option>
+<option value="2">Remove All Loaded</option>
+<option value="3">Remove All</option>
+</select>
+
 </div>
 
 <div class="m_body">

@@ -7,20 +7,25 @@ import socket
 import re
 
 
+TEMPLATES = (
+('5163', '5163 2 x 4 - large', 1),
+('5160', '5960 1 x 2 5/8 - small', 0),
+('5160009', '5960 1 x 2 5/8 - small - repeat', None),
+                
+('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x', None),
+('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x', None),
+('5960201', u"NowPak Logo" + ' 30x', None),
+)
+
+TEMPLATES_D = dict([(f_v[0], f_v[1:])for f_v in TEMPLATES])
+
+
 DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/request/sync').RequestHandler):
     
     def fn_default(self):
         d = {
-            'templates': (
-                ('5163', '5163 2 x 4 - large'),
-                ('5160', '5960 1 x 2 5/8 - small'),
-                ('5160009', '5960 1 x 2 5/8 - small - repeat'),
-                
-                ('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x'),
-                ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x'),
-                ('5960201', u"NowPak Logo" + ' 30x'),
-            )
+            'templates': TEMPLATES
         }
         self.req.writefile('label.html', d)
 
@@ -53,4 +58,48 @@ class RequestHandler(App.load('/request/sync').RequestHandler):
         del js['udfs']
         
         self.req.writejs(row)
+        
+        
+    def fn_auto(self):
+        l_type = self.req.psv_int('type')
+
+        idx = TEMPLATES_D.get( self.req.psv_ustr('tmpl'), [None, None] )[1]
+        if idx == None: return
+        
+        cur = self.cur()
+        if l_type == 1:
+            cur.execute('select sid,num,name,detail from sync_items where sid in (select sid from item where inv_flag&%d=%d order by sid) order by sid asc limit 100' % (1 << idx, 1 << idx))
+            ret = []
+            for r in cur.fetchall():
+                r = list(r)
+                r[0] = str(r[0])
+                r[3] = json.loads(r[3])
+                
+                js = r[3]
+                for u in js['units']: u[0] = u[0][:1]
+                del js['udfs']
+                
+                ret.append(r)
+                
+            self.req.writejs({'type': 1, 'lst': ret})
+                
+        elif l_type == 2:
+            sids = map(str, map(int, self.req.psv_ustr('data').split('|')))
+            if not sids: return
+            
+            cur.execute('update item set inv_flag=inv_flag&%d where sid in (%s)' % (
+                ~(1 << idx), ','.join(sids),
+                )
+            )
+            self.req.writejs({'err': 0})
+        
+        elif l_type == 3:
+            
+            cur.execute('update item set inv_flag=inv_flag&%d' % (
+                ~(1 << idx),
+                )
+            )
+            self.req.writejs({'err': 0})
+        
+        
         
