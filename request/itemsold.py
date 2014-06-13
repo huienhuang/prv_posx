@@ -137,7 +137,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         frm_ts = int(js['frm_ts'])
         to_ts = int(js['to_ts'])
         imm = int(js['interval'])
-        if not frm_ts or not to_ts: return
+        if not frm_ts or not to_ts or imm < 1: return
         
         stat = self.get_items_sold_report(tids, frm_ts, to_ts, imm)
         frm_tp = time.localtime(frm_ts)
