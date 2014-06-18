@@ -108,7 +108,6 @@ MsgBox = function(title, msg, msg_type, cb)
         .dialog({
             modal:true,
             autoOpen:false,
-            width:700,
             close: function(event, ui) {
                 var mq = $(this).data('mq');
                 var cb = mq.shift()[3];
@@ -304,8 +303,12 @@ load_js = function(type, msg, url, data, cb, err_cb, sync)
     });
 };
 
-load_js_ex = function(type, msg, url, data, cb, err_cb, sync)
+var load_js_ex__s_tag = {}
+load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
 {
+    var cur_seq = 0;
+    if(s_tag) cur_seq = load_js_ex__s_tag[s_tag] = load_js_ex__s_tag[s_tag] ? load_js_ex__s_tag[s_tag] + 1 : 1;
+    
     msg && show_loading_msg(msg);
     return $.ajax({
         async: !sync,
@@ -313,6 +316,8 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync)
         url: url,
         data: data,
         success: function(js) {
+            if(s_tag && load_js_ex__s_tag[s_tag] !== cur_seq) return;
+            
             hide_loading_msg();
             if(js.err) {
                 if(js.err === -999) {
@@ -326,6 +331,8 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync)
         },
         dataType: 'json',
         error: function() {
+            if(s_tag && load_js_ex__s_tag[s_tag] !== cur_seq) return;
+            
             hide_loading_msg();
             if(err_cb)
                 err_cb.apply(this, 0, arguments);
@@ -345,14 +352,14 @@ get_js = function(url, data, cb, err_cb, sync)
     return load_js('get', null, url, data, cb, err_cb, sync);
 };
 
-post_js_ex = function(url, data, cb, err_cb, sync, pop_msg)
+post_js_ex = function(url, data, cb, err_cb, sync, pop_msg, s_tag)
 {
-    return load_js('post', pop_msg !== undefined ? pop_msg : 'Saving...', url, data, cb, err_cb, sync);
+    return load_js_ex('post', pop_msg !== undefined ? pop_msg : 'Saving...', url, data, cb, err_cb, sync, s_tag);
 };
 
-get_js_ex = function(url, data, cb, err_cb, sync, pop_msg)
+get_js_ex = function(url, data, cb, err_cb, sync, pop_msg, s_tag)
 {
-    return load_js('get', pop_msg, url, data, cb, err_cb, sync);
+    return load_js_ex('get', pop_msg, url, data, cb, err_cb, sync, s_tag);
 };
 
 })();

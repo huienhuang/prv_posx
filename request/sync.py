@@ -343,3 +343,56 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['r_po'] = po
         
         self.req.writefile('vo_print_v2.html', r)
+
+    
+    def fn_get_item_chg_hist(self):
+        ch_id = self.qsv_int('ch_id')
+        
+        cur = self.cur()
+        cur.execute('select * from item_chg_hist ch left join sync_items_hist h on (ch.ch_id=h.sid and h.sid_type=2) where ch.ch_id=%s', (ch_id,))
+        rows = cur.fetchall()
+        if not rows: return
+        nzs = cur.column_names
+        r = dict(zip(nzs, rows[0]))
+        
+        r['itemsid'] = str(r['itemsid'])
+        r['js'] = json.loads(r['js'])
+
+        self.req.writejs(r)
+
+    def fn_get_lst_item_chg_hist(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+        
+        pgsz = self.qsv_int('pagesize')
+        sidx = self.qsv_int('sidx')
+        eidx = self.qsv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+        
+        cur = self.cur()
+        apg = []
+        if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            users = dict([(v[0], v[1])for v in self.getuserlist()])
+            
+            cur.execute(('select SQL_CALC_FOUND_ROWS si.num,si.name,h.qtynew,h.qtynew-h.qtydiff,u.user_name,ch.js,h.docdate,h.itemsid from item_chg_hist ch left join user u on (ch.user_id=u.user_id) left join sync_items_hist h on (ch.ch_id=h.sid and h.sid_type=2) left join sync_items si on (h.itemsid=si.sid) order by ch.ch_id desc limit %d,%d') % (
+                        sidx * pgsz, (eidx - sidx) * pgsz
+                        )
+            )
+            for r in cur.fetchall():
+                r = list(r)
+                r[5] = ', '.join([ "%d %s%s" % (f_x[2], f_x[0], f_x[1] != 1 and '(*%0.1f)' % (f_x[1],) or '') for f_x in json.loads(r[5]) ])
+                r[-2] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[-2]))
+                r[-1] = str(r[-1])
+                apg.append(r)
+                
+            cur.execute('select FOUND_ROWS()')
+        else:
+            cur.execute('select count(*) from item_chg_hist')
+        
+        rlen = int(cur.fetchall()[0][0])
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)
+        
+        
+

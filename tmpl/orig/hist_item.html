@@ -140,15 +140,15 @@ $(function() {
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
 len:0,
 src:{page:'?fn=getpageitem', data:{'tid': '${item_sid}'}},
-cols: [{name:'Num', width:120},
+cols: [{name:'Num', width:90},
        {name:'Type', width:180},
        {name:'Details', width:"100%"},
-       {name:'QtyChg', width:150},
-       {name:'Date', width:250},
+       {name:'QtyChg', width:100},
+       {name:'Date', width:220},
        ],
 click: function(r, c, d) {
     if(d[6] < 2) {
-        if (d[7])
+        if (d[7] === 1)
             window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
         else {
             if(c == 2) {
@@ -157,9 +157,24 @@ click: function(r, c, d) {
                 window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
             }
         }
-    } else if (d[6] < 4) {
+        
+    } else if(d[6] < 4) {
         window.open('sync?fn=printorder&type=3&rid=' + d[5],'posx_vo_wnd','location=0,width=992,height=700');
+        
+    } else if(d[6] == 4 && d[7] === 2) {
+        g_dlg_item_chg_hist.dialog('close');
+        get_js_ex('sync?fn=get_item_chg_hist', {ch_id: d[0]}, function(js) {
+            var v = [];
+            var units = js.js;
+            for(var i = 0; i < units.length; i++) {
+                var u = units[i];
+                v.push( $('<div></div>').text(u[2] + ' ' + u[0] + (u[1] === 1 ? '' : ' (*' + u[1].toFixed(1) + ')')) );
+            }
+            
+            g_dlg_item_chg_hist.dialog('open').empty().append(v);
+        });
     }
+    
 },
 getval: function(r, org_getval) {
     var row = org_getval.apply(this, [r]);
@@ -285,6 +300,14 @@ g_v_item_tabs = $('.item_tabs').tabs({
         }
     },
     active:${dg_type}
+});
+
+
+g_dlg_item_chg_hist = $('#dlg_item_chg_hist').dialog({
+    width: 200,
+    height: 200,
+    resizable: false,
+    autoOpen: false,
 });
 
 //++
@@ -478,6 +501,8 @@ k += 1
 </form>
 <iframe name="img_upload_form__target"></iframe>
 </div>
+
+<div id="dlg_item_chg_hist" title="Input QTY"></div>
 
 </body>
 </html>

@@ -144,25 +144,48 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
     def fn_set_item_qty(self):
         sid = self.req.psv_int('sid')
-        cur_qty = float(self.req.psv_ustr('cur_qty'))
-        in_units = self.req.psv_js('js')
+        cur_qty = round(float(self.req.psv_ustr('cur_qty')), 2)
+        in_units = [ [f_x[0], float(f_x[1]), int(f_x[2] or 0)] for f_x in self.req.psv_js('js') ]
         
+        cur = self.cur()
         cur.execute("select detail from sync_items where sid=%s", (sid,))
         rows = cur.fetchall()
         if not rows: return
         jsd = json.loads(rows[0][0])
-        units = [ (u[2].lower(), u[3]) for u in js['units'] if u[3] ]
-        
+        units = [ [u[2].lower(), u[3]] for u in jsd['units'] if u[3] ]
         if len(units) != len(in_units): return
+
         new_qty = 0
         for i in range(len(units)):
             u = in_units[i]
             if units[i][:2] != u[:2]: return
-            new_qty += u[1] * int(u[2] or 0)
+            new_qty += float(u[1]) * int(u[2] or 0)
+        new_qty = round(new_qty, 2)
         
-        #ret = self.modify_item_qty(sid, cur_qty, new_qty)
+        if cur_qty == new_qty:
+            self.req.exitjs({'err': 2, 'err_s': 'same value, nothing to do'})
+            return
+        
+        cur_ts = int(time.time())
+        ret = self.modify_item_qty(sid, cur_qty, new_qty)
+        if ret:
+            cur.execute('insert into item_chg_hist values(null,%s,%s)', (
+                self.user_id, json.dumps(in_units, separators=(',',':'))
+            ))
+            ch_id = cur.lastrowid
+            cur.execute('insert into sync_items_hist values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', (
+                ch_id, 2, sid, ch_id, ch_id, 4 << 8,
+                "Adj.(New:%0.1f Old:%0.1f) By %s" % (new_qty, cur_qty, self.user_name,),
+                new_qty,
+                round(new_qty - cur_qty, 2),
+                0, 0, 0,
+                cur_ts
+            ))
         
         self.req.writejs({'err': int(not ret)})
+    
+    fn_set_item_qty.PERM = 1 << config.USER_PERM_BIT['adj item qty']
+    
     
     def modify_item_qty(self, sid, old_qty, new_qty):
         dbc = sqlanydb.connect(**config.sqlany_pos_server)

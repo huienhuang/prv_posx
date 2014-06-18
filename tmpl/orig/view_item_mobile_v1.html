@@ -122,8 +122,10 @@ function show_tools()
 
 function update_inv_stat()
 {
-    var units = g_v_inv_cnt_units.data('units');
-    console.log(units);
+    var js = g_v_inv_cnt_units.data('js');
+    if(!js) return;
+    
+    var units = js.units;
     var total = 0;
     for(var i = 0; i < units.length; i++) {
         var u = units[i];
@@ -134,15 +136,16 @@ function update_inv_stat()
 
 function show_inv()
 {
-    g_v_inv_cnt_units.data('units', null).empty();
+    g_v_inv_cnt_units.data('js', null).empty();
+    g_v_inv_cnt.data('v_inv_agree').prop('checked', false);
     if(!g_item) return;
     g_v_inv_cnt.show();
     
     var sid = g_item[0];
-    get_js('?fn=get_item_unit', {sid: sid}, function(js) {
+    get_js_ex('?fn=get_item_unit', {sid: sid}, function(js) {
         if(!g_item || g_item[0] !== sid) return;
         
-        g_v_inv_cnt_units.data('units', js.units);
+        g_v_inv_cnt_units.data('js', js);
         var v_lst = [];
         for(var i = 0; i < js.units.length; i++) {
             var u = js.units[i];
@@ -158,8 +161,41 @@ function show_inv()
         
         $(g_v_inv_cnt_stats[3]).text(js.qty.toFixed(1));
         update_inv_stat();
-    });
+        
+    }, undefined, undefined, "Loading ...", "view_mobile_show_inv");
 }
+
+function onclick_btn_inv_btn(evt, mode)
+{
+    if(!g_item) return;
+    if(!g_v_inv_cnt.data('v_inv_agree').prop('checked')) return;
+    
+    var js = g_v_inv_cnt_units.data('js');
+    if(!js) return;
+    
+    
+    var lst = [];
+    var pass = false;
+    for(var i = 0; i < js.units.length; i++) {
+        var u = js.units[i];
+        var v = $.trim(u[2].val());
+        lst.push( [u[0], u[1], v] );
+        if(v) pass = true;
+    }
+    if(!pass) return;
+    
+    if(mode) {
+        post_js_ex('?fn=set_item_qty', {'sid': g_item[0], 'cur_qty': js.qty, 'js': JSON.stringify(lst)}, function() {
+            show_inv();
+        });
+        
+    } else {
+        g_dlg_confirm_chg_qty.dialog('open');
+        
+    }
+    
+}
+
 
 $(function() {
 
@@ -285,22 +321,37 @@ g_v_inv_cnt = $('.m_inv_cnt');
 g_v_inv_cnt_units = g_v_inv_cnt.children('.inv_units');
 g_v_inv_cnt_stats = g_v_inv_cnt.children('.inv_stats').children();
 
-g_v_inv_cnt.find('.btn_inv_set').button().click(function() {
-    var units = {};
-    post_js_ex('?fn=set_inv_rec', {'js': JSON.stringify(d)}, function(js) {
-        var lst = g_v_inv_cnt.find('input[type="text"]:visible');
-        
-    });
+g_v_inv_cnt.find('.btn_inv_set').button().click(onclick_btn_inv_btn);
+g_v_inv_cnt.data('v_inv_agree', g_v_inv_cnt.find('input[name="inv_agree"]'));
 
-});
-g_v_inv_cnt.find('.btn_inv_close').button().click(function() { g_v_inv_cnt.hide(); });
 
 $('.item_info_tbl').on('swipeleft', show_tools).on('swiperight', show_inv);
+g_v_inv_cnt.on('swipe', function(e) {
+    if (e.swipestart.coords[0] < e.swipestop.coords[0])
+        show_inv(); 
+    else
+        g_v_inv_cnt.hide();
+});
 g_v_tools_cnt.on('swipe', function(e) {
     if (e.swipestart.coords[0] > e.swipestop.coords[0])
         show_tools(); 
     else
         g_v_tools_cnt.hide();
+});
+
+g_dlg_confirm_chg_qty = $('#dlg_confirm_chg_qty').dialog({
+    resizable: false,
+    autoOpen: false,
+    modal: true,
+    buttons: {
+        'Yes': function() {
+            g_dlg_confirm_chg_qty.dialog('close');
+            onclick_btn_inv_btn(null, 1);
+        },
+        'Cancel': function() {
+            g_dlg_confirm_chg_qty.dialog('close');
+        }
+    }
 });
 
 }); //-ready
@@ -371,9 +422,10 @@ body {margin:0 auto;padding-top:51px}
 .m_inv_cnt .inv_stats > div:nth-child(1) {color:#579942;width:140px}
 .m_inv_cnt .inv_stats > div:nth-child(3) {color:#1c4a8f;width:120px;margin-left:20px;}
 
+.m_inv_cnt > div:first-child {height:200px}
 .m_inv_cnt > div:first-child > div {height:40px;line-height:40px;padding:5px;}
 .m_inv_cnt input[type="text"] {height:34px !important;font-size:26px !important;width:100px;margin-right:10px;}
-.m_inv_cnt input[type="button"] {height:60px !important;font-size:32px !important;width:200px;margin-right:30px;}
+.m_inv_cnt input[type="button"] {height:60px !important;font-size:32px !important;width:200px;}
 
 </style>
 
@@ -407,8 +459,11 @@ body {margin:0 auto;padding-top:51px}
 <div class="inv_units"></div>
 <div class="inv_stats"><div>PhyCount:</div><div></div><div>OnHand:</div><div></div></div>
 <div><input type="checkbox" name="inv_agree" /> I agree to change it</div>
-<div><input type="button" value="Set" class="btn_inv_set" /><input type="button" value="Close" class="btn_inv_close" /></div>
+<div><input type="button" value="Set" class="btn_inv_set" /></div>
 </div>
+
+<div id="dlg_confirm_chg_qty" title="Confirmation"><span>Are You Sure To Change The Qty?</span></div>
+
 
 </body>
 </html>

@@ -43,9 +43,9 @@ TOOLS_MAP = (
 ('Purchasing', (
     ('Item Sold', 'itemsold', PERM_ITEM_STAT_ACCESS),
     ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
-    ('Out Of Stock', '', PERM_NORMAL_ACCESS),
-    ('Cycle Count', '', PERM_NORMAL_ACCESS),
-    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
+    ('ItemQtyChg', 'hist?fn=inv_hist', PERM_NORMAL_ACCESS),
+#    ('Cycle Count', '', PERM_NORMAL_ACCESS),
+#    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
 )),
 
 ('Sales', (
