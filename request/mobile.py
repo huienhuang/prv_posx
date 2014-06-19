@@ -84,48 +84,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if rows: flag = rows[0][0]
             
         self.req.writejs({'flag': flag})
-        
-    """
-    def fn_get_inv_rec(self):
-        sid = self.req.psv_int('sid')
-        cur = self.cur()
-        cur.execute("select detail from sync_items where sid=%s", (sid,))
-        rows = cur.fetchall()
-        if not rows: return
-        
-        ret = {}
-        js = json.loads(rows[0][0])
-        ret['pos_qty'] = js['qty'][0]
-        ret['units'] = units = [ (u[2].lower(), u[3]) for u in js['units'] if u[3] ]
-        
-        cur.execute("select r.*,u.user_name from item_qty_rec r left join user u on (r.user_id=u.user_id) where r.sid=%s", (sid,))
-        rows = cur.fetchall()
-        if rows:
-            cnz = cur.column_names
-            r = dict(zip(cnz, rows[0]))
-            jss = json.loads(r['js'])
-            del r['js']
-            
-            u_units = jss['units']
-            matched = False
-            if len(units) == len(u_units):
-                matched = True
-                for i in range(len(units)):
-                    if u_units[i][:2] != units[:2]:
-                        matched = False
-                        break
-            
-            if matched:
-                r['time'] = time.strftime("%m/%d/%y %I:%M:%S %p", time.localtime(r['ts']))
-                r['units'] = u_units
-                
-                ret['rec'] = r
-    
-        self.req.writejs(ret)
-    
-    def fn_set_inv_rec(self):
-        pass
-    """
     
     def fn_get_item_unit(self):
         sid = self.req.psv_int('sid')
@@ -143,6 +101,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         
     def fn_set_item_qty(self):
+        return
+    
+    
         sid = self.req.psv_int('sid')
         cur_qty = round(float(self.req.psv_ustr('cur_qty')), 2)
         in_units = [ [f_x[0], float(f_x[1]), int(f_x[2] or 0)] for f_x in self.req.psv_js('js') ]

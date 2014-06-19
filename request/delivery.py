@@ -2,6 +2,7 @@ import json
 import time
 import config
 import datetime
+import bisect
 
 
 PROBLEMS = [
@@ -17,7 +18,7 @@ PROBLEMS = [
 
 
 DEFAULT_PERM = 0x00000001
-class RequestHandler(App.load('/basehandler').RequestHandler):
+class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         r = {}
@@ -586,7 +587,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_report(self):
         self.req.writefile('delivery_v2_report.html')
         
-    def fn_get_report__delivery_pickup(self):
+    def _fn_get_report__delivery_pickup(self):
         m = self.req.qsv_int('m')
         
         year,month = divmod(m, 100)
@@ -629,6 +630,34 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             }
         )
         
+    def fn_get_report__delivery_pickup(self):
+        m = self.req.qsv_int('m')
+        year,month = divmod(m, 100)
+        frm_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
+        
+        js = self.get_data_file_cached('delivery_report', 'delivery_report.txt')
+        if not js: return
+        
+        mons = js['mons']
+        idx = bisect.bisect_left([f_x[0] for f_x in mons], frm_ts)
+        if idx >= len(mons) or mons[idx][0] != frm_ts: return
+    
+        data = mons[idx][1]
+        ret = {
+            'total': len(data['nums']),
+            'line': data['lines'],
+            'qty': data['qtys'],
+            'sale': 0
+        }
+        
+        js = self.get_data_file_cached('receipt_report', 'receipt_report.txt')
+        if js:
+            mons = js['summary']
+            idx = bisect.bisect_left([f_x[0] for f_x in mons], frm_ts)
+            if idx < len(mons) and mons[idx][0] == frm_ts: ret['sale'] = mons[idx][1][4]
+        
+        self.req.writejs(ret)
+        
     fn_get_report__delivery_pickup.PERM = 1 << config.USER_PERM_BIT['admin']
     
 
@@ -656,6 +685,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         )
         
     fn_get_report__delivery_completed.PERM = 1 << config.USER_PERM_BIT['admin']
+    
     
     
     

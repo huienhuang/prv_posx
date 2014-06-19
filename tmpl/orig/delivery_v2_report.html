@@ -26,9 +26,9 @@ els.month[0].change(function() {
         g_v_rp_pickup_body_xtbl.append(
                           $('<div class="xtbl_row"></div>')
                           .append( $('<div></div>').text(js.total) )
-                          .append( $('<div></div>').text(js.pickup) )
                           .append( $('<div></div>').text(js.line) )
                           .append( $('<div></div>').text(js.qty.toFixed(0)) )
+                          .append( $('<div></div>').text(js.sale.toFixed(2)) )
         );
         
     }, 'json');
@@ -108,7 +108,7 @@ body {-webkit-user-select:none}
 
 <div class="x_body rp_pickup_body">
 <div class="xtbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Pickup</div><div>Line</div><div>Qty</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Line</div><div>Qty</div><div>Sale</div></div></div>
 <div class="xtbl_body"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
