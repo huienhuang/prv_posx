@@ -25,12 +25,12 @@ $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).chan
 </script>
 <style type="text/css">
 
-.main_cont {border:1px solid #c4c4c4;border-radius:10px;width:360px;margin:50px auto 0 auto;padding:30px 0;background-color:#f2f2f2;text-align:center;}
+.main_cont {border:1px solid #c4c4c4;border-radius:10px;width:400px;margin:50px auto 0 auto;padding:30px 0;background-color:#f2f2f2;text-align:center;}
 .main_cont >div {padding-bottom:12px}
 .main_cont >div:nth-child(2) {padding-bottom:20px}
 
-.main_cont select {height:40px !important;font-size:26px !important;width:100px;margin-right:10px;}
-.main_cont input[type="password"] {height:34px !important;font-size:26px !important;width:100px;margin-right:10px;}
+.main_cont select {height:40px !important;line-height:40px !important;font-size:26px !important}
+.main_cont input[type="password"] {height:34px !important;font-size:26px !important}
 .main_cont input[type="button"] {height:60px !important;font-size:32px !important;width:130px;}
 
 </style>
@@ -40,7 +40,7 @@ $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).chan
 <form id="login_form" method="POST" action="?${action_url}">
 <div class="main_cont">
 <div>
-<select name="user_id" style="width:230px">
+<select name="user_id" style="width:330px">
 <option value="0"> - Select User / 选择用户 - </option>
 %for u in userlist:
 <option value="${u[0]}"${u[0]==ck_uid and ' selected="selected"' or ''}>${u[1]|h}</option>
@@ -49,7 +49,7 @@ $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).chan
 </div>
 
 <div>
-<input type="password" name="user_passwd" style="width:224px" placeholder="Password / 密码" />
+<input type="password" name="user_passwd" style="width:324px" placeholder="Password / 密码" />
 </div>
 
 <div>
