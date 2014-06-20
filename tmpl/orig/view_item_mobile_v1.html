@@ -3,8 +3,7 @@
 <head>
 <meta name="viewport" content="width=600,user-scalable=no" />
 <script>posx_enable_chk_login = true;</script>
-<%include file="header_inc_v3.html" />
-<script type="text/javascript" src="js/jquery.mobile.custom.min.js"></script>
+<%include file="header_mobile.html" />
 <title>POSX - View Item</title>
 
 <script type="text/javascript">
@@ -50,6 +49,7 @@ function load_large_img()
     var src = o.attr('src').replace('_200.', '.');
     g_v_itemsearch.blur();
     setTimeout(function() {
+        g_v_itemsearch.blur();
         g_v_pic_cnt.data('idx', idx).show().children('img').attr('src', src);
     }, 200);
     
@@ -100,6 +100,8 @@ function OnBarcodeReady()
 
 function show_tools()
 {
+    g_v_itemsearch.blur();
+    
     if(!g_item) return;
     g_v_checkboxes.hide();
     g_v_tools_cnt.show();
@@ -136,6 +138,8 @@ function update_inv_stat()
 
 function show_inv()
 {
+    g_v_itemsearch.blur();
+    
     g_v_inv_cnt_units.data('js', null).empty();
     g_v_inv_cnt.data('v_inv_agree').prop('checked', false);
     if(!g_item) return;
@@ -295,8 +299,6 @@ g_v_item_tbl = {
 }
 
 g_v_pic_cnt = $('.m_pic_cnt').click(function() { $(this).hide(); });
-g_v_pic_cnt.on('swipe', swipe_large_img);
-
 
 g_v_tools_cnt = $('.m_tools_cnt');
 g_v_checkboxes = g_v_tools_cnt.find('.tg_checkbox').click(function() {
@@ -338,6 +340,8 @@ g_v_tools_cnt.on('swipe', function(e) {
     else
         g_v_tools_cnt.hide();
 });
+g_v_pic_cnt.on('swipe', swipe_large_img);
+
 
 g_dlg_confirm_chg_qty = $('#dlg_confirm_chg_qty').dialog({
     resizable: false,
@@ -431,13 +435,6 @@ body {margin:0 auto;padding-top:51px}
 
 </head>
 <body>
-<div class="m_top app_mode_${mode}">
-<input type="text" name="ctrl_search" style="width:200px" />
-<input type="button" value="清空" name="ctrl_clear_search" />
-<input type="button" value="扫描" name="ctrl_scan_barcode" />
-<input type="button" value="照片" name="ctrl_add_img" />
-<input type="button" value="测试" name="ctrl_set_dev_mode" />
-</div>
 
 <div class="item_info_tbl">
 <div><div>名称</div><div class="item_name"></div></div>
@@ -445,6 +442,14 @@ body {margin:0 auto;padding-top:51px}
 <div><div>单位</div><div class="item_unit"></div></div>
 <div><div>厂商</div><div class="item_vend"></div></div>
 <div><div>图片</div><div class="item_pics"></div></div>
+</div>
+
+<div class="m_top app_mode_${mode}">
+<input type="text" name="ctrl_search" style="width:200px" />
+<input type="button" value="清空" name="ctrl_clear_search" />
+<input type="button" value="扫描" name="ctrl_scan_barcode" />
+<input type="button" value="照片" name="ctrl_add_img" />
+<input type="button" value="测试" name="ctrl_set_dev_mode" />
 </div>
 
 <div class="m_pic_cnt m_dlg_cnt"><img alt="" border="0" /></div>
