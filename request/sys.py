@@ -7,7 +7,7 @@ import datetime
 import winlib
 import struct
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['sys']
+DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_mac(self):
@@ -37,5 +37,5 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_project(self):
         self.req.writefile('project.html')
 
-    
+    fn_project.PERM = 1 << config.USER_PERM_BIT['sys']
 

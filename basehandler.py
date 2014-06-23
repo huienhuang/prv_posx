@@ -10,8 +10,9 @@ import urllib
 import urlparse
 
 LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
+ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+DEFAULT_PERM = ADMIN_PERM
 class RequestHandler(tinywsgi2.RequestHandler):
     
     def setup(self):
@@ -42,7 +43,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
     def cur(self):
         return self.db().cur()
 
-    def check_mac(self):
+    def check_mac(self, cur_mac=[]):
         rip = config.ip2ulong( self.environ.get('REMOTE_ADDR') )
         if rip == 0x0100007F or rip == config.server_network[0]: return True
         if (rip & config.server_network[1]) != config.server_network[2]: return False
@@ -55,7 +56,10 @@ class RequestHandler(tinywsgi2.RequestHandler):
         if res[0] <= 0 or not res[1]: return False
         
         i = bisect.bisect_left(a, res[1])
-        return i < len(a) and a[i] == res[1]
+        if i >= len(a) or a[i] != res[1]: return False
+        
+        cur_mac.append(res[1])
+        return True
         
     def check_mac_v2(self):
         rip = self.environ.get('REMOTE_ADDR', '')
@@ -149,7 +153,12 @@ class RequestHandler(tinywsgi2.RequestHandler):
         rlvl = self.get_perm_lvl(fn_nz, fn_inst)
         if not rlvl: return True
         
-        if not self.check_mac(): return False
+        cur_mac = []
+        if not self.check_mac(cur_mac): return False
+        if cur_mac:
+            if rlvl & ADMIN_PERM:
+                macs = config.settings.get('macs_admin')
+                if macs and cur_mac[0] not in macs: return False
         
         self.login()
         if self.user_id and self.user_lvl & rlvl:
