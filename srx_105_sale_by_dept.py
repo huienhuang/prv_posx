@@ -31,6 +31,7 @@ cur.execute('select sid,deptsid from sync_items')
 for r in cur.fetchall(): ITEM_DEPTS[r[0]] = DEPTS.get(r[1])
 
 g_s = {}
+g_n = {}
 
 USER_MAP = {
     'sales1': 'ray',
@@ -55,6 +56,9 @@ for r in cur:
     rtype = (r['type'] >> 8) & 0xFF
     disc = (100 - glbs['discprc']) / 100
     
+    r_clerk = r['clerk'].lower()
+    g_n.setdefault(USER_MAP.get(r_clerk, r_clerk), [0])[0] += (rtype and -1 or 1)
+    
     for t in items:
         if t['itemsid'] == 1000000005: continue
         extprice = t['price'] * t['qty'] * disc
@@ -68,6 +72,6 @@ for r in cur:
         g_s.setdefault(clerk, {}).setdefault(cate, [0, 0, 0])[0] += extprice
         
 
-cPickle.dump( (g_s, []), open(datafile, 'wb'), 1 )
+cPickle.dump( (g_s, [], g_n), open(datafile, 'wb'), 1 )
 print "Done"
 

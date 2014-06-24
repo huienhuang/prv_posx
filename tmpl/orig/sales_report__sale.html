@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Comm By Dept</title>
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+
+<script type="text/javascript">
+g_data = {};
+function evt_apply()
+{
+    apply();
+}
+
+function apply(dont_load)
+{
+    g_v_main_xtbl.data('js', null).empty();
+    g_v_main_xtbl_header.empty();
+    
+    var v_cbs = $('.filter_month input:checked');
+    if(!v_cbs.length) return;
+    
+    var lst = [[], []];
+    for(var i = 0; i < v_cbs.length; i++) {
+        var v = $(v_cbs[i]).val();
+        if(!g_data || !g_data[v])
+            lst[1].push(v);
+        else
+            lst[0].push(v);
+    }
+    
+    if (lst[1].length > 0) {
+        if(!dont_load) {
+            get_js('?fn=get_sale_data', {'months': lst[1].join('|')}, function(js) {
+                for(var k in js) g_data[k] = js[k];
+                apply(true);
+            });
+        }
+        
+        return;
+    }
+    
+    Array.prototype.push.apply(lst[0], lst[1]);
+    var months = lst[0];
+    
+    var v_cbs = $('.filter_cate input:checked');
+    var cates = [];
+    for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
+    
+    render(months, cates);
+}
+
+function render_graph()
+{
+    var v_canvas = $('#d_canvas');
+    if( v_canvas.is(':visible') ) { v_canvas.hide(); return; }
+    
+    var js = g_v_main_xtbl.data('js');
+    if(!js) return;
+    
+    v_canvas.show();
+    
+    var data = [];
+    for(var i = 0; i < js.cnzs.length; i++) {
+        var cnz = js.cnzs[i];
+        var total_m = js.clerks_m[cnz];
+        
+        var dp = [];
+        for(var j = 0; j < js.months.length; j++) {
+            if(total_m[j] !== undefined) dp.push( {label: js.months[j], y: parseFloat(total_m[j].toFixed(2))} );
+        }
+        
+        data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp});
+    }
+    
+    var cfg = {
+        'zoomEnabled': true,
+        'theme': "theme2",
+        'title': {'text': "Sale"},
+        'axisX': {'labelAngle': -50},
+        'data': data
+        }
+    
+    new CanvasJS.Chart('d_canvas', cfg).render();
+    
+}
+
+function render(months, cates)
+{
+    var clerks_m = {};
+    for(var m = 0; m < months.length; m++) {
+        var clerks_v = g_data[ months[m] ];
+        for(var cnz in clerks_v) {
+            var total_m = clerks_m[cnz];
+            if(total_m === undefined) total_m = clerks_m[cnz] = [];
+            
+            var total = 0;
+            var cates_v = clerks_v[cnz];
+            for(var i = 0; i < cates.length; i++) {
+                var total_cate = cates_v[ cates[i] || null ];
+                if(total_cate === undefined) continue;
+                total += total_cate[0] + total_cate[1];
+            }
+            total_m[m] = total;
+        }
+    }
+    
+    var cnzs = [];
+    for(var cnz in clerks_m) cnzs.push(cnz);
+    cnzs.sort();
+    
+    
+    var lst = [ $('<div></div>') ];
+    for(var m = 0; m < months.length; m++)
+        lst.push( $('<div></div>').text(months[m]) );
+    g_v_main_xtbl_header.append(lst);
+    
+    var llst = [];
+    for(var i = 0; i < cnzs.length; i++) {
+        var cnz = cnzs[i];
+        var total_m = clerks_m[cnz];
+        
+        var lst = [ $('<div></div>').text(cnz) ];
+        for(var m = 0; m < months.length; m++)
+            lst.push( $('<div onclick="open_dlg_clerk(\''+cnz+'\', \''+months[m]+'\');return false;"></div>').text( total_m[ m ] === undefined ? '' : total_m[ m ].toFixed(2) ) );
+        llst.push( $('<div class="prntbl_row"></div>').append(lst) );
+    }
+    g_v_main_xtbl.append(llst).data('js', {months: months, cnzs: cnzs, clerks_m: clerks_m});
+}
+
+function open_dlg_clerk(cnz, mnz)
+{
+    g_v_clerk_xtbl_footer.empty();
+    g_v_clerk_xtbl.empty();
+    
+    if(g_data[mnz] === undefined || g_data[mnz][cnz] === undefined) return;
+    var total_m = g_data[mnz][cnz];
+    
+    var all_total = 0;
+    var lst = [];
+    var v_cbs = $('.filter_cate input:checked');
+    for(var i = 0; i < v_cbs.length; i++) {
+        var nz = $(v_cbs[i]).val();
+        var total_cate = total_m[nz || null];
+        if(total_cate === undefined) continue;
+        
+        var c_total = total_cate[0] + total_cate[1];
+        all_total += c_total;
+        lst.push($('<div class="prntbl_row"></div>')
+            .append( $('<div></div>').text(nz || '*NotInList*') )
+            .append( $('<div></div>').text(c_total.toFixed(2)) )
+            
+        );
+    }
+    g_v_clerk_xtbl.append(lst);
+    
+    g_v_clerk_xtbl_footer
+    .append( $('<div></div>') )
+    .append( $('<div></div>').text(all_total.toFixed(2)) );
+    
+    g_v_dlg_clerk.dialog('option', 'title', cnz + ' - ' + mnz).dialog('open');
+}
+
+
+$(function() {
+
+$('.btn').button();
+$('.tp_ctrl > input[value="print"]').click(function() { window.print(); });
+$('.tp_ctrl > input[value="graph"]').click(render_graph);
+
+g_v_tp_ctrl = $('.tp_ctrl');
+g_v_main_xtbl_header = $('.main_tbl .prntbl_row_hdr');
+g_v_main_xtbl = $('.main_tbl .prntbl_cnt');
+g_v_main_xtbl_footer = $('.main_tbl .prntbl_row_ftr');
+
+g_v_dlg_clerk = $('#dlg_clerk').dialog({
+    autoOpen: false,
+    width:420,
+    height:500,
+});
+
+g_v_clerk_xtbl = $('.prntbl_cnt', g_v_dlg_clerk);
+g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
+
+g_v_filter_chg = false;
+$('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
+
+function filter_chk_all(chk) {
+    var d = $(this);
+    var p = d.parent().parent();
+    p.find('input[type="checkbox"]').prop('checked', chk);
+    
+    g_v_filter_chg = true;
+}
+
+v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
+v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
+v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+
+$('.filter').hover(null, function() {
+    if(!g_v_filter_chg) return;
+    g_v_filter_chg = false;
+    apply();
+})
+
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {position:absolute;top:0;left:0;right:0;height:50px;line-height:50px;padding-left:10px;z-index:1}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+.tp_ctrl button {height:32px;vertical-align:middle;}
+
+#d_canvas {position:absolute;top:50px;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
+
+.main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0}
+.main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
+#dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
+
+.tiny_popup {position:relative;display:inline-block;line-height:32px;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
+.tiny_popup:hover >div:nth-child(2) {display:block;}
+
+.tiny_popup >div:nth-child(2) {width:530px;}
+.tiny_popup >div:nth-child(2) >div {width:220px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
+.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+@media print {
+.tp_ctrl {display:none}
+.main_tbl {margin:0 auto;width:928px;position:relative;top:auto;}
+.main_tbl .prntbl_row {height:20px;line-height:20px;}
+.main_tbl .prntbl_cnt {top:21px;bottom:21px;}
+}
+@page {
+margin:30px 50px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+
+<div class="tiny_popup filter" style="width:100px">
+<div>Filter</div>
+<div>
+
+
+<div class="filter_month">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for r in reports:
+<div><input type="checkbox" value="${r|h}" name="filter_month" /><span>${r|h}</span></div>
+%endfor
+</div>
+
+
+<div class="filter_cate">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
+%for cate in const.ITEM_L_CATE:
+<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+</div>
+</div>
+
+<input style="margin-left:20px" type="button" value="print" class="btn" />
+<input style="margin-left:20px" type="button" value="graph" class="btn" />
+
+</div>
+
+<div class="prntbl main_tbl">
+<div class="prntbl_row prntbl_row_hdr"></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
+<div id="dlg_clerk">
+<div class="prntbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Dept</div><div>Total</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
+
+<div id="d_canvas"></div>
+
+</body>
+</html>
+
+

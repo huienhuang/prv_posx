@@ -179,9 +179,15 @@ USER_MAP = {
 }
 
 g_clerks = {}
+g_numrec = {}
 for num,r in g_receipts.items():
     is_invoice = r['is_invoice']
     included = r['included']
+    
+    if included:
+        r_clerk = r['clerk'].lower()
+        g_numrec.setdefault(USER_MAP.get(r_clerk, r_clerk), [0])[0] += (r['receipttype'] and -1 or 1)
+    
     qb = r.get('qb')
     for itemsid, clerk, price, qty, cate in r['items']:
         clerk = USER_MAP.get(clerk, clerk)
@@ -197,7 +203,7 @@ for num,r in g_receipts.items():
 
 
 cPickle.dump( g_receipts, open(datafile_a, 'wb'), 1 )
-cPickle.dump( (g_clerks, g_errs), open(datafile, 'wb'), 1 )
+cPickle.dump( (g_clerks, g_errs, g_numrec), open(datafile, 'wb'), 1 )
 print "done"
 
 

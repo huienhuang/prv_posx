@@ -25,6 +25,7 @@ TOOLS_MAP = (
     ('Item Sale', 'reportitem', PERM_ADMIN),
     ('General Report', 'reportgeneral', PERM_ADMIN),
     ('Daily Report', 'reportdaily', PERM_ADMIN),
+    ('Sales Report', 'salesreport', PERM_ADMIN),
 )),
 
 ('HR', (

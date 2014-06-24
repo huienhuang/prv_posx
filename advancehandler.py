@@ -27,5 +27,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def get_customer_report(self):
         return self.get_data_file_cached('customer_report', 'customer_report.txt')
     
+    def get_comm_clerks_js(self, ds):
+        return self.get_data_file_cached('comm_clerks_js__%s' % (ds,), '%s_comm_clerks.txt' % (ds,))
+    
+    def get_comm_js(self, ds):
+        return self.get_data_file_cached('comm_js__%s' % (ds,), '%s_comm.txt' % (ds,))
+    
+    
+    
     
     
