@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+<title>POSX - Comm By Dept</title>
+
+<script type="text/javascript">
+
+$(function() {
+
+$('#btn_save_users').click(function() {
+    var lst = $('input[name="user_id"]:checked');
+    var user_nzs = [];
+    for(var i = 0; i < lst.length; i++) user_nzs.push( $(lst[i]).val() );
+    
+    post_js_ex('?fn=set_cfg', {'user_nzs': JSON.stringify(user_nzs)}, function(js) {
+        window.location.reload();
+    });
+    
+});
+
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+body {padding:20px;}
+.ui-widget {font-size:18px;}
+
+.allowed_users {margin-bottom:20px}
+.allowed_users > div {line-height:36px;font-size:22px;line-height:36px;}
+.allowed_users > div > span {margin-left:10px;}
+
+</style>
+
+</head>
+<body>
+
+<div class="allowed_users">
+%for u in sales_users:
+<div><input type="checkbox" name="user_id" value="${u[1]|h}"${u[2] and 'checked="checked"' or ''} /><span>${u[1]|h}</span></div>
+%endfor
+</div>
+<div><button id="btn_save_users" type="button" class="btn btn-lg btn-primary">Save</button></div>
+
+</body>
+</html>
+
+

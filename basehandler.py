@@ -8,6 +8,7 @@ import config
 import dbref
 import urllib
 import urlparse
+import json
 
 LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
@@ -295,3 +296,19 @@ class RequestHandler(tinywsgi2.RequestHandler):
     
     def setconfigv2(self, k, v):
         config.set_configv2(self.db(), k, v)
+
+
+    def get_config_js(self, k, dv):
+        try:
+            ret = json.loads(self.getconfigv2(k), encoding=self.req.app.encoding)
+        except:
+            ret = dv
+            
+        return ret
+    
+    def set_config_js(self, k, v):
+        v = json.dumps(v, separators=(',',':'), encoding=self.req.app.encoding)
+        self.setconfigv2(k, v)
+        
+        
+    
