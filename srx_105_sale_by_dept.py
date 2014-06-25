@@ -56,7 +56,7 @@ for r in cur:
     rtype = (r['type'] >> 8) & 0xFF
     disc = (100 - glbs['discprc']) / 100
     
-    r_clerk = r['clerk'].lower()
+    r_clerk = r['assoc'].lower()
     g_n.setdefault(USER_MAP.get(r_clerk, r_clerk), [0])[0] += (rtype and -1 or 1)
     
     for t in items:
