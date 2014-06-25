@@ -10,6 +10,8 @@ PERM_NORMAL_ACCESS = 1 << config.USER_PERM_BIT['normal access']
 PERM_BASE_ACCESS = 1 << config.USER_PERM_BIT['base access']
 PERM_ACCOUNTINGV2 = 1 << config.USER_PERM_BIT['accountingv2']
 PERM_CASHIER = 1 << config.USER_PERM_BIT['cashier']
+PERM_SALES_MGR = 1 << config.USER_PERM_BIT['sales_mgr']
+
 
 TOOLS_MAP = (
 
@@ -25,7 +27,7 @@ TOOLS_MAP = (
     ('Item Sale', 'reportitem', PERM_ADMIN),
     ('General Report', 'reportgeneral', PERM_ADMIN),
     ('Daily Report', 'reportdaily', PERM_ADMIN),
-    ('Sales Report', 'salesreport', PERM_ADMIN),
+    
 )),
 
 ('HR', (
@@ -52,6 +54,7 @@ TOOLS_MAP = (
 ('Sales', (
     ('History', 'hist', PERM_NORMAL_ACCESS),
     ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
+    ('Sales Report', 'salesreport', PERM_SALES_MGR),
 )),
 
 ('Warehouse', (

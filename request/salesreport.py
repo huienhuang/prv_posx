@@ -8,6 +8,7 @@ import const
 import json
 
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
+ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['sales_mgr']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -25,7 +26,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         }
         self.req.writefile('sales_report__cfg.html', r)
         
-    fn_cfg.PERM = 1 << config.USER_PERM_BIT['admin']
+    fn_cfg.PERM = ADMIN_PERM
     
     
     def fn_set_cfg(self):
@@ -35,7 +36,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.set_config_js('sales_report_allowed_users', user_nzs)
         self.req.writejs({'err' : 0})
         
-    fn_set_cfg.PERM = 1 << config.USER_PERM_BIT['admin']
+    fn_set_cfg.PERM = ADMIN_PERM
     
     def fn_sale(self):
         reports = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
@@ -51,8 +52,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_get_sale_data(self):
         months = self.qsv_str('months').split('|')
         
-        sales_users = set(self.get_config_js('sales_report_allowed_users', []))
-        
         jss = {}
         for i in range(len(months)):
             m = months[i]
@@ -65,7 +64,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             else:
                 js = self.get_comm_clerks_js(m)
             
-            jss[m] = dict([ f_v for f_v in js[0].items() if f_v[0] in sales_users ]) 
+            if self.user_lvl & ADMIN_PERM:
+                sales_users = set([ f_user[1].lower() for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
+            else:
+                sales_users = set(self.get_config_js('sales_report_allowed_users', []))
+            jss[m] = dict([ f_v for f_v in js[0].items() if f_v[0] in sales_users ])
         
         self.req.writejs(jss)
         
@@ -84,8 +87,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_get_rect_data(self):
         months = self.qsv_str('months').split('|')
         
-        sales_users = set(self.get_config_js('sales_report_allowed_users', []))
-        
         jss = {}
         for i in range(len(months)):
             m = months[i]
@@ -101,11 +102,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             if len(js) <= 2:
                 jss[m] = {}
             else:
-                jss[m] = dict([ f_v for f_v in js[2].items() if f_v[0] in sales_users ]) 
+                if self.user_lvl & ADMIN_PERM:
+                    sales_users = set([ f_user[1].lower() for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
+                else:
+                    sales_users = set(self.get_config_js('sales_report_allowed_users', []))
+                jss[m] = dict([ f_v for f_v in js[2].items() if f_v[0] in sales_users ])
         
         self.req.writejs(jss)
-        
-        
-    
         
         

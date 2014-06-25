@@ -70,7 +70,7 @@ function render_graph()
             if(total_m[j] !== undefined) dp.push( {label: js.months[j], y: parseFloat(total_m[j].toFixed(2))} );
         }
         
-        data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp});
+        data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
     }
     
     var cfg = {
@@ -121,8 +121,21 @@ function render(months, cates)
         var total_m = clerks_m[cnz];
         
         var lst = [ $('<div></div>').text(cnz) ];
-        for(var m = 0; m < months.length; m++)
-            lst.push( $('<div onclick="open_dlg_clerk(\''+cnz+'\', \''+months[m]+'\');return false;"></div>').text( total_m[ m ] === undefined ? '' : total_m[ m ].toFixed(2) ) );
+        for(var m = 0; m < months.length; m++) {
+            var s = [];
+            if(total_m[ m ] !== undefined) s.push(total_m[ m ].toFixed(2));
+            if(m && total_m[m - 1]) {
+                var dp = ( (total_m[m] || 0) - total_m[m - 1] ) / total_m[m - 1] * 100;
+                if(dp){
+                    if(dp > 0)
+                        s.push( '(+' + dp.toFixed(1) + '%)' );
+                    else
+                        s.push( '(' + dp.toFixed(1) + '%)' );
+                }
+            }
+            
+            lst.push( $('<div onclick="open_dlg_clerk(\''+cnz+'\', \''+months[m]+'\');return false;"></div>').text(s.join(' ')) );
+        }
         llst.push( $('<div class="prntbl_row"></div>').append(lst) );
     }
     g_v_main_xtbl.append(llst).data('js', {months: months, cnzs: cnzs, clerks_m: clerks_m});
@@ -218,6 +231,8 @@ $('.filter').hover(null, function() {
 
 .main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0}
 .main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
+.main_tbl .prntbl_row > div {width:160px}
+.main_tbl .prntbl_row > div:first-child {width:100px}
 #dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
 
 .tiny_popup {position:relative;display:inline-block;line-height:32px;}
