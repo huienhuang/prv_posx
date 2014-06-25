@@ -114,14 +114,16 @@ function render(months, cates)
         var lst = [ $('<div></div>').text(cnz) ];
         for(var m = 0; m < months.length; m++) {
             var s = [];
-            if(total_m[ m ] !== undefined) s.push($('<span></span>').text(total_m[ m ]));
-            if(m && total_m[m - 1]) {
-                var dp = ( (total_m[m] || 0) - total_m[m - 1] ) / total_m[m - 1] * 100;
-                if(dp){
-                    if(dp > 0)
-                        s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                    else
-                        s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+            if(total_m[ m ] !== undefined) {
+                s.push($('<span></span>').text(total_m[ m ]));
+                if(m && total_m[m - 1]) {
+                    var dp = ( (total_m[m] || 0) - total_m[m - 1] ) / total_m[m - 1] * 100;
+                    if(dp){
+                        if(dp > 0)
+                            s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                        else
+                            s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                    }
                 }
             }
             
