@@ -114,17 +114,18 @@ function render(months, cates)
         var lst = [ $('<div></div>').text(cnz) ];
         for(var m = 0; m < months.length; m++) {
             var s = [];
-            if(total_m[ m ] !== undefined) s.push(total_m[ m ].toFixed(2));
+            if(total_m[ m ] !== undefined) s.push($('<span></span>').text(total_m[ m ]));
             if(m && total_m[m - 1]) {
                 var dp = ( (total_m[m] || 0) - total_m[m - 1] ) / total_m[m - 1] * 100;
                 if(dp){
                     if(dp > 0)
-                        s.push( '(+' + dp.toFixed(1) + '%)' );
+                        s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
                     else
-                        s.push( '(' + dp.toFixed(1) + '%)' );
+                        s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
                 }
             }
-            lst.push( $('<div></div>').text( s.join(' ') ) );
+            
+            lst.push( $('<div></div>').append(s) );
         }
         llst.push( $('<div class="prntbl_row"></div>').append(lst) );
     }
@@ -178,6 +179,12 @@ $('.filter').hover(null, function() {
 .main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0}
 .main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
 
+.main_tbl .prntbl_row > div {width:160px}
+.main_tbl .prntbl_row > div:first-child {width:100px}
+.main_tbl .prntbl_cnt > .prntbl_row > div > span:nth-child(2) {margin-left:5px}
+
+.diff_pct_inc {color:#579942}
+.diff_pct_dec {color:#e93f3f}
 
 #d_canvas {position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
 
