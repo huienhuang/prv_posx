@@ -46,7 +46,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dt = "%04d-%02d-%02d" % (tp.tm_year, tp.tm_mon, 1)
         if not reports or reports[-1] != dt: reports.append(dt)
         
-        self.req.writefile('sales_report__sale.html', {'reports': reports, 'const': const})
+        if self.user_lvl & ADMIN_PERM:
+            sales_users = set([ f_user[1].lower() for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
+        else:
+            sales_users = set(self.get_config_js('sales_report_allowed_users', []))
+        
+        self.req.writefile('sales_report__sale.html', {'reports': reports, 'const': const, 'sales_users': sales_users})
         
     
     def fn_get_sale_data(self):
@@ -81,7 +86,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dt = "%04d-%02d-%02d" % (tp.tm_year, tp.tm_mon, 1)
         if not reports or reports[-1] != dt: reports.append(dt)
         
-        self.req.writefile('sales_report__rect.html', {'reports': reports, 'const': const})
+        if self.user_lvl & ADMIN_PERM:
+            sales_users = set([ f_user[1].lower() for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
+        else:
+            sales_users = set(self.get_config_js('sales_report_allowed_users', []))
+            
+        self.req.writefile('sales_report__rect.html', {'reports': reports, 'const': const, 'sales_users': sales_users})
         
     
     def fn_get_rect_data(self):

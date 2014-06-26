@@ -47,7 +47,11 @@ function apply(dont_load)
     var cates = [];
     for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
     
-    render(months, cates);
+    var v_cbs = $('.filter_user input:checked');
+    var users = [];
+    for(var i = 0; i < v_cbs.length; i++) users.push( $(v_cbs[i]).val() );
+
+    render(months, cates, users);
 }
 
 function render_graph()
@@ -61,9 +65,9 @@ function render_graph()
     v_canvas.show();
     
     var data = [];
-    for(var i = 0; i < js.cnzs.length; i++) {
-        var cnz = js.cnzs[i];
-        var total_m = js.clerks_m[cnz];
+    for(var i = 0; i < js.clerks_d.length; i++) {
+        var cnz = js.clerks_d[i][0];
+        var total_m = js.clerks_d[i][1];
         
         var dp = [];
         for(var j = 0; j < js.months.length; j++) {
@@ -85,30 +89,26 @@ function render_graph()
     
 }
 
-function render(months, cates)
+function render(months, cates, users)
 {
-    var clerks_m = {};
-    for(var m = 0; m < months.length; m++) {
-        var clerks_v = g_data[ months[m] ];
-        for(var cnz in clerks_v) {
-            var total_m = clerks_m[cnz];
-            if(total_m === undefined) total_m = clerks_m[cnz] = [];
+    var clerks_d = [];
+    for(var u = 0; u < users.length; u++) {
+        var unz = users[u];
+        var u_d = [];
+        clerks_d.push( [unz, u_d] );
+        for(var m = 0; m < months.length; m++) {
+            var m_d = g_data[ months[m] ][ unz ];
+            if(m_d === undefined) continue;
             
             var total = 0;
-            var cates_v = clerks_v[cnz];
             for(var i = 0; i < cates.length; i++) {
-                var total_cate = cates_v[ cates[i] || null ];
-                if(total_cate === undefined) continue;
-                total += total_cate[0] + total_cate[1];
+                var total_c = m_d[ cates[i] || null ];
+                if(total_c === undefined) continue;
+                total += total_c[0] + total_c[1];
             }
-            total_m[m] = total;
+            u_d[m] = total;
         }
     }
-    
-    var cnzs = [];
-    for(var cnz in clerks_m) cnzs.push(cnz);
-    cnzs.sort();
-    
     
     var lst = [ $('<div></div>') ];
     for(var m = 0; m < months.length; m++)
@@ -116,9 +116,9 @@ function render(months, cates)
     g_v_main_xtbl_header.append(lst);
     
     var llst = [];
-    for(var i = 0; i < cnzs.length; i++) {
-        var cnz = cnzs[i];
-        var total_m = clerks_m[cnz];
+    for(var i = 0; i < clerks_d.length; i++) {
+        var cnz = clerks_d[i][0];
+        var total_m = clerks_d[i][1];
         
         var lst = [ $('<div></div>').text(cnz) ];
         for(var m = 0; m < months.length; m++) {
@@ -140,7 +140,7 @@ function render(months, cates)
         }
         llst.push( $('<div class="prntbl_row"></div>').append(lst) );
     }
-    g_v_main_xtbl.append(llst).data('js', {months: months, cnzs: cnzs, clerks_m: clerks_m});
+    g_v_main_xtbl.append(llst).data('js', {months: months, clerks_d: clerks_d});
 }
 
 function open_dlg_clerk(cnz, mnz)
@@ -188,6 +188,10 @@ g_v_main_xtbl_header = $('.main_tbl .prntbl_row_hdr');
 g_v_main_xtbl = $('.main_tbl .prntbl_cnt');
 g_v_main_xtbl_footer = $('.main_tbl .prntbl_row_ftr');
 
+g_v_main_xtbl.scroll(function() {
+    g_v_main_xtbl_header.css('left', '-' + g_v_main_xtbl.scrollLeft() + 'px' );
+});
+
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
     autoOpen: false,
     width:420,
@@ -211,6 +215,7 @@ function filter_chk_all(chk) {
 v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
 v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
 v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+v_filter_chkall.children('span:nth-child(3)').click(function() { filter_chk_all.call(this, false); });
 
 $('.filter').hover(null, function() {
     if(!g_v_filter_chg) return;
@@ -231,11 +236,12 @@ $('.filter').hover(null, function() {
 
 #d_canvas {position:absolute;top:50px;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
 
-.main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0}
+.main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0;overflow:hidden}
 .main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
 .main_tbl .prntbl_row > div {width:160px}
 .main_tbl .prntbl_row > div:first-child {width:100px}
 .main_tbl .prntbl_cnt > .prntbl_row > div > span:nth-child(2) {margin-left:5px}
+.main_tbl .prntbl_row {min-width:8000px}
 
 .diff_pct_inc {color:#579942}
 .diff_pct_dec {color:#e93f3f}
@@ -248,16 +254,16 @@ $('.filter').hover(null, function() {
 .tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
 .tiny_popup:hover >div:nth-child(2) {display:block;}
 
-.tiny_popup >div:nth-child(2) {width:530px;}
+.tiny_popup >div:nth-child(2) {width:760px;}
 .tiny_popup >div:nth-child(2) >div {width:220px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
-.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) >div:nth-child(2) {width:280px;}
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
 
 @media print {
 .tp_ctrl {display:none}
 .main_tbl {margin:0 auto;width:928px;position:relative;top:auto;}
-.main_tbl .prntbl_row {height:20px;line-height:20px;}
+.main_tbl .prntbl_row {height:20px;line-height:20px;min-width:inherit;overflow:hidden}
 .main_tbl .prntbl_cnt {top:21px;bottom:21px;}
 }
 @page {
@@ -289,6 +295,13 @@ margin:30px 50px;
 <div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
 %for cate in const.ITEM_L_CATE:
 <div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+<div class="filter_user">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for user in sales_users:
+<div><input type="checkbox" value="${user|h}" name="filter_user" checked="checked" /><span>${user|h}</span></div>
 %endfor
 </div>
 
