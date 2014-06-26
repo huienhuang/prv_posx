@@ -41,7 +41,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     fn_set_cfg.PERM = ADMIN_PERM
     
     def fn_export_csv(self):
-        data = [ map(unicode, f_r) for f_r in self.req.psv_js('js') ]
+        data = [ map(lambda f_x: f_x != None and unicode(f_x) or '', f_r) for f_r in self.req.psv_js('js') ]
         
         fp = cStringIO.StringIO()
         wt = csv.writer(fp)
