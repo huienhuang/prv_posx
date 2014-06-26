@@ -555,7 +555,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = db.cur()
         rpg = {}
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select docsid,docnum,( if((h.flag>>8)>1, h.flag, (select r.type from sync_receipts r where r.sid=h.docsid and r.sid_type=h.sid_type limit 1)) ) as flag,doctxt,qtydiff,docdate,sid_type,sid from sync_items_hist h where itemsid=%d order by docdate desc,sid desc limit %d,%d' % (
+            cur.execute('select docsid,docnum,( if((h.flag>>8)>1, h.flag, (select r.type from sync_receipts r where r.sid=h.docsid and r.sid_type=h.sid_type limit 1)) ) as flag,doctxt,qtydiff,docdate,sid_type,sid,qtynew from sync_items_hist h where itemsid=%d order by docdate desc,sid desc limit %d,%d' % (
                 tid,
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
@@ -585,7 +585,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         str(r[0]),
                         r_type,
                         int(r[6]),
-                        str(r[7])
+                        str(r[7]),
+                        float(r[8]),
                     )
                     rpg[sidx].append(r)
                     k += 1

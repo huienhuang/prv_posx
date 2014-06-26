@@ -180,7 +180,20 @@ getval: function(r, org_getval) {
     var row = org_getval.apply(this, [r]);
     if (!row) return row;
     row = row.slice(0);
-    row[3] = g_cur_factor ? (g_cur_factor != 1 ? (row[3] / g_cur_factor).toFixed(2) : row[3].toFixed(2)) : 'ERR!';
+    
+    if(g_cur_factor){
+        if(g_cur_factor != 1) {
+            row[3] = row[3] / g_cur_factor;
+            row[9] = row[9] / g_cur_factor;
+        }
+        
+        row[3] = row[3].toFixed(1);
+        if(row[6] === 4) row[3] += '(' + row[9].toFixed(1) + ')';
+
+    } else {
+        row[3] = 'ERR!';
+    }
+    
     return row;
 }
 });
