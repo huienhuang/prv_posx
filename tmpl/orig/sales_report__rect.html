@@ -133,12 +133,34 @@ function render(months, users)
 }
 
 
+function export_csv()
+{
+    var js = g_v_main_xtbl.data('js');
+    if(!js) return;
+    
+    var data = [];
+    
+    var r = ['Sales'];
+    Array.prototype.push.apply(r, js.months);
+    data.push(r);
+    
+    for(var i = 0; i < js.clerks_d.length; i++) {
+        var r = [js.clerks_d[i][0]];
+        Array.prototype.push.apply(r, js.clerks_d[i][1]);
+        data.push(r);
+    }
+    
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
+    g_v_form_dl.submit();
+}
+
 
 $(function() {
 
 $('.btn').button();
 $('.tp_ctrl > input[value="print"]').click(function() { window.print(); });
 $('.tp_ctrl > input[value="graph"]').click(render_graph);
+$('.tp_ctrl > input[value="export"]').click(export_csv);
 
 g_v_main_xtbl_header = $('.main_tbl .prntbl_row_hdr');
 g_v_main_xtbl = $('.main_tbl .prntbl_cnt');
@@ -169,6 +191,7 @@ $('.filter').hover(null, function() {
     apply();
 });
 
+g_v_form_dl = $('#form_dl');
 
 }); //ready
 
@@ -190,7 +213,7 @@ $('.filter').hover(null, function() {
 .diff_pct_inc {color:#579942}
 .diff_pct_dec {color:#e93f3f}
 
-#d_canvas {position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
+#d_canvas {position:absolute;top:50px;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
 
 
 .tiny_popup {position:relative;display:inline-block;line-height:32px;}
@@ -246,6 +269,8 @@ margin:30px 50px;
 
 <input style="margin-left:20px" type="button" value="print" class="btn" />
 <input style="margin-left:20px" type="button" value="graph" class="btn" />
+<input style="margin-left:20px" type="button" value="export" class="btn" />
+
 </div>
 
 <div class="prntbl main_tbl">
@@ -256,6 +281,8 @@ margin:30px 50px;
 
 
 <div id="d_canvas"></div>
+
+<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
 
 
 </body>
