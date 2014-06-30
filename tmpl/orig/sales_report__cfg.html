@@ -8,7 +8,7 @@
 
 $(function() {
 
-$('#btn_save_users').click(function() {
+$('#btn_save_users').button().click(function() {
     var lst = $('input[name="user_id"]:checked');
     var user_nzs = [];
     for(var i = 0; i < lst.length; i++) user_nzs.push( $(lst[i]).val() );

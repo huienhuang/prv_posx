@@ -17,7 +17,7 @@ def sync_items(cj_data, mode=0):
         if not sids: return 0
         where_sql = 'i.itemsid in (%s)' % (','.join(sids),)
     
-    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
+    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
     
     item_upcs = {}
     rep_seq = del_seq = 0
@@ -70,6 +70,7 @@ def sync_items(cj_data, mode=0):
             'qty': (rf2(r['qtystore1']), rf2(r['custordqty']), rf2(r['availqty']), rf2(r['toto_o'])),
             'units': units,
             'vends': vends,
+            'desc1': r['desc1'].strip() or '',
         }
         jsp = {
             'cost': rf(r['cost'], 5),

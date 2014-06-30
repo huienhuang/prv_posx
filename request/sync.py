@@ -78,11 +78,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         mini = self.qsv_int('mini')
         self.req.writejs( self.search_item(kw, mode, mini and 4 or 10) )
         
-    def fn_custsearch(self):
+    def fn_adv_item_srch(self):
         kw = self.qsv_str('term')
         if not kw: return
         mode = self.qsv_int('mode')
-        
+        self.req.writejs( self.search_item(kw, mode, 100) )
+    fn_adv_item_srch.PERM = 1 << config.USER_PERM_BIT['admin']
+    
+    
+    def search_cust(self, kw, mode, num_row=10):
         kws = set(self.regx_kw.sub(u' ', kw).strip().lower().replace(u',', u' ').strip().split(u' '))
         kws.discard(u'')
         if not kws: return
@@ -94,12 +98,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             kw = '+' + u' +'.join([k for k in kws])
         else:
             kw = '+' + u' +'.join([k + '* ' + k for k in kws])
-        qs = "select sid,name,detail,(match(name,lookup) against (%s in boolean mode) + match(name) against (%s in boolean mode)*2) as pos from sync_customers where match(name,lookup) against (%s in boolean mode) order by pos desc,sid desc limit 10"
+        qs = "select sid,name,detail,(match(name,lookup) against (%s in boolean mode) + match(name) against (%s in boolean mode)*2) as pos from sync_customers where match(name,lookup) against (%s in boolean mode) order by pos desc,sid desc limit " + str(num_row)
         #self.out.write(qs)
         cur.execute(qs, (kw, kw.replace(u'+', u''), kw))
         res = [ [str(x[0]),] + list(x[1:]) for x in cur.fetchall()]
         
-        self.req.writejs(res)
+        return res
+    
+    def fn_custsearch(self):
+        kw = self.qsv_str('term')
+        if not kw: return
+        mode = self.qsv_int('mode')
+        
+        self.req.writejs( self.search_cust(kw, mode) )
+
+    def fn_adv_cust_srch(self):
+        kw = self.qsv_str('term')
+        if not kw: return
+        mode = self.qsv_int('mode')
+        self.req.writejs( self.search_cust(kw, mode, 100) )
+    fn_adv_cust_srch.PERM = 1 << config.USER_PERM_BIT['admin']
 
     def fn_sync(self):
         uts = self.getconfig(config.cid__sync_last_update)

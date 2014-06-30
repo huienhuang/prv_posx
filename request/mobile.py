@@ -47,9 +47,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         cur.execute('select imgs from item where sid=%s', (sid,))
         rows = cur.fetchall()
-        if not rows: return
-        
-        self.req.writejs({'imgs':rows[0][0] or '', 'sid':str(sid)})
+        if not rows:
+            imgs = ''
+        else:
+            imgs = rows[0][0] or ''
+            
+        self.req.writejs({'imgs':imgs, 'sid':str(sid)})
         
         
     def fn_set_single_inv_flag(self):
