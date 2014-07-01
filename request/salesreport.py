@@ -72,12 +72,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     
     def fn_sale(self):
-        reports = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
-        reports.sort()
+        reports_0 = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
+        reports_1 = map(lambda n: os.path.basename(n)[:-9], glob.glob(self.req.app.app_dir + '/data/*_comm.txt'))
         
-        tp = time.localtime()
-        dt = "%04d-%02d-%02d" % (tp.tm_year, tp.tm_mon, 1)
-        if not reports or reports[-1] != dt: reports.append(dt)
+        s = set(reports_0)
+        reports = list(s.union(reports_1))
+        reports.sort()
         
         if self.user_lvl & ADMIN_PERM:
             sales_users = set([ f_user[1].lower() for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
