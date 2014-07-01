@@ -8,6 +8,39 @@
 
 $(function() {
 
+$('input[value="Export"]').button().click(function() {
+    
+    var lst = g_v_items_tbl_cnt.children('div');
+    var sids = [];
+    for(var i = 0 ; i < lst.length; i++) sids.push( $(lst[i]).data('sid') );
+    
+    var lst = g_v_custs_tbl_cnt.find('input[name="cust_sid"]:checked');
+    var cids = [];
+    for(var i = 0 ; i < lst.length; i++) cids.push( $(lst[i]).val() );
+    
+    if(!sids.length || !cids.length) return;
+    
+    
+    data = {cids: cids, sids: sids}
+    //console.log(data);
+    
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
+    g_v_form_dl.submit();
+    
+});
+
+$('input[value="Quit"]').button().click(go_home);
+
+g_v_form_dl = $('#form_dl');
+
+g_v_custs_tbl = $('.custs_tbl');
+g_v_custs_tbl_cnt = g_v_custs_tbl.children('.prntbl_cnt');
+
+
+g_v_items_tbl = $('.items_tbl');
+g_v_items_tbl_cnt = g_v_items_tbl.children('.prntbl_cnt');
+
+
 
 $('#srch_cust').keyup(function() {
     if(window.g_srch_cust_to) {
@@ -15,17 +48,24 @@ $('#srch_cust').keyup(function() {
         window.g_srch_cust_to = null;
     }
     
-    var o = $('.x_body');
+    var o = g_v_custs_tbl_cnt;
     var term = $.trim( $(this).val() );
     if(!term) { o.empty(); return; }
     
     window.g_srch_cust_to = setTimeout(function() {
         get_js_ex('sync?fn=adv_cust_srch', {term: term}, function(js) {
-            o.empty();
-            
+            var lst = [];
             for(var i = 0; i < js.length; i++) {
-                o.append( $('<div></div>').text(js[i][1]) );
+                var c = js[i];
+                lst.push(
+                       $('<div class="prntbl_row"></div>').append(
+                            $('<div></div>')
+                             .append( $('<input type="checkbox" name="cust_sid" />').val(c[0]) )
+                             .append($('<span></span>').text(c[1]))
+                        )
+                );
             }
+            o.empty().append(lst);
             
         }, function() {
             o.empty();
@@ -37,7 +77,41 @@ $('#srch_cust').keyup(function() {
 });
 
 
-
+$('#srch_item').keyup(function() {
+    if(window.g_srch_item_to) {
+        clearTimeout(window.g_srch_item_to);
+        window.g_srch_item_to = null;
+    }
+    
+    var lst = g_v_custs_tbl_cnt.find('input[name="cust_sid"]:checked');
+    var cids = [];
+    for(var i = 0 ; i < lst.length; i++) cids.push( $(lst[i]).val() );
+    
+    var o = g_v_items_tbl_cnt;
+    var term = $.trim( $(this).val() );
+    if(!term || !cids.length) { o.empty(); return; }
+    
+    window.g_srch_item_to = setTimeout(function() {
+        get_js_ex('?fn=adv_item_srch', {term: term, cids: cids.join('|')}, function(js) {
+            var lst = [];
+            for(var i = 0; i < js.length; i++) {
+                var c = js[i];
+                lst.push(
+                       $('<div class="prntbl_row"></div>').data('sid', c[0])
+                       .append( $('<div></div>').text(c[1]) )
+                       .append( $('<div></div>').text(c[2]) )
+                );
+            }
+            o.empty().append(lst);
+            
+        }, function() {
+            o.empty();
+            
+        }, undefined, undefined, '_srch_item_');
+        
+    }, 250);
+    
+});
 
 
 });
@@ -47,6 +121,16 @@ $('#srch_cust').keyup(function() {
 <style type="text/css">
 .ui-widget {font-size:18px;}
 
+.custs_tbl {top:0;bottom:0;width:300px;left:0;z-index:0;overflow:hidden}
+.custs_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
+.custs_tbl .prntbl_cnt > .prntbl_row > div:nth-child(1) {text-align:left}
+.custs_tbl .prntbl_row > div {width:280px}
+
+.items_tbl {top:0;bottom:0;right:0;left:310px;z-index:0;overflow:hidden}
+.items_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
+.items_tbl .prntbl_cnt > .prntbl_row > div:nth-child(1) {}
+.items_tbl .prntbl_row > div {width:280px}
+
 </style>
 
 </head>
@@ -54,13 +138,29 @@ $('#srch_cust').keyup(function() {
     
 <div class="x_ctrl">
 <input type="text" placeholder="find customers .." id="srch_cust" />
-<input type="text" placeholder="find items .." />
+<input type="text" placeholder="find items .." id="srch_item" />
+<input type="button" value="Export" class="btn" />
 <input type="button" value="Quit" class="btn" style="float:right;margin-top:9px" />
 </div>
 
 <div class="x_body">
+    
+<div class="prntbl custs_tbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Customer</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
+<div class="prntbl items_tbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Num</div><div>Name</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
 
 </div>
+
+<form id="form_dl" target="_blank" action="?fn=export" method="post" style="display:none"><input type="hidden" name="js" /></form>
+
 
 </body>
 </html>

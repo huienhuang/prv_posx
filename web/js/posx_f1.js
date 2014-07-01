@@ -323,7 +323,7 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
                 if(js.err === -999) {
                     show_login();
                 } else if(err_cb)
-                    err_cb.apply(this, 1, arguments);
+                    err_cb.call(this, 1, arguments);
                 else
                     MsgBox('Erorr Code - ' + (js.err || 'None'), js.err_s || 'unexpected error');
             } else
@@ -335,7 +335,7 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
             
             hide_loading_msg();
             if(err_cb)
-                err_cb.apply(this, 0, arguments);
+                err_cb.call(this, 0, arguments);
             else
                 MsgBox('Erorr', 'unexpected error');
         }
