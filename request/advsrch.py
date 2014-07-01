@@ -3,7 +3,8 @@ import json
 import re
 import cStringIO
 import csv
-
+import time
+import datetime
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -55,10 +56,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sids = map(int, data['sids'])
         if not sids: return
         
+        receipt_date = int( time.mktime( datetime.date(2014, 6, 1).timetuple() ) )
+        
         cur =self.cur()
-        cur.execute('select h.itemsid,sum(h.qtydiff) from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2)  where r.cid in (%s) and h.itemsid in (%s) group by h.itemsid' % (
+        cur.execute('select h.itemsid,sum(h.qtydiff) from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) where r.cid in (%s) and h.itemsid in (%s) and r.order_date>=%s group by h.itemsid' % (
             ','.join(map(str, cids)),
             ','.join(map(str, sids)),
+            
+            receipt_date
             )
         )
         items = dict(cur.fetchall())
