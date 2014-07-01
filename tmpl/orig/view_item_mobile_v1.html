@@ -105,7 +105,7 @@ function load_google_imgs(seq, nz)
                 var max_len = Math.max(4, results.length);
                 for(var i = 0; i < max_len; i++) {
                     var r = results[i];
-                    g_v_item_tbl.picture.append( $('<img alt="IMG" class="google_img" />').data('full_url', r.url).attr('src', r.tbUrl).click(load_large_img) );
+                    g_v_item_tbl.picture.append( $('<img alt="IMG" class="google_img" />').data('full_url', r.unescapedUrl).attr('src', r.tbUrl).click(load_large_img) );
                 }
             }
             
