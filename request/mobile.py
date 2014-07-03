@@ -8,13 +8,20 @@ import re
 import sqlanydb
 
 
-DEFAULT_PERM = 0x00000001
-class RequestHandler(App.load('/basehandler').RequestHandler):
+DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
+class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         r = {'mode': config.settings['mode']}
         self.req.writefile('view_item_mobile_v1.html', r)
-        
+    
+    def fn_search_item(self):
+        kw = self.qsv_str('term')
+        if not kw: return
+        mode = self.qsv_int('mode')
+        mini = self.qsv_int('mini')
+        self.req.writejs( self.search_item(kw, mode, mini and 4 or 10) )
+    
     REGX_FNZ_SUB = re.compile("[^0-9a-z-_=]", re.I|re.M|re.S)
     def fn_set_imgs(self):
         sid = self.req.psv_int('sid')

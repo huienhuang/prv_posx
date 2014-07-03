@@ -23,7 +23,7 @@ ORIENTATION = [
 ]
 
 
-DEFAULT_PERM = 0x00000001
+DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_upload_img(self):
