@@ -8,6 +8,9 @@ import re
 import sqlanydb
 
 
+FLAG_ITEM_REQ_CHK = (1 << 3) | (1 << 4) | (1 << 5)
+
+
 DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
@@ -76,8 +79,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             )
         else:
             #update only
-            cur.execute('insert into item (sid,inv_flag) values(%s,%s) on duplicate key update inv_flag=inv_flag&%s', (
-                sid, 0, ~(1 << idx)
+            cur.execute('update item set inv_flag=inv_flag&%s where sid=%s', (
+                ~(1 << idx), sid
                 )
             )
         
@@ -94,6 +97,100 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if rows: flag = rows[0][0]
             
         self.req.writejs({'flag': flag})
+
+    def fn_get_lst_item_chg_hist(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+        
+        pgsz = self.qsv_int('pagesize')
+        sidx = self.qsv_int('sidx')
+        eidx = self.qsv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+        
+        cur = self.cur()
+        apg = []
+        if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            users = dict([(v[0], v[1])for v in self.getuserlist()])
+            
+            cur.execute(('select SQL_CALC_FOUND_ROWS si.num,si.name,h.qtynew,h.qtynew-h.qtydiff,u.user_name,ch.js,h.docdate,h.itemsid from item_chg_hist ch left join user u on (ch.user_id=u.user_id) left join sync_items_hist h on (ch.ch_id=h.sid and h.sid_type=2) left join sync_items si on (h.itemsid=si.sid) order by ch.ch_id desc limit %d,%d') % (
+                        sidx * pgsz, (eidx - sidx) * pgsz
+                        )
+            )
+            for r in cur.fetchall():
+                r = list(r)
+                r[5] = ', '.join([ "%d %s%s" % (f_x[2], f_x[0], f_x[1] != 1 and '(*%0.1f)' % (f_x[1],) or '') for f_x in json.loads(r[5]) ])
+                r[-2] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[-2]))
+                r[-1] = str(r[-1])
+                apg.append(r)
+                
+            cur.execute('select FOUND_ROWS()')
+        else:
+            cur.execute('select count(*) from item_chg_hist')
+        
+        rlen = int(cur.fetchall()[0][0])
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)
+    
+    def fn_clear_item_chk(self):
+        sid = self.req.psv_int('sid')
+        cur = self.cur()
+        cur.execute('update item set inv_flag=inv_flag&%s where sid=%s', (
+            ~FLAG_ITEM_REQ_CHK, sid
+            )
+        )
+        rc = cur.rowcount
+        self.req.writejs({'err': int(not (rc > 0))})
+    
+    def fn_get_item_chk_lst(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+        pgsz = self.qsv_int('pagesize')
+        sidx = self.qsv_int('sidx')
+        eidx = self.qsv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+        
+        cur = self.cur()
+        apg = []
+        if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            cur.execute('select SQL_CALC_FOUND_ROWS i.sid,i.inv_flag,i.imgs,si.num,si.name from item i left join sync_items si on (i.sid=si.sid) where i.inv_flag&%d!=0 order by i.sid desc limit %d,%d' % (
+                FLAG_ITEM_REQ_CHK, sidx * pgsz, (eidx - sidx) * pgsz
+                )
+            )
+            for r in cur.fetchall():
+                sid,inv_flag,imgs,num,name = r
+                
+                desc = []
+                if inv_flag & (1 << 3): desc.append('Barcode')
+                if inv_flag & (1 << 4): desc.append('Price')
+                if inv_flag & (1 << 5): desc.append('All')
+                
+                img = ""
+                if imgs: img = imgs.split('|')[0]
+                
+                apg.append((
+                    img,
+                    num,
+                    name,
+                    ', '.join(desc),
+                    'X',
+                    str(sid)
+                    )
+                )
+        
+            cur.execute('select FOUND_ROWS()')
+            
+        else:
+            cur.execute('select count(*) from item where inv_flag&%d!=0' % (
+                FLAG_ITEM_REQ_CHK,
+                )
+            )
+            
+        rlen = int(cur.fetchall()[0][0])
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)
+        
     
     def fn_get_item_unit(self):
         sid = self.req.psv_int('sid')

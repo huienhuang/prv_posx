@@ -9,7 +9,7 @@
 .tinygrid > div.tg_body > div.tg_meter {height:0px;}
 
 .tinygrid .tg_row {
-position:absolute;left:0;top:-100px;border-bottom:1px solid #dddddd;
+position:absolute;left:0;top:-500px;border-bottom:1px solid #dddddd;
 height:39px;line-height:39px;z-index:0;width:100%;overflow:hidden;
 }
 

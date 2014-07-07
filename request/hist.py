@@ -682,6 +682,4 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs( {'cid': str(rows[0][0])} )
         
-    def fn_inv_hist(self):
-        self.req.writefile('inv_hist.html')
 
