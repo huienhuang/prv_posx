@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 29, 2014 at 04:46 PM
+-- Generation Time: Jul 07, 2014 at 05:40 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -23,6 +23,23 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `cashdrawer`
+--
+
+CREATE TABLE IF NOT EXISTS `cashdrawer` (
+  `rid` int(11) NOT NULL AUTO_INCREMENT,
+  `flag` tinyint(3) unsigned NOT NULL,
+  `sid` tinyint(4) NOT NULL,
+  `uid` int(11) NOT NULL,
+  `diff` int(11) NOT NULL,
+  `ts` int(10) unsigned NOT NULL,
+  `js` text NOT NULL,
+  PRIMARY KEY (`rid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `clockin_hist`
 --
 
@@ -33,9 +50,10 @@ CREATE TABLE IF NOT EXISTS `clockin_hist` (
   `out_ts` int(10) unsigned NOT NULL,
   `memo` varchar(128) NOT NULL,
   `flag` int(10) unsigned NOT NULL,
+  `user_lvl` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=43 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3473 ;
 
 -- --------------------------------------------------------
 
@@ -51,18 +69,6 @@ CREATE TABLE IF NOT EXISTS `clockin_user` (
   `flag` int(10) unsigned NOT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `user_code` (`user_code`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `comm`
---
-
-CREATE TABLE IF NOT EXISTS `comm` (
-  `c_date` int(11) NOT NULL,
-  `c_js` blob NOT NULL,
-  PRIMARY KEY (`c_date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -96,14 +102,13 @@ CREATE TABLE IF NOT EXISTS `configv2` (
 --
 
 CREATE TABLE IF NOT EXISTS `customer` (
-  `cid` bigint(20) NOT NULL AUTO_INCREMENT,
-  `schedule_date` int(10) unsigned NOT NULL,
+  `cid` bigint(20) NOT NULL,
+  `schedule_date` int(10) NOT NULL,
   `schedule_rule` varchar(32) NOT NULL,
   `schedule_next` int(11) NOT NULL,
   `note` text NOT NULL,
-  PRIMARY KEY (`cid`),
-  KEY `cid` (`cid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+  PRIMARY KEY (`cid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -114,12 +119,56 @@ CREATE TABLE IF NOT EXISTS `customer` (
 CREATE TABLE IF NOT EXISTS `customer_comment` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cid` bigint(11) NOT NULL,
-  `ts` int(10) unsigned NOT NULL,
-  `name` varchar(128) NOT NULL,
-  `val` text NOT NULL,
+  `js` blob NOT NULL,
   PRIMARY KEY (`id`),
   KEY `cid` (`cid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=20 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_delivery`
+--
+
+CREATE TABLE IF NOT EXISTS `customer_delivery` (
+  `cid` bigint(20) NOT NULL AUTO_INCREMENT,
+  `schedule` bigint(10) NOT NULL,
+  `note` text NOT NULL,
+  PRIMARY KEY (`cid`),
+  KEY `cid` (`cid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `daily_inventory`
+--
+
+CREATE TABLE IF NOT EXISTS `daily_inventory` (
+  `di_ts` int(10) unsigned NOT NULL,
+  `di_price` float NOT NULL,
+  `di_cost` float NOT NULL,
+  `di_js` mediumblob NOT NULL,
+  PRIMARY KEY (`di_ts`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `delivery`
+--
+
+CREATE TABLE IF NOT EXISTS `delivery` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `rev` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `count` int(11) NOT NULL,
+  `ts` int(10) unsigned NOT NULL,
+  `mts` int(10) unsigned NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `js` text NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=55 ;
 
 -- --------------------------------------------------------
 
@@ -137,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `deliveryv2` (
   `name` varchar(256) NOT NULL,
   `js` blob NOT NULL,
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=107 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=556 ;
 
 -- --------------------------------------------------------
 
@@ -153,6 +202,7 @@ CREATE TABLE IF NOT EXISTS `deliveryv2_receipt` (
   `user_id` int(11) NOT NULL,
   `payment_required` tinyint(4) NOT NULL,
   `problem_flag` int(11) NOT NULL,
+  `problem_flag_s` int(11) NOT NULL,
   `js` blob NOT NULL,
   UNIQUE KEY `d_id` (`d_id`,`num`),
   KEY `num` (`num`)
@@ -204,14 +254,85 @@ CREATE TABLE IF NOT EXISTS `ipmac` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `item`
+--
+
+CREATE TABLE IF NOT EXISTS `item` (
+  `sid` bigint(20) NOT NULL AUTO_INCREMENT,
+  `rev` int(11) NOT NULL DEFAULT '0',
+  `inv_flag` int(10) unsigned NOT NULL DEFAULT '0',
+  `imgs` blob,
+  PRIMARY KEY (`sid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `item_chg_hist`
+--
+
+CREATE TABLE IF NOT EXISTS `item_chg_hist` (
+  `ch_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `js` blob NOT NULL,
+  PRIMARY KEY (`ch_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=15 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `item_qty_rec`
+--
+
+CREATE TABLE IF NOT EXISTS `item_qty_rec` (
+  `sid` bigint(20) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `ts` int(11) NOT NULL,
+  `pos_qty` int(11) NOT NULL,
+  `user_qty` int(11) NOT NULL,
+  `js` blob NOT NULL,
+  PRIMARY KEY (`sid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project`
+--
+
+CREATE TABLE IF NOT EXISTS `project` (
+  `p_id` int(11) NOT NULL AUTO_INCREMENT,
+  `p_class` tinyint(4) NOT NULL,
+  `p_state` tinyint(4) unsigned NOT NULL,
+  `p_progress` tinyint(4) NOT NULL,
+  `p_created_by_uid` int(11) NOT NULL,
+  `p_approved_by_uid` int(11) NOT NULL,
+  `p_name` varchar(128) NOT NULL,
+  `p_desc` varchar(512) NOT NULL,
+  `p_deadline_ts` int(10) unsigned NOT NULL,
+  `p_beginning_ts` int(10) unsigned NOT NULL,
+  `p_completion_ts` int(10) unsigned NOT NULL,
+  `p_js` blob NOT NULL,
+  `p_msg` blob NOT NULL,
+  PRIMARY KEY (`p_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `receipt`
 --
 
 CREATE TABLE IF NOT EXISTS `receipt` (
+  `sid` bigint(20) NOT NULL,
+  `sid_type` tinyint(4) NOT NULL,
+  `flag` int(10) unsigned NOT NULL,
   `num` int(11) NOT NULL,
-  `delivery_date` int(10) unsigned NOT NULL,
-  `delivery_zip` int(11) NOT NULL,
-  PRIMARY KEY (`num`)
+  `delivery_id` int(11) NOT NULL,
+  `driver_id` int(11) NOT NULL,
+  `memo` varchar(256) NOT NULL,
+  `js` text NOT NULL,
+  PRIMARY KEY (`sid`,`sid_type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -230,7 +351,7 @@ CREATE TABLE IF NOT EXISTS `receipt_comment` (
   `comment` varchar(256) NOT NULL,
   PRIMARY KEY (`rc_id`),
   KEY `sid` (`sid`,`sid_type`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1023 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=10857 ;
 
 -- --------------------------------------------------------
 
@@ -244,7 +365,7 @@ CREATE TABLE IF NOT EXISTS `report` (
   `nz` varchar(128) NOT NULL,
   `js` blob NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=14 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=37 ;
 
 -- --------------------------------------------------------
 
@@ -281,7 +402,7 @@ CREATE TABLE IF NOT EXISTS `sorder` (
   `ord_items_js` text NOT NULL,
   `ord_comment_js` text NOT NULL,
   PRIMARY KEY (`ord_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=810309 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=810307 ;
 
 -- --------------------------------------------------------
 
@@ -295,7 +416,7 @@ CREATE TABLE IF NOT EXISTS `sync_customers` (
   `lookup` varchar(512) NOT NULL,
   `detail` text NOT NULL,
   `zip` int(11) NOT NULL,
-  `flag` int(10) unsigned NOT NULL,
+  `flag` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sid`),
   KEY `zip` (`zip`),
   FULLTEXT KEY `name` (`name`,`lookup`)
@@ -312,7 +433,7 @@ CREATE TABLE IF NOT EXISTS `sync_feed` (
   `f_type` int(11) NOT NULL,
   `f_val` text NOT NULL,
   PRIMARY KEY (`f_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3826 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22410 ;
 
 -- --------------------------------------------------------
 
@@ -322,12 +443,16 @@ CREATE TABLE IF NOT EXISTS `sync_feed` (
 
 CREATE TABLE IF NOT EXISTS `sync_items` (
   `sid` bigint(20) NOT NULL,
+  `deptsid` bigint(20) DEFAULT NULL,
+  `status` tinyint(4) NOT NULL,
   `num` int(11) NOT NULL,
   `lookup` varchar(512) NOT NULL,
   `name` varchar(512) NOT NULL,
   `detail` text NOT NULL,
   `detail2` text NOT NULL,
   PRIMARY KEY (`sid`),
+  KEY `deptsid` (`deptsid`),
+  KEY `status` (`status`),
   FULLTEXT KEY `lookup` (`lookup`,`name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -354,7 +479,7 @@ CREATE TABLE IF NOT EXISTS `sync_items_hist` (
   PRIMARY KEY (`sid`,`sid_type`),
   KEY `itemsid` (`itemsid`),
   KEY `docsid` (`docsid`,`sid_type`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3480246359687169 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3480237769752580 ;
 
 -- --------------------------------------------------------
 
@@ -489,7 +614,8 @@ CREATE TABLE IF NOT EXISTS `sync_salesorders` (
   `global_js` text NOT NULL,
   `items_js` text NOT NULL,
   PRIMARY KEY (`sid`),
-  KEY `cust_sid` (`cust_sid`)
+  KEY `cust_sid` (`cust_sid`),
+  KEY `sonum` (`sonum`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -545,7 +671,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `cur_in_ts` int(11) NOT NULL,
   `cur_out_ts` int(11) NOT NULL,
   PRIMARY KEY (`user_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=130 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=143 ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
