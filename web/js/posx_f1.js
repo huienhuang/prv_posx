@@ -189,10 +189,11 @@ function chk_login()
     $.get('?fn=getuser', {}, function(js) {
         if(!js || js.user_id !== 0) {
             v_login && v_login.dialog('close');
+            window.posx_chk_login_cb && window.posx_chk_login_cb(js);
         } else {
             show_login();
         }
-            
+        
         timeout_chk_login && clearTimeout(timeout_chk_login);
         timeout_chk_login = setTimeout(chk_login, 5000);
             

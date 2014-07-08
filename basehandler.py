@@ -26,7 +26,10 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.user_id = 0
         self.user_name = None
         self.user_lvl = 0
+        self.user_msg_id = 0
         self.__db = None
+        
+        self.user_triggered = True
         
         self.is_ajax = bool(self.qsv_int('ajax'))
     
@@ -113,7 +116,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
             
         if uid:
             cur = self.cur()
-            cur.execute('select user_name,user_passwd,user_lvl from user where user_id=%d limit 1' % (uid, ))
+            cur.execute('select user_name,user_passwd,user_lvl,user_msg_id from user where user_id=%d limit 1' % (uid, ))
             r = cur.fetchall()
             r = r and r[0] or None
             if r:
@@ -131,9 +134,10 @@ class RequestHandler(tinywsgi2.RequestHandler):
                 if login_pass:
                     self.user_id = uid
                     self.user_name = r[0]
-                    self.user_lvl = int(r[2])
+                    self.user_lvl = r[2]
+                    self.user_msg_id = r[3]
                     
-                    if login_pass == 2: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
+                    if login_pass == 2 and self.user_triggered: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
                     if in_uid and not in_pass: self.req.redirect('home?fn=set_password')
                     
                     return True
@@ -151,6 +155,8 @@ class RequestHandler(tinywsgi2.RequestHandler):
         return getattr(fn_inst, 'PERM', fn_inst.im_func.func_globals.get('DEFAULT_PERM', DEFAULT_PERM))
         
     def check_perm(self, fn_nz, fn_inst):
+        self.user_triggered = getattr(fn_inst, 'USER_TRIGGERED', True)
+        
         rlvl = self.get_perm_lvl(fn_nz, fn_inst)
         if not rlvl: return True
         
@@ -217,9 +223,21 @@ class RequestHandler(tinywsgi2.RequestHandler):
     
     def fn_getuser(self):
         self.login()
-        self.req.writejs({'user_id': self.user_id})
+        
+        msg_count = 0
+        if self.user_id:
+            cur = self.cur()
+            cur.execute('select count(*) from msg where msg_id>%s and (user_id=0 or user_id=%s)', (
+                self.user_msg_id,
+                self.user_id
+                )
+            )
+            msg_count = cur.fetchall()[0][0]
+        
+        self.req.writejs({'user_id': self.user_id, 'msg_count': msg_count})
     #fn_getuser
     fn_getuser.PERM = 0
+    fn_getuser.USER_TRIGGERED = False
     
     def fn_login_js(self):
         ret = {'user_id':0}

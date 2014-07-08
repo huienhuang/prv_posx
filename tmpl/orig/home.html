@@ -30,7 +30,9 @@
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:460px;color:#004C99;}
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
 
-.sys_menu {width:120px;position:absolute;right:0;top:10px;}
+.sys_menu {width:130px;position:absolute;right:0;top:10px;}
+.sys_menu > ul > li {padding:0}
+.sys_menu > ul > li > a {width:130px;text-align:center}
 
 
 .pxm_blk {margin-bottom:10px;overflow:hidden}
@@ -67,11 +69,31 @@
 .m_body >div:nth-child(2) {position:absolute;top:0;width:400px;right:0;bottom:0;background-color:#f5ffeb;display:none}
 .blk_dashboard >div:first-child {background-color:#9bbb59}
 
+
+.msg_icon {position:absolute;top:9px;right:150px;width:60px;display:none;bottom:9px;line-height:30px;cursor:pointer;text-align:center;border:1px solid #46ac26;border-radius:8px;color:white;font-weight:bold;background: rgb(180,227,145);background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(180,227,145,1)), color-stop(50%,rgba(97,196,25,1)), color-stop(100%,rgba(180,227,145,1)));}
+
 </style>
 
 <script>
 var g_price_level = 0;
+var g_msg_count = 0;
 
+
+function posx_chk_login_cb(js)
+{
+    if(g_msg_count === js.msg_count) return;
+    
+    if(g_msg_count) {
+        if(js.msg_count)
+            g_v_msg_icon.text(js.msg_count);
+        else
+            g_v_msg_icon.hide();
+            
+    } else if(js.msg_count)
+            g_v_msg_icon.show().text(js.msg_count);
+            
+    g_msg_count = js.msg_count;
+}
 
 function render_charts(charts)
 {
@@ -149,6 +171,8 @@ function ac_item_search_response(event, ui) {
 }
 
 $(function() {
+
+g_v_msg_icon = $('.msg_icon');
 
 g_v_dlg_passwd = $('.dlg_passwd').dialog({
     autoOpen:false,
@@ -246,6 +270,7 @@ g_v_ac_cust_search.data("ui-autocomplete")._renderItem = custsearch_render_item;
 
 $('.sys_menu').tinymenu();
 
+/*
 get_js('?fn=load_dashboard', {}, function(js) {
     if(js.charts && js.charts.length) {
         $('.m_body').css('padding-right', '405px').children('div:nth-child(2)').show();
@@ -253,7 +278,7 @@ get_js('?fn=load_dashboard', {}, function(js) {
     }
     
 });
-
+*/
 
 });
 
@@ -269,6 +294,7 @@ get_js('?fn=load_dashboard', {}, function(js) {
 <input type="text" id="srch_salesorder" style="width:110px" placeholder="SalesOrder#" />
 
 %if user_id:
+<div class="msg_icon"></div>
 <div class="sys_menu">
 <ul><li>
 <a>${user_name|h}</a>

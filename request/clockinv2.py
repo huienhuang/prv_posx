@@ -445,7 +445,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if cur.fetchall()[0][0] > 0: self.req.exitjs({'err':'user exists'})
         
         dpw = self.genpasswd( str(random.random()) )
-        cur.execute("insert into user values (0,%s,%s,0,0,0)", (user_name, dpw))
+        cur.execute("insert into user values (0,%s,%s,0,0)", (user_name, dpw))
         self.req.writejs({'ret': cur.lastrowid})
         
     def fn_export_csv(self):

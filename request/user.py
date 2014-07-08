@@ -20,7 +20,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if cur.fetchall()[0][0] > 0: self.req.exitjs({'uid':0, 'err':'user exists'})
         
         dpw = self.genpasswd('')
-        cur.execute("insert into user values (0,%s,%s,0,0,0)", (user_name, dpw))
+        cur.execute("insert into user values (0,%s,%s,0,0)", (user_name, dpw))
         self.req.writejs({'uid': cur.lastrowid})
     
     def fn_set_password(self):
