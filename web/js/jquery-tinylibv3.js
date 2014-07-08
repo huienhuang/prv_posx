@@ -1021,9 +1021,11 @@ function update_ui(direction, lst)
         ctx.cnt.append(lst);
     
     var h = Math.max(ctx.self.height() - 20, 1);
-    ctx.padding = Math.max( Math.ceil(ctx.cnt.outerHeight(false) * 1.0 / h), ctx.min_padding );
-    
-    ctx.cnt.css('padding', ctx.padding + 'px 0');
+    var p = Math.max( Math.ceil(ctx.cnt.height() * 2.0 / h), ctx.min_padding );
+    if(ctx.padding != p) {
+        ctx.padding = p;
+        ctx.cnt.css('padding', ctx.padding + 'px 0');
+    }
     
     scroll.call(ctx.self);
     data.load_data = load_data;
@@ -1045,12 +1047,9 @@ function load()
         
         data.token = js.token;
         var lst = js.lst;
-        if(lst) {
-            var dlst = [];
-            for(var i = 0; i < lst.length; i++) dlst.push(render.call(ctx, lst[i]));
-            
-            update_ui.call(ctx, direction, dlst);
-        }
+        var dlst = [];
+        for(var i = 0; i < lst.length; i++) dlst.push(render.call(ctx, lst[i]));
+        if(dlst.length) update_ui.call(ctx, direction, dlst);
         
     }, 'json');
 }

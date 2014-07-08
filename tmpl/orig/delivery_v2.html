@@ -39,6 +39,11 @@ g_v_tabs = $('#m_tabs').tabs({
                 g_v_report_iframe.data('inited', true);
                 g_v_report_iframe.attr('src', 'delivery?fn=report');
             }
+        } else if(nz == 'schedule') {
+            if(!g_v_schedule_iframe.data('inited')) {
+                g_v_schedule_iframe.data('inited', true);
+                g_v_schedule_iframe.attr('src', 'schedule');
+            }
         }
     },
     active: 0
@@ -47,6 +52,8 @@ g_v_tabs = $('#m_tabs').tabs({
 g_v_view_iframe = $('#tabs_view > iframe', g_v_tabs);
 
 g_v_district_iframe = $('#tabs_district > iframe', g_v_tabs);
+
+g_v_schedule_iframe = $('#tabs_schedule > iframe', g_v_tabs);
 
 g_v_report_iframe = $('#tabs_report > iframe', g_v_tabs);
 
@@ -113,6 +120,7 @@ body {-webkit-user-select:none;}
     <li><a href="#tabs_view">Detail</a></li>
     <li><a href="#tabs_receipts">Problems</a></li>
     <li><a href="#tabs_district">District</a></li>
+    <li><a href="#tabs_schedule">Schedule</a></li>
     <li><a href="#tabs_report">Report</a></li>
     <li style="float:right"><a href="#tabs_quit">Quit</a></li>
     <li style="float:right"><a href="#tabs_new">New</a></li>
@@ -125,6 +133,8 @@ body {-webkit-user-select:none;}
 <div id="tabs_receipts"><div id="receipts"></div></div>
 
 <div id="tabs_district"><iframe></iframe></div>
+
+<div id="tabs_schedule"><iframe></iframe></div>
 
 <div id="tabs_report"><iframe></iframe></div>
 
