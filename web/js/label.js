@@ -40,6 +40,7 @@ function fill_label(label, item)
 
 function text_to_html(v)
 {
+    /*
     v = v + '';
     g_v_escape.empty();
     var s = 0, e = 0, m = v.length, c;
@@ -55,12 +56,16 @@ function text_to_html(v)
     }
     if(s < e) g_v_escape.append( document.createTextNode(v.substring(s, e)) );
     return g_v_escape.html();
+    */
+    
+    return g_v_escape.text(v).html();
 }
 
 function html_to_text(elem)
 {
-    var a = elem.html().replace(/<br>/gi, '\n').replace(/&nbsp;<wbr>/gi, ' ');
-    return g_v_escape.html(a).text();
+    //var a = elem.html().replace(/<br>/gi, '\n').replace(/&nbsp;<wbr>/gi, ' ');
+    //return g_v_escape.html(a).text();
+    return elem.text();
 }
 
 function _fill_label(label, data)
