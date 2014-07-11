@@ -71,6 +71,13 @@ DEFAULT_PERM = PERM_BASE_ACCESS | PERM_NORMAL_ACCESS
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
+        user_agent = self.environ.get('HTTP_USER_AGENT') or ''
+        if user_agent and user_agent.lower().find('android') >= 0:
+            self.req.redirect('mobile')
+        else:
+            self.go_default()
+        
+    def go_default(self):
         tools_map_f = []
         for s_dept,l_tools in TOOLS_MAP:
             l_tools_f = []
@@ -101,6 +108,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_set_password(self):
         self.req.writefile('set_password.html')
     
+    def fn_chg_password(self):
+        self.req.writefile('chg_password.html')
     
     def fn_load_dashboard(self):
         charts = []

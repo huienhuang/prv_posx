@@ -138,7 +138,11 @@ class RequestHandler(tinywsgi2.RequestHandler):
                     self.user_msg_id = r[3]
                     
                     if login_pass == 2 and self.user_triggered: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
-                    if in_uid and not in_pass: self.req.redirect('home?fn=set_password')
+                    if in_uid:
+                        if not in_pass:
+                            self.req.redirect('home?fn=set_password')
+                        elif len(in_pass) < 4 or in_pass.lower() == self.user_name.lower() or in_pass == '1234':
+                            self.req.redirect('home?fn=chg_password')
                     
                     return True
         
