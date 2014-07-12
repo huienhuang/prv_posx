@@ -60,7 +60,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         from_month = int(time.mktime( datetime.date(from_month[0], from_month[1], 1).timetuple() ))
         
         to_month = map(int, data['to_month'].split('-')[:2])
-        if to_month[1] == 12: to_month = [ to_month[0] + 1, 1 ]
+        if to_month[1] < 12:
+            to_month = [ to_month[0], to_month[1] + 1 ]
+        else:
+            to_month = [ to_month[0] + 1, 1 ]
         to_month = int(time.mktime( datetime.date(to_month[0], to_month[1], 1).timetuple() ))
         
         cur =self.cur()
