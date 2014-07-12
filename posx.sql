@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 07, 2014 at 05:40 PM
+-- Generation Time: Jul 11, 2014 at 05:41 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -297,6 +297,21 @@ CREATE TABLE IF NOT EXISTS `item_qty_rec` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `msg`
+--
+
+CREATE TABLE IF NOT EXISTS `msg` (
+  `msg_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `msg_type` tinyint(4) NOT NULL,
+  `msg_val` text NOT NULL,
+  PRIMARY KEY (`msg_id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `project`
 --
 
@@ -380,6 +395,25 @@ CREATE TABLE IF NOT EXISTS `salesorder` (
   PRIMARY KEY (`sid`),
   KEY `delivery_date` (`delivery_date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `schedule`
+--
+
+CREATE TABLE IF NOT EXISTS `schedule` (
+  `sc_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sc_date` int(10) unsigned NOT NULL,
+  `sc_rev` int(11) NOT NULL,
+  `sc_flag` int(11) unsigned NOT NULL,
+  `doc_type` tinyint(4) NOT NULL,
+  `doc_sid` bigint(20) NOT NULL,
+  `sc_note` varchar(128) NOT NULL,
+  PRIMARY KEY (`sc_id`),
+  KEY `sc_date` (`sc_date`),
+  KEY `doc_type` (`doc_type`,`doc_sid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
 
 -- --------------------------------------------------------
 
@@ -668,10 +702,9 @@ CREATE TABLE IF NOT EXISTS `user` (
   `user_name` varchar(64) NOT NULL,
   `user_passwd` varchar(32) NOT NULL,
   `user_lvl` int(11) unsigned NOT NULL,
-  `cur_in_ts` int(11) NOT NULL,
-  `cur_out_ts` int(11) NOT NULL,
+  `user_msg_id` int(11) NOT NULL,
   PRIMARY KEY (`user_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=143 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=145 ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
