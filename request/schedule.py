@@ -30,44 +30,47 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             )
         
         row = cur.fetchall()
-        if not row: self.req.exitjs({'err': -1, 'err_s': 'doc#%s not found' % (d_num,)})
+        if not row: self.req.exitjs({'err': -1, 'err_s': 'document #%s not found' % (d_num,)})
         sid,assoc,doc_date,gjs = row[0]
         
         gjs = json.loads(gjs)
         company = (gjs.get('customer') or {}).get('company') or ''
         
+        recs = []
         js = {
             'type': d_type,
             'sid':str(sid),
             'assoc': assoc,
             'company': company,
             'total': gjs['total'],
-            'doc_date': doc_date,
-            'sc_rev': 0,
-            'sc_date': None,
-            'sc_flag': 0
+            'recs': recs
         }
         
-        cur.execute('select sc_date,sc_rev,sc_flag from schedule where doc_type=%s and doc_sid=%s', (
+        cur.execute('select sc_id,sc_date,sc_rev,sc_flag,sc_note from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
             d_type, sid
             )
         )
-        row = cur.fetchall()
-        if row:
-            row = row[0]
-            js['sc_date'] = row[0]
-            js['sc_rev'] = row[1]
-            js['sc_flag'] = row[2]
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            r['sc_prio'] = (r['sc_flag'] & 0xF) - 1
+            recs.append(r)
         
         self.req.writejs(js)
     
     def fn_set_doc(self):
         d_sid = self.req.psv_int('sid')
-        d_date = map(int, self.req.psv_ustr('date').split('-'))
-        d_date = d_date[0] * 10000 + d_date[1] * 100 + d_date[2]
+        
+        d_date = map(int, self.req.psv_ustr('date').split('/'))
+        d_date = datetime.date(d_date[2], d_date[0], d_date[1])
+        if d_date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        d_date = d_date.year * 10000 + d_date.month * 100 + d_date.day
+        
         d_type = int(bool(self.req.psv_int('type')))
-        sc_rev = self.req.psv_int('rev')
-        sc_lvl = self.req.psv_int('lvl')
+        rev = self.req.psv_int('rev')
+        prio = min(max(-1, self.req.psv_int('prio')), 2) + 1
+        sc_id = self.req.psv_int('sc_id')
+        note = self.req.psv_ustr('note')[:128].strip()
         
         cts = int(time.time())
         
@@ -87,24 +90,31 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not row: return
         d_num = row[0][0]
         
-        js = json.dumps([self.user_id, self.user_name, cts, d_date, sc_lvl], separators=(',',':'))
-        
-        if sc_rev == 0:
-            cur.execute('insert into schedule values(%s,%s,1,0,%s,%s,%s)', (
-                d_date, sc_lvl, d_type, d_sid, js
+        if sc_id == 0:
+            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s)', (
+                d_date, prio, d_type, d_sid, note
                 )
             )
         else:
-            cur.execute("update schedule set sc_date=%s,sc_lvl=%s,sc_rev=sc_rev+1,sc_js=concat(sc_js,',',%s) where doc_type=%s and doc_sid=%s and sc_rev=%s and (sc_date!=%s or sc_lvl!=%s)", (
-                d_date, sc_lvl, js, d_type, d_sid, sc_rev, d_date, sc_lvl
+            cur.execute("select sc_date,sc_flag from schedule where sc_id=%s and sc_rev=%s", (
+                sc_id, rev
+                )
+            )
+            row = cur.fetchall()
+            if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
+            old_sc_date,old_sc_flag = row[0]
+            if old_sc_date == d_date and (old_sc_flag & 0xF) == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
+            
+            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_flag=%s where sc_id=%s and sc_rev=%s", (
+                d_date, (old_sc_flag & ~0xF) | prio, sc_id, rev
                 )
             )
             
         rc = cur.rowcount
-        if rc <= 0: self.req.exitjs({'err': -2, 'err_s': "doc#%s - can't make any update" % (d_num, )})
-        
-        
+        if rc <= 0:
+            self.req.exitjs({'err': -2, 'err_s': "document #%s - can't make any update" % (d_num, )})
+        else:
+            pass
+            
         self.req.exitjs({'err': 0})
-
-
 

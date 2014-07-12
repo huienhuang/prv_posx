@@ -97,7 +97,7 @@ function msg_box(title, msg, msg_type, cb)
     if(msg_type)
         v_msgbox.html(msg).dialog('option', 'title', title).dialog('open');
     else
-        v_msgbox.empty().append($('<pre></pre>').text(msg)).dialog('option', 'title', title).dialog('open');
+        v_msgbox.empty().append($('<div style="white-space:pre-wrap"></div>').text(msg)).dialog('option', 'title', title).dialog('open');
 }
 
 MsgBox = function(title, msg, msg_type, cb)
@@ -106,6 +106,7 @@ MsgBox = function(title, msg, msg_type, cb)
         v_msgbox = $('<div id="__dlg_msgbox"></div>')
         .appendTo($('body'))
         .dialog({
+            width:500,
             modal:true,
             autoOpen:false,
             close: function(event, ui) {
@@ -326,7 +327,7 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
                 } else if(err_cb)
                     err_cb.call(this, 1, arguments);
                 else
-                    MsgBox('Erorr Code - ' + (js.err || 'None'), js.err_s || 'unexpected error');
+                    MsgBox('Erorr Code #' + (js.err || 'None'), js.err_s || 'unexpected error');
             } else
                 cb && cb.apply(this, arguments);
         },

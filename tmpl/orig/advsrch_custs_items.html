@@ -10,6 +10,10 @@ $(function() {
 
 $('input[value="Export"]').button().click(function() {
     
+    var from_month = g_v_srch_from_month.val();
+    var to_month = g_v_srch_to_month.val();
+    if(!from_month || !to_month) return;
+    
     var lst = g_v_items_tbl_cnt.children('div');
     var sids = [];
     for(var i = 0 ; i < lst.length; i++) sids.push( $(lst[i]).data('sid') );
@@ -21,7 +25,7 @@ $('input[value="Export"]').button().click(function() {
     if(!sids.length || !cids.length) return;
     
     
-    data = {cids: cids, sids: sids}
+    data = {cids: cids, sids: sids, from_month: from_month, to_month: to_month};
     //console.log(data);
     
     g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
@@ -39,6 +43,9 @@ g_v_custs_tbl_cnt = g_v_custs_tbl.children('.prntbl_cnt');
 
 g_v_items_tbl = $('.items_tbl');
 g_v_items_tbl_cnt = g_v_items_tbl.children('.prntbl_cnt');
+
+g_v_srch_from_month = $('#srch_from_month');
+g_v_srch_to_month = $('#srch_to_month');
 
 
 
@@ -139,6 +146,10 @@ $('#srch_item').keyup(function() {
 <div class="x_ctrl">
 <input type="text" placeholder="find customers .." id="srch_cust" />
 <input type="text" placeholder="find items .." id="srch_item" />
+
+<input type="month" placeholder="From Month" id="srch_from_month" />
+<input type="month" placeholder="To Month" id="srch_to_month" />
+
 <input type="button" value="Export" class="btn" />
 <input type="button" value="Quit" class="btn" style="float:right;margin-top:9px" />
 </div>

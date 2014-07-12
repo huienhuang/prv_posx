@@ -6,39 +6,28 @@
 
 <script type="text/javascript">
 
-
-
-
 $(function() {
-
-g_v_tp_ctrl = $('.tp_ctrl');
-idx_elements(g_v_tp_ctrl, 5);
-var els = g_v_tp_ctrl.data('in_els');
-
-els.btn_schedule[0].button().click(function() {
-    var els = g_v_dlg_doc_form.data('in_els');
-    els.date[0].val('');
-    els.type[0].val('');
-    els.num[0].val('');
-    g_v_dlg_doc_form.data('pjs', null).dialog('open');
-});
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
-    width:500,
-    height:420,
+    width:560,
+    height:490,
     buttons: {
-        'schedule': function() {
+        'Save': function() {
             var pjs = g_v_dlg_doc_form.data('pjs');
             if(!pjs) return;
             
             var els = g_v_dlg_doc_form.data('in_els');
+            var note = els.note[0].val();
+            var prio = els.prio[0].val();
             var date = els.date[0].val();
             if(!date) return;
             
-            post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, date:date, rev:pjs.sc_rev}, function(js) {
-                //els.num[0].val('');
-                //els.info[0].val('OK');
+            var ridx = els.rec[0].val();
+            var rec = ridx ? pjs.recs[ parseInt(ridx) ] : {'sc_id': 0, 'sc_rev' : 0};
+            
+            post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, sc_id: rec.sc_id, prio:prio, date:date, note:note, rev:rec.sc_rev}, function(js) {
+                g_v_tp_ctrl.data('in_els').btn_schedule[0].click();
             });
             
         }
@@ -47,14 +36,40 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
 idx_elements(g_v_dlg_doc_form, 4);
 var els = g_v_dlg_doc_form.data('in_els');
 
+els.date[0].datepicker({minDate: '+0d'});
+
+els.rec[0].change(function() {
+    var els = g_v_dlg_doc_form.data('in_els');
+    var v = $(this).val();
+    if(!v) {
+        els.date[0].val('');
+        els.prio[0].val('0');
+        els.note[0].val('');
+        return;
+    }
+    var pjs = g_v_dlg_doc_form.data('pjs');
+    var rec = pjs.recs[ parseInt(v) ];
+    
+
+    var s = rec.sc_date + '';
+    els.date[0].val(
+                    s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4)
+    );
+    els.note[0].val(rec.sc_note);
+    els.prio[0].val(rec.sc_prio + '');
+    
+});
+
 var ts_doc_lku = null;
 var ts_doc_lku_seq = 0;
-els.num[0].keyup(function(evt) {
+
+function ui_get_doc()
+{
     var seq = ++ts_doc_lku_seq;
     
     var els = g_v_dlg_doc_form.data('pjs', null).data('in_els');
     els.info[0].val('');
-    els.date[0].val('');
+    $(els.rec[0].val('').change().children().slice(1)).remove();
     
     var type = els.type[0].val();
     var num = $.trim(els.num[0].val());
@@ -66,31 +81,46 @@ els.num[0].keyup(function(evt) {
         get_js_ex('?fn=get_doc', {type:type, num:num}, function(js) {
             if(seq !== ts_doc_lku_seq) return;
             
-            var lst = [];
+            g_v_dlg_doc_form.data('pjs', js);
             
+            var lst = [];
             if(js.company) lst.push(js.company + ' *By ' + js.assoc);
             lst.push('- DocDate: ' + fmt_date(js.doc_date));
             lst.push('- Amount: $' + js.total.toFixed(2));
-            
-            if(js.sc_rev) {
-                var y,m,d;
-                d = js.sc_date % 100;
-                y = Math.floor(js.sc_date / 100);
-                m = y % 100;
-                y = Math.floor(y / 100);
-                
-                lst.push('- ScheduledDeliveryDate: ' + m + '/' + d + '/' + y);
-            }
-            
-            g_v_dlg_doc_form.data('pjs', js);
+            lst.push('- Records Found: ' + js.recs.length);
             els.info[0].val(lst.join('\n'));
+            
+            var ol = [];
+            for(var i = 0; i < js.recs.length; i++) {
+                var rec = js.recs[i];
+                var s = rec.sc_date + '';
+                s = s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio]) );
+            }
+            if(ol.length) els.rec[0].append(ol).val((ol.length - 1) + '').change();
             
         }, function(t, args) {
             if(t === 1) els.info[0].val(args[0].err_s);
         });
         
     }, 500);
+}
+
+els.type[0].change(ui_get_doc);
+els.num[0].keyup(ui_get_doc);
+
+
+g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+var els = g_v_tp_ctrl.data('in_els');
+
+els.btn_schedule[0].button().click(function() {
+    g_v_dlg_doc_form.data('in_els').num[0].val('');
+    ui_get_doc();
+    
+    g_v_dlg_doc_form.dialog('open');
 });
+
 
 }); //ready
 
@@ -101,9 +131,9 @@ els.num[0].keyup(function(evt) {
 .tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
-#dlg_doc_form input {width:294px}
-#dlg_doc_form select {width:300px}
-#dlg_doc_form textarea {width:90%;height:120px;margin-top:10px;}
+#dlg_doc_form input {width:354px}
+#dlg_doc_form select {width:360px}
+#dlg_doc_form textarea {width:354px;height:100px;}
 
 </style>
 
@@ -119,10 +149,19 @@ els.num[0].keyup(function(evt) {
 
 
 <div id="dlg_doc_form" title="Schedule Form">
-<div class="xlabel"><div>Type:</div><div><select name="doc_type"><option value="">SalesOrder</option><option value="1">Receipt</option></select></div></div>
-<div class="xlabel"><div>Number:</div><div><input type="text" name="doc_num" /></div></div>
-<div class="xlabel"><div>Delivery:</div><div><input type="date" name="doc_date" /></div></div>
-<div style="text-align:center"><textarea name="doc_info" disabled="disabled"></textarea></div>
+<div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" /></div></div>
+
+<div class="xlabel" style="height:110px"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
+
+<div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
+<div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" /></div></div>
+<div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">low</option><option value="0">normal</option><option value="1">medium</option><option value="2">high</option></select></div></div>
+<div class="xlabel"><div>Note:</div><div><input type="text" name="rec_note" /></div></div>
+
+
+
+
+
 </div>
 
 </body>

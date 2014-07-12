@@ -56,14 +56,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sids = map(int, data['sids'])
         if not sids: return
         
-        receipt_date = int( time.mktime( datetime.date(2014, 6, 1).timetuple() ) )
+        from_month = map(int, data['from_month'].split('-')[:2])
+        from_month = int(time.mktime( datetime.date(from_month[0], from_month[1], 1).timetuple() ))
+        
+        to_month = map(int, data['to_month'].split('-')[:2])
+        if to_month[1] == 12: to_month = [ to_month[0] + 1, 1 ]
+        to_month = int(time.mktime( datetime.date(to_month[0], to_month[1], 1).timetuple() ))
         
         cur =self.cur()
-        cur.execute('select h.itemsid,sum(h.qtydiff) from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) where r.cid in (%s) and h.itemsid in (%s) and r.order_date>=%s group by h.itemsid' % (
+        cur.execute('select h.itemsid,sum(h.qtydiff) from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) where r.cid in (%s) and h.itemsid in (%s) and r.order_date>=%s and r.order_date<%s group by h.itemsid' % (
             ','.join(map(str, cids)),
             ','.join(map(str, sids)),
             
-            receipt_date
+            from_month, to_month
             )
         )
         items = dict(cur.fetchall())
