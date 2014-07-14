@@ -257,7 +257,7 @@ g_v_msg = $('#p_msg').tinylist({
             .append( $('<div></div>').text( '#' + (id + 1) + ' - ' + fmt_time(m[4])) )
         )
         .append(
-            $('<div></div>').append( $('<pre></pre>').text(m[3]) )
+            $('<div></div>').text( m[3] )
         );
         if(!m[5]) o.addClass('note_sys');
         
@@ -370,7 +370,7 @@ body {-webkit-user-select:none;}
 .note_cnt >div:nth-child(1) {border-bottom:1px solid #ccc;position:relative;height:26px;line-height:26px;}
 .note_cnt >div:nth-child(1) >div:nth-child(2) {position:absolute;width:300px;height:26px;top:0;right:0;font-weight:bold;font-style:italic;text-align:right;color:#818181;font-size:16px;}
 .note_cnt >div:nth-child(1) >span:nth-child(1) {font-size:18px;}
-.note_cnt pre {margin:5px 8px;padding:0;}
+.note_cnt >div:nth-child(2) {margin:5px 8px;white-space:pre-wrap}
 .note_cnt .note_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
 .note_cnt .note_reply {font-size:16px;}
 
