@@ -1095,9 +1095,10 @@ function scroll()
     var ctx = $(this).data('tinylist');
     
     var i = ctx.self.scrollTop();
-    var j = ctx.cnt.outerHeight(false) - ctx.self.height() - ctx.padding;
-    if(i < ctx.padding) {
-        ctx.self.scrollTop(ctx.padding);
+    var j = Math.max(0, ctx.cnt.outerHeight(false) - ctx.self.height() - ctx.padding);
+    var k = Math.min(j, ctx.padding)
+    if(i < k) {
+        ctx.self.scrollTop(k);
         ctx.data.load_data && setup_timer.call(ctx, -1);
     } else if(i > j) {
         ctx.self.scrollTop(j);

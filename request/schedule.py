@@ -5,8 +5,21 @@ import datetime
 
 MAX_DAYS = 7
 ZONES = (
-    ('ChinaTown', set([1, 2])),
-    ('EastBay', set([4])),
+    ('Downtown', set([ 0, 2 , 4])),
+    ('Chinatown', set([ 0, 2, 4 ])),
+    ('Fisherman', set([ 0, 2, 4 ])),
+    ('GoldenGate', set([ 0, 2, 4 ])),
+    ('Sunset', set([ 0, 2, 4 ])),
+    ('Richmond', set([ 0, 2, 4 ])),
+    ('Mission', set([ 0, 2, 4 ])),
+    
+    ('Eastbay', set([ 1, 3])),
+    ('Southbay', set([ 1, 3])),
+    ('Peninsula', set([ 1, 3])),
+    
+    ('NorthBay', set([ 1, 4])),
+    
+    ('*Other*', set([])),
 )
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -14,8 +27,10 @@ DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
-        self.req.writefile('schedule.html')
-    
+        r = {
+            'zones': [ f_x[0] for f_x in ZONES ]
+        }
+        self.req.writefile('schedule.html', r)
     
     def fn_get_doc(self):
         d_num = self.req.qsv_ustr('num')
@@ -163,30 +178,37 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             ndt = datetime.date(y, m, d)
             
             if max_days:
-                rd = min(max_days, (ndt - sdt).days)
-                for j in range(rd):
+                for j in range((ndt - sdt).days):
                     wd = sdt.weekday()
                     if wd != 6:
                         max_days -= 1
-                        n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd) )
+                        n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd, sdt.year  * 10000 + sdt.month * 100 + sdt.day) )
+                        if max_days <= 0: break
                     sdt = sdt + dt_1
-            n_dt.append( (ndt.strftime("%a (%m/%d)"), dd, ndt.weekday()) )
+            n_dt.append( (ndt.strftime("%a (%m/%d)"), dd, ndt.weekday(), ndt.year  * 10000 + ndt.month * 100 + ndt.day) )
             sdt = ndt + dt_1
             
         for i in range(max_days):
             wd = sdt.weekday()
             if wd.weekday() != 6:
                 max_days -= 1
-                n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd) )
+                n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd, sdt.year  * 10000 + sdt.month * 100 + sdt.day) )
             sdt = sdt + dt_1
         
         zones = []
         for z,s in ZONES:
             f = [0,] * len(n_dt)
-            zones.append( (z, f) )
+            zones.append( (0, f) )
             for i in range(len(n_dt)):
                 if n_dt[i][2] in s:
                     f[i] = 1
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
 
+    def fn_get_docs(self):
+        dt = self.qsv_int('dt')
+        zidx = self.qsv_int('zidx')
+        
+        
+        
+        

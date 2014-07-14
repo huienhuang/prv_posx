@@ -64,8 +64,9 @@ input,select {margin:0;outline:none;padding:1px;border:1px solid #ccc}
 
 .maincnt {min-width:712px;width:712px;margin:0 auto;}
 
-.ctrlcnt {margin-bottom:10px;height:40px;padding:6px 0;border-bottom:1px solid #ccc;position:relative}
-.ctrlcnt > input {font-size:20px;height:40px;margin-right:6px;}
+.ctrlcnt {}
+.ctrlcnt {margin-bottom:10px;position:relative}
+.ctrlcnt > input {font-size:20px;height:40px;margin-right:6px;display:none}
 
 .ordinfo {position:relative}
 .ordinfo.ord_type_reversing {color:#CC0000}
@@ -109,8 +110,8 @@ input,select {margin:0;outline:none;padding:1px;border:1px solid #ccc}
 .cls_redcolor {color:red}
 
 .cnt_comment_hist {margin-top:10px;border-top:1px solid #ccc;}
-.cnt_comment_hist > div {position:relative;padding-left:180px;font-size:18px;overflow:hidden;line-height:26px;}
-.cnt_comment_hist > div > div:first-child {position:absolute;left:0;width:180px;overflow:hidden;color:#663300;font-style:italic}
+.cnt_comment_hist > div {position:relative;padding-left:160px;font-size:16px;overflow:hidden;line-height:26px;}
+.cnt_comment_hist > div > div:first-child {position:absolute;left:0;width:160px;overflow:hidden;color:#663300;font-style:italic}
 .cnt_comment_hist > div > div:nth-child(2) > span:first-child {font-weight:bold;text-transform:uppercase;color:#003366}
 
 div.xlabel {position:relative;height:32px;line-height:32px;margin:9px 0;}
@@ -128,7 +129,7 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .memocnt {display:none}
 .cls_redcolor {color:#000}
 .ctrlcnt {display:none}
-.cnt_comment {display:none}
+.cnt_comment_hist {display:none}
 .problem_msg {display:none}
 .ordinfo .shipping_status {display:none}
 }
