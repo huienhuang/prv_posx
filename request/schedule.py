@@ -3,7 +3,12 @@ import time
 import config
 import datetime
 
-
+MAX_DAYS = 7
+ZONES = (
+    ('ChinaTown', set([1, 2])),
+    ('EastBay', set([4])),
+)
+WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -54,6 +59,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
             r['sc_prio'] = (r['sc_flag'] & 0xF) - 1
+            r['sc_flag'] = r['sc_flag'] >> 4
             recs.append(r)
         
         self.req.writejs(js)
@@ -105,7 +111,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             old_sc_date,old_sc_flag = row[0]
             if old_sc_date == d_date and (old_sc_flag & 0xF) == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_flag=%s where sc_id=%s and sc_rev=%s", (
+            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_flag=%s where sc_id=%s and sc_rev=%s and sc_flag&0x10=0", (
                 d_date, (old_sc_flag & ~0xF) | prio, sc_id, rev
                 )
             )
@@ -117,4 +123,70 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             pass
             
         self.req.exitjs({'err': 0})
+        
+    
+    def fn_get_overview(self):
+        odt = datetime.date.today()
+        cdt = odt.year * 10000 + odt.month * 100 + odt.day
+        
+        d_dt = {}
+        cur = self.cur()
+        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule where sc_date >= %s', (cdt,))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
+            
+            if not d[0]: d[0] = [0, 0, 0]
+            d = d[0]
+            
+            if r['sc_flag'] & 0x10:
+                d[1] += 1
+            else:
+                d[0] += 1
+            
+            if r['sc_flag'] & 0x20:
+                d[2] += 1
+                
+        
+        l_dt = d_dt.items()
+        l_dt.sort(key=lambda f_x: f_x[0])
+        
+        dt_1 = datetime.timedelta(1)
+        n_dt = []
+        sdt = odt
+        max_days = MAX_DAYS
+        for i in range(len(l_dt)):
+            dt,dd = l_dt[i]
+            m,d = divmod(dt, 100)
+            y,m = divmod(m, 100)
+            ndt = datetime.date(y, m, d)
+            
+            if max_days:
+                rd = min(max_days, (ndt - sdt).days)
+                for j in range(rd):
+                    wd = sdt.weekday()
+                    if wd != 6:
+                        max_days -= 1
+                        n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd) )
+                    sdt = sdt + dt_1
+            n_dt.append( (ndt.strftime("%a (%m/%d)"), dd, ndt.weekday()) )
+            sdt = ndt + dt_1
+            
+        for i in range(max_days):
+            wd = sdt.weekday()
+            if wd.weekday() != 6:
+                max_days -= 1
+                n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd) )
+            sdt = sdt + dt_1
+        
+        zones = []
+        for z,s in ZONES:
+            f = [0,] * len(n_dt)
+            zones.append( (z, f) )
+            for i in range(len(n_dt)):
+                if n_dt[i][2] in s:
+                    f[i] = 1
+        
+        self.req.writejs({'dt': n_dt, 'zones': zones})
 

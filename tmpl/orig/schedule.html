@@ -6,7 +6,75 @@
 
 <script type="text/javascript">
 
+function load_overview_cb(js)
+{
+    g_v_t_top_hdr.empty();
+    g_v_t_left_hdr.empty();
+    
+    var ocs = g_v_t_body.children();
+    
+    var dt = js.dt;
+    var zones = js.zones;
+    
+    var l_o = [];
+    for(var i = 0; i < zones.length; i++) {
+        var o = $('<div class="t_row"></div>');
+        l_o.push(o);
+        var l_oo = [];
+        var zf = zones[i][1];
+        for(var j = 0; j < dt.length; j++) {
+            var z = (dt[j][1] || [])[i];
+            
+            var zfd = zf[j];
+            var s_cls = null;
+            if(zfd === 1)
+                s_cls = ' class="dd_open"';
+            else if(zfd === 2)
+                s_cls = ' class="dd_close"';
+                
+            var oo = $('<div'+(s_cls || '')+'>&nbsp;</div>');
+            l_oo.push(oo);
+            if(z) {
+                if(z[0]) oo.append( $('<div class="ovc_default ovc_pending"></div>').text(z[0]) );
+                if(z[1]) oo.append( $('<div class="ovc_default ovc_accepted"></div>').text(z[1]) );
+                if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
+            }
+        }
+        o.append(l_oo);
+    }
+    g_v_t_body.prepend(l_o);
+    $(ocs).remove();
+    
+    var l_o = [];
+    for(var j = 0; j < dt.length; j++) l_o.push($('<div></div>').text(dt[j][0]));
+    g_v_t_top_hdr.append( $('<div class="t_row"></div>').append(l_o) );
+    
+    var l_o = [];
+    for(var i = 0; i < zones.length; i++) l_o.push( $('<div class="t_row"></div>').append($('<div></div>').text(zones[i][0])) );
+    g_v_t_left_hdr.append(l_o);
+    
+}
+
+function load_overview()
+{
+    get_js('?fn=get_overview', {}, load_overview_cb);
+}
+
+
 $(function() {
+
+g_v_dlg_documents = $('#dlg_documents').dialog({
+    autoOpen: true,
+    width:1200,
+    height:700,
+    buttons: {
+        'ok': function() {
+            
+            
+        }
+        
+    }
+});
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
@@ -95,7 +163,7 @@ function ui_get_doc()
                 var rec = js.recs[i];
                 var s = rec.sc_date + '';
                 s = s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
-                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio]) );
+                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio] + ' - ' + (rec.sc_flag & 1 ? 'Accepted' : 'Pending')) );
             }
             if(ol.length) els.rec[0].append(ol).val((ol.length - 1) + '').change();
             
@@ -114,6 +182,8 @@ g_v_tp_ctrl = $('.tp_ctrl');
 idx_elements(g_v_tp_ctrl, 5);
 var els = g_v_tp_ctrl.data('in_els');
 
+els.btn_refresh[0].button().click(load_overview);
+
 els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.data('in_els').num[0].val('');
     ui_get_doc();
@@ -122,47 +192,83 @@ els.btn_schedule[0].button().click(function() {
 });
 
 
+g_v_x_body = $('.x_body').scroll(function() {
+    var st = g_v_x_body.scrollTop();
+    var sl = g_v_x_body.scrollLeft();
+    
+    if(g_v_t_top_hdr.position().top !== st) g_v_t_top_hdr.css('top', st);
+    if(g_v_t_left_hdr.position().left !== sl) g_v_t_left_hdr.css('left', sl);
+});
+g_v_t_top_hdr = $('.t_top_hdr', g_v_x_body);
+g_v_t_left_hdr = $('.t_left_hdr', g_v_x_body);
+g_v_t_body = $('.t_body', g_v_x_body);
+
 }); //ready
 
 </script>
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
-.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
 #dlg_doc_form input {width:354px}
 #dlg_doc_form select {width:360px}
 #dlg_doc_form textarea {width:354px;height:100px;}
 
+.x_body {padding:40px 0 0 160px;overflow:scroll}
+.x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
+.x_body .t_left_hdr {font-weight:bold;position:absolute;top:40px;left:0;background-color:#e4ecf7;width:159px;color:#27413e;border-left:1px solid #9eb6ce;}
+.t_block {position:absolute;top:51px;left:0;height:38px;width:158px;background-color:#eaeaea;border:1px solid #9eb6ce}
+
+.x_body .t_row {height:39px;white-space:nowrap}
+.x_body .t_row > div {display:inline-block;width:138px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
+.x_body .t_left_hdr .t_row > div {width:158px}
+.x_body .t_body .t_row > div {cursor:pointer}
+
+.ovc_default {margin-right:6px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid #ce862c;border-radius:5px;padding:2px 6px;background: #f2825b;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2825b), color-stop(50%,#e55b2b), color-stop(100%,#f07146));}
+.ovc_accepted {border-color:#4c6b34;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
+.ovc_rescheduled {border-color:#4173a8;background:rgb(109,179,242);background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
+
+.dd_open {background-color:#d5eab5}
+.dd_close {background-color:#fdc2c2}
+
+#dlg_documents > iframe {border:0;margin:0;padding:0;position:absolute;top:0;right:0;width:970px;height:100%;}
+#dlg_documents > div:first-child {position:absolute;left:0;top:0;bottom:0;right:970px;border-right:1px solid #ccc}
+
 </style>
 
 </head>
 <body>
 
-<div class="tp_ctrl">
+<div class="tp_ctrl x_ctrl">
 <select style="width:180px" name="ctrl_user"><option value="">-- All Sales --</option></select>
-<input type="date" name="ctrl_date" />
+<input type="button" name="ctrl_btn_refresh" value="refresh" />
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
 </div>
 
-
+<div class="x_body">
+<div class="t_top_hdr"></div>
+<div class="t_left_hdr"></div>
+<div class="t_body"></div>
+</div>
+<div class="t_block"></div>
 
 <div id="dlg_doc_form" title="Schedule Form">
-<div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" /></div></div>
-
+<div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" placeholder="Document Number" /></div></div>
 <div class="xlabel" style="height:110px"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
-
 <div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
-<div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" /></div></div>
-<div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">low</option><option value="0">normal</option><option value="1">medium</option><option value="2">high</option></select></div></div>
+<div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
+<div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
 <div class="xlabel"><div>Note:</div><div><input type="text" name="rec_note" /></div></div>
+</div>
 
-
-
-
+<div id="dlg_documents">
+<div>
 
 </div>
+<iframe src="http://127.0.0.1/posx/hist?fn=printreceipt&rid=-7776651601573411583"></iframe>
+</div>
+
 
 </body>
 </html>

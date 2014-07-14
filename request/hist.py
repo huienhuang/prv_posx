@@ -414,7 +414,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
         r['PROBLEMS'] = Delivery.PROBLEMS
         
-        self.req.writefile('receipt_print_v2.html', r)
+        self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)
         
     
     def fn_addcomment(self):
