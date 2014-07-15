@@ -23,11 +23,14 @@ ZONES = (
 )
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
+SALES_PERM = 1 << config.USER_PERM_BIT['sales']
+
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
         r = {
+            'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
             'zones': [ f_x[0] for f_x in ZONES ]
         }
         self.req.writefile('schedule.html', r)
@@ -209,6 +212,20 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         dt = self.qsv_int('dt')
         zidx = self.qsv_int('zidx')
         
+        m,d = divmod(dt, 100)
+        y,m = divmod(m, 100)
+        dt = datetime.date(y, m, d)
+        if dt < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
         
-        
-        
+        sc_lst = []
+        cur = self.cur()
+        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule where sc_date=%s and ', (dt,))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            sc_lst.append(r)
+            
+            
+            
+            
+            
+            

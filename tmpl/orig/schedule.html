@@ -267,7 +267,12 @@ els.btn_refresh[0].button().click(load_overview).click();
 <body>
 
 <div class="tp_ctrl x_ctrl">
-<select style="width:180px" name="ctrl_user"><option value="">-- All Sales --</option></select>
+<select style="width:180px" name="ctrl_user">
+<option value="">-- All Sales --</option>
+%for u in sales:
+<option value="${u[0]}">${u[1]|h}</option>
+%endfor
+</select>
 <input type="button" name="ctrl_btn_refresh" value="refresh" />
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
 </div>
