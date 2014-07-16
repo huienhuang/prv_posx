@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 11, 2014 at 05:41 PM
+-- Generation Time: Jul 15, 2014 at 05:47 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -19,6 +19,23 @@ SET time_zone = "+00:00";
 --
 -- Database: `posx`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `address`
+--
+
+CREATE TABLE IF NOT EXISTS `address` (
+  `loc` binary(20) NOT NULL,
+  `ready` tinyint(4) NOT NULL,
+  `lts` int(10) unsigned NOT NULL,
+  `lat` float NOT NULL,
+  `lng` float NOT NULL,
+  `js` blob NOT NULL,
+  PRIMARY KEY (`loc`),
+  KEY `ready` (`ready`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -330,7 +347,7 @@ CREATE TABLE IF NOT EXISTS `project` (
   `p_js` blob NOT NULL,
   `p_msg` blob NOT NULL,
   PRIMARY KEY (`p_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=9 ;
 
 -- --------------------------------------------------------
 
@@ -409,6 +426,7 @@ CREATE TABLE IF NOT EXISTS `schedule` (
   `sc_flag` int(11) unsigned NOT NULL,
   `doc_type` tinyint(4) NOT NULL,
   `doc_sid` bigint(20) NOT NULL,
+  `doc_zone` tinyint(4) NOT NULL,
   `sc_note` varchar(128) NOT NULL,
   PRIMARY KEY (`sc_id`),
   KEY `sc_date` (`sc_date`),
@@ -441,6 +459,19 @@ CREATE TABLE IF NOT EXISTS `sorder` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `sync_chg`
+--
+
+CREATE TABLE IF NOT EXISTS `sync_chg` (
+  `c_id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_type` tinyint(4) NOT NULL,
+  `c_js` blob NOT NULL,
+  PRIMARY KEY (`c_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sync_customers`
 --
 
@@ -467,7 +498,7 @@ CREATE TABLE IF NOT EXISTS `sync_feed` (
   `f_type` int(11) NOT NULL,
   `f_val` text NOT NULL,
   PRIMARY KEY (`f_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22410 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22416 ;
 
 -- --------------------------------------------------------
 

@@ -1,4 +1,7 @@
 import re
+import hashlib
+import struct
+import base64
 
 regx_phonenum = re.compile('[^0-9]+')
 regx_phonenum_spliter = re.compile('[^\s\.\-0-9]+')
@@ -25,3 +28,23 @@ def parse_phone_num(p):
         nums_unk_f.append(x)
         
     return ','.join(nums_unk_f)
+
+
+def unify_location(args):
+    return [ unicode(f_x or u'').strip().lower() for f_x in args ]
+
+def get_location_hash(*args):
+    args = unify_location(args)
+    street = args[0]
+    if not street: return None
+    snum = street.split(u' ')[0]
+    
+    i = 0
+    for i in range(len(snum)):
+        if not snum[i].isdigit(): break
+    if not i: return None
+    snum = int(snum[:i])
+    
+    return base64.b64encode(hashlib.md5(u','.join(args)).digest() + struct.pack('<L', snum))
+
+

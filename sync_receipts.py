@@ -2,7 +2,8 @@ from sync_helper import *
 import sys
 import json
 import time
-import phonenum_parser
+import data_helper
+
 
 def index_customers(customers):
     cur,sur = pos_db()
@@ -14,7 +15,7 @@ def index_customers(customers):
         
         lookup = set()
         if v['addr1']: lookup.add(v['addr1'].strip().lower())
-        if v['phone']: lookup.add( phonenum_parser.parse_phone_num(v['phone']) )
+        if v['phone']: lookup.add( data_helper.parse_phone_num(v['phone']) )
         lookup.discard(u'')
         
         sqlt = "(%d,'%s','%s','%s')," % (
@@ -81,6 +82,8 @@ def sync_receipts(cj_data, mode=0):
     cur,sur = pos_db()
     mdb = sys_db()
     
+    feed = []
+    
     if mode:
         if mode == 1:
             mdb.query('delete from sync_receipts where sid_type=0')
@@ -103,6 +106,8 @@ def sync_receipts(cj_data, mode=0):
         r = dict(zip(cur_nzs, r))
         
         sid = r['sid']
+        feed.append( (sid, 0) )
+        
         customer_info = None
         if r['billtosid'] != None:
             sur.execute("select first custcompany,custlname,custaddress1,custaddress2,custcity,custstate,custzip,custphone1 from receiptcustomer where sid=?", (sid,))
@@ -119,6 +124,7 @@ def sync_receipts(cj_data, mode=0):
                     'zip': c[6] or '',
                     'phone': c[7] or ''
                 }
+                customer_info['loc'] = data_helper.get_location_hash(c[2], c[4], c[5], c[6])
                 idx_customers[ r['billtosid'] ] = customer_info
         
         shipping_info = None
@@ -141,7 +147,10 @@ def sync_receipts(cj_data, mode=0):
                 'taxamt': round(float(s[11]),5),
                 'date': s[12] and int(time.mktime(time.strptime(s[12].split('.')[0], '%Y-%m-%d %H:%M:%S'))) or 0,
             }
-            if not any(shipping_info.values()): shipping_info = None
+            if not any(shipping_info.values()):
+                shipping_info = None
+            else:
+                shipping_info['loc'] = data_helper.get_location_hash(s[2], s[4], s[5], s[6])
         
         items = []
         sur.execute('select i.itemsid,i.docrefsid,d.deptsid,d.vendsid,i.clerk,i.serialnum as snum,i.nunits,i.qty,i.origprice,i.price,i.pricetax,i.cost,i.discountpercent as disc,i.discountsource as discsrc,i.unitofmeasure as uom,d.desc1,ifnull(ld.desc2,d.desc2,ld.desc2) as desc2,d.itemno,d.alu,d.upc from ReceiptItem i left join ReceiptItemDesc d on (i.sid=d.sid and i.itempos=d.itempos) left join ReceiptItemLongDesc ld on (i.sid=ld.sid and i.itempos=ld.itempos) where i.sid=? order by i.itempos asc', (sid,))
@@ -234,6 +243,16 @@ def sync_receipts(cj_data, mode=0):
     
     index_customers(idx_customers)
     index_items(idx_items)
+    
+    
+    while feed:
+        qjs = mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) )
+        mdb.query("insert into sync_chg values (null,2,'%s')" % (
+            qjs,
+            )
+        )
+        feed = feed[1000:]
+        
     
     print 'sync_receipts: R(%d)' % (seq, )
     return seq

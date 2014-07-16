@@ -2,10 +2,14 @@ from sync_helper import *
 import sys
 import json
 import time
+import data_helper
+
 
 def sync_salesorders(cj_data, mode=0):
     cur,sur = pos_db()
     mdb = sys_db()
+    
+    feed = []
     
     if mode:
         if mode == 1:
@@ -27,6 +31,7 @@ def sync_salesorders(cj_data, mode=0):
         r = dict(zip(cur_nzs, r))
         
         sid = r['sid']
+        feed.append( (sid, r['datastate'] and 1 or 0) )
         
         customer_info = None
         if r['billtosid'] != None:
@@ -44,6 +49,7 @@ def sync_salesorders(cj_data, mode=0):
                     'zip': c[6] or '',
                     'phone': c[7] or ''
                 }
+                customer_info['loc'] = data_helper.get_location_hash(c[2], c[4], c[5], c[6])
         
         shipping_info = None
         sur.execute("select shipcompany,shipfullname,shipaddress,shipaddress2,shipcity,shipstate,shipzip,shipphone1,shipprovider,shipamount,shiptaxamount from SalesOrderShipTo where sid=?", (sid,))
@@ -63,7 +69,10 @@ def sync_salesorders(cj_data, mode=0):
                 'amt': round(float(s[9]),5),
                 'taxamt': round(float(s[10]),5),
             }
-            if not any(shipping_info.values()): shipping_info = None
+            if not any(shipping_info.values()):
+                shipping_info = None
+            else:
+                shipping_info['loc'] = data_helper.get_location_hash(s[2], s[4], s[5], s[6])
         
         items = []
         sur.execute('select i.itemsid,d.deptsid,d.vendsid,i.clerk,i.serialnum as snum,i.nunits,i.qty,i.qtysent,i.origprice,i.price,i.pricetax,i.cost,i.discountpercent as disc,i.discountsource as discsrc,i.unitofmeasure as uom,d.desc1,ifnull(ld.desc2,d.desc2,ld.desc2) as desc2,d.itemno,d.alu,d.upc from SalesOrderItem i left join SalesOrderItemDesc d on (i.sid=d.sid and i.itempos=d.itempos) left join SalesOrderItemLongDesc ld on (i.sid=ld.sid and i.itempos=ld.itempos) where i.sid=? order by i.itempos asc', (sid,))
@@ -174,6 +183,15 @@ def sync_salesorders(cj_data, mode=0):
         mdb.query(sql)
         sql = ''
 
+    
+    while feed:
+        qjs = mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) )
+        mdb.query("insert into sync_chg values (null,3,'%s')" % (
+            qjs,
+            )
+        )
+        feed = feed[1000:]
+        
     
     print 'sync_salesorders: R(%d)' % (seq, )
     return seq

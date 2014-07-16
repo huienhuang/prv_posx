@@ -2,7 +2,7 @@ from sync_helper import *
 import sys
 import json
 import time
-import phonenum_parser
+import data_helper
 
 
 QB_VFS = (
@@ -54,9 +54,12 @@ def sync_customers(cj_data, mode=0):
         del r['sid']
         feed.append( (sid, 0) )
         
+        #generate location hash
+        r['loc'] = data_helper.get_location_hash(r['address1'], r['city'], r['state'], r['zip'])
+        
         lookup = set()
         if r['address1']: lookup.add(r['address1'].strip().lower())
-        if r['phone1']: lookup.add( phonenum_parser.parse_phone_num(r['phone1']) )
+        if r['phone1']: lookup.add( data_helper.parse_phone_num(r['phone1']) )
         lookup.discard(u'')
         
         flag = 0
@@ -90,8 +93,13 @@ def sync_customers(cj_data, mode=0):
         sql = ''
     
     while feed:
+        qjs = mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) )
         mdb.query("insert into sync_feed values (null,1,'%s')" % (
-            mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) ),
+            qjs,
+            )
+        )
+        mdb.query("insert into sync_chg values (null,1,'%s')" % (
+            qjs,
             )
         )
         feed = feed[1000:]
