@@ -39,11 +39,13 @@ def get_location_hash(*args):
     if not street: return None
     snum = street.split(u' ')[0]
     
-    i = 0
-    for i in range(len(snum)):
-        if not snum[i].isdigit(): break
-    if not i: return None
-    snum = int(snum[:i])
+    k = len(snum)
+    for i in range(k):
+        if not snum[i].isdigit():
+            k = i
+            break
+    if not k: return None
+    snum = int(snum[:k])
     
     return base64.b64encode(hashlib.md5(u','.join(args)).digest() + struct.pack('<L', snum))
 
