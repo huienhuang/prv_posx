@@ -143,6 +143,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.exitjs({'err': 0})
         
     
+    def fn_accept_doc(self):
+        sc_id = self.req.psv_int('sc_id')
+        
+        cur = self.cur();
+        cur.execute('update schedule set sc_flag=sc_flag|1 where sc_id=%s and sc_flag&1=0', (sc_id,))
+        if cur.rowcount > 0:
+            pass
+        
+        self.req.writejs({'err': 0})
+    
     def fn_get_overview(self):
         clerk_id = self.qsv_int('clerk_id')
         
@@ -178,7 +188,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             y,m = divmod(m, 100)
             ndt = datetime.date(y, m, d)
             
-            if max_days:
+            if max_days > 0:
                 for j in range((ndt - sdt).days):
                     wd = sdt.weekday()
                     if wd != 6:
@@ -222,7 +232,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             where = ' where sc_date>=%s'
         else:
             where = ' where sc_date=%s order by sc_prio desc,sc_id desc'
-        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule ' + where, (date,))
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid from schedule ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -289,6 +299,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_amt'] = doc_js['total']
             
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
+            r['doc_sid'] = str(r['doc_sid'])
             
             lst.append(r)
     

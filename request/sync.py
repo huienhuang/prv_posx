@@ -233,7 +233,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         r['r_price_level'] = int(r['r_price_level'])
         r['r_status'] = int(r['r_status'])
-        r['r_sodate'] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(int(r['r_sodate'])))
+        r['r_sodate'] = time.strftime("%m/%d/%Y", time.localtime(int(r['r_sodate'])))
         r['r_creationdate'] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(int(r['r_creationdate'])))
         
         r['r_global'] = json.loads(r['r_global'])
@@ -261,7 +261,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['round_ex'] = config.round_ex
         r['price_lvls'] = config.PRICE_LEVELS
         
-        self.req.writefile('so_print_v2.html', r)
+        self.req.writefile(self.qsv_int('simple') and 'so_print_v2_simple.html' or 'so_print_v2.html', r)
 
     def print_vo(self, rid):
         db = self.db()

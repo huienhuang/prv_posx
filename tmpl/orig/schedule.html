@@ -6,21 +6,34 @@
 
 <script type="text/javascript">
 
+function load_doc(i)
+{
+    var js = g_v_dlg_documents.data('jsd');
+    if(!js || !js.lst[i]) return;
+    var r = js.lst[i];
+    
+    js.cur_sel = i;
+    if(r.doc_type)
+        g_v_dd_doc_viewer.attr('src', 'hist?fn=printreceipt&rid='+r.doc_sid+'&simple=1');
+    else
+        g_v_dd_doc_viewer.attr('src', 'sync?fn=printorder&type=2&rid='+r.doc_sid+'&simple=1');
+}
+
 function load_doc_lst(dt, zidx)
 {
     g_v_dd_doc_lst_body.empty();
     g_v_dd_doc_viewer.attr('src', 'about:blank');
-    g_v_dlg_documents.dialog('open').dialog('option', 'title', 'Loading ...');
+    g_v_dlg_documents.data('jsd', null).dialog('open').dialog('option', 'title', 'Loading ...');
     
     get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx}, function(js) {
-        g_v_dlg_documents.dialog('option', 'title', int2date_s(dt) + ' ' + js.zone);
+        g_v_dlg_documents.data('jsd', js).dialog('option', 'title', int2date_s(dt) + ' ' + js.zone);
         
         var lst = [];
         for(var i = 0; i < js.lst.length; i++) {
             var r = js.lst[i];
             lst.push(
-                $('<div class="prntbl_row"></div>')
-                .append( $('<div></div>').text(r.num) )
+                $('<div class="prntbl_row'+(r.sc_flag & 1 ? ' doc_accepted' : ' doc_pending')+'" onclick="load_doc('+i+')"></div>')
+                .append( $('<div></div>').text(r.num + (r.sc_flag & 2 ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );
@@ -93,6 +106,21 @@ function int2date_s(i) {
     return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
 }
 
+function get_cur_doc_js()
+{
+    var js = g_v_dlg_documents.data('jsd');
+    if(!js || !js.lst[js.cur_sel]) return null;
+    return js.lst[js.cur_sel];
+}
+
+function print_cur_doc()
+{
+    var r = get_cur_doc_js();
+    if(!r) return;
+    var w = g_v_dd_doc_viewer[0].contentWindow;
+    if(w && w.print) w.print();
+}
+
 $(function() {
 
 g_v_dlg_documents = $('#dlg_documents').dialog({
@@ -100,10 +128,17 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
     width:1130,
     height:700,
     buttons: {
-        'ok': function() {
+        'Print': print_cur_doc,
+        
+        'Accepted & Print': function() {
+            var r = get_cur_doc_js();
+            if(!r) return;
             
-            
-        }
+            post_js('?fn=accept_doc', {sc_id: r.sc_id}, function(js) {
+                print_cur_doc();
+                
+            }, undefined, 1);
+        },
         
     }
 });
@@ -254,7 +289,7 @@ els.btn_refresh[0].button().click(load_overview).click();
 .x_body .t_left_hdr .t_row > div {width:158px}
 .x_body .t_body .t_row > div {cursor:pointer}
 
-.ovc_default {margin-right:6px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid #ce862c;border-radius:5px;padding:2px 6px;background: #f2825b;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2825b), color-stop(50%,#e55b2b), color-stop(100%,#f07146));}
+.ovc_default {margin-right:6px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid #ce862c;border-radius:5px;padding:2px 6px;background:#f2825b;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2825b), color-stop(50%,#e55b2b), color-stop(100%,#f07146));}
 .ovc_accepted {border-color:#4c6b34;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
 .ovc_rescheduled {border-color:#4173a8;background:rgb(109,179,242);background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
 
@@ -264,12 +299,16 @@ els.btn_refresh[0].button().click(load_overview).click();
 #dlg_documents {overflow:hidden}
 #dlg_documents > iframe {border:0;margin:0;padding:0;position:absolute;top:0;right:0;width:740px;height:100%;}
 #dlg_documents > div:first-child {position:absolute;left:0;top:0;bottom:0;right:740px;border-right:1px solid #ccc}
-#dlg_documents > div:first-child > div:first-child {height:40px;line-height:40px;}
+#dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
 
-.doc_lst {top:40px;bottom:0;left:0;right:0}
+.doc_lst {top:0px;bottom:0;left:0;right:0}
 .doc_lst .prntbl_row >div:nth-child(1) {width:70px}
 .doc_lst .prntbl_row >div:nth-child(2) {width:200px}
 .doc_lst .prntbl_row >div:nth-child(3) {width:90px}
+.doc_lst .prntbl_cnt .prntbl_row {cursor:pointer}
+
+.doc_lst .doc_pending >div:first-child {background-color:#fedacd;}
+.doc_lst .doc_accepted >div:first-child {background-color:#e7f9da;}
 
 </style>
 
