@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script type="text/javascript" src="js/posx.js"></script>
+<title>SalesOrder - ${r_sonum|h}</title>
+
+<script type="text/javascript">
+
+function open_wnd_item_hist(item_id) {
+    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_cust_hist(cust_id) {
+    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    return false;
+}
+
+function open_wnd_receipt(rid) {
+    window.open('hist?fn=printreceipt&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    return false;
+}
+
+$(function() {
+// 
+
+$('#btn_print').button().click(function() {
+    window.print();
+});
+
+$('.maincnt').tooltip();
+
+//
+});
+</script>
+
+<style type="text/css">
+body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
+
+.maincnt {width:952px;margin:0 auto;}
+
+.ctrlcnt {width:952px;margin-bottom:10px;height:52px;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {font-size:20px;position:absolute;display:block;top:3px;}
+.ctrlcnt > input#btn_print {left:0;}
+.ctrlcnt > input#btn_reverse {right:0;}
+
+
+.ordinfo {width:952px;position:relative;margin-bottom:5px}
+.ordinfo.ord_type_reversing {color:#CC0000}
+.ordinfo.ord_type_reversed {color:#0066CC}
+.ordinfo > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
+.ordinfo > div > div {position:absolute;top:0;bottom:0;text-align:right}
+.ordinfo > div > div:nth-child(1) {left:0;width:60px;}
+.ordinfo > div > div:nth-child(2) {left:110px;width:260px;}
+.ordinfo > div > div:nth-child(3) {right:270px;width:100px;}
+.ordinfo > div > div:nth-child(4) {right:0;width:260px;}
+
+.custinfo {width:952px;height:130px;position:relative;overflow:hidden;margin:0 0 10px 0;}
+.custinfo > div {position:absolute;top:10px;width:350px;height:95px;border:1px solid #ccc;padding:10px;}
+.custinfo > div > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.custinfo > div > div:nth-child(2) {font-weight:bold;cursor:pointer}
+.custinfo > .billto {left:0}
+.custinfo > .shipto {right:0}
+
+.vtable {width:952px;}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:331px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:241px;width:90px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(5) {right:101px;width:140px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div > span {font-size:14px;color:blue}
+.vtable > div:nth-child(1) > div > div:nth-child(6) {right:1px;width:100px;font-weight:bold}
+.vtable > div:nth-child(2) > div {height:22px;line-height:22px;font-size:18px;font-weight:bold}
+.vtable > div:nth-child(2) > div > div:nth-child(1) {left:1px;right:101px;text-align:right;}
+.vtable > div:nth-child(2) > div > div:nth-child(2) {right:1px;width:100px;}
+
+
+.memocnt {border:1px solid #ccc;margin:0 0 10px 0;}
+.memocnt pre {margin:0;padding:5px;}
+
+.cls_redcolor {color:red}
+
+
+@media print {
+.maincnt {margin:0 auto;}
+.custinfo > div, .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.memocnt {display:none}
+.cls_redcolor {color:#000}
+.ctrlcnt {display:none}
+}
+@page {
+margin:60px 50px;
+}
+
+
+.tiny_popup {position:relative;display:inline-block;z-index:99;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {}
+.tiny_popup:hover >div:nth-child(2) {display:block;background-color:#ddd;width:200px;text-align:center}
+
+
+</style>
+
+</head>
+
+%if auto_print:
+<body onload="window.print();window.close();">
+%else:
+<body>
+%endif
+
+<div class="maincnt">
+
+
+<div class="ctrlcnt">
+<input type="button" value="Print" id="btn_print" />
+</div>
+
+<%
+status = ''
+if (r_status >> 8) & 0xFF:
+    status = 'UNK - '
+else:
+    status = 'SO - '
+s = r_status & 0xFF
+if s == 0:
+    status += 'Open'
+elif s == 1:
+    status += 'Close'
+elif s == 2:
+    status += 'Pending'
+if (r_status >> 16) & 0xFF: status += ' - **Deleted**'
+
+%>
+
+<div class="ordinfo">
+
+<div>
+<div>SO:</div>
+<div title="PriceLevel: ${price_lvls[r_price_level]|h}">${r_sonum|h}
+%if r_ref_receipts:
+(
+%for i in r_ref_receipts[:2]:
+<span onclick="return open_wnd_receipt('${i["sid"]}')" style="cursor:pointer">#${i['num']}</span>
+%endfor
+%if len(r_ref_receipts) > 2:
+<div class="tiny_popup">
+<div>More..</div>
+<div>
+%for i in r_ref_receipts[2:]:
+    <div onclick="return open_wnd_receipt('${i["sid"]}')" style="cursor:pointer">#${i['num']}</div>
+%endfor
+</div>
+</div>
+%endif
+)
+%endif
+</div>
+
+<div>Assoc:</div>
+<div>${r_clerk|h}${r_clerk!=r_cashier and ' (%s)' % r_cashier or ''|h}</div>
+</div>
+
+<div>
+<div>Type:</div>
+<div>${status}</div>
+
+<div>Count:</div>
+<div>Item ${r_global['itemcount']}, Qty ${round_ex(r_global['sentcount'], 1)}/${round_ex(r_global['qtycount'], 1)}</div>
+</div>
+
+<div>
+<div>Date:</div>
+<div title="${r_creationdate != r_sodate and 'CreationDate: %s' % r_creationdate or ''}">${r_sodate}</div>
+
+<div>Deposit:</div>
+<div title="DepositUsed: $${'%0.2f' % round_ex(r_global['depositused'])}, ShippingUsed: $${'%0.2f' % round_ex(r_global['shippingused'])}">$${'%0.2f' % round_ex(r_global['deposittaken'])}</div>
+</div>
+
+%if r_delivery_date:
+<div>
+<div>Ship:</div>
+<div>${r_delivery_date}</div>
+
+<div>Zip:</div>
+<div>${r_delivery_zip}</div>
+</div>
+%endif
+
+</div>
+
+%if r_global['customer'] or r_global['shipping']:
+<div class="custinfo">
+
+%if r_global['customer']:
+<%
+cust = r_global['customer']
+%>
+<div class="billto">
+<div>Bill To:</div>
+<div onclick="return open_wnd_cust_hist('${r_cust_sid}')">${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+%if cust['phone']:
+<div>${cust['phone']|h}</div>
+%endif
+</div>
+%endif
+
+%if r_global['shipping']:
+<%
+cust = r_global['shipping']
+%>
+<div class="shipto">
+<div>Ship To:</div>
+<div>${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+</div>
+%endif
+
+</div>
+%endif
+
+%if r_global['memo']:
+<div class="memocnt"><pre>${r_global['memo']|h}</pre></div>
+%endif
+
+<div class="vtable">
+    
+<div>
+<div><div>ID</div><div>ALU</div><div>Name</div><div>Qty</div><div>Price</div><div>ExPrice</div></div>
+<%
+import math
+%>
+% for item in r_items:
+<%
+item_tr_cls = ''
+item_disc_s = ''
+item_price = item['price']
+item_org_price = item['origprice'] or item_price
+item_title_s = ''
+if item_org_price != item_price:
+    if item['disc']:
+        item_disc_s = '<span>&nbsp;(%0.1f%%D)</span>' % round_ex(item['disc'], 1)
+        
+    elif item_org_price > item_price:
+        item_disc_s = '<span>&nbsp;(%0.1f%%D)</span>' % (round_ex((item_org_price - item_price) / item_org_price * 100, 1), )
+
+if item['origprice'] != item['price']:
+    item_title_s = 'RegPrice: %0.2f' % round_ex(item['origprice'])
+
+if item['snum']:
+    if item_title_s: item_title_s += ' ,'
+    item_title_s += 'SerialNum: %s' % item['snum']
+    
+%>
+<div title="${item_title_s}" class="${item['pricetax'] * item['qty'] <= 0 and 'cls_redcolor' or ''}"><div onclick="return open_wnd_item_hist('${item["itemsid"]}')">${item['itemno'] or ''}</div><div>${item['alu']|h}</div><div>${item['desc1']|h}</div><div class="${item['qtysent']!=item['qty'] and 'cls_redcolor' or ''}">${round_ex(item['qtysent'],1)}/${round_ex(item['qty'],1)}${item['uom'] and ' ' + item['uom'] or ''|h}</div><div>$${'%0.2f'%round_ex(item['price'])}${item_disc_s}</div><div>$${'%0.2f'%(round_ex(item['price'] * item['qty']),)}${item['pricetax']!=item['price'] and '<span> T</span>' or ''}</div></div>
+% endfor
+</div>
+
+<div>
+<div><div>Subtotal:</div><div${r_global['subtotal'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['subtotal'])}</div></div>
+%if r_global['taxamt']:
+<div><div>Tax:</div><div${r_global['taxamt'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['taxamt'])}</div></div>
+%endif
+%if r_global['discamt'] or r_global['discprc']:
+<div><div>Disc${'(%0.2f%%)' % round_ex(r_global['discprc'])}:</div><div>${"$%0.2f" % round_ex(-r_global['discamt'])}</div></div>
+%endif
+%if r_global['shipping']:
+<%
+shipping_total = r_global['shipping']['amt'] + r_global['shipping']['taxamt']
+%>
+%if shipping_total:
+<div><div>Shipping:</div><div${shipping_total < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(shipping_total)}</div></div>
+%endif
+%endif
+<div><div>Total:</div><div${r_global['total'] < 0 and ' class="cls_redcolor"' or ''}>${"$%0.2f" % round_ex(r_global['total'])}</div></div>
+<div><div>Due:</div><div>${"$%0.2f" % round_ex(r_global['due'])}</div></div>
+
+</div>
+
+</div>
+
+
+
+</div>
+
+</body>
+
+</html>

@@ -141,8 +141,8 @@ class RequestHandler(tinywsgi2.RequestHandler):
                     if in_uid:
                         if not in_pass:
                             self.req.redirect('home?fn=set_password')
-                        elif len(in_pass) < 4 or in_pass.lower() == self.user_name.lower() or in_pass == '1234':
-                            self.req.redirect('home?fn=chg_password')
+                        #elif len(in_pass) < 4 or in_pass.lower() == self.user_name.lower() or in_pass == '1234':
+                        #    self.req.redirect('home?fn=chg_password')
                     
                     return True
         

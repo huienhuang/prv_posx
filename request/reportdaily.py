@@ -177,7 +177,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def report_sales(self, frm_ts, to_ts):
         cur = self.cur()
         
-        cur.execute('select * from sync_receipts where (type&0xFF00)<0x0200 and order_date>=%s and order_date<%s', (frm_ts, to_ts))
+        cur.execute('select * from sync_receipts where sid_type=0 and (type&0xFF00)<0x0200 and order_date>=%s and order_date<%s', (frm_ts, to_ts))
         cnz = cur.column_names
         amts = {}
         for r in cur.fetchall():
@@ -196,6 +196,33 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             total_price *= disc
             
             dt = datetime.date.fromtimestamp(r['order_date'])
+            ts = int(time.mktime(datetime.date(dt.year, dt.month, dt.day).timetuple()))
+            s = amts.setdefault(ts, [0, 0.0])
+            if rtype > 0:
+                s[0] -= 1
+                s[1] -= total_price
+            else:
+                s[0] += 1
+                s[1] += total_price
+                
+        
+        cur.execute('select * from sorder where (ord_flag&8)!=0 and ord_order_date>=%s and ord_order_date<%s', (frm_ts, to_ts))
+        nzs = cur.column_names
+        for r in cur:
+            r = dict(zip(nzs, r))
+            
+            items = json.loads(r['ord_items_js'])
+            glbs = json.loads(r['ord_global_js'])
+            
+            rtype = r['ord_flag'] & (1 << 1)
+            disc = (100 - glbs['disc']) / 100
+            
+            total_price = 0
+            for t in items:
+                total_price +=  t['in_price'] * t['in_qty']
+            total_price *= disc
+            
+            dt = datetime.date.fromtimestamp(r['ord_order_date'])
             ts = int(time.mktime(datetime.date(dt.year, dt.month, dt.day).timetuple()))
             s = amts.setdefault(ts, [0, 0.0])
             if rtype > 0:

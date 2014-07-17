@@ -217,7 +217,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_has_salesorder(self):
         rno = self.req.qsv_ustr('rno')
         cur = self.cur()
-        cur.execute('select sid from sync_salesorders where sonum=%s order by sid desc' % (rno,))
+        cur.execute('select sid from sync_salesorders where sonum=%s order by sid desc', (rno,))
         rows = cur.fetchall()
         if not rows: return
         self.req.writejs({'sid': str(rows[0][0])})

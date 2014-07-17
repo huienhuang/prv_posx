@@ -18,6 +18,9 @@ except Exception, e:
     stop_pending = default_stop_pending
 
 
+def get_zone_id(lat, lng):
+    return 0
+
 def open_db():
     return MySQL.connect(**config.mysql)
 
@@ -64,6 +67,7 @@ def main():
 
 
 def srv_normal(cur):
+    s_ts = int(time.time() * 1000)
     c_id = None
     addrs = {}
     cur.execute('select * from sync_chg where c_type<=16 order by c_id asc')
@@ -79,62 +83,67 @@ def srv_normal(cur):
             mt_salesorder(cur, c_js, addrs)
     
     addrs = addrs.items()
-    addrs_len = len(addrs)
+    addrs_len = 0
     while addrs:
-        cur.executemany('insert ignore into address values(%s,0,0,0,0,%s)',
+        cur.executemany('insert ignore into address values(%s,0,0,0,0,0,%s)',
                     [ (base64.b64decode(k), json.dumps({'orig':v}, separators=(',',':'))) for k,v in addrs[:300] ]
         )
+        addrs_len += cur.rowcount
         addrs = addrs[300:]
     
     if c_id != None:
         cur.execute('delete from sync_chg where c_id<=%s and c_type<=16', (c_id,))
-        print "Locations: %d" % (addrs_len, )
+        if addrs_len:
+            print 'LOC: %d, MS: %d, TS: %s' % (addrs_len, int(time.time() * 1000) - s_ts, str(datetime.datetime.now()))
 
 
 def srv_location(cur):
-    cur.execute('select loc,lts,js from address where flag=0')
+    s_ts = int(time.time() * 1000)
+    c = 0
+    cur.execute('select loc,js from address where flag=0')
     for r in list(cur.fetchall()):
-        loc,lts,js = r
-        if lts and lts + 3 > int(time.time()): continue
-        
+        loc,js = r
         js = json.loads(js)
         res,geo = get_geocoding(js['orig'])
-        lat = lng = 0
-        f_addr = None
-        cts = int(time.time())
-        
         if res == 1:
             f_addr,lat,lng = geo
             js['addr'] = f_addr
-            cur.execute('update address set flag=%s,lts=%s,lat=%s,lng=%s,js=%s where loc=%s', (
-                res, cts, lat, lng, json.dumps(js, separators=(',',':')), loc
+            zone_id = get_zone_id(lat,lng)
+            cur.execute('update address set flag=%s,zone_id=%s,lts=%s,lat=%s,lng=%s,js=%s where loc=%s', (
+                res, zone_id, int(time.time()), lat, lng, json.dumps(js, separators=(',',':')), loc
                 )
             )
-        else:
-            cur.execute('update address set flag=%s,lts=%s where loc=%s', (
-                res, cts, loc
-                )
-            )
+            c += 1
             
-        print res,geo
+    if c:
+        print 'GEO: %d, MS: %d, TS: %s' % (c, int(time.time() * 1000) - s_ts, str(datetime.datetime.now()))
         
         
 def get_geocoding(addr):
     ret = (0, None)
     
-    p = {'address': addr, 'components': 'country:US'}
+    p = {'address': addr,
+         'components': 'country:US',
+         'key': config.google_geocoding_api,
+         'bounds': '37.7484907197085,-122.3993457802915|37.7511886802915,-122.3966478197085'
+    }
     try:
-        f = urllib.urlopen('http://maps.googleapis.com/maps/api/geocode/json?' + urllib.urlencode(p))
+        f = urllib.urlopen('https://maps.googleapis.com/maps/api/geocode/json?' + urllib.urlencode(p))
         js = json.loads(f.read())
-        if js['status'] != 'OK': return ret
-        if not js['results']: return (-1, None)
-        res = js['results'][0]
-        loc = res['geometry']['location']
-        return (1, (res['formatted_address'], float(loc['lat']), float(loc['lng'])))
+        try:
+            if js['status'] == 'OK':
+                if not js['results']: return (-1, None)
+                res = js['results'][0]
+                loc = res['geometry']['location']
+                return (1, (res['formatted_address'], float(loc['lat']), float(loc['lng'])))
+        except:
+            pass
+        time.sleep(35)
         
-    except Exception, e:
-        print e
+    except:
+        pass
     
+    time.sleep(5)
     return ret
 
 

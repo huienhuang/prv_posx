@@ -9,6 +9,7 @@ import bisect
 import tools
 import const
 import cPickle
+import base64
 
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
@@ -604,7 +605,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         db = self.db()
         cur = db.cur()
-        cur.execute('select sid,sid_type from sync_receipts where num=%d limit 1' % (rno,))
+        cur.execute('select sid,sid_type from sync_receipts where num=%s limit 1', (rno,))
         res = cur.fetchall()
         if not res: return
         res = res[0]
@@ -622,10 +623,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('select sid,name,detail from sync_customers where sid=%d limit 1' % (cid,))
         res = cur.fetchall()
         if not res: return
-        
         res = res[0]
-        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': json.loads(res[2]), 'dg_type': dg_type}
+        jsd = json.loads(res[2])
+        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type}
         
+        loc = jsd.get('loc')
+        if loc != None:
+            cur.execute('select js from address where loc=%s', (base64.b64decode(loc),))
+            rows = cur.fetchall()
+            if rows: jsd['geo_addr'] = json.loads(rows[0][0]).get('addr')
+            
         self.req.writefile('hist_cust.html', cust)
     
     def fn_itemhist(self):

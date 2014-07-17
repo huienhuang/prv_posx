@@ -2,9 +2,11 @@ import json
 import time
 import config
 import datetime
+import base64
 
 MAX_DAYS = 7
 ZONES = (
+    ('*Other*', set([])),
     ('Downtown', set([ 0, 2 , 4])),
     ('Chinatown', set([ 0, 2, 4 ])),
     ('Fisherman', set([ 0, 2, 4 ])),
@@ -19,7 +21,6 @@ ZONES = (
     
     ('NorthBay', set([ 1, 4])),
     
-    ('*Other*', set([])),
 )
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -66,18 +67,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'assoc': assoc,
             'company': company,
             'total': gjs['total'],
-            'recs': recs
+            'recs': recs,
+            'doc_date': time.strftime("%m/%d/%Y", time.localtime(doc_date))
         }
         
-        cur.execute('select sc_id,sc_date,sc_rev,sc_flag,sc_note from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
+        cur.execute('select sc_id,sc_date,sc_rev,sc_flag,sc_prio,sc_note from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
             d_type, sid
             )
         )
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
-            r['sc_prio'] = (r['sc_flag'] & 0xF) - 1
-            r['sc_flag'] = r['sc_flag'] >> 4
             recs.append(r)
         
         self.req.writejs(js)
@@ -92,7 +92,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_type = int(bool(self.req.psv_int('type')))
         rev = self.req.psv_int('rev')
-        prio = min(max(-1, self.req.psv_int('prio')), 2) + 1
+        prio = min(max(-1, self.req.psv_int('prio')), 2)
         sc_id = self.req.psv_int('sc_id')
         note = self.req.psv_ustr('note')[:128].strip()
         
@@ -115,22 +115,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_num = row[0][0]
         
         if sc_id == 0:
-            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s)', (
-                d_date, prio, d_type, d_sid, note
+            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s,%s)', (
+                d_date, 0, prio, d_type, d_sid, note
                 )
             )
         else:
-            cur.execute("select sc_date,sc_flag from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_date,sc_prio from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
-            old_sc_date,old_sc_flag = row[0]
-            if old_sc_date == d_date and (old_sc_flag & 0xF) == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
+            old_sc_date,old_sc_prio = row[0]
+            if old_sc_date == d_date and old_sc_prio == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_flag=%s where sc_id=%s and sc_rev=%s and sc_flag&0x10=0", (
-                d_date, (old_sc_flag & ~0xF) | prio, sc_id, rev
+            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s and sc_flag&1=0", (
+                d_date, prio, sc_id, rev
                 )
             )
             
@@ -144,26 +144,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
     
     def fn_get_overview(self):
+        clerk_id = self.qsv_int('clerk_id')
+        
         odt = datetime.date.today()
         cdt = odt.year * 10000 + odt.month * 100 + odt.day
         
         d_dt = {}
-        cur = self.cur()
-        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule where sc_date >= %s', (cdt,))
-        nzs = cur.column_names
-        for r in cur.fetchall():
-            r = dict(zip(nzs, r))
+        for r in self.get_docs(cdt, -1, clerk_id, 1):
+            zid = r['zone_id']
             d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
+            if not d[zid]: d[zid] = [0, 0, 0]
+            d = d[zid]
             
-            if not d[0]: d[0] = [0, 0, 0]
-            d = d[0]
-            
-            if r['sc_flag'] & 0x10:
+            if r['sc_flag'] & 0x1:
                 d[1] += 1
             else:
                 d[0] += 1
             
-            if r['sc_flag'] & 0x20:
+            if r['sc_flag'] & 0x2:
                 d[2] += 1
                 
         
@@ -188,12 +186,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd, sdt.year  * 10000 + sdt.month * 100 + sdt.day) )
                         if max_days <= 0: break
                     sdt = sdt + dt_1
-            n_dt.append( (ndt.strftime("%a (%m/%d)"), dd, ndt.weekday(), ndt.year  * 10000 + ndt.month * 100 + ndt.day) )
+            wd = ndt.weekday()
+            if wd != 6: max_days -= 1
+            n_dt.append( (ndt.strftime("%a (%m/%d)"), dd, wd, ndt.year  * 10000 + ndt.month * 100 + ndt.day) )
             sdt = ndt + dt_1
             
-        for i in range(max_days):
+        while max_days > 0:
             wd = sdt.weekday()
-            if wd.weekday() != 6:
+            if wd != 6:
                 max_days -= 1
                 n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd, sdt.year  * 10000 + sdt.month * 100 + sdt.day) )
             sdt = sdt + dt_1
@@ -208,24 +208,104 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
 
+    def get_docs(self, date, zone_id, clerk_id, mode=0):
+        clerk = None
+        if clerk_id:
+            clerk = self.finduser(clerk_id)
+            if not clerk: return None
+
+        so_sids = set()
+        rc_sids = set()
+        sc_lst = []
+        cur = self.cur()
+        if mode:
+            where = ' where sc_date>=%s'
+        else:
+            where = ' where sc_date=%s order by sc_prio desc,sc_id desc'
+        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule ' + where, (date,))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            sc_lst.append(r)
+            if r['doc_type']:
+                rc_sids.add(r['doc_sid'])
+            else:
+                so_sids.add(r['doc_sid'])
+        
+        d_so = {}
+        if so_sids:
+            sql = 'select sid,sonum,clerk,sodate,global_js from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), )
+            if clerk:
+                cur.execute(sql + ' and clerk=%s', (clerk[1].lower(),))
+            else:
+                cur.execute(sql)
+            for r in cur.fetchall(): d_so[r[0]] = r
+            
+        d_rc = {}
+        if rc_sids:
+            sql = 'select sid,num,assoc,order_date,global_js from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), )
+            if clerk:
+                cur.execute(sql + ' and assoc=%s', (clerk[1].lower(),))
+            else:
+                cur.execute(sql)
+            for r in cur.fetchall(): d_rc[r[0]] = r
+        
+        locs = set()
+        for r in sc_lst:
+            if r['doc_type']:
+                doc_data = d_rc[ r['doc_sid'] ]
+            else:
+                doc_data = d_so[ r['doc_sid'] ]
+            
+            r['doc_data'] = doc_data
+            doc_js = r['doc_js'] = json.loads(doc_data[4])
+            if doc_js['shipping']:
+                doc_loc = doc_js['shipping'].get('loc')
+            elif doc_js['customer']:
+                doc_loc = doc_js['customer'].get('loc')
+            
+            r['doc_loc'] = doc_loc
+            if doc_loc != None:
+                doc_loc_dc = r['doc_loc_dc'] = base64.b64decode(doc_loc)
+                locs.add(doc_loc_dc)
+            
+        d_loc = {}
+        if locs:
+            cur.execute('select loc,zone_id from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
+            for r in cur.fetchall(): d_loc[ r[0] ] = r[1]
+        
+        lst = [] 
+        for r in sc_lst:
+            zid = r['doc_loc'] != None and d_loc.get(r['doc_loc_dc']) or 0
+            if zone_id >= 0 and zid != zone_id: continue
+            
+            doc_js = r['doc_js']
+            doc_data = r['doc_data']
+            r['zone_id'] = zid
+            r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
+            r['num'] = doc_data[1]
+            r['doc_assoc'] = doc_data[2]
+            r['doc_date'] = doc_data[3]
+            r['doc_amt'] = doc_js['total']
+            
+            r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
+            
+            lst.append(r)
+    
+        return lst
+        
     def fn_get_docs(self):
         dt = self.qsv_int('dt')
-        zidx = self.qsv_int('zidx')
+        zone_id = self.qsv_int('zone_id')
+        clerk_id = self.qsv_int('clerk_id')
         
         m,d = divmod(dt, 100)
         y,m = divmod(m, 100)
-        dt = datetime.date(y, m, d)
-        if dt < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        if datetime.date(y, m, d) < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
         
-        sc_lst = []
-        cur = self.cur()
-        cur.execute('select sc_date,sc_flag,doc_type,doc_sid from schedule where sc_date=%s and ', (dt,))
-        nzs = cur.column_names
-        for r in cur.fetchall():
-            sc_lst.append(r)
-            
-            
-            
-            
-            
-            
+        self.req.writejs({
+            'zone': ZONES[zone_id][0],
+            'lst': self.get_docs(dt, zone_id, clerk_id, 0)
+        })
+
+

@@ -8,13 +8,25 @@
 
 function load_doc_lst(dt, zidx)
 {
+    g_v_dd_doc_lst_body.empty();
     g_v_dd_doc_viewer.attr('src', 'about:blank');
-    //var dt_s = dt + '';
-    //var title = dt_s.substr(dt_s.length - 4, 2) + '/' + dt_s.substr(dt_s.length - 2, 2) + ' ' + $(g_v_t_left_hdr_txt[zidx]).text();
-    
     g_v_dlg_documents.dialog('open').dialog('option', 'title', 'Loading ...');
     
-    get_js_ex('?fn=get_docs', {dt: dt, zidx: zidx}, function() {
+    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx}, function(js) {
+        g_v_dlg_documents.dialog('option', 'title', int2date_s(dt) + ' ' + js.zone);
+        
+        var lst = [];
+        for(var i = 0; i < js.lst.length; i++) {
+            var r = js.lst[i];
+            lst.push(
+                $('<div class="prntbl_row"></div>')
+                .append( $('<div></div>').text(r.num) )
+                .append( $('<div></div>').text(r.cust_nz) )
+                .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+            );
+            
+        }
+        g_v_dd_doc_lst_body.append(lst);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
@@ -76,6 +88,10 @@ function load_overview()
     get_js('?fn=get_overview', {}, load_overview_cb);
 }
 
+function int2date_s(i) {
+    var s = i + '';
+    return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+}
 
 $(function() {
 
@@ -137,11 +153,7 @@ els.rec[0].change(function() {
     var pjs = g_v_dlg_doc_form.data('pjs');
     var rec = pjs.recs[ parseInt(v) ];
     
-
-    var s = rec.sc_date + '';
-    els.date[0].val(
-                    s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4)
-    );
+    els.date[0].val(int2date_s(rec.sc_date));
     els.note[0].val(rec.sc_note);
     els.prio[0].val(rec.sc_prio + '');
     
@@ -172,7 +184,7 @@ function ui_get_doc()
             
             var lst = [];
             if(js.company) lst.push(js.company + ' *By ' + js.assoc);
-            lst.push('- DocDate: ' + fmt_date(js.doc_date));
+            lst.push('- DocDate: ' + js.doc_date);
             lst.push('- Amount: $' + js.total.toFixed(2));
             lst.push('- Records Found: ' + js.recs.length);
             els.info[0].val(lst.join('\n'));
@@ -180,8 +192,7 @@ function ui_get_doc()
             var ol = [];
             for(var i = 0; i < js.recs.length; i++) {
                 var rec = js.recs[i];
-                var s = rec.sc_date + '';
-                s = s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+                var s = int2date_s(rec.sc_date);
                 ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio] + ' - ' + (rec.sc_flag & 1 ? 'Accepted' : 'Pending')) );
             }
             if(ol.length) els.rec[0].append(ol).val((ol.length - 1) + '').change();
@@ -220,7 +231,6 @@ els.btn_schedule[0].button().click(function() {
 });
 
 els.btn_refresh[0].button().click(load_overview).click();
-
 
 }); //ready
 
