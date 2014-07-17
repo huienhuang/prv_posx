@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 15, 2014 at 05:47 PM
+-- Generation Time: Jul 16, 2014 at 06:00 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -28,13 +28,14 @@ SET time_zone = "+00:00";
 
 CREATE TABLE IF NOT EXISTS `address` (
   `loc` binary(20) NOT NULL,
-  `ready` tinyint(4) NOT NULL,
+  `flag` tinyint(4) NOT NULL,
+  `zone_id` tinyint(4) NOT NULL,
   `lts` int(10) unsigned NOT NULL,
-  `lat` float NOT NULL,
-  `lng` float NOT NULL,
+  `lat` double NOT NULL,
+  `lng` double NOT NULL,
   `js` blob NOT NULL,
   PRIMARY KEY (`loc`),
-  KEY `ready` (`ready`)
+  KEY `flag` (`flag`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -424,14 +425,14 @@ CREATE TABLE IF NOT EXISTS `schedule` (
   `sc_date` int(10) unsigned NOT NULL,
   `sc_rev` int(11) NOT NULL,
   `sc_flag` int(11) unsigned NOT NULL,
+  `sc_prio` tinyint(4) NOT NULL,
   `doc_type` tinyint(4) NOT NULL,
   `doc_sid` bigint(20) NOT NULL,
-  `doc_zone` tinyint(4) NOT NULL,
   `sc_note` varchar(128) NOT NULL,
   PRIMARY KEY (`sc_id`),
   KEY `sc_date` (`sc_date`),
   KEY `doc_type` (`doc_type`,`doc_sid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=11 ;
 
 -- --------------------------------------------------------
 
@@ -467,7 +468,7 @@ CREATE TABLE IF NOT EXISTS `sync_chg` (
   `c_type` tinyint(4) NOT NULL,
   `c_js` blob NOT NULL,
   PRIMARY KEY (`c_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=38 ;
 
 -- --------------------------------------------------------
 
@@ -498,7 +499,7 @@ CREATE TABLE IF NOT EXISTS `sync_feed` (
   `f_type` int(11) NOT NULL,
   `f_val` text NOT NULL,
   PRIMARY KEY (`f_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22416 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22438 ;
 
 -- --------------------------------------------------------
 
