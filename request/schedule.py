@@ -34,7 +34,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = {
             'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
             'zones': [ f_x[0] for f_x in ZONES ],
-            'has_perm_delivery_mgr': DELIVERY_MGR_PERM
+            'has_perm_delivery_mgr': 1#DELIVERY_MGR_PERM
         }
         self.req.writefile('schedule.html', r)
     
