@@ -25,6 +25,7 @@ ZONES = (
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
+DELIVERY_MGR_PERM = 1 << config.USER_PERM_BIT['delivery_mgr']
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -32,7 +33,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_default(self):
         r = {
             'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
-            'zones': [ f_x[0] for f_x in ZONES ]
+            'zones': [ f_x[0] for f_x in ZONES ],
+            'has_perm_delivery_mgr': DELIVERY_MGR_PERM
         }
         self.req.writefile('schedule.html', r)
     
@@ -43,19 +45,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         if d_type:
-            cur.execute('select sid,assoc,order_date,global_js from sync_receipts where num=%s and sid_type=0 and (type&0xFF)=0 order by sid desc limit 1', (
+            cur.execute('select sid,num,assoc,order_date,global_js from sync_receipts where num=%s and sid_type=0 and (type&0xFF)=0 order by sid desc limit 1', (
                 int(d_num),
                 )
             )
         else:
-            cur.execute('select sid,clerk,sodate,global_js from sync_salesorders where sonum=%s and (status>>4)=0 order by sid desc limit 1', (
+            cur.execute('select sid,sonum,clerk,sodate,global_js from sync_salesorders where sonum=%s and (status>>4)=0 order by sid desc limit 1', (
                 d_num,
                 )
             )
         
         row = cur.fetchall()
         if not row: self.req.exitjs({'err': -1, 'err_s': 'document #%s not found' % (d_num,)})
-        sid,assoc,doc_date,gjs = row[0]
+        sid,num,assoc,doc_date,gjs = row[0]
         
         gjs = json.loads(gjs)
         company = (gjs.get('customer') or {}).get('company') or ''
@@ -63,6 +65,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         recs = []
         js = {
             'type': d_type,
+            'num': num,
             'sid':str(sid),
             'assoc': assoc,
             'company': company,
@@ -129,8 +132,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             old_sc_date,old_sc_prio = row[0]
             if old_sc_date == d_date and old_sc_prio == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            cur.execute("update schedule set sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s and sc_flag&1=0", (
-                d_date, prio, sc_id, rev
+            cur.execute("update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s and sc_flag&1=0", (
+                old_sc_date != d_date and 2 or 0, d_date, prio, sc_id, rev
                 )
             )
             
@@ -148,16 +151,45 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur();
         cur.execute('update schedule set sc_flag=sc_flag|1 where sc_id=%s and sc_flag&1=0', (sc_id,))
-        if cur.rowcount > 0:
+        err = int(cur.rowcount <= 0)
+        if not err:
             pass
         
-        self.req.writejs({'err': 0})
+        self.req.writejs({'err': err})
+    
+    def fn_set_zone_state(self):
+        date = self.req.psv_int('date')
+        zidx = self.req.psv_int('zidx')
+        state = self.req.psv_int('state')
+        if zidx < 0 or zidx >= len(ZONES) or state not in (0, -1, 1): return
+        
+        m,d = divmod(date, 100)
+        y,m = divmod(m, 100)
+        dto = datetime.date(y, m, d)
+        if dto < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        
+        cur = self.cur()
+        cur.execute('insert into schedule_special values(%s,%s,%s) on duplicate key update ss_val=%s', (
+            date, zidx, state, state
+            )
+        )
+        err = int(cur.rowcount <= 0)
+        if not err:
+            pass
+        
+        self.req.writejs({'err': err})
+        
     
     def fn_get_overview(self):
         clerk_id = self.qsv_int('clerk_id')
         
         odt = datetime.date.today()
         cdt = odt.year * 10000 + odt.month * 100 + odt.day
+        
+        d_ss = {}
+        cur = self.cur()
+        cur.execute('select ss_date,ss_zidx,ss_val from schedule_special where ss_date>=%s', (cdt,))
+        for r in cur.fetchall(): d_ss[ (r[0] << 26) | r[1] ] = r[2]
         
         d_dt = {}
         for r in self.get_docs(cdt, -1, clerk_id, 1):
@@ -209,11 +241,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             sdt = sdt + dt_1
         
         zones = []
-        for z,s in ZONES:
+        for j in range(len(ZONES)):
+            z,s = ZONES[j]
             f = [0,] * len(n_dt)
             zones.append( (0, f) )
             for i in range(len(n_dt)):
-                if n_dt[i][2] in s:
+                ss = d_ss.get((n_dt[i][3] << 26) | j)
+                if ss != None:
+                    f[i] = ss
+                elif n_dt[i][2] in s:
                     f[i] = 1
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
@@ -312,10 +348,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         m,d = divmod(dt, 100)
         y,m = divmod(m, 100)
-        if datetime.date(y, m, d) < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        date = datetime.date(y, m, d)
+        if date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        
+        ss = 0
+        cur = self.cur()
+        cur.execute('select ss_val from schedule_special where ss_date=%s and ss_zidx=%s', (dt, zone_id))
+        rows = cur.fetchall()
+        if rows:
+            ss = rows[0][0]
+        elif date.weekday() in ZONES[zone_id][1]:
+            ss = 1
         
         self.req.writejs({
-            'zone': ZONES[zone_id][0],
+            'state': ss,
+            'date': dt,
+            'zone_nz': ZONES[zone_id][0],
+            'zone_id': zone_id,
             'lst': self.get_docs(dt, zone_id, clerk_id, 0)
         })
 

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 16, 2014 at 06:00 PM
+-- Generation Time: Jul 17, 2014 at 05:43 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -432,7 +432,20 @@ CREATE TABLE IF NOT EXISTS `schedule` (
   PRIMARY KEY (`sc_id`),
   KEY `sc_date` (`sc_date`),
   KEY `doc_type` (`doc_type`,`doc_sid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=11 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=17 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `schedule_special`
+--
+
+CREATE TABLE IF NOT EXISTS `schedule_special` (
+  `ss_date` int(10) NOT NULL,
+  `ss_zidx` tinyint(4) NOT NULL,
+  `ss_val` tinyint(4) NOT NULL,
+  PRIMARY KEY (`ss_date`,`ss_zidx`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
