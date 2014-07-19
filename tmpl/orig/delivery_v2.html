@@ -7,6 +7,25 @@
 
 <script type="text/javascript">
 
+
+function posx_chk_login_args()
+{
+    if( g_v_tabs.tabs("option", "active") == 4 ) {
+        var func = g_v_schedule_iframe[0] && g_v_schedule_iframe[0].contentWindow && g_v_schedule_iframe[0].contentWindow.posx_chk_login_args;
+        if(func) return func();
+    }
+    return null;
+}
+
+function posx_chk_login_cb(js)
+{
+    if( g_v_tabs.tabs("option", "active") == 4 ) {
+        var func = g_v_schedule_iframe[0] && g_v_schedule_iframe[0].contentWindow && g_v_schedule_iframe[0].contentWindow.posx_chk_login_cb;
+        func && func(js);
+    }
+}
+
+
 $(function() {
 $('.btn').button();
 
@@ -121,7 +140,9 @@ body {-webkit-user-select:none;}
     <li><a href="#tabs_receipts">Problems</a></li>
     <li><a href="#tabs_district">District</a></li>
     <li><a href="#tabs_schedule">Schedule</a></li>
+%if has_perm_admin:
     <li><a href="#tabs_report">Report</a></li>
+%endif
     <li style="float:right"><a href="#tabs_quit">Quit</a></li>
     <li style="float:right"><a href="#tabs_new">New</a></li>
 </ul>
@@ -135,9 +156,9 @@ body {-webkit-user-select:none;}
 <div id="tabs_district"><iframe></iframe></div>
 
 <div id="tabs_schedule"><iframe></iframe></div>
-
+%if has_perm_admin:
 <div id="tabs_report"><iframe></iframe></div>
-
+%endif
 <div id="tabs_new"><iframe src="?fn=delivery_edit"></iframe></div>
 
 </div>

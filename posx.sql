@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 17, 2014 at 05:43 PM
+-- Generation Time: Jul 18, 2014 at 05:44 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -432,7 +432,7 @@ CREATE TABLE IF NOT EXISTS `schedule` (
   PRIMARY KEY (`sc_id`),
   KEY `sc_date` (`sc_date`),
   KEY `doc_type` (`doc_type`,`doc_sid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=17 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=29 ;
 
 -- --------------------------------------------------------
 

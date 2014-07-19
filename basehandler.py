@@ -228,7 +228,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
     def fn_getuser(self):
         self.login()
         
-        msg_count = 0
+        ret = {'user_id': self.user_id}
         if self.user_id:
             cur = self.cur()
             cur.execute('select count(*) from msg where msg_id>%s and (user_id=0 or user_id=%s)', (
@@ -236,9 +236,13 @@ class RequestHandler(tinywsgi2.RequestHandler):
                 self.user_id
                 )
             )
-            msg_count = cur.fetchall()[0][0]
+            ret['msg_count'] = cur.fetchall()[0][0]
+            
+            cfg_seq_key = self.qsv_int('cfg_seq_key')
+            if cfg_seq_key >= config.CFG_SEQ_MIN and cfg_seq_key <= config.CFG_SEQ_MAX:
+                ret['cfg_seq'] = self.getconfig(cfg_seq_key)
         
-        self.req.writejs({'user_id': self.user_id, 'msg_count': msg_count})
+        self.req.writejs(ret)
     #fn_getuser
     fn_getuser.PERM = 0
     fn_getuser.USER_TRIGGERED = False

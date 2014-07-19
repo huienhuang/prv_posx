@@ -187,7 +187,7 @@ function show_login()
 
 function chk_login()
 {
-    $.get('?fn=getuser', {}, function(js) {
+    $.get('?fn=getuser', window.posx_chk_login_args && window.posx_chk_login_args() || {}, function(js) {
         if(!js || js.user_id !== 0) {
             v_login && v_login.dialog('close');
             window.posx_chk_login_cb && window.posx_chk_login_cb(js);
@@ -205,10 +205,10 @@ function chk_login()
         timeout_chk_login = setTimeout(chk_login, 5000);
     });
 }
-    
-if(window.posx_enable_chk_login) timeout_chk_login = setTimeout(chk_login, 5000);
 
-
+$(function() {
+    if(window.posx_enable_chk_login) timeout_chk_login = setTimeout(chk_login, 5000);
+});
 
 
 function itemsearch_render_item(ul, item)

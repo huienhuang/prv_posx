@@ -27,6 +27,15 @@ WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
 DELIVERY_MGR_PERM = 1 << config.USER_PERM_BIT['delivery_mgr']
 
+
+REC_FLAG_ACCEPTED = 1 << 0
+REC_FLAG_RESCHEDULED = 1 << 1
+REC_FLAG_CANCELLING = 1 << 2
+REC_FLAG_CHANGED = 1 << 3
+
+CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
+
+
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
@@ -34,9 +43,68 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = {
             'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
             'zones': [ f_x[0] for f_x in ZONES ],
-            'has_perm_delivery_mgr': 1#DELIVERY_MGR_PERM
+            'has_perm_delivery_mgr': DELIVERY_MGR_PERM,
+            'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
+            'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
+            'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ
         }
         self.req.writefile('schedule.html', r)
+    
+    def inc_seq(self):
+        self.cur().execute('update config set cval=cval+1 where cid=%s', (CFG_SCHEDULE_UPDATE_SEQ,))
+    
+    def fn_del_rec(self):
+        d_date = datetime.date.today()
+        d_date = d_date.year * 10000 + d_date.month * 100 + d_date.day
+        sc_id = self.req.psv_int('sc_id')
+        
+        cur = self.cur();
+        cur.execute('select * from schedule where sc_id=%s and sc_date>=%s', (sc_id, d_date))
+        rows = cur.fetchall()
+        if not rows: return
+        row = dict(zip(cur.column_names, rows[0]))
+        
+        if row['sc_flag'] & REC_FLAG_CANCELLING:
+            self.req.exitjs({'err': -11, 'err_s': 'Cancellation is pending'})
+        
+        if row['sc_flag'] & REC_FLAG_ACCEPTED:
+            cur.execute('update schedule set sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+                REC_FLAG_CANCELLING, sc_id, row['sc_rev'], REC_FLAG_ACCEPTED
+                )
+            )
+        else:
+            cur.execute('delete from schedule where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                sc_id, row['sc_rev'], REC_FLAG_ACCEPTED
+                )
+            )
+            
+        err = int(cur.rowcount <= 0)
+        if not err:
+            self.inc_seq()
+        
+        self.req.writejs({'err': err})
+    
+    def fn_del_rec_n(self):
+        sc_id = self.req.psv_int('sc_id')
+        
+        cur = self.cur();
+        cur.execute('select * from schedule where sc_id=%s', (sc_id,))
+        rows = cur.fetchall()
+        if not rows: return
+        row = dict(zip(cur.column_names, rows[0]))
+        
+        cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0', (
+            sc_id, REC_FLAG_CANCELLING
+            )
+        )
+        err = int(cur.rowcount <= 0)
+        if not err:
+            self.inc_seq()
+        
+        self.req.writejs({'err': err})
+        
+    fn_del_rec_n.PERM = DELIVERY_MGR_PERM
+    
     
     def fn_get_doc(self):
         d_num = self.req.qsv_ustr('num')
@@ -122,6 +190,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 d_date, 0, prio, d_type, d_sid, note
                 )
             )
+            sc_id = cur.lastrowid
         else:
             cur.execute("select sc_date,sc_prio from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
@@ -137,23 +206,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 )
             )
             
-        rc = cur.rowcount
-        if rc <= 0:
+        err = int(cur.rowcount <= 0)
+        if err:
             self.req.exitjs({'err': -2, 'err_s': "document #%s - can't make any update" % (d_num, )})
         else:
-            pass
-            
-        self.req.exitjs({'err': 0})
+            self.inc_seq()
+        
+        self.req.exitjs({'err': err, 'sc_id': sc_id})
         
     
     def fn_accept_doc(self):
         sc_id = self.req.psv_int('sc_id')
         
         cur = self.cur();
-        cur.execute('update schedule set sc_flag=sc_flag|1 where sc_id=%s and sc_flag&1=0', (sc_id,))
+        cur.execute('update schedule set sc_flag=sc_flag|1,sc_rev=sc_rev+1 where sc_id=%s and sc_flag&1=0', (sc_id,))
         err = int(cur.rowcount <= 0)
         if not err:
-            pass
+            self.inc_seq()
         
         self.req.writejs({'err': err})
     
@@ -175,7 +244,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         )
         err = int(cur.rowcount <= 0)
         if not err:
-            pass
+            self.inc_seq()
         
         self.req.writejs({'err': err})
         
@@ -195,16 +264,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for r in self.get_docs(cdt, -1, clerk_id, 1):
             zid = r['zone_id']
             d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
-            if not d[zid]: d[zid] = [0, 0, 0]
+            if not d[zid]: d[zid] = [0, 0, 0, 0]
             d = d[zid]
             
-            if r['sc_flag'] & 0x1:
+            if r['sc_flag'] & REC_FLAG_ACCEPTED:
                 d[1] += 1
             else:
                 d[0] += 1
             
-            if r['sc_flag'] & 0x2:
+            if r['sc_flag'] & REC_FLAG_RESCHEDULED:
                 d[2] += 1
+                
+            if r['sc_flag'] & REC_FLAG_CANCELLING:
+                d[3] += 1
                 
         
         l_dt = d_dt.items()

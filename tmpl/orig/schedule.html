@@ -20,12 +20,20 @@ function load_doc(i, auto_print)
 
     g_v_dlg_doc_btns.print.button('option', 'label', r.sc_flag & 1 ? 'Print' : 'Accepted & Print').show();
     g_v_dlg_doc_btns.schedule.show();
+
     
+%if has_perm_delivery_mgr:
+    if(r.sc_flag & ${REC_FLAG_CANCELLING})
+        g_v_dlg_doc_btns.cancel.show();
+    else
+        g_v_dlg_doc_btns.cancel.hide();
+%endif
+
 }
 
 function load_doc_lst(dt, zidx, reload, auto_print)
 {
-    var o_doc = null;
+    var o_sc_id = 0;
     if(reload) {
         var o_jsd = g_v_dlg_documents.data('jsd');
         if(!o_jsd) return;
@@ -33,7 +41,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         zidx = o_jsd.zone_id;
         if(o_jsd.cur_sel !== undefined) {
             var o_r = o_jsd.lst[o_jsd.cur_sel];
-            o_doc = [o_r.doc_type, o_r.doc_sid];
+            o_sc_id = o_r.sc_id;
         }
     } else
         g_v_dd_doc_lst_body.empty();
@@ -44,6 +52,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
     g_v_dlg_doc_btns.print.hide();
     g_v_dlg_doc_btns.schedule.hide();
     g_v_dlg_doc_btns.close.hide();
+    g_v_dlg_doc_btns.cancel.hide();
     
     get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx}, function(js) {
         g_v_dlg_documents.data('jsd', js).dialog('option', 'title', int2date_s(js.date) + ' - ' + js.zone_nz + (js.state ? js.state == 1 ? ' - Open' : ' - Close' : ''));
@@ -56,9 +65,9 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         var lst = [];
         for(var i = 0; i < js.lst.length; i++) {
             var r = js.lst[i];
-            if(k < 0 && reload && o_doc && o_doc[0] === r.doc_type && o_doc[1] === r.doc_sid) k = i;
+            if(k < 0 && reload && o_sc_id === r.sc_id) k = i;
             lst.push(
-                $('<div class="prntbl_row'+(r.sc_flag & 1 ? ' doc_accepted' : ' doc_pending')+'" onclick="load_doc('+i+')"></div>')
+                $('<div class="prntbl_row'+(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'" onclick="load_doc('+i+')"></div>')
                 .append( $('<div></div>').text(r.num + (r.sc_flag & 2 ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
@@ -112,6 +121,7 @@ function load_overview_cb(js)
                 if(z[0]) oo.append( $('<div class="ovc_default ovc_pending"></div>').text(z[0]) );
                 if(z[1]) oo.append( $('<div class="ovc_default ovc_accepted"></div>').text(z[1]) );
                 if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
+                if(z[3]) oo.append( $('<div class="ovc_default ovc_cancelling"></div>').text(z[3]) );
             }
         }
         o.append(l_oo);
@@ -162,7 +172,20 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
     width:1130,
     height:700,
     buttons: [
-        
+        {
+            text: 'Agree To Cancel',
+            id: "dd_btn_cancel",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CANCELLING})) return;
+                
+                post_js_ex('?fn=del_rec_n', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
         {
             text: 'Schedule',
             id: "dd_btn_schedule",
@@ -205,7 +228,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 });
             },
         },
-        
+        /*
         {
             text: 'Refresh',
             id: "dd_btn_refresh",
@@ -213,9 +236,12 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 load_doc_lst(0, 0, 1, 0);
             },
         },
-        
+        */
     ]
 
+});
+$('.doc_lst >.prntbl_row_hdr', g_v_dlg_documents).click(function() {
+    load_doc_lst(0, 0, 1, 0);
 });
 g_v_dd_doc_lst_filter = $('.doc_lst_filter', g_v_dlg_documents);
 g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
@@ -224,41 +250,72 @@ g_v_dlg_doc_btns = {
     'print': $('#dd_btn_print'),
     'schedule': $('#dd_btn_schedule'),
     'close': $('#dd_btn_close'),
-}
+    'cancel': $('#dd_btn_cancel'),
+};
 
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
     width:560,
     height:520,
-    buttons: {
-        'Save': function() {
-            var pjs = g_v_dlg_doc_form.data('pjs');
-            if(!pjs) return;
-            
-            var els = g_v_dlg_doc_form.data('in_els');
-            var note = els.note[0].val();
-            var prio = els.prio[0].val();
-            var date = els.date[0].val();
-            if(!date) return;
-            
-            var ridx = els.rec[0].val();
-            var rec = ridx ? pjs.recs[ parseInt(ridx) ] : {'sc_id': 0, 'sc_rev' : 0};
-            
-            post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, sc_id: rec.sc_id, prio:prio, date:date, note:note, rev:rec.sc_rev}, function(js) {
-                if( g_v_dlg_doc_form.data('auto_close') )
-                    g_v_dlg_doc_form.dialog('close');
-                else
-                    g_v_tp_ctrl.data('in_els').btn_schedule[0].click();
+    buttons: [
+        {
+            text: 'Cancel',
+            id: "df_btn_cancel",
+            click: function() {
+                var pjs = g_v_dlg_doc_form.data('pjs');
+                if(!pjs) return;
                 
-                if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
+                var els = g_v_dlg_doc_form.data('in_els');
+                var ridx = els.rec[0].val();
+                var rec = ridx ? pjs.recs[ parseInt(ridx) ] : null;
+                if(!rec) return;
                 
-            });
+                if(rec.sc_flag & ${REC_FLAG_CANCELLING}) return;
+                
+                post_js_ex('?fn=del_rec', {sc_id: rec.sc_id}, function() {
+                    if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
+                    
+                    g_v_dlg_doc_form.dialog('open');
+                    load_doc_schedule();
+                    
+                });
+            },
             
+        },
+        {
+            text: 'Save',
+            id: "df_btn_save",
+            click: function() {
+                var pjs = g_v_dlg_doc_form.data('pjs');
+                if(!pjs) return;
+                
+                var els = g_v_dlg_doc_form.data('in_els');
+                var note = els.note[0].val();
+                var prio = els.prio[0].val();
+                var date = els.date[0].val();
+                if(!date) return;
+                
+                var ridx = els.rec[0].val();
+                var rec = ridx ? pjs.recs[ parseInt(ridx) ] : {};
+                
+                post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, sc_id: rec.sc_id, prio:prio, date:date, note:note, rev:rec.sc_rev}, function(js) {
+                    if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
+                    
+                    g_v_dlg_doc_form.dialog('open');
+                    load_doc_schedule(js.sc_id);
+                    
+                });
+            }
         }
-    }
+    ],
 });
 idx_elements(g_v_dlg_doc_form, 4);
+g_v_dlg_doc_form_btns = {
+    'cancel': $('#df_btn_cancel'),
+    'save': $('#df_btn_save'),
+
+};
 var els = g_v_dlg_doc_form.data('in_els');
 
 els.date[0].datepicker({minDate: '+0d'});
@@ -267,6 +324,7 @@ els.rec[0].change(function() {
     var els = g_v_dlg_doc_form.data('in_els');
     var v = $(this).val();
     if(!v) {
+        g_v_dlg_doc_form_btns.cancel.hide();
         els.date[0].val('');
         els.prio[0].val('0');
         els.note[0].val('');
@@ -279,6 +337,10 @@ els.rec[0].change(function() {
     els.note[0].val(rec.sc_note);
     els.prio[0].val(rec.sc_prio + '');
     
+    if(rec.sc_flag & ${REC_FLAG_CANCELLING})
+        g_v_dlg_doc_form_btns.cancel.hide();
+    else
+        g_v_dlg_doc_form_btns.cancel.show();
 });
 
 var ts_doc_lku = null;
@@ -318,7 +380,7 @@ function _ui_get_doc(sc_id)
                 var rec = js.recs[i];
                 if(k < 0 && sc_id && rec.sc_id === sc_id) k = i;
                 var s = int2date_s(rec.sc_date);
-                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio] + ' - ' + (rec.sc_flag & 1 ? 'Accepted' : 'Pending')) );
+                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio] + ' - ' + (rec.sc_flag & ${REC_FLAG_CANCELLING} ? 'Cancelling' : (rec.sc_flag & ${REC_FLAG_ACCEPTED} ? 'Accepted' : 'Pending'))) );
             }
             if(ol.length) {
                 els.rec[0].append(ol);
@@ -364,6 +426,15 @@ els.btn_schedule[0].button().click(function() {
 
 els.btn_refresh[0].button().click(load_overview).click();
 
+
+window.posx_chk_login_args = function() {
+    return {cfg: ${CFG_SCHEDULE_UPDATE_SEQ}};
+};
+
+window.posx_chk_login_cb = function(js) {
+    
+};
+
 }); //ready
 
 </script>
@@ -386,9 +457,10 @@ els.btn_refresh[0].button().click(load_overview).click();
 .x_body .t_left_hdr .t_row > div {width:158px}
 .x_body .t_body .t_row > div {cursor:pointer}
 
-.ovc_default {margin-right:6px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid #ce862c;border-radius:5px;padding:2px 6px;background:#f2825b;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2825b), color-stop(50%,#e55b2b), color-stop(100%,#f07146));}
-.ovc_accepted {border-color:#4c6b34;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
-.ovc_rescheduled {border-color:#4173a8;background:rgb(109,179,242);background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
+.ovc_default {margin-right:4px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid rgb(242,130,91);border-radius:5px;padding:2px 4px;background:rgb(242,130,91);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(242,130,91,1)), color-stop(50%,rgba(229,91,43,1)), color-stop(100%,rgba(240,113,70,1)));}
+.ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
+.ovc_rescheduled {border-color:#6db3f2;background:#6db3f2;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
+.ovc_cancelling {border-color:#f85032;background:#f85032;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(248,80,50,1)), color-stop(50%,rgba(241,111,92,1)), color-stop(51%,rgba(246,41,12,1)), color-stop(71%,rgba(240,47,23,1)), color-stop(100%,rgba(231,56,39,1)));}
 
 .dd_open {background-color:#d5eab5}
 .dd_close {background-color:#fdc2c2}
@@ -399,13 +471,16 @@ els.btn_refresh[0].button().click(load_overview).click();
 #dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
 
 .doc_lst {top:0px;bottom:0;left:0;right:0}
-.doc_lst .prntbl_row >div:nth-child(1) {width:70px}
+.doc_lst .prntbl_row >div:nth-child(1) {width:70px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:200px}
 .doc_lst .prntbl_row >div:nth-child(3) {width:90px}
-.doc_lst .prntbl_cnt .prntbl_row {cursor:pointer}
+.doc_lst .prntbl_row {cursor:pointer}
+.doc_lst .prntbl_cnt .prntbl_row >div:nth-child(1) {color:#fff}
 
-.doc_lst .doc_pending >div:first-child {background-color:#fedacd;}
-.doc_lst .doc_accepted >div:first-child {background-color:#e7f9da;}
+
+.doc_lst .doc_pending >div:first-child {background-color:rgb(242,130,91);}
+.doc_lst .doc_accepted >div:first-child {background-color:#627d4d;}
+.doc_lst .doc_cancelling >div:first-child {background-color:#f85032;}
 
 </style>
 
@@ -446,13 +521,11 @@ els.btn_refresh[0].button().click(load_overview).click();
 <div id="dlg_documents">
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
-
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
-
 </div>
 <iframe></iframe>
 </div>
