@@ -5,6 +5,7 @@
 <title>POSX - Schedule</title>
 
 <script type="text/javascript">
+g_last_upd_seq = 0;
 
 function load_doc(i, auto_print)
 {
@@ -133,11 +134,6 @@ function load_overview_cb(js)
     for(var j = 0; j < dt.length; j++) l_o.push($('<div></div>').text(dt[j][0]));
     g_v_t_top_hdr.append( $('<div class="t_row"></div>').append(l_o) );
     
-    /*
-    var l_o = [];
-    for(var i = 0; i < zones.length; i++) l_o.push( $('<div class="t_row"></div>').append($('<div></div>').text(zones[i][0])) );
-    g_v_t_left_hdr.append(l_o);
-    */
 }
 
 function load_overview()
@@ -195,7 +191,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 
                 g_v_dlg_doc_form.data('in_els').num[0].val(r.num);
                 load_doc_schedule(r.sc_id);
-                g_v_dlg_doc_form.data('auto_close', true).dialog('open');
+                g_v_dlg_doc_form.dialog('open');
                 
             },
         },
@@ -371,7 +367,7 @@ function _ui_get_doc(sc_id)
             lst.push('- DocDate: ' + js.doc_date);
             lst.push('- Amount: $' + js.total.toFixed(2));
             lst.push('- Records Found: ' + js.recs.length);
-            lst.push('- Zone: ');
+            lst.push('- Zone: ' + js.zone_nz);
             els.info[0].val(lst.join('\n'));
             
             var ol = [];
@@ -410,7 +406,7 @@ g_v_x_body = $('.x_body').scroll(function() {
     if(g_v_t_left_hdr.position().left !== sl) g_v_t_left_hdr.css('left', sl);
 });
 g_v_t_top_hdr = $('.t_top_hdr', g_v_x_body);
-g_v_t_left_hdr_txt = $('.t_left_hdr >.t_row >div', g_v_x_body);
+g_v_t_left_hdr = $('.t_left_hdr', g_v_x_body);
 g_v_t_body = $('.t_body', g_v_x_body);
 
 
@@ -421,19 +417,24 @@ var els = g_v_tp_ctrl.data('in_els');
 els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.data('in_els').num[0].val('');
     ui_get_doc();
-    g_v_dlg_doc_form.data('auto_close', false).dialog('open');
+    g_v_dlg_doc_form.dialog('open');
 });
 
-els.btn_refresh[0].button().click(load_overview).click();
+//els.btn_refresh[0].button().click(load_overview);
 
 
 window.posx_chk_login_args = function() {
-    return {cfg: ${CFG_SCHEDULE_UPDATE_SEQ}};
+    return {cfg_seq_key: ${CFG_SCHEDULE_UPDATE_SEQ}};
 };
 
 window.posx_chk_login_cb = function(js) {
-    
+    if(js && js.cfg_seq && js.cfg_seq > g_last_upd_seq) {
+        g_last_upd_seq = js.cfg_seq;
+        load_overview();
+    }
 };
+
+load_overview();
 
 }); //ready
 
@@ -494,7 +495,6 @@ window.posx_chk_login_cb = function(js) {
 <option value="${u[0]}">${u[1]|h}</option>
 %endfor
 </select>
-<input type="button" name="ctrl_btn_refresh" value="refresh" />
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
 </div>
 

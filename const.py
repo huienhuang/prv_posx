@@ -1,3 +1,5 @@
+import struct
+
 
 ITEM_L_STATUS = (
 ('active(InStock)', 1),
@@ -82,6 +84,21 @@ ITEM_L_CATE = ITEM_D_CATE.items()
 ITEM_L_CATE.sort(key=lambda f_v: f_v[0])
 
 
-
+ZONES = (
+    ('*Other*', set([]), ),
+    ('Downtown', set([ 0, 2 , 4]), ),
+    ('Chinatown', set([ 0, 2, 4 ]), ),
+    ('Fisherman', set([ 0, 2, 4 ]), ),
+    ('GoldenGate', set([ 0, 2, 4 ]), ),
+    ('Sunset', set([ 0, 2, 4 ]), ),
+    ('Richmond', set([ 0, 2, 4 ]), ),
+    ('Mission', set([ 0, 2, 4 ]), ),
+    
+    ('Eastbay', set([ 1, 3]), ),
+    ('Southbay', set([ 1, 3]), ),
+    ('Peninsula', set([ 1, 3]), ),
+    
+    ('NorthBay', set([ 1, 4]), ),    
+)
 
 

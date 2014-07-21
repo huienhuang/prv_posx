@@ -3,25 +3,10 @@ import time
 import config
 import datetime
 import base64
+import const
 
+ZONES = const.ZONES
 MAX_DAYS = 7
-ZONES = (
-    ('*Other*', set([])),
-    ('Downtown', set([ 0, 2 , 4])),
-    ('Chinatown', set([ 0, 2, 4 ])),
-    ('Fisherman', set([ 0, 2, 4 ])),
-    ('GoldenGate', set([ 0, 2, 4 ])),
-    ('Sunset', set([ 0, 2, 4 ])),
-    ('Richmond', set([ 0, 2, 4 ])),
-    ('Mission', set([ 0, 2, 4 ])),
-    
-    ('Eastbay', set([ 1, 3])),
-    ('Southbay', set([ 1, 3])),
-    ('Peninsula', set([ 1, 3])),
-    
-    ('NorthBay', set([ 1, 4])),
-    
-)
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
@@ -130,6 +115,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         gjs = json.loads(gjs)
         company = (gjs.get('customer') or {}).get('company') or ''
         
+        loc = None
+        if gjs['shipping']:
+            loc = gjs['shipping'].get('loc')
+        elif gjs['customer']:
+            loc = gjs['customer'].get('loc')
+        
+        zidx = 0
+        if loc != None:
+            cur.execute('select zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
+            rr = cur.fetchall()
+            if rr: zidx = rr[0][0]
+            
         recs = []
         js = {
             'type': d_type,
@@ -139,7 +136,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'company': company,
             'total': gjs['total'],
             'recs': recs,
-            'doc_date': time.strftime("%m/%d/%Y", time.localtime(doc_date))
+            'doc_date': time.strftime("%m/%d/%Y", time.localtime(doc_date)),
+            'zone_nz': ZONES[zidx][0]
         }
         
         cur.execute('select sc_id,sc_date,sc_rev,sc_flag,sc_prio,sc_note from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (

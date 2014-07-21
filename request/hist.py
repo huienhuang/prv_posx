@@ -628,11 +628,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type}
         
         loc = jsd.get('loc')
+        zidx = 0
         if loc != None:
-            cur.execute('select js from address where loc=%s', (base64.b64decode(loc),))
+            cur.execute('select js,zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
             rows = cur.fetchall()
-            if rows: jsd['geo_addr'] = json.loads(rows[0][0]).get('addr')
-            
+            if rows:
+                js,zidx = rows[0]
+                jsd['geo_addr'] = json.loads(js).get('addr')
+        jsd['zone_nz'] = const.ZONES[zidx][0]
+        
         self.req.writefile('hist_cust.html', cust)
     
     def fn_itemhist(self):

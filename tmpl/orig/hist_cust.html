@@ -411,7 +411,7 @@ ${cust_name|h}
  <span class="cust_bal cust_bal_n">Credit: $${'%0.2f' % -cust_info['creditused']}</span>
 %endif
 </div>
-<div id="cust_addr" onclick="open_wnd_map.call(this);return false" title="${cust_info.get('geo_addr') or ''|h}">
+<div id="cust_addr" onclick="open_wnd_map.call(this);return false" title="Zone: ${cust_info.get('zone_nz') or ''|h}, ${cust_info.get('geo_addr') or ''|h}">
 <div>
 ${cust_info['address1']|h}
 %if cust_info['address2']:

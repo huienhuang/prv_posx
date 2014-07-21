@@ -8,6 +8,10 @@ import mysql.connector as MySQL
 import config
 import data_helper
 import urllib
+import struct
+import const
+import boundary
+import winlib
 
 
 def default_stop_pending(): return 0
@@ -19,7 +23,11 @@ except Exception, e:
 
 
 def get_zone_id(lat, lng):
-    return 0
+    idx = winlib.find_boundary(lng, lat)
+    if idx < 0:
+        return 0
+    else:
+        return ZONE_IDX_MAP[idx]
 
 def open_db():
     return MySQL.connect(**config.mysql)
@@ -51,8 +59,23 @@ def thread_srv(func, tms=600):
 
         time.sleep(tms / 1000.0)
 
+
+ZONE_IDX_MAP = []
+
 def main():
     print __file__, ' > start'
+    
+    ###
+    d_zones = {}
+    for i in range(len(const.ZONES)): d_zones[ const.ZONES[i][0] ] = i
+    
+    b_lst = []
+    for b in boundary.BOUNDARY:
+        ZONE_IDX_MAP.append( d_zones[ b[0] ] )
+        b_lst.append( struct.pack('%dd' % (len(b[2]), ), *b[2]) )
+    
+    winlib.load_boundary(tuple(b_lst))
+    ###
     
     for s in g_srvs: thread.start_new_thread(thread_srv, s)
     
