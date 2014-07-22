@@ -19,7 +19,7 @@ for r in cur.fetchall():
 
 g_d_mons = {}
 g_d_receipts = {}
-cur.execute("select d_id,num,driver_id,delivered,problem_flag,problem_flag_s from deliveryv2_receipt order by d_id asc")
+cur.execute("select d_id,num,driver_id,delivered,problem_flag,problem_flag_s from deliveryv2_receipt where d_excluded=0 order by d_id asc")
 nzs = cur.column_names
 for r in cur.fetchall():
     r = dict(zip(nzs, r))

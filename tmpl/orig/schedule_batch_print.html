@@ -9,9 +9,17 @@
 
 <style type="text/css">
 
-.p_doc {page-break-after:always;width:712px;margin:0 auto;}
+.p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:600px}
+.p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:26px;}
+.p_doc_meta >div {position:absolute;top:0;bottom:0;text-align:center}
+.p_doc_meta >div:nth-child(1) {width:200px;right:300px}
+.p_doc_meta >div:nth-child(2) {width:50px;right:250px}
+.p_doc_meta >div:nth-child(3) {width:250px;right:0;text-align:right}
 
-.p_doc_hdr {position:relative}
+.p_doc_memo {border:1px solid #ccc;white-space:pre-wrap;padding:2px 5px;}
+.p_doc > div {margin-bottom:8px}
+
+.p_doc_hdr {position:relative;}
 .p_doc_hdr > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
 .p_doc_hdr > div > div {position:absolute;top:0;bottom:0;text-align:right}
 .p_doc_hdr > div > div:nth-child(1) {left:0;width:60px;}
@@ -19,6 +27,26 @@
 .p_doc_hdr > div > div:nth-child(3) {right:230px;width:100px;}
 .p_doc_hdr > div > div:nth-child(4) {right:0;width:220px;}
 
+.p_doc_addr {}
+.p_doc_addr > div.c_addr {position:relative;margin-top:10px;width:298px;border:1px solid #ccc;padding:10px;}
+.p_doc_addr > div.c_addr > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.p_doc_addr > div.c_addr > div:nth-child(2) {font-weight:bold;cursor:pointer}
+.p_doc_addr > .billto {float:left}
+.p_doc_addr > .shipto {float:right}
+
+.prntbl {position:relative}
+.prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr, .prntbl >.prntbl_cnt {overflow:visible;position:static}
+.prntbl .prntbl_row_hdr {border-bottom:none}
+.prntbl .prntbl_row_ftr {height:0px;border-bottom:none}
+.prntbl .prntbl_row >div:last-child {border-right:none}
+.prntbl .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(2) {width:130px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(3) {width:437px}
+.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
+
+@media print {
+div {border-color:#000 !important}
+}
 @page {
 margin:60px 50px;
 }
@@ -26,39 +54,110 @@ margin:60px 50px;
 </style>
 
 </head>
-
+%if auto_print:
+<body onload="window.print();setTimeout('window.close()', 0)">
+%else:
 <body>
-    
+%endif
+
 %for i in range(len(sc_docs)):
 <%
 r = sc_docs[i]
+gjs = r['gjs']
 %>
 <div class="p_doc">
-<div><span>${i + 1}/${len(sc_docs)}</span> <span>${cts_s}</span></div>
-
-<div class="p_doc_hdr">
+<div class="p_doc_meta"><div>Mission</div><div>${i + 1}/${len(sc_docs)}</div><div>${cts_s}</div></div>
 
 <!-- +hdr -->
+<div class="p_doc_hdr">
+<!-- +i_hdr -->
 <div>
-<div>Receipt:</div><div>${r['num']|h}</div>
+<div>${r['doc_type'] and 'Receipt' or 'SalesOrder'}:</div><div>${r['num']|h}</div>
 <div>Assoc:</div><div>${r['assoc']|h}${r['assoc']!=r['cashier'] and u' (%s)' % r['cashier'] or ''|h}</div>
 </div>
-<!-- =hdr -->
-<!-- +hdr -->
+<!-- -i_hdr -->
+<!-- +i_hdr -->
 <div>
-<div>Type:</div><div></div>
-<div>Count:</div><div></div>
+<div>Type:</div><div>${r['type_s']|h}</div>
+<div>Count:</div><div>${r['count_s']|h}</div>
 </div>
-<!-- =hdr -->
-<!-- +hdr -->
+<!-- -i_hdr -->
+<!-- +i_hdr -->
 <div>
 <div>Date:</div><div>${r['doc_date']}</div>
 <div></div><div></div>
 </div>
-<!-- =hdr -->
-
+<!-- -i_hdr -->
 </div>
+<!-- -hdr -->
 
+%if gjs['memo'] or r['sc_note']:
+<!-- +i_memo -->
+<div class="p_doc_memo">${(r['sc_note'] + '\n' + gjs['memo']).strip()|h}</div>
+<!-- -i_memo -->
+%endif
+
+%if gjs['customer'] or gjs['shipping']:
+<div class="p_doc_addr">
+
+%if gjs['customer']:
+<%
+cust = gjs['customer']
+%>
+<div class="c_addr billto">
+<div>Bill To:</div>
+<div>${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+%if cust['phone']:
+<div>${cust['phone']|h}</div>
+%endif
+</div>
+%endif
+
+%if gjs['shipping']:
+<%
+cust = gjs['shipping']
+%>
+<div class="c_addr shipto">
+<div>Ship To:</div>
+<div>${(cust['company'] or cust['name'] or '')|h}</div>
+<div>${cust['addr1']}
+%if cust['addr2']:
+<br />${cust['addr2']|h}
+%endif
+</div>
+<div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
+<div>${cust['provider']|h} ${cust['tracking'] and '#' + cust['tracking'] or ''|h}</div>
+</div>
+%endif
+
+<div style="clear:both"></div>
+</div>
+%endif
+
+<div class="prntbl">
+<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>ALU</div><div>Name</div><div>Qty</div></div>
+<div class="prntbl_cnt">
+%for t in r['ijs']:
+<div class="prntbl_row">
+<div>${t['itemno'] or ''}</div>
+<div>${t['alu']|h}</div>
+<div>${t['desc1']|h}</div>
+%if r['doc_type']:
+<div>${round_ex(t['qty'],1)}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+%else:
+<div>${round_ex(t['qtysent'],1)}/${round_ex(t['qty'],1)}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+%endif
+</div>
+%endfor
+</div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
 
 </div>
 %endfor

@@ -1,128 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v2.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - Delivery V2 Report</title>
-
-<script type="text/javascript">
-
-$(function() {
-
-g_v_rp_pickup_body = $('.rp_pickup_body');
-g_v_rp_pickup_body_xtbl = $('.xtbl_body', g_v_rp_pickup_body);
-
-g_v_rp_pickup_ctrl = $('.rp_pickup_ctrl');
-idx_elements(g_v_rp_pickup_ctrl, 5);
-
-var els = g_v_rp_pickup_ctrl.data('in_els');
-els.month[0].change(function() {
-    g_v_rp_pickup_body_xtbl.empty();
-    
-    var m = $(this).val();
-    if(!m) return;
-    
-    $.get('?fn=get_report__delivery_pickup', {'m': m}, function(js) {
-        
-        g_v_rp_pickup_body_xtbl.append(
-                          $('<div class="xtbl_row"></div>')
-                          .append( $('<div></div>').text(js.total) )
-                          .append( $('<div></div>').text(js.line) )
-                          .append( $('<div></div>').text(js.qty.toFixed(0)) )
-                          .append( $('<div></div>').text(js.sale.toFixed(2)) )
-        );
-        
-    }, 'json');
-    
-});
-
-//++load month str
-(function() {
-    var els = g_v_rp_pickup_ctrl.data('in_els');
-    var v_month = els.month[0];
-    
-    var dt = new Date();
-    var y = dt.getFullYear();
-    var m = dt.getMonth() + 1;
-    
-    for(var i = 0; i < 6; i++) {
-        v_month.append( $('<option></option>').val(y * 100 + m).text( y + '-' + (m < 10 ? '0' : '') + m) );
-        m--;
-        if(m < 1) {
-            m = 12;
-            y--;
-        }
-    }
-    
-})();
-//--load month str
-
-
-
-
-
-g_v_rp_completed_body = $('.rp_completed_body');
-g_v_rp_completed_body_xtbl = $('.xtbl_body', g_v_rp_completed_body);
-
-g_v_rp_completed_ctrl = $('.rp_completed_ctrl');
-idx_elements(g_v_rp_completed_ctrl, 5);
-
-var els = g_v_rp_completed_ctrl.data('in_els');
-els.date[0].datepicker().change(function() {
-    g_v_rp_completed_body_xtbl.empty();
-    
-    var d = $(this).datepicker('getDate');
-    if(!d) return;
-    
-    $.get('?fn=get_report__delivery_completed', {'ts': parseInt(d.getTime()/1000)}, function(js) {
-        
-        g_v_rp_completed_body_xtbl.append(
-                          $('<div class="xtbl_row"></div>')
-                          .append( $('<div></div>').text(js.total) )
-                          .append( $('<div></div>').text(js.completed) )
-        );
-        
-    }, 'json');
-    
-});
-
-
-});
-
-</script>
 
 <style type="text/css">
 body {-webkit-user-select:none}
 .ui-widget {font-size:18px}
-
-.rp_pickup_body {height:111px}
-.rp_completed_ctrl {top:171px}
-.rp_completed_body {top:222px;height:111px}
+.rp_pickup_body {top:0px;bottom:51%}
+.rp_completed_body {top:51%;}
 </style>
 
 </head>
 <body>
 
-<div class="x_ctrl rp_pickup_ctrl">
-<select name="ctrl_month"><option value="">-- Month --</option></select>
-</div>
-
 <div class="x_body rp_pickup_body">
 <div class="xtbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Line</div><div>Qty</div><div>Sale</div></div></div>
-<div class="xtbl_body"></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Date</div><div>Total</div><div>Line</div><div>Qty</div><div>ReceiptCount*</div><div>ReceiptSale*</div></div></div>
+<div class="xtbl_body">
+%for r in mons_total:
+<div class="xtbl_row">
+<div>${r['date']}</div>
+<div>${r['total']}</div>
+<div>${r['line']}</div>
+<div>${round(r['qty'], 1)}</div>
+<div>${r['receipt_count']}</div>
+<div>${round(r['receipt_sale'], 2)}</div>
+</div>
+%endfor
+</div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
 </div>
-
-
-<div class="x_ctrl rp_completed_ctrl">
-<input type="text" name="ctrl_date" />
-</div>
-
 <div class="x_body rp_completed_body">
 <div class="xtbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Total</div><div>Completed</div></div></div>
-<div class="xtbl_body"></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Date</div><div>Total</div><div>Completed</div></div></div>
+<div class="xtbl_body">
+%for r in delivery_completed:
+<div class="xtbl_row">
+<div>${r['date']}</div>
+<div>${r['total']}</div>
+<div>${r['comp']}</div>
+</div>
+%endfor
+</div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
 </div>

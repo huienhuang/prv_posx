@@ -222,12 +222,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 }
                 if(!sc_ids.length) return;
                 
-                //post_js_ex('?fn=print', {sc_ids: sc_ids.join('|')}, function(js) {
-                //    //if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
-                //    //load_doc_lst(0, 0, 1, 0);
-                //});
-                
-                window.open('?fn=print&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
+                window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
             },
         },
         
@@ -266,7 +261,8 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
                     if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
                     load_doc_lst(0, 0, 1, 0);
-                });
+                    window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
+                }, undefined, 1);
                 
             },
         },
@@ -278,7 +274,9 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 var lst = get_selected_docs();
                 if(!lst.length || lst.length > 1) return;
                 var r = lst[0];
-                g_v_dlg_doc_form.data('in_els').num[0].val(r.num);
+                var els = g_v_dlg_doc_form.data('in_els');
+                els.num[0].val(r.num);
+                els.type[0].val(r.doc_type ? '1' : '');
                 load_doc_schedule(r.sc_id);
                 g_v_dlg_doc_form.dialog('open');
                 
@@ -302,7 +300,7 @@ g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
     width:560,
-    height:520,
+    height:562,
     buttons: [
         {
             text: 'Cancel',
@@ -564,7 +562,7 @@ load_overview();
 <div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
 <div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
 <div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
-<div class="xlabel"><div>Note:</div><div><input type="text" name="rec_note" /></div></div>
+<div class="xlabel" style="height:80px"><div>Note:</div><div><textarea name="rec_note" style="height:70px"></textarea></div></div>
 </div>
 
 <div id="dlg_documents">

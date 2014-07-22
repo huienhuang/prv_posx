@@ -318,11 +318,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 )
             )
             d_id = cur.lastrowid
-            
+        
+        rec_exists = {}
+        if recs_db:
+            cur.execute('select num,count(*) from deliveryv2_receipt where d_id!=%d and num in (%s) group by num' % (
+                d_id, ','.join([ str(f_rec['num']) for f_rec,f_r in recs_db ])
+                )
+            )
+            for r in cur.fetchall(): rec_exists[ r[0] ] = r[1]
+        
         for rec,r in recs_db:
             s_js = json.dumps(rec['js'], separators=(',',':'))
-            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
-                d_id, rec['num'], rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
+            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
+                d_id, rec['num'], int(bool(rec_exists.get(rec['num'], 0))), rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
                 rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js
                 )
             )
@@ -585,108 +593,61 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs(ret)
 
     def fn_report(self):
-        self.req.writefile('delivery_v2_report.html')
-        
-    def _fn_get_report__delivery_pickup(self):
-        m = self.req.qsv_int('m')
-        
-        year,month = divmod(m, 100)
-        frm_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
+        r = {
+            'mons_total': self.get_report__mons_total(),
+            'delivery_completed': self.get_report__delivery_completed()
+        }
+        self.req.writefile('delivery_v2_report.html', r)
+    fn_report.PERM = 1 << config.USER_PERM_BIT['admin']
     
-        month += 1
-        if month > 12:
-            month = 1
-            year += 1
-        to_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
-        
-        cur = self.cur()
-        cur.execute('select num,items_js from sync_receipts where num in (select distinct num from deliveryv2_receipt) and order_date >= %s and order_date < %s and type&0xFFFF=0', (
-            frm_ts, to_ts
-            )
-        )
-        
-        cn_pickup = 0
-        cn_line = 0
-        cn_qty = 0
-        rows = cur.fetchall()
-        for row in rows:
-            rec_in = False
-            for item in json.loads(row[1]):
-                if item['itemsid'] == 1000000005: continue
-                if item['qty'] <= 0: continue
-                rec_in = True
-                
-                cn_line += 1
-                cn_qty += item['qty']
-                
-            if rec_in: cn_pickup += 1
-            
-        self.req.writejs(
-            {
-            'total': len(rows),
-            'pickup': cn_pickup,
-            'line': cn_line,
-            'qty': cn_qty
-            }
-        )
-        
-    def fn_get_report__delivery_pickup(self):
-        m = self.req.qsv_int('m')
-        year,month = divmod(m, 100)
-        frm_ts = int(time.mktime(datetime.date(year, month, 1).timetuple()))
-        
+    def get_report__mons_total(self):
         js = self.get_data_file_cached('delivery_report', 'delivery_report.txt')
         if not js: return
         
-        mons = js['mons']
-        idx = bisect.bisect_left([f_x[0] for f_x in mons], frm_ts)
-        if idx >= len(mons) or mons[idx][0] != frm_ts: return
+        rjs = self.get_data_file_cached('receipt_report', 'receipt_report.txt')
+        rd = rjs and rjs['summary'] or []
+        
+        lst = []
+        for m,d in js['mons'][-8:]:
+            r = None
+            idx = bisect.bisect_left([f_x[0] for f_x in rd], m)
+            if idx < len(rd) and rd[idx][0] == m: r = rd[idx][1]
+            
+            lst.append({
+                'date': time.strftime("%y-%m", time.localtime(m)),
+                'total': len(d['nums']),
+                'line': d['lines'],
+                'qty': d['qtys'],
+                
+                'receipt_count': r and r[8] or 0,
+                'receipt_sale': r and r[4] or 0,
+            })
+        
+        lst.reverse()
+        return lst
     
-        data = mons[idx][1]
-        ret = {
-            'total': len(data['nums']),
-            'line': data['lines'],
-            'qty': data['qtys'],
-            'sale': 0
-        }
+    def get_report__delivery_completed(self):
+        frm_ts = int(time.mktime((datetime.date.today() - datetime.timedelta(8)).timetuple()))
         
-        js = self.get_data_file_cached('receipt_report', 'receipt_report.txt')
-        if js:
-            mons = js['summary']
-            idx = bisect.bisect_left([f_x[0] for f_x in mons], frm_ts)
-            if idx < len(mons) and mons[idx][0] == frm_ts: ret['sale'] = mons[idx][1][4]
-        
-        self.req.writejs(ret)
-        
-    fn_get_report__delivery_pickup.PERM = 1 << config.USER_PERM_BIT['admin']
-    
-
-    def fn_get_report__delivery_completed(self):
-        ts = self.req.qsv_int('ts') or int(time.time())
-        
-        frm_ts = self.get_day_ts(ts)
-        to_ts = frm_ts + 3600 * 24
-        
+        md = {}
         cur = self.cur()
-        cur.execute('select count from deliveryv2 where ts>=%s and ts<%s', (
-            frm_ts, to_ts
+        cur.execute('select ts,count from deliveryv2 where ts>=%s', (
+            frm_ts,
             )
         )
-        count = [0, 0]
-        for row in cur.fetchall():
-            count[0] += row[0] & 0xFF
-            count[1] += (row[0] >> 16) & 0xFF
+        for r in cur.fetchall():
+            ts,count = r
+            tp = time.localtime(ts)
+            dt = int(time.mktime(datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday).timetuple()))
+            d = md.setdefault(dt, [0, 0])
+            d[0] += count & 0xFF
+            d[1] += (count >> 16) & 0xFF
             
-        self.req.writejs(
-            {
-            'total': count[0],
-            'completed': count[1],
-            }
-        )
+        md = md.items()
+        md.sort(key=lambda f_x:f_x[0])
+        md = [ {'date': time.strftime("%m/%d", time.localtime(f_t)), 'total': f_d[0], 'comp': f_d[1]} for f_t,f_d in md ]
+        md.reverse()
         
-    fn_get_report__delivery_completed.PERM = 1 << config.USER_PERM_BIT['admin']
-    
-    
-    
-    
-    
+        return md
+
+

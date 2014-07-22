@@ -12,7 +12,7 @@ cur = mdb.cursor()
 
 g_s = {}
 
-cur.execute('select sr.*,dr.d_id from sync_receipts sr left join deliveryv2_receipt dr on(dr.num=sr.num) where sr.sid_type=0 and (sr.type&0xFF00)<0x0200')
+cur.execute('select sr.*,(select count(*) from deliveryv2_receipt where num=sr.num and d_excluded=0) as is_delivery from sync_receipts sr where sr.sid_type=0 and (sr.type&0xFF00)<0x0200')
 nzs = cur.column_names
 for r in cur:
     r = dict(zip(nzs, r))
@@ -34,7 +34,7 @@ for r in cur:
 
     tp = time.localtime(r['order_date'])
     dt = int(time.mktime(datetime.date(tp.tm_year, tp.tm_mon, 1).timetuple()))
-    s = g_s.setdefault(dt, [0, 0, 0, 0, 0, 0])
+    s = g_s.setdefault(dt, [0, 0, 0, 0, 0, 0, None, 0, 0])
     
     s_t_qty = 1
     s_t_price = total_price
@@ -47,11 +47,13 @@ for r in cur:
     s[0] += s_t_qty
     s[1] += s_t_price
     s[2] += s_t_cost
-    if r['d_id']:
+    s[7] += 1
+    if r['is_delivery']:
         s[3] += s_t_qty
         s[4] += s_t_price
         s[5] += s_t_cost
-        
+        s[8] += 1
+  
         
 cur.execute('select * from sorder where (ord_flag&8)!=0')
 nzs = cur.column_names
@@ -74,7 +76,7 @@ for r in cur:
 
     tp = time.localtime(r['ord_order_date'])
     dt = int(time.mktime(datetime.date(tp.tm_year, tp.tm_mon, 1).timetuple()))
-    s = g_s.setdefault(dt, [0, 0, 0, 0, 0, 0])
+    s = g_s.setdefault(dt, [0, 0, 0, 0, 0, 0, None, 0, 0])
     if rtype > 0:
         s[0] -= 1
         s[1] -= total_price
@@ -84,11 +86,13 @@ for r in cur:
         s[1] += total_price
         s[2] += total_cost
 
+    s[7] += 1
+
 
 for k, v in g_s.items():
     cur.execute('select di_price,di_cost from daily_inventory where di_ts = %s', (k,))
     rows = cur.fetchall()
-    v.append(rows and rows[0] or None)
+    if rows: v[6] = rows[0]
 
 s = g_s.items()
 s.sort(key=lambda f_x:f_x[0])

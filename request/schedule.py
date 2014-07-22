@@ -21,6 +21,9 @@ REC_FLAG_CHANGED = 1 << 3
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
 
+ORD_TYPE=('Sales', 'Return', 'Deposit', 'Refund', 'Payout', 'Payin')
+
+
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
@@ -166,7 +169,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rev = self.req.psv_int('rev')
         prio = min(max(-1, self.req.psv_int('prio')), 2)
         sc_id = self.req.psv_int('sc_id')
-        note = self.req.psv_ustr('note')[:128].strip()
+        note = self.req.psv_ustr('note')[:256].strip()
         
         cts = int(time.time())
         
@@ -193,18 +196,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             )
             sc_id = cur.lastrowid
         else:
-            cur.execute("select sc_flag,sc_date,sc_prio from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_flag,sc_date,sc_prio,sc_note from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
-            old_sc_flag,old_sc_date,old_sc_prio = row[0]
-            if old_sc_date == d_date and old_sc_prio == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
+            old_sc_flag,old_sc_date,old_sc_prio,old_sc_note = row[0]
+            if old_sc_date == d_date and old_sc_prio == prio and old_sc_note == note: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
             if old_sc_flag & REC_FLAG_ACCEPTED and not(self.user_lvl & DELIVERY_MGR_PERM): self.req.exitjs({'err': -2, 'err_s': "can't change"})
-            cur.execute("update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s", (
-                old_sc_date != d_date and REC_FLAG_RESCHEDULED or 0, d_date, prio, sc_id, rev
+            cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,sc_date=%s,sc_prio=%s,sc_note=%s where sc_id=%s and sc_rev=%s", (
+                old_sc_date != d_date and REC_FLAG_RESCHEDULED or 0, d_date, prio, note, sc_id, rev
                 )
             )
             
@@ -215,16 +218,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             self.inc_seq()
         
         self.req.exitjs({'err': err, 'sc_id': sc_id})
-        
+    
     def get_docs_by_sc_ids(self, sc_ids, full=False):
         if not sc_ids: return []
+        sc_ids = sc_ids[:100]
+        return self._get_docs_by_sc_ids(sc_ids, full)
         
+    def _get_docs_by_sc_ids(self, sc_ids, full=False):
         so_sids = set()
         rc_sids = set()
         sc_lst = []
         
         cur = self.cur()
-        cur.execute('select sc_id,doc_type,doc_sid from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
+        cur.execute('select ' + (full and '*' or 'sc_id,doc_type,doc_sid') + ' from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -241,7 +247,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
         d_rc = {}
         if rc_sids:
-            cur.execute('select ' + (full and 'sid,cid,type,num,assoc,cashier,order_date,global_js,items_js' or 'sid,sonum,global_js') + ' from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), ))
+            cur.execute('select ' + (full and 'sid,cid,type,num,assoc,cashier,order_date,global_js,items_js' or 'sid,num,global_js') + ' from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), ))
             for r in cur.fetchall(): d_rc[r[0]] = r
         
         _sc_lst = []
@@ -525,19 +531,61 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         })
 
     def fn_print(self):
-        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))[:200]
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
         docs = self.get_docs_by_sc_ids(sc_ids, True)
         #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
         
         for r in docs:
             dr = dict(zip(('cid','flag','num','assoc','cashier','doc_date','gjs','ijs'), r['doc'][1:]))
-            dr['gjs'] = json.loads(dr['gjs'])
-            dr['ijs'] = json.loads(dr['ijs'])
+            gjs = dr['gjs'] = json.loads(dr['gjs'])
+            ijs = dr['ijs'] = json.loads(dr['ijs'])
             dr['doc_date'] = time.strftime("%m/%d/%Y", time.localtime(dr['doc_date']))
-            
             r.update(dr)
             
+            type_s = ''
+            count_s = ''
+            if r['doc_type']:
+                d_type = (r['flag'] >> 8) & 0xFF
+                d_status = (r['flag'] >> 0) & 0xFF
+                
+                
+                if d_type >= 0 and d_type < len(ORD_TYPE):
+                    type_s = ORD_TYPE[d_type]
+                else:
+                    type_s = 'UNK'
+                    
+                if d_status == 1:
+                    type_s += ' - Reversed'
+                elif d_status == 2:
+                    type_s += ' - Reversing'
+                    
+                count_s = 'Item %d, Qty %0.1f' % (gjs['itemcount'], config.round_ex(gjs['qtycount'], 1))
+            else:
+                if (r['flag'] >> 8) & 0xFF:
+                    type_s = 'UNK - '
+                else:
+                    type_s = 'SO - '
+                s = r['flag'] & 0xFF
+                if s == 0:
+                    type_s += 'Open'
+                elif s == 1:
+                    type_s += 'Close'
+                elif s == 2:
+                    type_s += 'Pending'
+                if (r['flag'] >> 16) & 0xFF: type_s += ' - **Deleted**'
+            
+                count_s = 'Item %d, Qty %0.1f/%0.1f' % (
+                    gjs['itemcount'],
+                    config.round_ex(gjs['sentcount'], 1),
+                    config.round_ex(gjs['qtycount'], 1)
+                )
+            
+            r['type_s'] = type_s
+            r['count_s'] = count_s
+            
         r = {
+            'auto_print': self.qsv_int('auto_print'),
+            'round_ex': config.round_ex,
             'sc_docs': docs,
             'cts_s': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime())
         }
