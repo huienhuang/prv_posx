@@ -108,7 +108,7 @@ def sync_salesorders(cj_data, mode=0):
             qty_stat[0] += qty * rr['nunits']
             qty_stat[1] += sent * rr['nunits']
         
-        global_js = json.dumps({
+        gjs = {
             'total': round(float(r['total']), 5),
             'subtotal': round(float(r['subtotal']), 5),
             'discamt': round(float(r['discamount']), 5),
@@ -126,7 +126,10 @@ def sync_salesorders(cj_data, mode=0):
             'depositused': round(float(r['depositused']), 5),
             'shippingused': round(float(r['shippingused']), 5),
             'due': round(float(r['sodue']), 5),
-        }, separators=(',',':'))
+        }
+        gjs['crc'] = data_helper.get_salesorder_crc(r, gjs, items)
+        global_js = json.dumps(gjs, separators=(',',':'))
+        
         
         if mode != 1: mdb.query('delete from sync_link_item where doc_sid=%d and doc_type=2' % (sid,))
         status = (r['datastate'] << 16) | (r['sotype'] << 4) | r['status']

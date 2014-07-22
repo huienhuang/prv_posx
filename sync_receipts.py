@@ -188,7 +188,7 @@ def sync_receipts(cj_data, mode=0):
         tender = [ { 'type': d[0], 'amount': round(float(d[1]), 5), 'numlst': d[2] } for d in sur.fetchall() ]
         #['', 'cash', 'check', 'visa', 'debit', 'P5', 'account', 'P7', 'deposit', 'split']
         
-        global_js = json.dumps({
+        gjs = {
             'total': round(float(r['total']), 5),
             'subtotal': round(float(r['subtotal']), 5),
             'discamt': round(float(r['discamount']), 5),
@@ -203,8 +203,10 @@ def sync_receipts(cj_data, mode=0):
             'itemcount': len(item_sids),
             'qtycount': qty_count,
             'memo': r['comments'] or '',
-            'station': r['workstation']
-        }, separators=(',',':'))
+            'station': r['workstation'],
+        }
+        gjs['crc'] = data_helper.get_receipt_crc(r, gjs, items)
+        global_js = json.dumps(gjs, separators=(',',':'))
         
         seq += 1
         sqlt = "(%d,0,%s,%s,%s,%d,%d,%d,'%s','%s',%d,%d,%d,'%s','%s')," % (

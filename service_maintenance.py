@@ -93,17 +93,18 @@ def srv_normal(cur):
     s_ts = int(time.time() * 1000)
     c_id = None
     addrs = {}
+    other = {}
     cur.execute('select * from sync_chg where c_type<=16 order by c_id asc')
     for r in cur.fetchall():
         c_id,c_type,c_js = r
         c_js = json.loads(c_js)
             
         if c_type == 1:
-            mt_customer(cur, c_js, addrs)
+            mt_customer(cur, c_js, addrs, other)
         elif c_type == 2:
-            mt_receipt(cur, c_js, addrs)
+            mt_receipt(cur, c_js, addrs, other)
         elif c_type == 3:
-            mt_salesorder(cur, c_js, addrs)
+            mt_salesorder(cur, c_js, addrs, other)
     
     addrs = addrs.items()
     addrs_len = 0
@@ -113,6 +114,9 @@ def srv_normal(cur):
         )
         addrs_len += cur.rowcount
         addrs = addrs[300:]
+    
+    if other.get('inc_schedule_seq', [0])[0]:
+        cur.execute('update config set cval=cval+1 where cid=%s', (config.CFG_SCHEDULE_UPDATE_SEQ,))
     
     if c_id != None:
         cur.execute('delete from sync_chg where c_id<=%s and c_type<=16', (c_id,))
@@ -173,9 +177,9 @@ def get_geocoding(addr):
 g_srvs = [(srv_location, 750), (srv_normal, 750)]
 
 
-def mt_customer(cur, lst, addrs):
+def mt_customer(cur, lst, addrs, other):
     cur.execute('select detail from sync_customers where sid in (%s)' % (
-        ','.join(map(str, set([ f_x[0] for f_x in lst if not f_x[1] ]))),
+        ','.join(map(str, set([ f_x[0] for f_x in lst ]))),
     ))
     for r in cur.fetchall():
         jsd = json.loads(r[0])
@@ -188,10 +192,9 @@ def mt_customer(cur, lst, addrs):
                     )
                 )
 
-def mt_receipt(cur, lst, addrs):
-    cur.execute('select global_js from sync_receipts where sid_type=0 and sid in (%s)' % (
-        ','.join(map(str, set([ f_x[0] for f_x in lst if not f_x[1] ]))),
-    ))
+def mt_receipt(cur, lst, addrs, other):
+    s_sids = ','.join(map(str, set([ f_x[0] for f_x in lst ])))
+    cur.execute('select global_js from sync_receipts where sid_type=0 and sid in (%s)' % (s_sids,))
     for r in cur.fetchall():
         jsd = json.loads(r[0])
         
@@ -212,11 +215,15 @@ def mt_receipt(cur, lst, addrs):
                     (cust['addr1'], cust['city'], cust['state'], cust['zip'])
                     )
                 )
+    
+    odt = datetime.date.today()
+    cdt = odt.year * 10000 + odt.month * 100 + odt.day
+    cur.execute('select count(*) from schedule where sc_date>=%d and doc_type=1 and doc_sid in (%s)' % (cdt, s_sids))
+    other.setdefault('inc_schedule_seq', [0])[0] += cur.fetchall()[0][0]
 
-def mt_salesorder(cur, lst, addrs):
-    cur.execute('select global_js from sync_salesorders where sid in (%s)' % (
-        ','.join(map(str, set([ f_x[0] for f_x in lst if not f_x[1] ]))),
-    ))
+def mt_salesorder(cur, lst, addrs, other):
+    s_sids = ','.join(map(str, set([ f_x[0] for f_x in lst ])))
+    cur.execute('select global_js from sync_salesorders where sid in (%s)' % (s_sids,))
     for r in cur.fetchall():
         jsd = json.loads(r[0])
         
@@ -237,7 +244,12 @@ def mt_salesorder(cur, lst, addrs):
                     (cust['addr1'], cust['city'], cust['state'], cust['zip'])
                     )
                 )
-
+                
+    odt = datetime.date.today()
+    cdt = odt.year * 10000 + odt.month * 100 + odt.day
+    cur.execute('select count(*) from schedule where sc_date>=%d and doc_type=0 and doc_sid in (%s)' % (cdt, s_sids))
+    other.setdefault('inc_schedule_seq', [0])[0] += cur.fetchall()[0][0]
+    
 
 if __name__ == '__main__':
     main()

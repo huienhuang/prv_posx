@@ -5,10 +5,12 @@
 <title>POSX - Schedule</title>
 
 <script type="text/javascript">
-g_last_upd_seq = 0;
+g_last_upd_seq = ${sc_upd_seq};
 
 function load_doc(i, auto_print)
 {
+    g_v_dd_doc_viewer.attr('src', 'about:blank');
+    
     var js = g_v_dlg_documents.data('jsd');
     if(!js || !js.lst[i]) return;
     var r = js.lst[i];
@@ -19,15 +21,18 @@ function load_doc(i, auto_print)
     else
         g_v_dd_doc_viewer.attr('src', 'sync?fn=printorder&type=2&rid='+r.doc_sid+'&simple=1' + (auto_print ? '&auto_print=2' : ''));
 
-    g_v_dlg_doc_btns.print.button('option', 'label', r.sc_flag & 1 ? 'Print' : 'Accepted & Print').show();
     g_v_dlg_doc_btns.schedule.show();
-
     
 %if has_perm_delivery_mgr:
     if(r.sc_flag & ${REC_FLAG_CANCELLING})
         g_v_dlg_doc_btns.cancel.show();
     else
         g_v_dlg_doc_btns.cancel.hide();
+        
+    if(r.sc_flag & ${REC_FLAG_CHANGED})
+        g_v_dlg_doc_btns.clear.show();
+    else
+        g_v_dlg_doc_btns.clear.hide();
 %endif
 
 }
@@ -54,12 +59,13 @@ function load_doc_lst(dt, zidx, reload, auto_print)
     g_v_dlg_doc_btns.schedule.hide();
     g_v_dlg_doc_btns.close.hide();
     g_v_dlg_doc_btns.cancel.hide();
+    g_v_dlg_doc_btns.clear.hide();
     
-    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx}, function(js) {
+    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, 'clerk_id': g_v_tp_ctrl.data('in_els').user[0].val()}, function(js) {
         g_v_dlg_documents.data('jsd', js).dialog('option', 'title', int2date_s(js.date) + ' - ' + js.zone_nz + (js.state ? js.state == 1 ? ' - Open' : ' - Close' : ''));
         
 %if has_perm_delivery_mgr:
-        js.zone_id && g_v_dlg_doc_btns.close.button('option', 'label', js.state <= 0 ? 'Open Zone' : 'Close Zone').show();
+        js.zone_id && g_v_dlg_doc_btns.close.button('option', 'label', js.state <= 0 ? '开放此区' : '关闭此区').show();
 %endif
         
         var k = -1;
@@ -68,8 +74,13 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             var r = js.lst[i];
             if(k < 0 && reload && o_sc_id === r.sc_id) k = i;
             lst.push(
-                $('<div class="prntbl_row'+(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'" onclick="load_doc('+i+')"></div>')
-                .append( $('<div></div>').text(r.num + (r.sc_flag & 2 ? '*' : '')) )
+                $('<div class="prntbl_row'
+%if has_perm_delivery_mgr:
+                +(r.sc_flag & ${REC_FLAG_CHANGED} ? ' doc_changed' : '')
+%endif
+                  +(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'"></div>')
+                .append( $('<div><input type="checkbox" /></div>') )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );
@@ -79,11 +90,12 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             var cs = g_v_dd_doc_lst_body.children();
             g_v_dd_doc_lst_body.prepend(lst);
             $(cs).remove();
-            
-            k >= 0 && load_doc(k, auto_print);
-            
         } else 
             g_v_dd_doc_lst_body.append(lst);
+        
+        js.v_cbs = g_v_dd_doc_lst_body.find('input[type="checkbox"]');
+        
+        reload && k >= 0 && load_doc(k, auto_print);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
@@ -123,6 +135,9 @@ function load_overview_cb(js)
                 if(z[1]) oo.append( $('<div class="ovc_default ovc_accepted"></div>').text(z[1]) );
                 if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
                 if(z[3]) oo.append( $('<div class="ovc_default ovc_cancelling"></div>').text(z[3]) );
+%if has_perm_delivery_mgr:
+                if(z[4]) oo.append( $('<div class="ovc_default ovc_changed"></div>').text(z[4]) );
+%endif
             }
         }
         o.append(l_oo);
@@ -138,7 +153,8 @@ function load_overview_cb(js)
 
 function load_overview()
 {
-    get_js('?fn=get_overview', {}, load_overview_cb);
+    get_js_ex('?fn=get_overview', {clerk_id: g_v_tp_ctrl.data('in_els').user[0].val()}, load_overview_cb,
+              undefined, undefined, undefined, '__load_overview__');
 }
 
 function int2date_s(i) {
@@ -168,6 +184,20 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
     width:1130,
     height:700,
     buttons: [
+        {
+            text: 'Clear CFlag',
+            id: "dd_btn_clear",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                
+                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
         {
             text: 'Agree To Cancel',
             id: "dd_btn_cancel",
@@ -233,11 +263,80 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
             },
         },
         */
+        
+%if has_perm_delivery_mgr:
+        
+        {
+            text: '打印',
+            id: "dd_btn_print_all",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                
+                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
+        
+        {
+            text: '接受',
+            id: "dd_btn_accept_sel",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                
+                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
+        
+        {
+            text: '接受 & 打印',
+            id: "dd_btn_accept_sel",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                
+                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
+        
+        {
+            text: 'Advance Mode',
+            id: "dd_btn_show_map",
+            click: function() {
+                var r = get_cur_doc_js();
+                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                
+                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                    load_doc_lst(0, 0, 1, 0);
+                    
+                });
+                
+            },
+        },
+%endif
+        
     ]
 
 });
+/*
 $('.doc_lst >.prntbl_row_hdr', g_v_dlg_documents).click(function() {
     load_doc_lst(0, 0, 1, 0);
+});
+*/
+$('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
+    g_v_dd_doc_lst_body.find('input[type="checkbox"]').prop('checked', $(this).prop('checked'));
 });
 g_v_dd_doc_lst_filter = $('.doc_lst_filter', g_v_dlg_documents);
 g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
@@ -247,6 +346,7 @@ g_v_dlg_doc_btns = {
     'schedule': $('#dd_btn_schedule'),
     'close': $('#dd_btn_close'),
     'cancel': $('#dd_btn_cancel'),
+    'clear': $('#dd_btn_clear'),
 };
 
 
@@ -420,8 +520,7 @@ els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.dialog('open');
 });
 
-//els.btn_refresh[0].button().click(load_overview);
-
+els.user[0].change(load_overview);
 
 window.posx_chk_login_args = function() {
     return {cfg_seq_key: ${CFG_SCHEDULE_UPDATE_SEQ}};
@@ -462,6 +561,7 @@ load_overview();
 .ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
 .ovc_rescheduled {border-color:#6db3f2;background:#6db3f2;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
 .ovc_cancelling {border-color:#f85032;background:#f85032;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(248,80,50,1)), color-stop(50%,rgba(241,111,92,1)), color-stop(51%,rgba(246,41,12,1)), color-stop(71%,rgba(240,47,23,1)), color-stop(100%,rgba(231,56,39,1)));}
+.ovc_changed {border-color:rgb(243,226,199);background:rgb(243,226,199);background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(243,226,199,1)), color-stop(50%,rgba(193,158,103,1)), color-stop(51%,rgba(182,141,76,1)), color-stop(100%,rgba(233,212,179,1)));}
 
 .dd_open {background-color:#d5eab5}
 .dd_close {background-color:#fdc2c2}
@@ -472,16 +572,16 @@ load_overview();
 #dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
 
 .doc_lst {top:0px;bottom:0;left:0;right:0}
-.doc_lst .prntbl_row >div:nth-child(1) {width:70px;}
-.doc_lst .prntbl_row >div:nth-child(2) {width:200px}
-.doc_lst .prntbl_row >div:nth-child(3) {width:90px}
-.doc_lst .prntbl_row {cursor:pointer}
-.doc_lst .prntbl_cnt .prntbl_row >div:nth-child(1) {color:#fff}
+.doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
+.doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
+.doc_lst .prntbl_row >div:nth-child(3) {width:180px}
+.doc_lst .prntbl_row >div:nth-child(4) {width:90px}
+.doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 
-
-.doc_lst .doc_pending >div:first-child {background-color:rgb(242,130,91);}
-.doc_lst .doc_accepted >div:first-child {background-color:#627d4d;}
-.doc_lst .doc_cancelling >div:first-child {background-color:#f85032;}
+.doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91);}
+.doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
+.doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032;}
+.doc_lst .doc_changed >div:nth-child(3) {background-color:rgb(243,226,199);}
 
 </style>
 
@@ -522,7 +622,7 @@ load_overview();
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div>Num</div><div>Company</div><div>Amount</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>

@@ -2,6 +2,7 @@ import re
 import hashlib
 import struct
 import base64
+import zlib
 
 regx_phonenum = re.compile('[^0-9]+')
 regx_phonenum_spliter = re.compile('[^\s\.\-0-9]+')
@@ -48,5 +49,33 @@ def get_location_hash(*args):
     snum = int(snum[:k])
     
     return base64.b64encode(hashlib.md5(u','.join(args)).digest() + struct.pack('<L', snum))
+
+
+def get_receipt_crc(r, jsd, items):
+    v = str((
+        sorted((jsd.get('customer') or {}).items()),
+        sorted((jsd.get('shipping') or {}).items()),
+        jsd['memo'],
+    ))
+    return zlib.crc32(v) & 0xFFFFFFFF
+
+def get_salesorder_crc(r, jsd, items):
+    v = str((
+        sorted((jsd.get('customer') or {}).items()),
+        sorted((jsd.get('shipping') or {}).items()),
+        jsd['memo'],
+        r['clerk'],
+        r['sonum'],
+        r['sodate'],
+        r['pricelevel'],
+        r['datastate'],
+        jsd['total'], jsd['subtotal'], jsd['deposittaken'],
+        
+        [ (f_i['itemsid'], f_i['itemno'], f_i['snum'], f_i['desc1'], f_i['uom'], f_i['alu'], f_i['pricetax'], f_i['qty']) for f_i in items ]
+    ))
+    return zlib.crc32(v) & 0xFFFFFFFF
+
+
+
 
 

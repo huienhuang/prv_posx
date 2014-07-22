@@ -31,7 +31,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'has_perm_delivery_mgr': DELIVERY_MGR_PERM,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
-            'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ
+            'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
+            'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
+            'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
+            'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
         self.req.writefile('schedule.html', r)
     
@@ -169,12 +172,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         if d_type:
-            cur.execute('select num from sync_receipts where sid=%s and sid_type=0 and (type&0xFF)=0 order by sid desc limit 1', (
+            cur.execute('select num from sync_receipts where sid=%s and sid_type=0 and (type&0xFF)=0', (
                 d_sid,
                 )
             )
         else:
-            cur.execute('select sonum from sync_salesorders where sid=%s and (status>>4)=0 order by sid desc limit 1', (
+            cur.execute('select sonum from sync_salesorders where sid=%s and (status>>4)=0', (
                 d_sid,
                 )
             )
@@ -184,23 +187,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_num = row[0][0]
         
         if sc_id == 0:
-            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s,%s)', (
+            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s,0,%s)', (
                 d_date, 0, prio, d_type, d_sid, note
                 )
             )
             sc_id = cur.lastrowid
         else:
-            cur.execute("select sc_date,sc_prio from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_flag,sc_date,sc_prio from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
-            old_sc_date,old_sc_prio = row[0]
+            old_sc_flag,old_sc_date,old_sc_prio = row[0]
             if old_sc_date == d_date and old_sc_prio == prio: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            cur.execute("update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s and sc_flag&1=0", (
-                old_sc_date != d_date and 2 or 0, d_date, prio, sc_id, rev
+            if old_sc_flag & REC_FLAG_ACCEPTED and not(self.user_lvl & DELIVERY_MGR_PERM): self.req.exitjs({'err': -2, 'err_s': "can't change"})
+            cur.execute("update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,sc_date=%s,sc_prio=%s where sc_id=%s and sc_rev=%s", (
+                old_sc_date != d_date and REC_FLAG_RESCHEDULED or 0, d_date, prio, sc_id, rev
                 )
             )
             
@@ -213,17 +217,85 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.exitjs({'err': err, 'sc_id': sc_id})
         
     
-    def fn_accept_doc(self):
+    def fn_update_doc_crc(self):
         sc_id = self.req.psv_int('sc_id')
+        cur = self.cur()
+        cur.execute('select sc_flag,sc_rev,doc_type,doc_sid from schedule where sc_id=%s', (sc_id,))
+        row = cur.fetchall()
+        if not row: self.req.exitjs({'err': -2, 'err_s': "record not found"})
         
-        cur = self.cur();
-        cur.execute('update schedule set sc_flag=sc_flag|1,sc_rev=sc_rev+1 where sc_id=%s and sc_flag&1=0', (sc_id,))
+        sc_flag,sc_rev,doc_type,doc_sid = row[0]
+        if not(sc_flag & REC_FLAG_ACCEPTED): self.req.exitjs({'err': -2, 'err_s': "document not accepted yet"})
+        
+        if doc_type:
+            cur.execute('select global_js from sync_receipts where sid=%s and sid_type=0', (
+                doc_sid,
+                )
+            )
+        else:
+            cur.execute('select global_js from sync_salesorders where sid=%s', (
+                doc_sid,
+                )
+            )
+        row = cur.fetchall()
+        if not row: self.req.exitjs({'err': -2, 'err_s': "document not found"})
+        gjs = json.loads(row[0][0])
+        crc = gjs.get('crc') or 0
+        
+        cur.execute('update schedule set sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s', (
+            crc, sc_id, sc_rev
+        ))
         err = int(cur.rowcount <= 0)
         if not err:
             self.inc_seq()
         
         self.req.writejs({'err': err})
+        
     
+    def fn_accept_docs(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+        
+        so_sids = set()
+        rc_sids = set()
+        sc_lst = []
+        
+        cur = self.cur()
+        cur.execute('select sc_id,doc_type,doc_sid from schedule where sc_id in (%s)' % (','.join(sc_ids),))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            sc_lst.append(r)
+            if r['doc_type']:
+                rc_sids.add(r['doc_sid'])
+            else:
+                so_sids.add(r['doc_sid'])
+        
+        if len(sc_ids) != len(sc_ids): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        
+        d_so = {}
+        if so_sids:
+            cur.execute('select sid,sonum,global_js from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), ))
+            for r in cur.fetchall(): d_so[r[0]] = json.loads(r[1]).get('crc') or 0
+            
+        d_rc = {}
+        if rc_sids:
+            cur.execute('select sid,num,global_js from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), ))
+            for r in cur.fetchall(): d_rc[r[0]] = json.loads(r[1]).get('crc') or 0
+    
+        c = 0
+        for r in sc_lst:
+            if r['doc_type']:
+                crc = rc_sids.get(r['doc_sid'], 0)
+            else:
+                crc = so_sids.get(r['doc_sid'], 0)
+            
+            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s', (
+                REC_FLAG_ACCEPTED, crc, sc_id
+            ))
+            if cur.rowcount > 0: c += 1
+    
+        self.req.writejs({'err': 0, 'i_err': int(len(sc_ids) != c)})
+
     def fn_set_zone_state(self):
         date = self.req.psv_int('date')
         zidx = self.req.psv_int('zidx')
@@ -262,7 +334,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for r in self.get_docs(cdt, -1, clerk_id, 1):
             zid = r['zone_id']
             d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
-            if not d[zid]: d[zid] = [0, 0, 0, 0]
+            if not d[zid]: d[zid] = [0, 0, 0, 0, 0]
             d = d[zid]
             
             if r['sc_flag'] & REC_FLAG_ACCEPTED:
@@ -275,7 +347,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
             if r['sc_flag'] & REC_FLAG_CANCELLING:
                 d[3] += 1
-                
+            
+            if r['sc_flag'] & REC_FLAG_CHANGED:
+                d[4] += 1
         
         l_dt = d_dt.items()
         l_dt.sort(key=lambda f_x: f_x[0])
@@ -338,7 +412,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             where = ' where sc_date>=%s'
         else:
             where = ' where sc_date=%s order by sc_prio desc,sc_id desc'
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid from schedule ' + where, (date,))
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc from schedule ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -367,11 +441,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             for r in cur.fetchall(): d_rc[r[0]] = r
         
         locs = set()
+        _sc_lst = []
         for r in sc_lst:
             if r['doc_type']:
-                doc_data = d_rc[ r['doc_sid'] ]
+                doc_data = d_rc.get(r['doc_sid'])
             else:
-                doc_data = d_so[ r['doc_sid'] ]
+                doc_data = d_so.get(r['doc_sid'])
+            if not doc_data: continue
+            _sc_lst.append(r)
             
             r['doc_data'] = doc_data
             doc_js = r['doc_js'] = json.loads(doc_data[4])
@@ -384,25 +461,31 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if doc_loc != None:
                 doc_loc_dc = r['doc_loc_dc'] = base64.b64decode(doc_loc)
                 locs.add(doc_loc_dc)
-            
+        
+        sc_lst = _sc_lst
+        
         d_loc = {}
         if locs:
             cur.execute('select loc,zone_id from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
             for r in cur.fetchall(): d_loc[ r[0] ] = r[1]
         
-        lst = [] 
+        lst = []
         for r in sc_lst:
             zid = r['doc_loc'] != None and d_loc.get(r['doc_loc_dc']) or 0
             if zone_id >= 0 and zid != zone_id: continue
             
             doc_js = r['doc_js']
             doc_data = r['doc_data']
+
             r['zone_id'] = zid
             r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
             r['num'] = doc_data[1]
             r['doc_assoc'] = doc_data[2]
             r['doc_date'] = doc_data[3]
             r['doc_amt'] = doc_js['total']
+            
+            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != doc_js.get('crc', 0):
+                r['sc_flag'] |= REC_FLAG_CHANGED
             
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
             r['doc_sid'] = str(r['doc_sid'])
