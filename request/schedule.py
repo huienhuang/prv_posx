@@ -72,26 +72,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'err': err})
     
-    def fn_del_rec_n(self):
-        sc_id = self.req.psv_int('sc_id')
+    def fn_del(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+        docs = self.get_docs_by_sc_ids(sc_ids)
+        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
         
-        cur = self.cur();
-        cur.execute('select * from schedule where sc_id=%s', (sc_id,))
-        rows = cur.fetchall()
-        if not rows: return
-        row = dict(zip(cur.column_names, rows[0]))
+        cur = self.cur()
+        c = 0
+        for r in docs:
+            crc = json.loads(r['doc'][2]).get('crc', 0)
+            cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0', (
+                r['sc_id'], REC_FLAG_CANCELLING
+            ))
+            if cur.rowcount > 0: c += 1
+    
+        if c: self.inc_seq()
+        i_warning_s = None
+        if len(sc_ids) != c: i_warning_s = '%d out of %d processed' % (c, len(sc_ids))
         
-        cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0', (
-            sc_id, REC_FLAG_CANCELLING
-            )
-        )
-        err = int(cur.rowcount <= 0)
-        if not err:
-            self.inc_seq()
-        
-        self.req.writejs({'err': err})
-        
-    fn_del_rec_n.PERM = DELIVERY_MGR_PERM
+        self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
+    fn_del.PERM = DELIVERY_MGR_PERM
     
     
     def fn_get_doc(self):
@@ -216,51 +216,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.exitjs({'err': err, 'sc_id': sc_id})
         
-    
-    def fn_update_doc_crc(self):
-        sc_id = self.req.psv_int('sc_id')
-        cur = self.cur()
-        cur.execute('select sc_flag,sc_rev,doc_type,doc_sid from schedule where sc_id=%s', (sc_id,))
-        row = cur.fetchall()
-        if not row: self.req.exitjs({'err': -2, 'err_s': "record not found"})
-        
-        sc_flag,sc_rev,doc_type,doc_sid = row[0]
-        if not(sc_flag & REC_FLAG_ACCEPTED): self.req.exitjs({'err': -2, 'err_s': "document not accepted yet"})
-        
-        if doc_type:
-            cur.execute('select global_js from sync_receipts where sid=%s and sid_type=0', (
-                doc_sid,
-                )
-            )
-        else:
-            cur.execute('select global_js from sync_salesorders where sid=%s', (
-                doc_sid,
-                )
-            )
-        row = cur.fetchall()
-        if not row: self.req.exitjs({'err': -2, 'err_s': "document not found"})
-        gjs = json.loads(row[0][0])
-        crc = gjs.get('crc') or 0
-        
-        cur.execute('update schedule set sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s', (
-            crc, sc_id, sc_rev
-        ))
-        err = int(cur.rowcount <= 0)
-        if not err:
-            self.inc_seq()
-        
-        self.req.writejs({'err': err})
-        
-    
-    def fn_accept_docs(self):
-        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+    def get_docs_by_sc_ids(self, sc_ids, full=False):
+        if not sc_ids: return []
         
         so_sids = set()
         rc_sids = set()
         sc_lst = []
         
         cur = self.cur()
-        cur.execute('select sc_id,doc_type,doc_sid from schedule where sc_id in (%s)' % (','.join(sc_ids),))
+        cur.execute('select sc_id,doc_type,doc_sid from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -269,38 +233,77 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 rc_sids.add(r['doc_sid'])
             else:
                 so_sids.add(r['doc_sid'])
-        
-        if len(sc_ids) != len(sc_ids): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
-        
+                
         d_so = {}
         if so_sids:
-            cur.execute('select sid,sonum,global_js from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), ))
-            for r in cur.fetchall(): d_so[r[0]] = json.loads(r[1]).get('crc') or 0
+            cur.execute('select ' + (full and 'sid,cust_sid,status,sonum,clerk,cashier,sodate,global_js,items_js' or 'sid,sonum,global_js') + ' from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), ))
+            for r in cur.fetchall(): d_so[r[0]] = r
             
         d_rc = {}
         if rc_sids:
-            cur.execute('select sid,num,global_js from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), ))
-            for r in cur.fetchall(): d_rc[r[0]] = json.loads(r[1]).get('crc') or 0
-    
-        c = 0
+            cur.execute('select ' + (full and 'sid,cid,type,num,assoc,cashier,order_date,global_js,items_js' or 'sid,sonum,global_js') + ' from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), ))
+            for r in cur.fetchall(): d_rc[r[0]] = r
+        
+        _sc_lst = []
         for r in sc_lst:
             if r['doc_type']:
-                crc = rc_sids.get(r['doc_sid'], 0)
+                doc = d_rc.get(r['doc_sid'])
             else:
-                crc = so_sids.get(r['doc_sid'], 0)
+                doc = d_so.get(r['doc_sid'])
+            if not doc: continue
             
-            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s', (
-                REC_FLAG_ACCEPTED, crc, sc_id
+            r['doc'] = doc
+            _sc_lst.append(r)
+        
+        return _sc_lst
+    
+    def fn_update_crc(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+        docs = self.get_docs_by_sc_ids(sc_ids)
+        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        
+        cur = self.cur()
+        c = 0
+        for r in docs:
+            crc = json.loads(r['doc'][2]).get('crc', 0)
+            cur.execute('update schedule set sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
+                crc, r['sc_id'], REC_FLAG_ACCEPTED
             ))
             if cur.rowcount > 0: c += 1
     
-        self.req.writejs({'err': 0, 'i_err': int(len(sc_ids) != c)})
-
+        if c: self.inc_seq()
+        i_warning_s = None
+        if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
+        
+        self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
+    fn_update_crc.PERM = DELIVERY_MGR_PERM
+    
+    def fn_accept(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+        docs = self.get_docs_by_sc_ids(sc_ids)
+        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        
+        cur = self.cur()
+        c = 0
+        for r in docs:
+            crc = json.loads(r['doc'][2]).get('crc', 0)
+            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_flag&%s=0', (
+                REC_FLAG_ACCEPTED, crc, r['sc_id'], REC_FLAG_ACCEPTED
+            ))
+            if cur.rowcount > 0: c += 1
+    
+        if c: self.inc_seq()
+        i_warning_s = None
+        if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
+        
+        self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
+    fn_accept.PERM = DELIVERY_MGR_PERM
+    
     def fn_set_zone_state(self):
         date = self.req.psv_int('date')
         zidx = self.req.psv_int('zidx')
         state = self.req.psv_int('state')
-        if zidx < 0 or zidx >= len(ZONES) or state not in (0, -1, 1): return
+        if zidx < 1 or zidx >= len(ZONES) or state not in (0, -1, 1): return
         
         m,d = divmod(date, 100)
         y,m = divmod(m, 100)
@@ -317,7 +320,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             self.inc_seq()
         
         self.req.writejs({'err': err})
-        
+    fn_set_zone_state.PERM = DELIVERY_MGR_PERM
     
     def fn_get_overview(self):
         clerk_id = self.qsv_int('clerk_id')
@@ -521,4 +524,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'lst': self.get_docs(dt, zone_id, clerk_id, 0)
         })
 
-
+    def fn_print(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))[:200]
+        docs = self.get_docs_by_sc_ids(sc_ids, True)
+        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        
+        for r in docs:
+            dr = dict(zip(('cid','flag','num','assoc','cashier','doc_date','gjs','ijs'), r['doc'][1:]))
+            dr['gjs'] = json.loads(dr['gjs'])
+            dr['ijs'] = json.loads(dr['ijs'])
+            dr['doc_date'] = time.strftime("%m/%d/%Y", time.localtime(dr['doc_date']))
+            
+            r.update(dr)
+            
+        r = {
+            'sc_docs': docs,
+            'cts_s': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime())
+        }
+        
+        self.req.writefile('schedule_batch_print.html', r)
+        
+        

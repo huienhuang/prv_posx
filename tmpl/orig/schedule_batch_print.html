@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+<title>POSX - Schedule - Batch Print</title>
+
+<script type="text/javascript">
+</script>
+
+<style type="text/css">
+
+.p_doc {page-break-after:always;width:712px;margin:0 auto;}
+
+.p_doc_hdr {position:relative}
+.p_doc_hdr > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
+.p_doc_hdr > div > div {position:absolute;top:0;bottom:0;text-align:right}
+.p_doc_hdr > div > div:nth-child(1) {left:0;width:60px;}
+.p_doc_hdr > div > div:nth-child(2) {left:70px;width:250px;text-align:right}
+.p_doc_hdr > div > div:nth-child(3) {right:230px;width:100px;}
+.p_doc_hdr > div > div:nth-child(4) {right:0;width:220px;}
+
+@page {
+margin:60px 50px;
+}
+
+</style>
+
+</head>
+
+<body>
+    
+%for i in range(len(sc_docs)):
+<%
+r = sc_docs[i]
+%>
+<div class="p_doc">
+<div><span>${i + 1}/${len(sc_docs)}</span> <span>${cts_s}</span></div>
+
+<div class="p_doc_hdr">
+
+<!-- +hdr -->
+<div>
+<div>Receipt:</div><div>${r['num']|h}</div>
+<div>Assoc:</div><div>${r['assoc']|h}${r['assoc']!=r['cashier'] and u' (%s)' % r['cashier'] or ''|h}</div>
+</div>
+<!-- =hdr -->
+<!-- +hdr -->
+<div>
+<div>Type:</div><div></div>
+<div>Count:</div><div></div>
+</div>
+<!-- =hdr -->
+<!-- +hdr -->
+<div>
+<div>Date:</div><div>${r['doc_date']}</div>
+<div></div><div></div>
+</div>
+<!-- =hdr -->
+
+</div>
+
+
+</div>
+%endfor
+
+</body>
+</html>

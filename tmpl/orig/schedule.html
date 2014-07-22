@@ -9,8 +9,8 @@ g_last_upd_seq = ${sc_upd_seq};
 
 function load_doc(i, auto_print)
 {
-    g_v_dd_doc_viewer.attr('src', 'about:blank');
-    
+    g_v_dd_doc_viewer.attr('src', 'about:blank')
+
     var js = g_v_dlg_documents.data('jsd');
     if(!js || !js.lst[i]) return;
     var r = js.lst[i];
@@ -20,21 +20,6 @@ function load_doc(i, auto_print)
         g_v_dd_doc_viewer.attr('src', 'hist?fn=printreceipt&rid='+r.doc_sid+'&simple=1' + (auto_print ? '&auto_print=2' : ''));
     else
         g_v_dd_doc_viewer.attr('src', 'sync?fn=printorder&type=2&rid='+r.doc_sid+'&simple=1' + (auto_print ? '&auto_print=2' : ''));
-
-    g_v_dlg_doc_btns.schedule.show();
-    
-%if has_perm_delivery_mgr:
-    if(r.sc_flag & ${REC_FLAG_CANCELLING})
-        g_v_dlg_doc_btns.cancel.show();
-    else
-        g_v_dlg_doc_btns.cancel.hide();
-        
-    if(r.sc_flag & ${REC_FLAG_CHANGED})
-        g_v_dlg_doc_btns.clear.show();
-    else
-        g_v_dlg_doc_btns.clear.hide();
-%endif
-
 }
 
 function load_doc_lst(dt, zidx, reload, auto_print)
@@ -55,18 +40,8 @@ function load_doc_lst(dt, zidx, reload, auto_print)
     g_v_dd_doc_viewer.attr('src', 'about:blank');
     g_v_dlg_documents.data('jsd', null).dialog('open').dialog('option', 'title', 'Loading ...');
     
-    g_v_dlg_doc_btns.print.hide();
-    g_v_dlg_doc_btns.schedule.hide();
-    g_v_dlg_doc_btns.close.hide();
-    g_v_dlg_doc_btns.cancel.hide();
-    g_v_dlg_doc_btns.clear.hide();
-    
     get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, 'clerk_id': g_v_tp_ctrl.data('in_els').user[0].val()}, function(js) {
         g_v_dlg_documents.data('jsd', js).dialog('option', 'title', int2date_s(js.date) + ' - ' + js.zone_nz + (js.state ? js.state == 1 ? ' - Open' : ' - Close' : ''));
-        
-%if has_perm_delivery_mgr:
-        js.zone_id && g_v_dlg_doc_btns.close.button('option', 'label', js.state <= 0 ? '开放此区' : '关闭此区').show();
-%endif
         
         var k = -1;
         var lst = [];
@@ -79,7 +54,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 +(r.sc_flag & ${REC_FLAG_CHANGED} ? ' doc_changed' : '')
 %endif
                   +(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'"></div>')
-                .append( $('<div><input type="checkbox" /></div>') )
+                .append( $('<div><input type="checkbox" value="'+i+'" /></div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
@@ -162,19 +137,18 @@ function int2date_s(i) {
     return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
 }
 
-function get_cur_doc_js()
+function get_selected_docs()
 {
+    var lst = [];
     var js = g_v_dlg_documents.data('jsd');
-    if(!js || js.cur_sel === undefined || !js.lst[js.cur_sel]) return null;
-    return js.lst[js.cur_sel];
-}
-
-function print_cur_doc()
-{
-    var r = get_cur_doc_js();
-    if(!r) return;
-    var w = g_v_dd_doc_viewer[0].contentWindow;
-    if(w && w.print) w.print();
+    if(!js) return lst;
+    
+    var cbs = js.v_cbs.filter(':checked');
+    for(var i = 0; i < cbs.length; i++) lst.push( js.lst[ parseInt($(cbs[i]).val()) ] );
+    
+    if(!lst.length && js.cur_sel !== undefined && js.lst[js.cur_sel]) lst.push(js.lst[js.cur_sel]);
+    
+    return lst;
 }
 
 $(function() {
@@ -184,113 +158,94 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
     width:1130,
     height:700,
     buttons: [
+%if has_perm_delivery_mgr:
         {
-            text: 'Clear CFlag',
-            id: "dd_btn_clear",
-            click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
-                
-                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
-                    load_doc_lst(0, 0, 1, 0);
-                    
-                });
-                
-            },
-        },
-        {
-            text: 'Agree To Cancel',
-            id: "dd_btn_cancel",
-            click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CANCELLING})) return;
-                
-                post_js_ex('?fn=del_rec_n', {sc_id: r.sc_id}, function() {
-                    load_doc_lst(0, 0, 1, 0);
-                    
-                });
-                
-            },
-        },
-        {
-            text: 'Schedule',
-            id: "dd_btn_schedule",
-            click: function() {
-                var r = get_cur_doc_js();
-                if(!r) return;
-                
-                g_v_dlg_doc_form.data('in_els').num[0].val(r.num);
-                load_doc_schedule(r.sc_id);
-                g_v_dlg_doc_form.dialog('open');
-                
-            },
-        },
-        {
-            text: '',
-            id: "dd_btn_print",
-            click: function() {
-                var r = get_cur_doc_js();
-                if(!r) return;
-                
-                if (r.sc_flag & 1) {
-                    print_cur_doc();
-                } else {
-                    post_js_ex('?fn=accept_doc', {sc_id: r.sc_id}, function(js) {
-                        load_doc_lst(0, 0, 1, 1);
-                    }, undefined, 1);
-                }
-            },
-        },
-
-        {
-            text: '',
+            text: '开放/关闭 此区',
             id: "dd_btn_close",
             click: function() {
                 var js = g_v_dlg_documents.data('jsd');
-                if(!js) return;
+                if(!js || js.zone_id < 1) return;
                 
                 post_js_ex('?fn=set_zone_state', {date:js.date, zidx:js.zone_id, state:js.state <= 0 ? 1 : -1}, function() {
                     load_doc_lst(0, 0, 1, 0);
                 });
             },
         },
-        /*
         {
-            text: 'Refresh',
-            id: "dd_btn_refresh",
+            text: '清除标志',
+            id: "dd_btn_clear",
             click: function() {
-                load_doc_lst(0, 0, 1, 0);
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    if(r.sc_flag & ${REC_FLAG_CHANGED}) sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
+                
+                post_js_ex('?fn=update_crc', {sc_ids: sc_ids.join('|')}, function(js) {
+                    if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
+                    load_doc_lst(0, 0, 1, 0);
+                });
+                
             },
         },
-        */
-        
-%if has_perm_delivery_mgr:
-        
         {
-            text: '打印',
-            id: "dd_btn_print_all",
+            text: '同意取消',
+            id: "dd_btn_cancel",
             click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    if(r.sc_flag & ${REC_FLAG_CANCELLING}) sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
                 
-                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                post_js_ex('?fn=del', {sc_ids: sc_ids.join('|')}, function(js) {
+                    if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
                     load_doc_lst(0, 0, 1, 0);
-                    
                 });
                 
             },
         },
         
         {
-            text: '接受',
-            id: "dd_btn_accept_sel",
+            text: '打印',
+            id: "dd_btn_print",
             click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
                 
-                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                //post_js_ex('?fn=print', {sc_ids: sc_ids.join('|')}, function(js) {
+                //    //if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
+                //    //load_doc_lst(0, 0, 1, 0);
+                //});
+                
+                window.open('?fn=print&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
+            },
+        },
+        
+        {
+            text: '接受',
+            id: "dd_btn_accept",
+            click: function() {
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    if(!(r.sc_flag & ${REC_FLAG_ACCEPTED})) sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
+                
+                post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
+                    if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
                     load_doc_lst(0, 0, 1, 0);
-                    
                 });
                 
             },
@@ -298,35 +253,37 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
         
         {
             text: '接受 & 打印',
-            id: "dd_btn_accept_sel",
+            id: "dd_btn_accept_n_print",
             click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    if(!(r.sc_flag & ${REC_FLAG_ACCEPTED})) sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
                 
-                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
+                post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
+                    if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
                     load_doc_lst(0, 0, 1, 0);
-                    
-                });
-                
-            },
-        },
-        
-        {
-            text: 'Advance Mode',
-            id: "dd_btn_show_map",
-            click: function() {
-                var r = get_cur_doc_js();
-                if(!r || !(r.sc_flag & ${REC_FLAG_CHANGED})) return;
-                
-                post_js_ex('?fn=update_doc_crc', {sc_id: r.sc_id}, function() {
-                    load_doc_lst(0, 0, 1, 0);
-                    
                 });
                 
             },
         },
 %endif
-        
+        {
+            text: 'Schedule',
+            id: "dd_btn_schedule",
+            click: function() {
+                var lst = get_selected_docs();
+                if(!lst.length || lst.length > 1) return;
+                var r = lst[0];
+                g_v_dlg_doc_form.data('in_els').num[0].val(r.num);
+                load_doc_schedule(r.sc_id);
+                g_v_dlg_doc_form.dialog('open');
+                
+            },
+        },
     ]
 
 });
@@ -341,14 +298,6 @@ $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
 g_v_dd_doc_lst_filter = $('.doc_lst_filter', g_v_dlg_documents);
 g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
-g_v_dlg_doc_btns = {
-    'print': $('#dd_btn_print'),
-    'schedule': $('#dd_btn_schedule'),
-    'close': $('#dd_btn_close'),
-    'cancel': $('#dd_btn_cancel'),
-    'clear': $('#dd_btn_clear'),
-};
-
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
