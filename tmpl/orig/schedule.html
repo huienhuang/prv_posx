@@ -16,10 +16,7 @@ function load_doc(i, auto_print)
     var r = js.lst[i];
     
     js.cur_sel = i;
-    if(r.doc_type)
-        g_v_dd_doc_viewer.attr('src', 'hist?fn=printreceipt&rid='+r.doc_sid+'&simple=1' + (auto_print ? '&auto_print=2' : ''));
-    else
-        g_v_dd_doc_viewer.attr('src', 'sync?fn=printorder&type=2&rid='+r.doc_sid+'&simple=1' + (auto_print ? '&auto_print=2' : ''));
+    g_v_dd_doc_viewer.attr('src', '?fn=print&view_only=1&sc_ids='+r.sc_id);
 }
 
 function load_doc_lst(dt, zidx, reload, auto_print)

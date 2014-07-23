@@ -44,6 +44,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def inc_seq(self):
         self.cur().execute('update config set cval=cval+1 where cid=%s', (CFG_SCHEDULE_UPDATE_SEQ,))
     
+    def add_notes(self, lst):
+        self.cur().executemany('insert into doc_note values(null,'+str(int(time.time()))+',%s,%s,0,'+str(self.user_id)+',%s)', lst)
+    
     def fn_del_rec(self):
         d_date = datetime.date.today()
         d_date = d_date.year * 10000 + d_date.month * 100 + d_date.day
@@ -161,9 +164,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_sid = self.req.psv_int('sid')
         
         d_date = map(int, self.req.psv_ustr('date').split('/'))
-        d_date = datetime.date(d_date[2], d_date[0], d_date[1])
-        if d_date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
-        d_date = d_date.year * 10000 + d_date.month * 100 + d_date.day
+        o_date = datetime.date(d_date[2], d_date[0], d_date[1])
+        if o_date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        d_date = o_date.year * 10000 + o_date.month * 100 + o_date.day
         
         d_type = int(bool(self.req.psv_int('type')))
         rev = self.req.psv_int('rev')
@@ -189,12 +192,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not row: return
         d_num = row[0][0]
         
+        d_note = None
         if sc_id == 0:
             cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s,0,%s)', (
                 d_date, 0, prio, d_type, d_sid, note
                 )
             )
             sc_id = cur.lastrowid
+            d_note = 'Schedule Delivery Date - %s' % (o_date.strftime('%m/%d/%y'), )
         else:
             cur.execute("select sc_flag,sc_date,sc_prio,sc_note from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
@@ -210,12 +215,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 old_sc_date != d_date and REC_FLAG_RESCHEDULED or 0, d_date, prio, note, sc_id, rev
                 )
             )
+            if old_sc_date != d_date:
+                m,d = divmod(old_sc_date, 100)
+                y,m = divmod(m, 100)
+                o_old_date = datetime.date(y, m, d)
+                d_note = 'Reschedule Delivery Date From %s To %s' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
             
         err = int(cur.rowcount <= 0)
         if err:
             self.req.exitjs({'err': -2, 'err_s': "document #%s - can't make any update" % (d_num, )})
         else:
             self.inc_seq()
+            if d_note: self.add_notes(([d_type, d_sid, d_note],))
         
         self.req.exitjs({'err': err, 'sc_id': sc_id})
     
@@ -532,9 +543,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_print(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
-        docs = self.get_docs_by_sc_ids(sc_ids, True)
-        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        view_only = self.qsv_int('view_only')
+        if view_only and len(sc_ids) != 1: return
         
+        cur = self.cur()
+        docs = self.get_docs_by_sc_ids(sc_ids, True)
         for r in docs:
             dr = dict(zip(('cid','flag','num','assoc','cashier','doc_date','gjs','ijs'), r['doc'][1:]))
             gjs = dr['gjs'] = json.loads(dr['gjs'])
@@ -583,7 +596,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['type_s'] = type_s
             r['count_s'] = count_s
             
+            if not view_only:
+                loc = None
+                if gjs['shipping']:
+                    loc = gjs['shipping'].get('loc')
+                elif gjs['customer']:
+                    loc = gjs['customer'].get('loc')
+                
+                zidx = 0
+                if loc != None:
+                    cur.execute('select zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
+                    rr = cur.fetchall()
+                    if rr: zidx = rr[0][0]
+                r['zone_nz'] = ZONES[zidx][0]
+            else:
+                r['notes'] = d_notes = []
+                cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
+                    r['doc_type'], r['doc_sid']
+                    )
+                )
+                for rr in cur.fetchall():
+                    rr = list(rr)
+                    rr[0] = time.strftime("%m/%d/%y %I:%M %p", time.localtime(rr[0]))
+                    d_notes.append(rr)
+                    
         r = {
+            'view_only': view_only,
             'auto_print': self.qsv_int('auto_print'),
             'round_ex': config.round_ex,
             'sc_docs': docs,

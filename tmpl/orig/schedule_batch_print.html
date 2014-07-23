@@ -4,32 +4,29 @@
 <%include file="header_inc_v4.html" />
 <title>POSX - Schedule - Batch Print</title>
 
-<script type="text/javascript">
-</script>
-
 <style type="text/css">
 
-.p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:600px}
+.p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px}
 .p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:26px;}
 .p_doc_meta >div {position:absolute;top:0;bottom:0;text-align:center}
 .p_doc_meta >div:nth-child(1) {width:200px;right:300px}
 .p_doc_meta >div:nth-child(2) {width:50px;right:250px}
 .p_doc_meta >div:nth-child(3) {width:250px;right:0;text-align:right}
 
-.p_doc_memo {border:1px solid #ccc;white-space:pre-wrap;padding:2px 5px;}
+.p_doc_memo {border:1px solid #ccc;white-space:pre-wrap;padding:5px 5px;}
 .p_doc > div {margin-bottom:8px}
 
 .p_doc_hdr {position:relative;}
 .p_doc_hdr > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
 .p_doc_hdr > div > div {position:absolute;top:0;bottom:0;text-align:right}
-.p_doc_hdr > div > div:nth-child(1) {left:0;width:60px;}
-.p_doc_hdr > div > div:nth-child(2) {left:70px;width:250px;text-align:right}
-.p_doc_hdr > div > div:nth-child(3) {right:230px;width:100px;}
-.p_doc_hdr > div > div:nth-child(4) {right:0;width:220px;}
+.p_doc_hdr > div > div:nth-child(1) {left:0;width:100px;}
+.p_doc_hdr > div > div:nth-child(2) {left:110px;width:210px;text-align:right}
+.p_doc_hdr > div > div:nth-child(3) {right:260px;width:100px;}
+.p_doc_hdr > div > div:nth-child(4) {right:0;width:250px;}
 
 .p_doc_addr {}
 .p_doc_addr > div.c_addr {position:relative;margin-top:10px;width:298px;border:1px solid #ccc;padding:10px;}
-.p_doc_addr > div.c_addr > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.p_doc_addr > div.c_addr > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
 .p_doc_addr > div.c_addr > div:nth-child(2) {font-weight:bold;cursor:pointer}
 .p_doc_addr > .billto {float:left}
 .p_doc_addr > .shipto {float:right}
@@ -41,8 +38,11 @@
 .prntbl .prntbl_row >div:last-child {border-right:none}
 .prntbl .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
 .prntbl .prntbl_row >div:nth-child(2) {width:130px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(3) {width:437px}
-.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(3) {width:417px}
+.prntbl .prntbl_row >div:nth-child(4) {width:100px;font-weight:bold}
+
+.p_doc_note {}
+.p_doc_note >div {}
 
 @media print {
 div {border-color:#000 !important}
@@ -66,8 +66,9 @@ r = sc_docs[i]
 gjs = r['gjs']
 %>
 <div class="p_doc">
-<div class="p_doc_meta"><div>Mission</div><div>${i + 1}/${len(sc_docs)}</div><div>${cts_s}</div></div>
-
+%if not view_only:
+<div class="p_doc_meta"><div>${r['zone_nz']|h}</div><div>${i + 1}/${len(sc_docs)}</div><div>${cts_s}</div></div>
+%endif
 <!-- +hdr -->
 <div class="p_doc_hdr">
 <!-- +i_hdr -->
@@ -132,7 +133,9 @@ cust = gjs['shipping']
 %endif
 </div>
 <div>${cust['city']|h}, ${cust['state']|h} ${cust['zip']|h}</div>
-<div>${cust['provider']|h} ${cust['tracking'] and '#' + cust['tracking'] or ''|h}</div>
+%if cust['phone']:
+<div>${cust['phone']|h}</div>
+%endif
 </div>
 %endif
 
@@ -158,6 +161,14 @@ cust = gjs['shipping']
 </div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+
+%if view_only and r['notes']:
+<div class="p_doc_note">
+%for n in r['notes']:
+<div><div>${n[0]|h}</div><div>${n[3]|h}</div><div>${n[2]|h}</div></div>
+%endfor
+</div>
+%endif
 
 </div>
 %endfor
