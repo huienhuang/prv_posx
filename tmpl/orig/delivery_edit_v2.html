@@ -569,9 +569,9 @@ function open_wnd_receipt()
     
     if (rec.type !== 0 || !rec.sid) return;
     if (rec.sid_type)
-        window.open('sorder?fn=print&rid=' + rec.num,'posx_print_wnd','location=0,width=992,height=700');
+        open_wnd('sorder?fn=print&rid=' + rec.num,'posx_print_wnd', 992, 700);
     else
-        window.open('hist?fn=printreceipt&rid=' + rec.sid,'posx_print_wnd','location=0,width=992,height=700');
+        open_wnd('hist?fn=printreceipt&rid=' + rec.sid,'posx_print_wnd', 992, 700);
 }
 
 function open_wnd_customer()
@@ -581,7 +581,7 @@ function open_wnd_customer()
     var rec = rec_v.data('rec');
     
     if (!rec.cid) return;
-    window.open('hist?fn=custhist&cid=' + rec.cid,'posx_customer_hist','location=0,width=992,height=700');
+    open_wnd('hist?fn=custhist&cid=' + rec.cid,'posx_customer_hist');
 }
 
 
@@ -929,7 +929,7 @@ g_v_delivery_printing = $('.tab_ctrl > .delivery_printing').change(function() {
     
     var driver_id = parseInt(g_v_filter_driver.val()) || 0;
     
-    window.open('?fn=delivery_printing_'+tmpl+'&d_id='+g_cur_delivery_id+'&auto_print=1&driver_id='+driver_id,'posx_printing_wnd__delivery','location=0,width=992,height=700');
+    open_wnd('?fn=delivery_printing_'+tmpl+'&d_id='+g_cur_delivery_id+'&auto_print=1&driver_id='+driver_id,'posx_printing_wnd__delivery');
 });
 
 

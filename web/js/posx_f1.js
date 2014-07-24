@@ -368,7 +368,7 @@ get_js_ex = function(url, data, cb, err_cb, sync, pop_msg, s_tag)
 var __c_wnds = {};
 open_wnd = function(url, nz, width, height) {
     __c_wnds[nz] && __c_wnds[nz].window && __c_wnds[nz].close && __c_wnds[nz].close();
-    __c_wnds[nz] = window.open(url, nz, 'location=0,width='+width+',height='+height);
+    __c_wnds[nz] = window.open(url, nz, 'location=0,width='+(width || 992)+',height='+(height || 700));
 };
 
 })();
