@@ -6,24 +6,142 @@
 
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgOdCwrMp6iW9YdoC8bCVmFVwuHghE0ug"></script>
 <script type="text/javascript">
+g_doc_js = null;
+g_map = null;
+
+function locate(i) {
+    if(!g_doc_js) return;
+    if(g_doc_js.last_loc_idx !== undefined && g_doc_js.lst[g_doc_js.last_loc_idx]) {
+        var marker = g_doc_js.lst[g_doc_js.last_loc_idx].marker;
+        marker && marker.setAnimation(null);
+    }
+    g_doc_js.last_loc_idx = i;
     
-function initialize() {
-    var mapOptions = {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13};
-    var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+    if(!g_doc_js.lst[i]) return;
+    var r = g_doc_js.lst[i];
+    if(!r.marker) return;
+    
+    g_map.setCenter(r.marker.getPosition());
+    r.marker.setAnimation(google.maps.Animation.BOUNCE);
 }
-google.maps.event.addDomListener(window, 'load', initialize);
+
+function load_doc(i)
+{
+    g_v_doc_wnd.attr('src', 'about:blank');
+    if(!g_doc_js) return;
+    if(!g_doc_js.lst[i]) return;
+    var r = g_doc_js.lst[i];
+    
+    g_v_dlg_view_doc.dialog('open');
+    g_v_doc_wnd.attr('src', '?fn=print&view_only=1&sc_ids=' + r.sc_id);
+}
+
+function load_doc_lst(dt, zidx, clerk_id)
+{
+    g_v_doc_lst.empty();
+    if(g_doc_js) {
+        for(var i = 0; i < g_doc_js.lst.length; i++) {
+            var r = g_doc_js.lst[i];
+            if(r.marker) {
+                r.marker.setMap(null);
+                r.marker = null;
+            }
+        }
+    }
+    g_doc_js = null;
+    
+    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, clerk_id: clerk_id}, function(js) {
+        g_doc_js = js;
+        
+        var lst = [];
+        for(var i = 0; i < js.lst.length; i++) {
+            var r = js.lst[i];
+
+            var cls = '';
+            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+            else if(r.sc_flag &${ REC_FLAG_CHANGED}) cls = ' doc_changed';
+            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
+            else cls = ' doc_pending';
+            
+            lst.push(
+                $('<div class="prntbl_row'+cls+'"></div>')
+                .append( $('<div><input type="checkbox" value="'+i+'" /></div>') )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
+                .append( $('<div onclick="locate('+i+')"></div>').text(r.cust_nz) )
+                .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+            );
+            
+            r.marker = r['doc_geo'] ? new google.maps.Marker({position: new google.maps.LatLng(r['doc_geo'][1], r['doc_geo'][2]), map: g_map}) : null;
+            
+            g_v_doc_lst.append(lst);
+        }
+        
+    }, undefined, undefined, undefined, '__load_doc_lst__');
+    
+}
+
+
+
+
+$(function() {
+
+g_v_dlg_view_doc = $('#dlg_view_doc').dialog({
+    autoOpen: false,
+    width:730,
+    height:600,
+});
+g_v_doc_wnd = g_v_dlg_view_doc.children('iframe');
+
+g_v_doc_lst = $('.doc_lst >.prntbl_cnt');
+
+g_map = new google.maps.Map(document.getElementById("map_canvas"),
+                            {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
+        );
+
+%if dt:
+load_doc_lst(${dt}, -1, 0);
+%endif
+
+});
 
 </script>
     
 
 <style type="text/css">
+.ui-widget {font-size:18px;}
+
+#doc_lst {position:absolute;top:0;width:390px;bottom:0;left:0;}
+#map_canvas {position:absolute;top:0;right:0;bottom:0;left:390px;}
+
+.doc_lst {top:0px;bottom:0;left:0;right:0}
+.doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
+.doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
+.doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
+.doc_lst .prntbl_row >div:nth-child(4) {width:90px}
+.doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
+
+.doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91);}
+.doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
+.doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032;}
+.doc_lst .doc_changed >div:nth-child(3) {background-color:rgb(243,226,199);}
+
+#dlg_view_doc > iframe {border:0;margin:0;padding:0;position:absolute;top:0;right:0;width:740px;height:100%;}
 
 </style>
 
 </head>
 <body>
 
-<div id="map-canvas" style="position:absolute;top:0;right:0;bottom:0;left:0"></div>
+<div id="doc_lst">
+<div class="prntbl doc_lst">
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
+<div id="map_canvas"></div>
+
+<div id="dlg_view_doc"><iframe></iframe></div>
 
 </body>
 </html>

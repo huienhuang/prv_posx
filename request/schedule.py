@@ -523,17 +523,21 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_loc = {}
         if locs:
-            cur.execute('select loc,zone_id from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
-            for r in cur.fetchall(): d_loc[ r[0] ] = r[1]
+            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
+            for r in cur.fetchall(): d_loc[ r[0] ] = (r[1], str(r[2]), str(r[3]))
         
         lst = []
         for r in sc_lst:
-            zid = r['doc_loc'] != None and d_loc.get(r['doc_loc_dc']) or 0
+            zid = 0
+            geo = None
+            if r['doc_loc'] != None: geo = d_loc.get(r['doc_loc_dc'])
+            zid = geo and geo[0] or 0
             if zone_id >= 0 and zid != zone_id: continue
             
             doc_js = r['doc_js']
             doc_data = r['doc_data']
 
+            r['doc_geo'] = geo
             r['zone_id'] = zid
             r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
             r['num'] = doc_data[1]
@@ -541,8 +545,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_date'] = doc_data[3]
             r['doc_amt'] = doc_js['total']
             
-            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != doc_js.get('crc', 0):
-                r['sc_flag'] |= REC_FLAG_CHANGED
+            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != doc_js.get('crc', 0): r['sc_flag'] |= REC_FLAG_CHANGED
             
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
             r['doc_sid'] = str(r['doc_sid'])
@@ -671,5 +674,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
     
     def fn_map(self):
-        self.req.writefile('schedule_map.html')
+        dt = self.qsv_int('dt')
+        r = {
+            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
+            'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
+            'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
+            'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
+            'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
+            'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
+            'dt': self.qsv_int('dt'),
+        }
+        
+        self.req.writefile('schedule_map.html', r)
+        
         

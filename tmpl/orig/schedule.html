@@ -6,6 +6,16 @@
 
 <script type="text/javascript">
 g_last_upd_seq = ${sc_upd_seq};
+g_map_wnd = null;
+
+function load_map(dt)
+{
+    if(!g_map_wnd || !g_map_wnd.window || !g_map_wnd.window.load_doc_lst) {
+        g_map_wnd = window.open('?fn=map&dt=' + dt,'posx_map','location=0');
+    } else {
+        g_map_wnd.window.load_doc_lst(dt, -1, 0);
+    }
+}
 
 function load_doc(i, auto_print)
 {
@@ -49,12 +59,15 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         for(var i = 0; i < js.lst.length; i++) {
             var r = js.lst[i];
             if(k < 0 && reload && o_sc_id === r.sc_id) k = i;
+            
+            var cls = '';
+            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+            else if(r.sc_flag &${ REC_FLAG_CHANGED}) cls = ' doc_changed';
+            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
+            else cls = ' doc_pending';
+            
             lst.push(
-                $('<div class="prntbl_row'
-%if has_perm_delivery_mgr:
-                +(r.sc_flag & ${REC_FLAG_CHANGED} ? ' doc_changed' : '')
-%endif
-                  +(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'"></div>')
+                $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
@@ -122,7 +135,7 @@ function load_overview_cb(js)
     $(ocs).remove();
     
     var l_o = [];
-    for(var j = 0; j < dt.length; j++) l_o.push($('<div></div>').text(dt[j][0]));
+    for(var j = 0; j < dt.length; j++) l_o.push($('<div onclick="return load_map('+dt[j][3]+')"></div>').text(dt[j][0]));
     g_v_t_top_hdr.append( $('<div class="t_row"></div>').append(l_o) );
     
 }
@@ -503,7 +516,7 @@ load_overview();
 .x_body .t_row {height:39px;white-space:nowrap}
 .x_body .t_row > div {display:inline-block;width:138px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
 .x_body .t_left_hdr .t_row > div {width:158px}
-.x_body .t_body .t_row > div {cursor:pointer}
+.x_body .t_body .t_row > div, .x_body .t_top_hdr .t_row > div {cursor:pointer}
 
 .ovc_default {margin-right:4px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid rgb(242,130,91);border-radius:5px;padding:2px 4px;background:rgb(242,130,91);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(242,130,91,1)), color-stop(50%,rgba(229,91,43,1)), color-stop(100%,rgba(240,113,70,1)));}
 .ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
