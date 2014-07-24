@@ -11,10 +11,6 @@ cid__sync_last_cj_id = 50002
 cid__sync_last_fs_id = 50003
 
 
-#10.0.1.188/255.255.255.0
-server_network = [ ip2ulong('10.0.1.38'), ip2ulong('255.255.255.0'), 0 ]
-server_network[2] = server_network[0] & server_network[1]
-
 PRICE_LEVELS = ['Regular Price', 'Wholesale 1', 'Wholesale 2', 'special', 'Dealer Price']
 
 
@@ -45,15 +41,6 @@ USER_PERM_BIT = {
 'sys': 30,
 'admin': 31,
 }
-
-
-
-APP_DIR = r'C:\www\data'
-DATA_DIR = os.path.join(APP_DIR, 'data')
-LOG_DIR = os.path.join(APP_DIR, 'log')
-
-SFILE_DIR = r'D:\file'
-
 
 settings = {
 'mode': 'developer',
