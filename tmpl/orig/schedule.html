@@ -22,6 +22,7 @@ function load_doc(i, auto_print)
 function load_doc_lst(dt, zidx, reload, auto_print)
 {
     var o_sc_id = 0;
+    var pre_sel = {};
     if(reload) {
         var o_jsd = g_v_dlg_documents.data('jsd');
         if(!o_jsd) return;
@@ -31,6 +32,9 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             var o_r = o_jsd.lst[o_jsd.cur_sel];
             o_sc_id = o_r.sc_id;
         }
+        var cbs = o_jsd.v_cbs.filter(':checked');
+        for(var i = 0; i < cbs.length; i++) pre_sel[ o_jsd.lst[ parseInt($(cbs[i]).val()) ].sc_id ] = 1;
+        
     } else
         g_v_dd_doc_lst_body.empty();
     
@@ -51,7 +55,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 +(r.sc_flag & ${REC_FLAG_CHANGED} ? ' doc_changed' : '')
 %endif
                   +(r.sc_flag & ${REC_FLAG_CANCELLING} ? ' doc_cancelling' : (r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' doc_accepted' : ' doc_pending'))+'"></div>')
-                .append( $('<div><input type="checkbox" value="'+i+'" /></div>') )
+                .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
