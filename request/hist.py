@@ -394,15 +394,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         r['round_ex'] = config.round_ex
         
-        r['comment'] = comment = []
-        cur.execute('select ts,name,flag,comment from receipt_comment where sid=%s and sid_type=0 order by rc_id asc', (r['r_sid'],))
-        for x in cur.fetchall():
-            comment.append((
-                time.strftime("%m/%d/%y %I:%M:%S %p", time.localtime(x[0])),
-                x[1],
-                x[2],
-                x[3]
-            ))
+        r['d_notes'] = d_notes = []
+        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
+                    1, r['r_sid']
+            )
+        )
+        for rr in cur.fetchall():
+            rr = list(rr)
+            rr[0] = time.strftime("%m/%d/%y %I:%M %p", time.localtime(rr[0]))
+            d_notes.append(rr)
         
         cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num=%s order by r.d_id desc', (r['r_num'],))
         nzs = cur.column_names

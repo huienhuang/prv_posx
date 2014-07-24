@@ -137,7 +137,7 @@ def srv_location(cur):
             js['addr'] = f_addr
             zone_id = get_zone_id(lat,lng)
             cur.execute('update address set flag=%s,zone_id=%s,lts=%s,lat=%s,lng=%s,js=%s where loc=%s', (
-                res, zone_id, int(time.time()), lat, lng, json.dumps(js, separators=(',',':')), loc
+                1, zone_id, int(time.time()), lat, lng, json.dumps(js, separators=(',',':')), loc
                 )
             )
             c += 1

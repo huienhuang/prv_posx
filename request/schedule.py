@@ -30,7 +30,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_default(self):
         r = {
             'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
-            'zones': [ f_x[0] for f_x in ZONES ],
+            'zones': [ (f_x[0], f_x[2]) for f_x in ZONES ],
             'has_perm_delivery_mgr': DELIVERY_MGR_PERM,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
@@ -56,24 +56,31 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('select * from schedule where sc_id=%s and sc_date>=%s', (sc_id, d_date))
         rows = cur.fetchall()
         if not rows: return
-        row = dict(zip(cur.column_names, rows[0]))
+        r = dict(zip(cur.column_names, rows[0]))
         
-        if row['sc_flag'] & REC_FLAG_CANCELLING:
+        if r['sc_flag'] & REC_FLAG_CANCELLING:
             self.req.exitjs({'err': -11, 'err_s': 'Cancellation is pending'})
         
-        if row['sc_flag'] & REC_FLAG_ACCEPTED:
+        m,d = divmod(r['sc_date'], 100)
+        y,m = divmod(m, 100)
+        
+        d_note = None
+        if r['sc_flag'] & REC_FLAG_ACCEPTED:
             cur.execute('update schedule set sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
-                REC_FLAG_CANCELLING, sc_id, row['sc_rev'], REC_FLAG_ACCEPTED
+                REC_FLAG_CANCELLING, sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
+            d_note = 'Deleting From Schedule[%d] (%02d/%02d/%02d), Waiting For Confirmation' % (r['sc_id'], m, d, y)
         else:
             cur.execute('delete from schedule where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                sc_id, row['sc_rev'], REC_FLAG_ACCEPTED
+                sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
+            d_note = 'Deleted From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
             
         err = int(cur.rowcount <= 0)
         if not err:
+            if d_note: self.add_notes(([r['doc_type'], r['doc_sid'], d_note],))
             self.inc_seq()
         
         self.req.writejs({'err': err})
@@ -83,6 +90,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         docs = self.get_docs_by_sc_ids(sc_ids)
         #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
         
+        d_notes = []
         cur = self.cur()
         c = 0
         for r in docs:
@@ -90,9 +98,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0', (
                 r['sc_id'], REC_FLAG_CANCELLING
             ))
-            if cur.rowcount > 0: c += 1
+            if cur.rowcount > 0:
+                c += 1
+                m,d = divmod(r['sc_date'], 100)
+                y,m = divmod(m, 100)
+                d_notes.append([r['doc_type'],
+                                r['doc_sid'],
+                                'Confirmed Deleting From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
+                ])
     
-        if c: self.inc_seq()
+        if c:
+            if d_notes: self.add_notes(d_notes)
+            self.inc_seq()
+            
         i_warning_s = None
         if len(sc_ids) != c: i_warning_s = '%d out of %d processed' % (c, len(sc_ids))
         
@@ -225,8 +243,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if err:
             self.req.exitjs({'err': -2, 'err_s': "document #%s - can't make any update" % (d_num, )})
         else:
-            self.inc_seq()
             if d_note: self.add_notes(([d_type, d_sid, d_note],))
+            self.inc_seq()
         
         self.req.exitjs({'err': err, 'sc_id': sc_id})
     
@@ -241,7 +259,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sc_lst = []
         
         cur = self.cur()
-        cur.execute('select ' + (full and '*' or 'sc_id,doc_type,doc_sid') + ' from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
+        cur.execute('select ' + (full and '*' or 'sc_id,sc_date,doc_type,doc_sid') + ' from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -301,15 +319,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
         
         cur = self.cur()
+        d_notes = []
         c = 0
         for r in docs:
             crc = json.loads(r['doc'][2]).get('crc', 0)
             cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_flag&%s=0', (
                 REC_FLAG_ACCEPTED, crc, r['sc_id'], REC_FLAG_ACCEPTED
             ))
-            if cur.rowcount > 0: c += 1
+            if cur.rowcount > 0:
+                c += 1
+                m,d = divmod(r['sc_date'], 100)
+                y,m = divmod(m, 100)
+                d_notes.append([r['doc_type'],
+                                r['doc_sid'],
+                                'Accepted From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
+                ])
     
-        if c: self.inc_seq()
+        if c:
+            if d_notes: self.add_notes(d_notes)
+            self.inc_seq()
+            
         i_warning_s = None
         if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
         
@@ -406,7 +435,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         zones = []
         for j in range(len(ZONES)):
-            z,s = ZONES[j]
+            z,s = ZONES[j][:2]
             f = [0,] * len(n_dt)
             zones.append( (0, f) )
             for i in range(len(n_dt)):
@@ -572,7 +601,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 elif d_status == 2:
                     type_s += ' - Reversing'
                     
-                count_s = 'Item %d, Qty %0.1f' % (gjs['itemcount'], config.round_ex(gjs['qtycount'], 1))
+                count_s = 'Item %d, Qty %d' % (gjs['itemcount'], int(gjs['qtycount']))
             else:
                 if (r['flag'] >> 8) & 0xFF:
                     type_s = 'UNK - '
@@ -587,10 +616,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     type_s += 'Pending'
                 if (r['flag'] >> 16) & 0xFF: type_s += ' - **Deleted**'
             
-                count_s = 'Item %d, Qty %0.1f/%0.1f' % (
+                count_s = 'Item %d, Qty %d / %d' % (
                     gjs['itemcount'],
-                    config.round_ex(gjs['sentcount'], 1),
-                    config.round_ex(gjs['qtycount'], 1)
+                    int(gjs['sentcount']),
+                    int(gjs['qtycount'])
                 )
             
             r['type_s'] = type_s

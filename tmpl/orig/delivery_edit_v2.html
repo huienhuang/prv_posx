@@ -164,12 +164,19 @@ function get_instruction_content()
     return o;
 }
 
-function new__receipt_tbl_row(pos, rec)
+function update_row_rec(rec_v, rec)
 {
     rec = rec || {};
     if(rec.js === undefined) rec.js = {};
     
-    var rec_v = g_v_receipt_tbl_row_tmpl.clone().show().data('rec', rec);
+    rec_v.data('rec', rec);
+}
+
+function new__receipt_tbl_row(pos, rec)
+{
+    var rec_v = g_v_receipt_tbl_row_tmpl.clone().show();
+    update_row_rec(rec_v, rec);
+    
     rec_v.children('.rec_pos').text(pos);
     
     rec_v.children('.rec_num').tooltip({
@@ -265,7 +272,10 @@ function click_save__data_input()
                     
                     if(rec && rec.num) delete g_recs[rec.num];
                     rec = n_rec;
-                    if(!rec_v) rec_v = add_new_row(rec);
+                    if(rec_v)
+                        update_row_rec(rec_v, rec);
+                    else
+                        rec_v = add_new_row(rec);
                     g_recs[num] = rec;
                     
                     rec['type'] = 0;

@@ -186,11 +186,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs({'rec': r})
 
     def add_comment(self, rid, c_type, user_name, comment):
-        cur = self.cur()
-        cur.execute('insert into receipt_comment values (null,%s,%s,%s,%s,%s,%s)', (
-            rid[0], rid[1], int(time.time()), c_type, user_name or self.user_name, comment
-            )
-        )
+        #cur = self.cur()
+        #cur.execute('insert into receipt_comment values (null,%s,%s,%s,%s,%s,%s)', (
+        #    rid[0], rid[1], int(time.time()), c_type, user_name or self.user_name, comment
+        #    )
+        #)
+        self.cur().execute('insert into doc_note values(null,'+str(int(time.time()))+',%s,%s,0,'+str(self.user_id)+',%s)', (rid[1] and 2 or 1, rid[0], comment))
 
     def get_day_ts(self, ts):
         tp = time.localtime(ts or None)

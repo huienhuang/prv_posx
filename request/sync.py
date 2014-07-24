@@ -248,6 +248,16 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         nzs = cur.column_names
         r['r_ref_receipts'] = [ dict(zip(nzs, f_row)) for f_row in cur.fetchall() ]
         
+        r['d_notes'] = d_notes = []
+        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
+                    0, r['r_sid']
+            )
+        )
+        for rr in cur.fetchall():
+            rr = list(rr)
+            rr[0] = time.strftime("%m/%d/%y %I:%M %p", time.localtime(rr[0]))
+            d_notes.append(rr)
+        
         r['r_delivery_date'] = ''
         cur.execute('select delivery_date,delivery_zip from salesorder where sid=%s and delivery_date!=0', (r['r_sid'],))
         rows = cur.fetchall()

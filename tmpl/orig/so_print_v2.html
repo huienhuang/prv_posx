@@ -95,10 +95,18 @@ body {min-width:952px;margin:0;background-color:white;font-family:"Times New Rom
 .cls_redcolor {color:red}
 
 
+.p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
+.p_doc_note >div {padding-left:100px;margin:2px 0}
+.p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
+.p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
+.p_doc_note .doc_note_type_1 {color:#418c46}
+
+
 @media print {
 .maincnt {margin:0 auto;}
 .custinfo > div, .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
 .memocnt {display:none}
+.p_doc_note {display:none}
 .cls_redcolor {color:#000}
 .ctrlcnt {display:none}
 }
@@ -306,6 +314,13 @@ shipping_total = r_global['shipping']['amt'] + r_global['shipping']['taxamt']
 </div>
 
 
+%if d_notes:
+<div class="p_doc_note">
+%for n in d_notes:
+<div title="${n[0]|h}" class="doc_note_type_${n[1]&1}"><div>${n[3]|h}:</div><div>${n[2]|h}</div></div>
+%endfor
+</div>
+%endif
 
 </div>
 

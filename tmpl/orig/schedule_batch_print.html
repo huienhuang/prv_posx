@@ -4,9 +4,17 @@
 <%include file="header_inc_v4.html" />
 <title>POSX - Schedule - Batch Print</title>
 
+%if view_only:
+<script>
+$(function() {
+$(document).tooltip();
+})
+</script>
+%endif
+
 <style type="text/css">
 
-.p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px}
+.p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px;position:relative;}
 .p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:26px;}
 .p_doc_meta >div {position:absolute;top:0;bottom:0;text-align:center}
 .p_doc_meta >div:nth-child(1) {width:200px;right:300px}
@@ -37,15 +45,36 @@
 .prntbl .prntbl_row_ftr {height:0px;border-bottom:none}
 .prntbl .prntbl_row >div:last-child {border-right:none}
 .prntbl .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(2) {width:130px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(3) {width:417px}
-.prntbl .prntbl_row >div:nth-child(4) {width:100px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(3) {width:130px;font-weight:bold}
 
-.p_doc_note {}
-.p_doc_note >div {}
+%if view_only:
+.prntbl .prntbl_row >div:nth-child(2) {width:437px}
+.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
+%else:
+.prntbl .prntbl_row >div:nth-child(2) {width:407px}
+.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(5) {width:29px}
+%endif
+
+%if view_only:
+.p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
+.p_doc_note >div {padding-left:100px;margin:2px 0}
+.p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
+.p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
+.p_doc_note .doc_note_type_1 {color:#418c46}
+%else:
+.p_doc_signature {display:none}
+.p_doc_signature .xlabel {position:absolute;width:320px;margin:0}
+.p_doc_signature .xlabel > div:nth-child(1) {width:125px}
+.p_doc_signature .xlabel > div:nth-child(2) {left:135px;border-bottom:1px solid #000}
+.p_doc_signature .xlabel:nth-child(1) {right:330px;}
+.p_doc_signature .xlabel:nth-child(2) {right:0px;}
+%endif
 
 @media print {
 div {border-color:#000 !important}
+.prntbl {-webkit-print-color-adjust:exact}
+.p_doc_signature {display:block}
 }
 @page {
 margin:60px 50px;
@@ -144,18 +173,19 @@ cust = gjs['shipping']
 %endif
 
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>ALU</div><div>Name</div><div>Qty</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>ALU</div><div>Qty</div>${not view_only and '<div>CK</div>' or ''}</div>
 <div class="prntbl_cnt">
 %for t in r['ijs']:
 <div class="prntbl_row">
 <div>${t['itemno'] or ''}</div>
-<div>${t['alu']|h}</div>
 <div>${t['desc1']|h}</div>
+<div>${t['alu']|h}</div>
 %if r['doc_type']:
-<div>${round_ex(t['qty'],1)}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+<div>${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
 %else:
-<div>${round_ex(t['qtysent'],1)}/${round_ex(t['qty'],1)}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+<div>${int(t['qtysent'])} / ${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
 %endif
+${not view_only and '<div></div>' or ''}
 </div>
 %endfor
 </div>
@@ -165,8 +195,15 @@ cust = gjs['shipping']
 %if view_only and r['notes']:
 <div class="p_doc_note">
 %for n in r['notes']:
-<div><div>${n[0]|h}</div><div>${n[3]|h}</div><div>${n[2]|h}</div></div>
+<div title="${n[0]|h}" class="doc_note_type_${n[1]&1}"><div>${n[3]|h}:</div><div>${n[2]|h}</div></div>
 %endfor
+</div>
+%endif
+
+%if not view_only:
+<div class="p_doc_signature">
+<div class="xlabel"><div>拾货:</div><div></div></div>
+<div class="xlabel"><div>检查:</div><div></div></div>
 </div>
 %endif
 

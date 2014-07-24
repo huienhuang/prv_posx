@@ -83,7 +83,7 @@ for k,v in ITEM_L_DEPT: ITEM_D_CATE.setdefault(v, []).append(k)
 ITEM_L_CATE = ITEM_D_CATE.items()
 ITEM_L_CATE.sort(key=lambda f_v: f_v[0])
 
-
+"""
 ZONES = (
     ('*Other*', set([]), ),
     ('Downtown', set([ 0, 2 , 4]), ),
@@ -99,6 +99,20 @@ ZONES = (
     ('Peninsula', set([ 1, 3]), ),
     
     ('NorthBay', set([ 1, 4]), ),    
+)
+"""
+
+ZONES = (
+    ('*Other*', set([]), None),
+    ('SF East', set([ 0, 2 , 4]), 'Downtown, Chinatown, Fisherman'),
+    ('SF West', set([ 0, 2, 4 ]), 'GoldenGate, Richmond, Sunset'),
+    ('Mission', set([ 0, 2, 4 ]), None),
+    
+    ('Eastbay', set([ 1, 3]), 'Albany,Emeryville,Berkeley,Oakland,Alameda,San Leandro'),
+    ('Southbay', set([ 1, 3]), 'San Jose, Santa Clara, Palo Alto, Mountain View, Sunnyvale'),
+    ('Peninsula', set([ 1, 3]), 'GlenPark, Daily City, San Bruno, San Mateo, Millbrae'),
+    
+    ('NorthBay', set([ 1, 4]), 'Mill Valley, San Rafael, Vallejo'),    
 )
 
 

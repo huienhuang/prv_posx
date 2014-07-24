@@ -450,7 +450,7 @@ g_v_x_body = $('.x_body').scroll(function() {
     if(g_v_t_left_hdr.position().left !== sl) g_v_t_left_hdr.css('left', sl);
 });
 g_v_t_top_hdr = $('.t_top_hdr', g_v_x_body);
-g_v_t_left_hdr = $('.t_left_hdr', g_v_x_body);
+g_v_t_left_hdr = $('.t_left_hdr', g_v_x_body).tooltip();
 g_v_t_body = $('.t_body', g_v_x_body);
 
 
@@ -546,7 +546,7 @@ load_overview();
 <div class="t_top_hdr"></div>
 <div class="t_left_hdr">
 %for z in zones:
-<div class="t_row"><div>${z|h}</div></div>
+<div class="t_row" title="${z[1] or ''|h}"><div>${z[0]|h}</div></div>
 %endfor
 </div>
 <div class="t_body"></div>
