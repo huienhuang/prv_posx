@@ -100,7 +100,7 @@ function load_overview_cb(js)
             else if(zfd === -1)
                 s_cls = ' class="dd_close"';
                 
-            var oo = $('<div'+(s_cls || '')+' onclick="load_doc_lst('+dtj[3]+','+i+')">&nbsp;</div>');
+            var oo = $('<div'+(s_cls || '')+' onclick="load_doc_lst('+dtj[3]+','+(i-1)+')">&nbsp;</div>');
             l_oo.push(oo);
             if(z) {
                 if(z[0]) oo.append( $('<div class="ovc_default ovc_pending"></div>').text(z[0]) );
@@ -545,6 +545,7 @@ load_overview();
 <div class="x_body">
 <div class="t_top_hdr"></div>
 <div class="t_left_hdr">
+<div class="t_row"><div>All</div></div>
 %for z in zones:
 <div class="t_row" title="${z[1] or ''|h}"><div>${z[0]|h}</div></div>
 %endfor

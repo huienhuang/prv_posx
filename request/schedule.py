@@ -17,6 +17,7 @@ REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_RESCHEDULED = 1 << 1
 REC_FLAG_CANCELLING = 1 << 2
 REC_FLAG_CHANGED = 1 << 3
+REC_FLAG_DUPLICATED = 1 << 4
 
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
@@ -36,6 +37,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
+            'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
             'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
             'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
@@ -402,6 +404,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         l_dt = d_dt.items()
         l_dt.sort(key=lambda f_x: f_x[0])
+        for dt,dd in l_dt:
+            za = [0, 0, 0, 0, 0]
+            for z in dd:
+                if not z: continue
+                for i in range(len(z)): za[i] += z[i] or 0
+            dd.insert(0, za)
         
         dt_1 = datetime.timedelta(1)
         n_dt = []
@@ -433,7 +441,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 n_dt.append( (sdt.strftime("%a (%m/%d)"), None, wd, sdt.year  * 10000 + sdt.month * 100 + sdt.day) )
             sdt = sdt + dt_1
         
-        zones = []
+        zones = [ (0, [0,] * len(n_dt)) ]
         for j in range(len(ZONES)):
             z,s = ZONES[j][:2]
             f = [0,] * len(n_dt)
@@ -547,6 +555,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         dt = self.qsv_int('dt')
         zone_id = self.qsv_int('zone_id')
         clerk_id = self.qsv_int('clerk_id')
+        if zone_id >= len(ZONES): return
         
         m,d = divmod(dt, 100)
         y,m = divmod(m, 100)
@@ -554,18 +563,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
         
         ss = 0
-        cur = self.cur()
-        cur.execute('select ss_val from schedule_special where ss_date=%s and ss_zidx=%s', (dt, zone_id))
-        rows = cur.fetchall()
-        if rows:
-            ss = rows[0][0]
-        elif date.weekday() in ZONES[zone_id][1]:
-            ss = 1
+        if zone_id > 0:
+            cur = self.cur()
+            cur.execute('select ss_val from schedule_special where ss_date=%s and ss_zidx=%s', (dt, zone_id))
+            rows = cur.fetchall()
+            if rows:
+                ss = rows[0][0]
+            elif date.weekday() in ZONES[zone_id][1]:
+                ss = 1
         
         self.req.writejs({
             'state': ss,
             'date': dt,
-            'zone_nz': ZONES[zone_id][0],
+            'zone_nz': zone_id < 0 and 'All' or ZONES[zone_id][0],
             'zone_id': zone_id,
             'lst': self.get_docs(dt, zone_id, clerk_id, 0)
         })
@@ -659,4 +669,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writefile('schedule_batch_print.html', r)
         
+    
+    def fn_map(self):
+        self.req.writefile('schedule_map.html')
         
