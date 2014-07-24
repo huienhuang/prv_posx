@@ -15,12 +15,7 @@ import winlib
 
 
 def default_stop_pending(): return 0
-try:
-    import pysrv
-    stop_pending = pysrv.stop_pending
-except Exception, e:
-    stop_pending = default_stop_pending
-
+stop_pending = default_stop_pending
 
 def get_zone_id(lat, lng):
     idx = winlib.find_boundary(lng, lat)
@@ -63,6 +58,13 @@ def thread_srv(func, tms=600):
 ZONE_IDX_MAP = []
 
 def main():
+    global stop_pending
+    try:
+        import pysrv
+        stop_pending = pysrv.stop_pending
+    except Exception, e:
+        print e, "fallback -> default_stop_pending"
+    
     print __file__, ' > start'
     
     ###

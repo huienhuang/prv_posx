@@ -202,6 +202,8 @@ int main(int argc, char *argv[])
 		PyList_Insert(path, 0, s);
 		Py_DECREF(s);
 
+		Py_InitModule("pysrv", pysrv_methods);
+
 		g_py_module = PyImport_ImportModule(mnz);
 		if(!g_py_module) {
 			PySys_WriteStderr("Error:PyImport_ImportModule\n");
@@ -216,8 +218,6 @@ int main(int argc, char *argv[])
 			Py_Finalize();
 			return 1;
 		}
-
-		Py_InitModule("pysrv", pysrv_methods);
 
 		SERVICE_TABLE_ENTRY srv_tbl[] = {
 			{"", srv_main},
