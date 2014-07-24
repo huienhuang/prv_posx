@@ -31,7 +31,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = {
             'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
             'zones': [ (f_x[0], f_x[2]) for f_x in ZONES ],
-            'has_perm_delivery_mgr': DELIVERY_MGR_PERM,
+            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
