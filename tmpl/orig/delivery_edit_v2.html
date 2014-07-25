@@ -1050,7 +1050,6 @@ g_v_ctrl.children('input[value="add"]').click(new_ex__data_input);
 g_v_ctrl.children('input[value="new"]').click(function(){ window.location='?fn=delivery_edit'; });
 g_v_ctrl.children('input[value="save"]').click(save_delivery_record);
 g_v_ctrl.children('input[value="delete"]').click(delete_delivery_record);
-g_v_ctrl.children('input[value="map"]').click(load_map);
 
 g_v_delivery_name.change(function() { delivery_record_changed(); });
 g_v_delivery_date.change(function() { delivery_record_changed(); });
@@ -1080,6 +1079,8 @@ window.onbeforeunload = function(e) {
 
 %endif
 
+
+g_v_ctrl.children('input[value="map"]').click(load_map);
 
 $('.tab_ctrl, .receipt_tbl_header').tooltip();
 
