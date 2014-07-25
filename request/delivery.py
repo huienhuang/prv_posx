@@ -689,9 +689,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
             for r in cur.fetchall(): d_loc[ r[0] ] = (r[1], str(r[2]), str(r[3]))
         
-            for r in dr.recs:
+            for r in dr['recs']:
                 geo = d_loc.get(r['loc'])
-                r['geo'] = ( geo[0], str(geo[1]), str(geo[2]) )
+                if geo: r['geo'] = ( geo[0], str(geo[1]), str(geo[2]) )
                 r['loc'] = None
         
         dr['lst'] = dr['recs']
