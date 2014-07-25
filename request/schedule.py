@@ -686,6 +686,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'dt': self.qsv_int('dt'),
         }
         
-        self.req.writefile('map_schedule.html', r)
+        self.req.writefile('schedule_map.html', r)
         
         

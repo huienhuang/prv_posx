@@ -28,7 +28,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_get_delivery_record(self):
         d_id = self.req.qsv_int('d_id')
         if not d_id: return
-        
+        self.req.writejs( self.get_delivery_record(d_id) )
+    
+    def get_delivery_record(self, d_id, mode=0):
         cur = self.cur()
         cur.execute('select * from deliveryv2 where d_id=%s', (d_id,))
         rows = cur.fetchall()
@@ -56,7 +58,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             cur.execute('select sid,name,detail from sync_customers where sid in (%s)' % (','.join(map(str,cids)),))
             for r in cur.fetchall():
                 cust_gjs = r[2] and json.loads(r[2]) or {}
-                cids_lku[ r[0] ] = {'company': r[1], 'terms': cust_gjs.get('udf5') or ''}
+                cids_lku[ r[0] ] = {'company': r[1], 'terms': cust_gjs.get('udf5') or '', 'gjs': cust_gjs}
         
         msgs = []
         recs = []
@@ -72,13 +74,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             
                 cid = r.get('cid')
                 r['global_js'] = r.has_key('global_js') and json.loads(r['global_js']) or {}
+                if mode: r['gjs'] = r['global_js']
+                
                 r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
                 r['amount'] = r['global_js'].get('total') or 0
-                r['global_js'] = ''
                 r['sid'] = r.get('sid') != None and str(r['sid']) or ''
                 r['cid'] = cid != None and str(cid) or ''
                 l['js'] = r.get('js') != None and json.loads(r['js']) or {}
                 if cid and cids_lku.has_key(cid): r['terms'] = cids_lku[cid]['terms']
+                r['global_js'] = None
                 
             else:
                 r = cids_lku.get(l['cid'])
@@ -87,7 +91,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                     r = {}
                 l['payment_required'] = 1
                 l['cid'] = str(l['cid'])
-            
+                if not mode: r['gjs'] = None
+                
             r.update(l)
             recs.append(r)
         
@@ -98,8 +103,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dv['js'] = ''
         dv['recs'] = recs
         dv['msg'] = '\n'.join(msgs)
-        self.req.writejs(dv)
-    
+        
+        return dv
     
     def fn_get_delivery_record_list(self):
         ret = {'res':{'len':0, 'apg':[]}}
@@ -651,4 +656,53 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         return md
 
+
+    def fn_get_drec(self):
+        d_id = self.req.qsv_int('d_id')
+        if not d_id: return
+        
+        cur = self.cur()
+        locs = set()
+        
+        dr = self.get_delivery_record(d_id, 1)
+        for r in dr['recs']:
+            loc = None
+            if r['type']:
+                if r['gjs']:
+                    loc = r['gjs'].get('loc')
+            else:
+                if r['gjs']:
+                    if r['gjs']['shipping']:
+                        loc = r['gjs']['shipping'].get('loc')
+                    elif r['gjs']['customer']:
+                        loc = r['gjs']['customer'].get('loc')
+        
+            if loc != None:
+                loc = base64.b64decode(loc)
+                locs.add(loc)
+            
+            r['loc'] = loc
+            r['gjs'] = None
+        
+        d_loc = {}
+        if locs:
+            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
+            for r in cur.fetchall(): d_loc[ r[0] ] = (r[1], str(r[2]), str(r[3]))
+        
+            for r in dr.recs:
+                geo = d_loc.get(r['loc'])
+                r['geo'] = ( geo[0], str(geo[1]), str(geo[2]) )
+                r['loc'] = None
+        
+        dr['lst'] = dr['recs']
+        dr['recs'] = None
+        self.req.writejs(dr)
+
+    def fn_map(self):
+        d_id = self.qsv_int('d_id')
+        r = {
+            'd_id': d_id,
+        }
+        
+        self.req.writefile('map_delivery.html', r)
 

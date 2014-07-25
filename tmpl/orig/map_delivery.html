@@ -2,7 +2,7 @@
 <html>
 <head>
 <%include file="header_inc_v4.html" />
-<title>POSX - Delivery Map</title>
+<title>POSX - Schedule Map</title>
 
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgOdCwrMp6iW9YdoC8bCVmFVwuHghE0ug"></script>
 <script type="text/javascript">
@@ -40,8 +40,9 @@ function load_doc(i)
     if(!g_doc_js.lst[i]) return;
     var r = g_doc_js.lst[i];
     
+    if(!r.sid) return;
     g_v_dlg_view_doc.dialog('open');
-    g_v_doc_wnd.attr('src', '?fn=print&view_only=1&sc_ids=' + r.sc_id);
+    g_v_doc_wnd.attr('src', 'hist?fn=printreceipt&rid=' + r.sid);
 }
 
 function chg_doc_cb()
@@ -62,8 +63,14 @@ function chg_doc_cb()
         marker.setIcon('img/marker/orange_'+(i+1)+'.png');
 }
 
-function load_doc_lst(dt, zidx, clerk_id)
+function int2date_s(i) {
+    var s = i + '';
+    return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+}
+
+function load_doc_lst(d_id)
 {
+    g_v_doc_lst_ftr.empty();
     g_v_doc_lst.empty();
     if(g_doc_js) {
         for(var i = 0; i < g_doc_js.lst.length; i++) {
@@ -76,7 +83,7 @@ function load_doc_lst(dt, zidx, clerk_id)
     }
     g_doc_js = null;
     
-    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, clerk_id: clerk_id, sort_reg: 1}, function(js) {
+    get_js_ex('?fn=get_drec', {d_id: d_id}, function(js) {
         g_doc_js = js;
         
         var lst = [];
@@ -84,26 +91,20 @@ function load_doc_lst(dt, zidx, clerk_id)
             var r = js.lst[i];
             //r.i = i;
             
-            var cls = '';
-            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
-            else if(r.sc_flag &${ REC_FLAG_CHANGED}) cls = ' doc_changed';
-            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
-            else cls = ' doc_pending';
-            
             lst.push(
-                $('<div class="prntbl_row'+cls+'"></div>')
+                $('<div class="prntbl_row"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'" checked="checked" /></div>') )
                 .append( $('<div>'+(i+1)+'</div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
-                .append( $('<div onclick="locate('+i+')"></div>').text(r.cust_nz) )
-                .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num) )
+                .append( $('<div onclick="locate('+i+')"></div>').text(r.company) )
+                .append( $('<div></div>').text(r.amount.toFixed(2)) )
             );
             r.selected = 1;
             
             r.marker = null;
-            if(r['doc_geo']) {
+            if(r['geo']) {
                 r.marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(r['doc_geo'][1],r['doc_geo'][2]),
+                    position: new google.maps.LatLng(r['geo'][1],r['geo'][2]),
                     map: g_map,
                     icon: 'img/marker/blue_'+(i+1)+'.png',
                 });
@@ -120,6 +121,9 @@ function load_doc_lst(dt, zidx, clerk_id)
             js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
         }
         
+        
+        g_v_doc_lst_ftr.text('ID: ' + js.d_id + ', Date: ' + fmt_date(js.ts) + ', Total: ' + js.lst.length);
+        
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
 }
@@ -128,7 +132,7 @@ $(function() {
 
 g_v_dlg_view_doc = $('#dlg_view_doc').dialog({
     autoOpen: false,
-    width:730,
+    width:980,
     height:600,
 });
 g_v_doc_wnd = g_v_dlg_view_doc.children('iframe');
@@ -138,13 +142,14 @@ $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
     if(!g_doc_js) return;
     g_doc_js.v_cbs.prop('checked', $(this).prop('checked')).change();
 });
+g_v_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div');
 
 g_map = new google.maps.Map(document.getElementById("map_canvas"),
                             {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
         );
 
-%if dt:
-load_doc_lst(${dt}, -1, 0);
+%if d_id:
+load_doc_lst(${d_id});
 %endif
 
 });
@@ -164,12 +169,7 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .prntbl_row >div:nth-child(3) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(5) {width:90px}
-.doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
-
-.doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
-.doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
-.doc_lst .doc_cancelling >div:nth-child(3) {background-color:#f85032;}
-.doc_lst .doc_changed >div:nth-child(4) {background-color:rgb(243,226,199);}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:409px}
 
 #dlg_view_doc {position:relative}
 #dlg_view_doc > iframe {border:0;margin:0;padding:0;position:absolute;top:0;left:0;width:100%;height:100%;}
@@ -183,7 +183,7 @@ load_doc_lst(${dt}, -1, 0);
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"></div>
+<div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 </div>
 <div id="map_canvas"></div>
