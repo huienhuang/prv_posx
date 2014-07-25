@@ -9,6 +9,18 @@ var g_cur_delivery_id = 0;
 var g_cur_delivery_rev = 0;
 var g_delivery_record_changed = 0;
 var g_recs = {};
+var g_map_wnd = null;
+
+function load_map()
+{
+    if(!g_cur_delivery_id) return;
+    if(!g_map_wnd || !g_map_wnd.window || !g_map_wnd.window.load_doc_lst) {
+        g_map_wnd = window.open('?fn=map&d_id=' + g_cur_delivery_id,'posx_delivery_map','location=0');
+    } else {
+        g_map_wnd.window.load_doc_lst(dt, -1, 0);
+    }
+}
+
 
 function custsearch_render_item(ul, item)
 {
@@ -844,7 +856,9 @@ $(function() {
 
 $('.btn').button();
 
-g_v_delivery_id = $('.tab_ctrl .delivery_id');
+g_v_ctrl = $('.tab_ctrl');
+
+g_v_delivery_id = g_v_ctrl.children('.delivery_id');
 g_v_receipt_tbl = $('.receipt_tbl');
 g_v_receipt_tbl_footer = $('.receipt_tbl_footer');
 
@@ -904,10 +918,10 @@ g_v_dlg_data_input_msg = g_v_dlg_data_input.find('.dlg_msg');
 
 g_v_receipt_tbl_row_tmpl = $('.receipt_tbl_row_tmpl').removeClass('receipt_tbl_row_tmpl');
 
-g_v_filter_driver = $('.tab_ctrl > .filter_driver').change(change__filter_driver);
-g_v_delivery_name = $('.tab_ctrl > .delivery_name');
-g_v_delivery_date = $('.tab_ctrl > .delivery_date').datepicker();
-g_v_rec_num_lku = $('.tab_ctrl > .rec_num_lku').keyup(function(e) {
+g_v_filter_driver = g_v_ctrl.children('.filter_driver').change(change__filter_driver);
+g_v_delivery_name = g_v_ctrl.children('.delivery_name');
+g_v_delivery_date = g_v_ctrl.children('.delivery_date').datepicker();
+g_v_rec_num_lku = g_v_ctrl.children('.rec_num_lku').keyup(function(e) {
     if(e.which !== 13) return;
     var d = $(this);
     var num = parseInt( d.val() );
@@ -916,7 +930,7 @@ g_v_rec_num_lku = $('.tab_ctrl > .rec_num_lku').keyup(function(e) {
     highlight_num(num);
 });
 
-g_v_delivery_printing = $('.tab_ctrl > .delivery_printing').change(function() {
+g_v_delivery_printing = g_v_ctrl.children('.delivery_printing').change(function() {
     var tmpl = g_v_delivery_printing.val();
     g_v_delivery_printing.val('');
     
@@ -938,7 +952,7 @@ g_v_delivery_name.prop('disabled', true);
 g_v_delivery_date.prop('disabled', true);
 g_v_receipt_tbl_row_tmpl.find('input').prop('disabled', true);
 
-$('.tab_ctrl > input[value="edit"]').click(function() { window.location='?fn=delivery_edit&d_id='+g_cur_delivery_id; });
+g_v_ctrl.children('input[value="edit"]').click(function() { window.location='?fn=delivery_edit&d_id='+g_cur_delivery_id; });
 
 g_v_delivery_id.keyup(function(e) {
     if(e.which !== 13) return;
@@ -1032,10 +1046,11 @@ g_v_receipt_tbl.sortable({
     }
 }).disableSelection();
 
-$('.tab_ctrl > input[value="add"]').click(new_ex__data_input);
-$('.tab_ctrl > input[value="new"]').click(function(){ window.location='?fn=delivery_edit'; });
-$('.tab_ctrl > input[value="save"]').click(save_delivery_record);
-$('.tab_ctrl > input[value="delete"]').click(delete_delivery_record);
+g_v_ctrl.children('input[value="add"]').click(new_ex__data_input);
+g_v_ctrl.children('input[value="new"]').click(function(){ window.location='?fn=delivery_edit'; });
+g_v_ctrl.children('input[value="save"]').click(save_delivery_record);
+g_v_ctrl.children('input[value="delete"]').click(delete_delivery_record);
+g_v_ctrl.children('input[value="map"]').click(load_map);
 
 g_v_delivery_name.change(function() { delivery_record_changed(); });
 g_v_delivery_date.change(function() { delivery_record_changed(); });
@@ -1175,6 +1190,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 %else:
 <input type="button" value="edit" class="btn" />
 %endif
+<input type="button" value="map" class="btn" />
 </div>
 
 <div class="receipt_tbl_row receipt_tbl_header">

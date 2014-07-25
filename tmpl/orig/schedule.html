@@ -11,7 +11,7 @@ g_map_wnd = null;
 function load_map(dt)
 {
     if(!g_map_wnd || !g_map_wnd.window || !g_map_wnd.window.load_doc_lst) {
-        g_map_wnd = window.open('?fn=map&dt=' + dt,'posx_map','location=0');
+        g_map_wnd = window.open('?fn=map&dt=' + dt,'posx_schedule_map','location=0');
     } else {
         g_map_wnd.window.load_doc_lst(dt, -1, 0);
     }

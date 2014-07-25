@@ -62,8 +62,14 @@ function chg_doc_cb()
         marker.setIcon('img/marker/orange_'+(i+1)+'.png');
 }
 
+function int2date_s(i) {
+    var s = i + '';
+    return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+}
+
 function load_doc_lst(dt, zidx, clerk_id)
 {
+    g_v_doc_lst_ftr.empty();
     g_v_doc_lst.empty();
     if(g_doc_js) {
         for(var i = 0; i < g_doc_js.lst.length; i++) {
@@ -120,6 +126,9 @@ function load_doc_lst(dt, zidx, clerk_id)
             js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
         }
         
+        
+        g_v_doc_lst_ftr.text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length);
+        
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
 }
@@ -138,6 +147,7 @@ $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
     if(!g_doc_js) return;
     g_doc_js.v_cbs.prop('checked', $(this).prop('checked')).change();
 });
+g_v_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div');
 
 g_map = new google.maps.Map(document.getElementById("map_canvas"),
                             {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
@@ -165,6 +175,7 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(5) {width:90px}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:409px}
 
 .doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
@@ -183,7 +194,7 @@ load_doc_lst(${dt}, -1, 0);
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"></div>
+<div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 </div>
 <div id="map_canvas"></div>
