@@ -1,0 +1,13 @@
+E:\sqlany\data\service_sync_db.pyc  > start
+sync_items: R(1), D(0)
+sync_salesorders: R(1)
+CJ > ts: 2014-07-24 22:17:49.570000, 1707329 < rng <= 1707331, ms: 600
+sync_items: R(1), D(0)
+sync_salesorders: R(1)
+CJ > ts: 2014-07-24 22:18:23.348000, 1707333 < rng <= 1707335, ms: 92
+sync_items: R(1), D(0)
+sync_salesorders: R(1)
+CJ > ts: 2014-07-24 22:18:52.293000, 1707337 < rng <= 1707341, ms: 63
+sync_items: R(1), D(0)
+sync_salesorders: R(1)
+CJ > ts: 2014-07-24 22:46:12.126000, 1707341 < rng <= 1707345, ms: 57

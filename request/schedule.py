@@ -455,7 +455,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
 
-    def get_docs(self, date, zone_id, clerk_id, mode=0):
+    def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0):
         clerk = None
         if clerk_id:
             clerk = self.finduser(clerk_id)
@@ -468,7 +468,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if mode:
             where = ' where sc_date>=%s'
         else:
-            where = ' where sc_date=%s order by sc_prio desc,sc_id desc'
+            where = ' where sc_date=%s order by '+ (sort_reg and 'sc_id asc' or 'sc_prio desc,sc_id desc')
         cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc from schedule ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
@@ -558,6 +558,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         dt = self.qsv_int('dt')
         zone_id = self.qsv_int('zone_id')
         clerk_id = self.qsv_int('clerk_id')
+        sort_reg = self.qsv_int('sort_reg')
         if zone_id >= len(ZONES): return
         
         m,d = divmod(dt, 100)
@@ -580,7 +581,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'date': dt,
             'zone_nz': zone_id < 0 and 'All' or ZONES[zone_id][0],
             'zone_id': zone_id,
-            'lst': self.get_docs(dt, zone_id, clerk_id, 0)
+            'lst': self.get_docs(dt, zone_id, clerk_id, 0, sort_reg)
         })
 
     def fn_print(self):
