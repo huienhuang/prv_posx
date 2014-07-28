@@ -6,6 +6,34 @@
 
 %if view_only:
 <script>
+function view_receipt(sid)
+{
+    open_wnd('hist?fn=printreceipt&rid=' + sid,'posx_print_wnd', 992, 700);
+}
+
+function view_salesorder(sid)
+{
+    open_wnd('sync?fn=printorder&type=2&rid=' + sid,'posx_so_wnd', 992, 700);
+}
+
+function view_customer(sid)
+{
+    open_wnd('hist?fn=custhist&cid=' + sid,'posx_customer_hist', 992, 700);
+}
+
+function view_item(sid)
+{
+    open_wnd('hist?fn=itemhist&tid=' + sid,'posx_item_hist', 992, 700);
+}
+
+function view_map()
+{
+    var o = $(this).children('div');
+    var s = escape( $.trim($(o[0]).children('span').html()) + ',' + $.trim($(o[1]).html()) );
+    open_wnd('http://maps.google.com/maps?q=' + s, 'posx_map', 992, 700);
+}
+
+
 $(function() {
 $(document).tooltip();
 })
@@ -31,11 +59,13 @@ $(document).tooltip();
 .p_doc_hdr > div > div:nth-child(2) {left:110px;width:210px;text-align:right}
 .p_doc_hdr > div > div:nth-child(3) {right:260px;width:100px;}
 .p_doc_hdr > div > div:nth-child(4) {right:0;width:250px;}
+.p_doc_hdr > div:nth-child(1) > div:nth-child(2) {cursor:pointer}
 
 .p_doc_addr {}
 .p_doc_addr > div.c_addr {position:relative;margin-top:10px;width:298px;border:1px solid #ccc;padding:10px;}
 .p_doc_addr > div.c_addr > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
 .p_doc_addr > div.c_addr > div:nth-child(2) {font-weight:bold;cursor:pointer}
+.p_doc_addr > div.c_addr > div:nth-child(3) {cursor:pointer}
 .p_doc_addr > .billto {float:left}
 .p_doc_addr > .shipto {float:right}
 
@@ -102,7 +132,12 @@ gjs = r['gjs']
 <div class="p_doc_hdr">
 <!-- +i_hdr -->
 <div>
-<div>${r['doc_type'] and 'Receipt' or 'SalesOrder'}:</div><div>${r['num']|h}</div>
+<div>${r['doc_type'] and 'Receipt' or 'SalesOrder'}:</div>
+%if view_only:
+<div onclick="${r['doc_type'] and "view_receipt" or "view_salesorder"}('${r['doc_sid']}')">${r['num']|h}</div>
+%else:
+<div>${r['num']|h}</div>
+%endif
 <div>Assoc:</div><div>${r['assoc']|h}${r['assoc']!=r['cashier'] and u' (%s)' % r['cashier'] or ''|h}</div>
 </div>
 <!-- -i_hdr -->
@@ -136,8 +171,9 @@ cust = gjs['customer']
 %>
 <div class="c_addr billto">
 <div>Bill To:</div>
-<div>${(cust['company'] or cust['name'] or '')|h}</div>
-<div>${cust['addr1']}
+<div${view_only and ' onclick="view_customer(\''+str(r['cid'])+'\')"' or ''}>${(cust['company'] or cust['name'] or '')|h}</div>
+<div${view_only and ' onclick="view_map.call(this)"' or ''}>
+<div><span>${cust['addr1']}</span>
 %if cust['addr2']:
 <br />${cust['addr2']|h}
 %endif
@@ -146,6 +182,7 @@ cust = gjs['customer']
 %if cust['phone']:
 <div>${cust['phone']|h}</div>
 %endif
+</div>
 </div>
 %endif
 
@@ -156,7 +193,8 @@ cust = gjs['shipping']
 <div class="c_addr shipto">
 <div>Ship To:</div>
 <div>${(cust['company'] or cust['name'] or '')|h}</div>
-<div>${cust['addr1']}
+<div${view_only and ' onclick="view_map.call(this)"' or ''}>
+<div><span>${cust['addr1']}</span>
 %if cust['addr2']:
 <br />${cust['addr2']|h}
 %endif
@@ -165,6 +203,7 @@ cust = gjs['shipping']
 %if cust['phone']:
 <div>${cust['phone']|h}</div>
 %endif
+</div>
 </div>
 %endif
 

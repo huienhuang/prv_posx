@@ -38,8 +38,8 @@ function select__srch_item(event, ui) {
 
 function open_wnd_map() {
     var o = $(this).children('div');
-    var s = escape( $.trim($(o[0]).html()) + ',' + $.trim($(o[1]).html()) );
-    window.open('http://maps.google.com/maps?q=' + s,'posx_map','location=0,width=992,height=700');
+    var s = escape( $.trim($(o[0]).children('span').html()) + ',' + $.trim($(o[1]).html()) );
+    open_wnd('http://maps.google.com/maps?q=' + s, 'posx_map', 992, 700);
 }
 
 function change__schedule_val()
@@ -413,7 +413,7 @@ ${cust_name|h}
 </div>
 <div id="cust_addr" onclick="open_wnd_map.call(this);return false" title="Zone: ${cust_info.get('zone_nz') or ''|h}, ${cust_info.get('geo_addr') or ''|h}">
 <div>
-${cust_info['address1']|h}
+<span>${cust_info['address1']|h}</span>
 %if cust_info['address2']:
 , 
 ${cust_info['address2']|h}
