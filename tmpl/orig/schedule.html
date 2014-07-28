@@ -167,6 +167,37 @@ function get_selected_docs()
 
 $(function() {
 
+g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
+    modal: true,
+    autoOpen: false,
+    width:300,
+    height:200,
+    buttons: {
+        'No': function() { g_v_dlg_doc_del.dialog('close'); },
+        'Yes': function() {
+            g_v_dlg_doc_del.dialog('close');
+            
+            var pjs = g_v_dlg_doc_form.data('pjs');
+            if(!pjs) return;
+                
+            var els = g_v_dlg_doc_form.data('in_els');
+            var ridx = els.rec[0].val();
+            var rec = ridx ? pjs.recs[ parseInt(ridx) ] : null;
+            if(!rec) return;
+                
+            if(rec.sc_flag & ${REC_FLAG_CANCELLING}) return;
+                
+            post_js_ex('?fn=del_rec', {sc_id: rec.sc_id}, function() {
+                if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
+                    
+                g_v_dlg_doc_form.dialog('open');
+                load_doc_schedule();
+                    
+            });
+        }
+    }
+});
+
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
     width:1130,
@@ -317,27 +348,9 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     height:562,
     buttons: [
         {
-            text: 'Cancel',
+            text: 'Delete',
             id: "df_btn_cancel",
-            click: function() {
-                var pjs = g_v_dlg_doc_form.data('pjs');
-                if(!pjs) return;
-                
-                var els = g_v_dlg_doc_form.data('in_els');
-                var ridx = els.rec[0].val();
-                var rec = ridx ? pjs.recs[ parseInt(ridx) ] : null;
-                if(!rec) return;
-                
-                if(rec.sc_flag & ${REC_FLAG_CANCELLING}) return;
-                
-                post_js_ex('?fn=del_rec', {sc_id: rec.sc_id}, function() {
-                    if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
-                    
-                    g_v_dlg_doc_form.dialog('open');
-                    load_doc_schedule();
-                    
-                });
-            },
+            click: function() { g_v_dlg_doc_del.dialog('open'); },
             
         },
         {
@@ -542,7 +555,7 @@ load_overview();
 .doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
 .doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032;}
-.doc_lst .doc_changed >div:nth-child(3) {background-color:rgb(243,226,199);}
+.doc_lst .doc_changed >div:nth-child(2) {background-color:rgb(243,226,199);}
 
 </style>
 
@@ -570,6 +583,8 @@ load_overview();
 <div class="t_body"></div>
 </div>
 <div class="t_block"></div>
+
+<div id="dlg_doc_del">Are You Sure?</div>
 
 <div id="dlg_doc_form" title="Schedule Form">
 <div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" placeholder="Document Number" /></div></div>
