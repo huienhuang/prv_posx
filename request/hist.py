@@ -630,7 +630,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         loc = jsd.get('loc')
         zidx = 0
         if loc != None:
-            cur.execute('select js,zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
+            cur.execute('select js,zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
             rows = cur.fetchall()
             if rows:
                 js,zidx = rows[0]

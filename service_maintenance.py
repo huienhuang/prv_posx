@@ -129,6 +129,7 @@ def srv_normal(cur):
 def srv_location(cur):
     s_ts = int(time.time() * 1000)
     c = 0
+    e = 0
     cur.execute('select loc,js from address where flag=0')
     for r in list(cur.fetchall()):
         loc,js = r
@@ -143,10 +144,14 @@ def srv_location(cur):
                 )
             )
             c += 1
-            
+        elif res == -1:
+            cur.execute('update address set flag=%s,lts=%s where loc=%s', (
+                -1, int(time.time()), loc
+                )
+            )
+            e += 1
     if c:
-        print 'GEO: %d, MS: %d, TS: %s' % (c, int(time.time() * 1000) - s_ts, str(datetime.datetime.now()))
-        
+        print 'GEO: (%d, %d), MS: %d, TS: %s' % (c, e, int(time.time() * 1000) - s_ts, str(datetime.datetime.now()))
         
 def get_geocoding(addr):
     ret = (0, None)
@@ -160,7 +165,7 @@ def get_geocoding(addr):
         f = urllib.urlopen('https://maps.googleapis.com/maps/api/geocode/json?' + urllib.urlencode(p))
         js = json.loads(f.read())
         try:
-            if js['status'] == 'OK':
+            if js['status'] in ('OK', 'ZERO_RESULTS'):
                 if not js['results']: return (-1, None)
                 res = js['results'][0]
                 loc = res['geometry']['location']

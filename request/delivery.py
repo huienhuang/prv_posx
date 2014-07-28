@@ -686,7 +686,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         d_loc = {}
         if locs:
-            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
+            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag=1', tuple(locs))
             for r in cur.fetchall(): d_loc[ r[0] ] = (r[1], str(r[2]), str(r[3]))
         
             for r in dr['recs']:

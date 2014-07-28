@@ -38,17 +38,9 @@ def get_location_hash(*args):
     args = unify_location(args)
     street = args[0]
     if not street: return None
-    snum = street.split(u' ')[0]
     
-    k = len(snum)
-    for i in range(k):
-        if not snum[i].isdigit():
-            k = i
-            break
-    if not k: return None
-    snum = int(snum[:k])
-    
-    return base64.b64encode(hashlib.md5(u','.join(args)).digest() + struct.pack('<L', snum))
+    s = u','.join(args)
+    return base64.b64encode(hashlib.md5(s).digest() + struct.pack('<L', zlib.crc32(s) & 0xFFFFFFFF))
 
 
 def get_receipt_crc(r, jsd, items):

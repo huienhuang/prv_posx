@@ -152,7 +152,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         zidx = 0
         if loc != None:
-            cur.execute('select zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
+            cur.execute('select zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
             rr = cur.fetchall()
             if rr: zidx = rr[0][0]
             
@@ -523,7 +523,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_loc = {}
         if locs:
-            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag!=0', tuple(locs))
+            cur.execute('select loc,zone_id,lat,lng from address where loc in ('+','.join(['%s'] * len(locs))+') and flag=1', tuple(locs))
             for r in cur.fetchall(): d_loc[ r[0] ] = (r[1], str(r[2]), str(r[3]))
         
         lst = []
@@ -648,7 +648,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
                 zidx = 0
                 if loc != None:
-                    cur.execute('select zone_id from address where loc=%s and flag!=0', (base64.b64decode(loc),))
+                    cur.execute('select zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
                     rr = cur.fetchall()
                     if rr: zidx = rr[0][0]
                 r['zone_nz'] = ZONES[zidx][0]
