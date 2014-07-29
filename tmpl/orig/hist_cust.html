@@ -206,9 +206,10 @@ g_v_srch_item = $('#srch_item').autocomplete({
     minLength: 1,
     select: select__srch_item,
     response: function(event, ui) {
-        for(var i = 0; i < ui.content.length; i++) {
-            var ct = ui.content[i];
-            ct.value = ct[1];
+        var ct = ui.content || [];
+        for(var i = 0; i < ct.length; i++) {
+            var c = ct[i];
+            c.value = c[1];
         }
     }
 }).focus();

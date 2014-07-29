@@ -1000,7 +1000,7 @@ in_els.customer[0].autocomplete({
         els.terms[0].val(ui.item[2].udf5 || '');
     },
     response: function(event, ui) {
-        var ct = ui.content;
+        var ct = ui.content || [];
         for(var i = 0; i < ct.length; i++) {
             var c = ct[i];
             c[2] = $.parseJSON(c[2]);

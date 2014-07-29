@@ -258,7 +258,7 @@ g_v_ac_cust_search = $('#srch_cust').autocomplete({
         open_wnd('hist?fn=custhist&cid='+ui.item[0],'posx_customer_hist', 992, 700);
     },
     response: function(event, ui) {
-        var ct = ui.content;
+        var ct = ui.content || [];
         for(var i = 0; i < ct.length; i++) {
             var c = ct[i];
             c[2] = $.parseJSON(c[2]);
