@@ -33,7 +33,7 @@ function itemsearch_render_item(ul, item)
 
 function ac_item_search_response(event, ui)
 {
-    var ct = ui.content;
+    var ct = ui.content || [];
     var term = $.trim( $(this).data("ui-autocomplete").term.toLowerCase() );
         
     for(var i = 0; i < ct.length; i++) {
