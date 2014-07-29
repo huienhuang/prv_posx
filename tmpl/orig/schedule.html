@@ -82,8 +82,8 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         } else 
             g_v_dd_doc_lst_body.append(lst);
         
+        g_v_dd_doc_lst_ftr.text('Total: ' + js.lst.length);
         js.v_cbs = g_v_dd_doc_lst_body.find('input[type="checkbox"]');
-        
         reload && k >= 0 && load_doc(k, auto_print);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
@@ -340,6 +340,7 @@ $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
 });
 g_v_dd_doc_lst_filter = $('.doc_lst_filter', g_v_dlg_documents);
 g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
+g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
@@ -551,6 +552,7 @@ load_overview();
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px}
 .doc_lst .prntbl_row >div:nth-child(4) {width:90px}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:360px}
 
 .doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
@@ -601,7 +603,7 @@ load_overview();
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"></div>
+<div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 </div>
 <iframe></iframe>
