@@ -117,11 +117,11 @@ function load_doc_lst(d_id)
                 })(i);
             }
             
-            g_v_doc_lst.append(lst);
-            js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
+            
         }
         
-        
+        g_v_doc_lst.append(lst);
+        js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
         g_v_doc_lst_ftr.text('ID: ' + js.d_id + ', Date: ' + fmt_date(js.ts) + ', Total: ' + js.lst.length);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');

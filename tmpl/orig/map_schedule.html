@@ -8,6 +8,7 @@
 <script type="text/javascript">
 g_doc_js = null;
 g_map = null;
+g_ctrl_down = false;
 
 function locate(i, dont_center) {
     if(!g_doc_js) return;
@@ -52,7 +53,15 @@ function chg_doc_cb()
     if(!g_doc_js.lst[i]) return;
     
     var r = g_doc_js.lst[i];
-    r.selected = o.prop('checked');
+    var sel = o.prop('checked');
+    if (sel === r.selected) return;
+    r.selected = sel;
+    
+    var lst = g_doc_js.lst;
+    var sc = 0;
+    for(var i = 0; i < lst.length; i++) lst[i].selected && ++sc;
+    $(g_v_doc_lst_ftr[1]).text('Selected: ' + sc);
+    
     if(g_doc_js.fi === i) return;
     var marker = r.marker;
     if(!marker) return;
@@ -115,25 +124,33 @@ function load_doc_lst(dt, zidx, clerk_id)
                 });
                 
                 (function(i) {
-                    r.marker.addListener('click', function() {
-                        locate(i, 1);
-                        load_doc(i);
+                    r.marker.addListener('click', function(evt) {
+                        if(g_ctrl_down) {
+                            v_cb = $(js.v_cbs[i]);
+                            v_cb.prop('checked', !v_cb.prop('checked')).change();
+                        } else {
+                            locate(i, 1);
+                            load_doc(i);
+                        }
                     });
                 })(i);
             }
-            
-            g_v_doc_lst.append(lst);
-            js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
         }
         
-        
-        g_v_doc_lst_ftr.text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length);
+        g_v_doc_lst.append(lst);
+        js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
+        $(g_v_doc_lst_ftr[0]).text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length);
+        $(g_v_doc_lst_ftr[1]).text('Selected: ' + js.lst.length);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
 }
 
 $(function() {
+
+$('#doc_ctrl >select').change(function() {
+    $(this).val('');
+});
 
 g_v_dlg_view_doc = $('#dlg_view_doc').dialog({
     autoOpen: false,
@@ -153,6 +170,8 @@ g_map = new google.maps.Map(document.getElementById("map_canvas"),
                             {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
         );
 
+$(document).keydown(function(e){ g_ctrl_down = e.ctrlKey; }).keyup(function(e){ g_ctrl_down = e.ctrlKey; });
+
 %if dt:
 load_doc_lst(${dt}, -1, 0);
 %endif
@@ -165,17 +184,19 @@ load_doc_lst(${dt}, -1, 0);
 <style type="text/css">
 .ui-widget {font-size:18px;}
 
-#doc_lst {position:absolute;top:0;width:410px;bottom:0;left:0;}
+#doc_ctrl {position:absolute;top:0;width:400px;height:32px;left:0;padding:9px 5px}
+#doc_lst {position:absolute;top:50px;width:410px;bottom:0;left:0;}
 #map_canvas {position:absolute;top:0;right:0;bottom:0;left:410px;}
 
-.doc_lst {top:0px;bottom:0;left:0;right:0}
+.doc_lst {top:0;bottom:0;left:0;right:0}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:30px;font-weight:bold}
 .doc_lst .prntbl_row >div:nth-child(3) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(5) {width:90px}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
-.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:409px}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:246px}
+.doc_lst .prntbl_row_ftr >div:nth-child(2) {width:160px}
 
 .doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
@@ -189,12 +210,14 @@ load_doc_lst(${dt}, -1, 0);
 
 </head>
 <body>
-
+<div id="doc_ctrl">
+<select><option value="">- Action -</option><option>打印</option><option>接受</option><option>接受 & 打印</option></select>
+</div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div></div>
 <div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"><div></div></div>
+<div class="prntbl_row prntbl_row_ftr"><div></div><div></div></div>
 </div>
 </div>
 <div id="map_canvas"></div>
