@@ -61,15 +61,17 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             if(k < 0 && reload && o_sc_id === r.sc_id) k = i;
             
             var cls = '';
-            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
-            else if(r.sc_flag &${ REC_FLAG_CHANGED}) cls = ' doc_changed';
-            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
-            else cls = ' doc_pending';
+            if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
+                if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+                else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
+                else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
+                else cls = ' doc_accepted';
+            } else cls = ' doc_pending';
             
             lst.push(
                 $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );
@@ -122,11 +124,9 @@ function load_overview_cb(js)
             if(z) {
                 if(z[0]) oo.append( $('<div class="ovc_default ovc_pending"></div>').text(z[0]) );
                 if(z[1]) oo.append( $('<div class="ovc_default ovc_accepted"></div>').text(z[1]) );
-                if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
                 if(z[3]) oo.append( $('<div class="ovc_default ovc_cancelling"></div>').text(z[3]) );
-%if has_perm_delivery_mgr:
+                if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
                 if(z[4]) oo.append( $('<div class="ovc_default ovc_changed"></div>').text(z[4]) );
-%endif
             }
         }
         o.append(l_oo);
@@ -228,7 +228,26 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 }
                 if(!sc_ids.length) return;
                 
-                post_js_ex('?fn=update_crc', {sc_ids: sc_ids.join('|')}, function(js) {
+                post_js_ex('?fn=clear_cflag', {sc_ids: sc_ids.join('|')}, function(js) {
+                    if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
+                    load_doc_lst(0, 0, 1, 0);
+                });
+                
+            },
+        },
+        {
+            text: '同意更改',
+            id: "dd_btn_change",
+            click: function() {
+                var lst = get_selected_docs();
+                var sc_ids = [];
+                for(var i = 0; i < lst.length; i++) {
+                    var r = lst[i];
+                    if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) sc_ids.push(r.sc_id);
+                }
+                if(!sc_ids.length) return;
+                
+                post_js_ex('?fn=confirm_rescheduling', {sc_ids: sc_ids.join('|')}, function(js) {
                     if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
                     load_doc_lst(0, 0, 1, 0);
                 });
@@ -345,7 +364,7 @@ g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
-    width:560,
+    width:600,
     height:562,
     buttons: [
         {
@@ -450,8 +469,14 @@ function _ui_get_doc(sc_id)
             for(var i = 0; i < js.recs.length; i++) {
                 var rec = js.recs[i];
                 if(k < 0 && sc_id && rec.sc_id === sc_id) k = i;
-                var s = int2date_s(rec.sc_date);
-                ol.push( $('<option></option>').val(i + '').text('#'+rec.sc_id + ' - ' + s + ' - ' + els.prio[1][rec.sc_prio] + ' - ' + (rec.sc_flag & ${REC_FLAG_CANCELLING} ? 'Cancelling' : (rec.sc_flag & ${REC_FLAG_ACCEPTED} ? 'Accepted' : 'Pending'))) );
+                var d = int2date_s(rec.sc_date) + ' - ';
+                if(rec.sc_flag & ${REC_FLAG_ACCEPTED}) {
+                    if(rec.sc_flag & ${REC_FLAG_CANCELLING}) d += 'Cancelling';
+                    else if(rec.sc_flag & ${REC_FLAG_RESCHEDULED}) d += 'Rescheduling' + '('+int2date_s(rec.sc_new_date)+')';
+                    else d += 'Accepted';
+                } else d += 'Pending';
+                
+                ol.push( $('<option></option>').val(i + '').text(d) );
             }
             if(ol.length) {
                 els.rec[0].append(ol);
@@ -518,9 +543,9 @@ load_overview();
 .ui-widget {font-size:18px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
-#dlg_doc_form input {width:354px}
-#dlg_doc_form select {width:360px}
-#dlg_doc_form textarea {width:354px;height:136px;white-space:nowrap}
+#dlg_doc_form input {width:394px}
+#dlg_doc_form select {width:400px}
+#dlg_doc_form textarea {width:394px;height:136px;white-space:nowrap}
 
 .x_body {padding:40px 0 0 160px;overflow:scroll}
 .x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
@@ -558,6 +583,7 @@ load_overview();
 .doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
 .doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032;}
 .doc_lst .doc_changed >div:nth-child(2) {background-color:#903815;}
+.doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5;}
 
 </style>
 

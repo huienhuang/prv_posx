@@ -100,16 +100,18 @@ function load_doc_lst(dt, zidx, clerk_id)
             //r.i = i;
             
             var cls = '';
-            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
-            else if(r.sc_flag &${ REC_FLAG_CHANGED}) cls = ' doc_changed';
-            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
-            else cls = ' doc_pending';
+            if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
+                if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+                else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
+                else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
+                else cls = ' doc_accepted';
+            } else cls = ' doc_pending';
             
             lst.push(
                 $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'" checked="checked" /></div>') )
                 .append( $('<div>'+(i+1)+'</div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_RESCHEDULED} ? '*' : '')) )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num) )
                 .append( $('<div onclick="locate('+i+')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );
@@ -201,7 +203,8 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
 .doc_lst .doc_cancelling >div:nth-child(3) {background-color:#f85032;}
-.doc_lst .doc_changed >div:nth-child(4) {background-color:rgb(243,226,199);}
+.doc_lst .doc_changed >div:nth-child(3) {background-color:#903815;}
+.doc_lst .doc_rescheduled >div:nth-child(3) {background-color:#3578b5;}
 
 #dlg_view_doc {position:relative}
 #dlg_view_doc > iframe {border:0;margin:0;padding:0;position:absolute;top:0;left:0;width:100%;height:100%;}

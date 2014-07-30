@@ -61,7 +61,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = dict(zip(cur.column_names, rows[0]))
         
         if r['sc_flag'] & REC_FLAG_CANCELLING:
-            self.req.exitjs({'err': -11, 'err_s': 'Cancellation is pending'})
+            self.req.exitjs({'err': -11, 'err_s': 'Cancellation is already pending'})
         
         m,d = divmod(r['sc_date'], 100)
         y,m = divmod(m, 100)
@@ -119,6 +119,43 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
     fn_del.PERM = DELIVERY_MGR_PERM
     
+    def fn_confirm_rescheduling(self):
+        sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
+        docs = self.get_docs_by_sc_ids(sc_ids, True)
+        
+        d_notes = []
+        cur = self.cur()
+        c = 0
+        for r in docs:
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
+                REC_FLAG_ACCEPTED | REC_FLAG_RESCHEDULED | REC_FLAG_CHANGED,
+                r['sc_new_date'],
+                r['sc_id'], r['sc_rev'],
+                REC_FLAG_RESCHEDULED | REC_FLAG_CANCELLING, REC_FLAG_RESCHEDULED
+                )
+            )
+            if cur.rowcount > 0:
+                c += 1
+                m,d = divmod(r['sc_date'], 100)
+                y,m = divmod(m, 100)
+                s_od = '%02d/%02d/%02d' % (m, d, y)
+                m,d = divmod(r['sc_new_date'], 100)
+                y,m = divmod(m, 100)
+                s_nd = '%02d/%02d/%02d' % (m, d, y)
+                
+                d_notes.append([r['doc_type'],
+                                r['doc_sid'],
+                                'Confirmed Rescheduling[%d] From %s To %s' % (r['sc_id'], s_od, s_nd)
+                ])
+        if c:
+            if d_notes: self.add_notes(d_notes)
+            self.inc_seq()
+            
+        i_warning_s = None
+        if len(sc_ids) != c: i_warning_s = '%d out of %d processed' % (c, len(sc_ids))
+        
+        self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
+    fn_confirm_rescheduling.PERM = DELIVERY_MGR_PERM
     
     def fn_get_doc(self):
         d_num = self.req.qsv_ustr('num')
@@ -169,7 +206,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'zone_nz': ZONES[zidx][0]
         }
         
-        cur.execute('select sc_id,sc_date,sc_rev,sc_flag,sc_prio,sc_note from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
+        cur.execute('select * from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
             d_type, sid
             )
         )
@@ -214,7 +251,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_note = None
         if sc_id == 0:
-            cur.execute('insert into schedule values(null,%s,1,%s,%s,%s,%s,0,%s)', (
+            cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,0,%s)', (
                 d_date, 0, prio, d_type, d_sid, note
                 )
             )
@@ -227,19 +264,34 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             )
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
+            
             old_sc_flag,old_sc_date,old_sc_prio,old_sc_note = row[0]
             if old_sc_date == d_date and old_sc_prio == prio and old_sc_note == note: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
+            if old_sc_flag & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
             
-            if old_sc_flag & REC_FLAG_ACCEPTED and not(self.user_lvl & DELIVERY_MGR_PERM): self.req.exitjs({'err': -2, 'err_s': "can't change"})
-            cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,sc_date=%s,sc_prio=%s,sc_note=%s where sc_id=%s and sc_rev=%s", (
-                old_sc_date != d_date and REC_FLAG_RESCHEDULED or 0, d_date, prio, note, sc_id, rev
-                )
-            )
+            sc_flag_or = 0
             if old_sc_date != d_date:
+                sc_flag_or |= REC_FLAG_RESCHEDULED
                 m,d = divmod(old_sc_date, 100)
                 y,m = divmod(m, 100)
                 o_old_date = datetime.date(y, m, d)
-                d_note = 'Reschedule Delivery Date From %s To %s' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                
+                if old_sc_flag & REC_FLAG_ACCEPTED:
+                    d_note = 'Rescheduling Delivery Date From %s To %s, Waiting For Confirmation' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                else:
+                    d_note = 'Reschedule Delivery Date From %s To %s' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+            
+            if old_sc_flag & REC_FLAG_ACCEPTED:
+                if old_sc_prio != prio or old_sc_note != note: sc_flag_or |= REC_FLAG_CHANGED
+                cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,sc_new_date=%s,sc_prio=%s,sc_note=%s where sc_id=%s and sc_rev=%s", (
+                    sc_flag_or, d_date, prio, note, sc_id, rev
+                    )
+                )
+            else:
+                cur.execute("update schedule set sc_rev=sc_rev+1,sc_new_date=0,sc_date=%s,sc_prio=%s,sc_note=%s where sc_id=%s and sc_rev=%s", (
+                    d_date, prio, note, sc_id, rev
+                    )
+                )
             
         err = int(cur.rowcount <= 0)
         if err:
@@ -294,17 +346,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         return _sc_lst
     
-    def fn_update_crc(self):
+    def fn_clear_cflag(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
         docs = self.get_docs_by_sc_ids(sc_ids)
-        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
         
         cur = self.cur()
         c = 0
         for r in docs:
             crc = json.loads(r['doc'][2]).get('crc', 0)
-            cur.execute('update schedule set sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
-                crc, r['sc_id'], REC_FLAG_ACCEPTED
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
+                REC_FLAG_CHANGED, crc, r['sc_id'], REC_FLAG_ACCEPTED
             ))
             if cur.rowcount > 0: c += 1
     
@@ -313,20 +364,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
         
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
-    fn_update_crc.PERM = DELIVERY_MGR_PERM
+    fn_clear_cflag.PERM = DELIVERY_MGR_PERM
     
     def fn_accept(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
-        docs = self.get_docs_by_sc_ids(sc_ids)
-        #if len(sc_ids) != len(docs): self.req.exitjs({'err': -2, 'err_s': "size not matched"})
+        docs = self.get_docs_by_sc_ids(sc_ids, True)
         
         cur = self.cur()
         d_notes = []
         c = 0
         for r in docs:
-            crc = json.loads(r['doc'][2]).get('crc', 0)
-            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_flag&%s=0', (
-                REC_FLAG_ACCEPTED, crc, r['sc_id'], REC_FLAG_ACCEPTED
+            crc = json.loads(r['doc'][7]).get('crc', 0)
+            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                REC_FLAG_ACCEPTED, crc, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
             ))
             if cur.rowcount > 0:
                 c += 1
@@ -388,19 +438,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if not d[zid]: d[zid] = [0, 0, 0, 0, 0]
             d = d[zid]
             
-            if r['sc_flag'] & REC_FLAG_ACCEPTED:
-                d[1] += 1
+            sc_flag = r['sc_flag']
+            if sc_flag & REC_FLAG_ACCEPTED:
+                if sc_flag & REC_FLAG_CANCELLING:
+                    d[3] += 1
+                elif sc_flag & REC_FLAG_RESCHEDULED:
+                    d[2] += 1
+                elif sc_flag & REC_FLAG_CHANGED:
+                    d[4] += 1
+                else:
+                    d[1] += 1
             else:
                 d[0] += 1
-            
-            if r['sc_flag'] & REC_FLAG_RESCHEDULED:
-                d[2] += 1
-                
-            if r['sc_flag'] & REC_FLAG_CANCELLING:
-                d[3] += 1
-            
-            if r['sc_flag'] & REC_FLAG_CHANGED:
-                d[4] += 1
         
         l_dt = d_dt.items()
         l_dt.sort(key=lambda f_x: f_x[0])
