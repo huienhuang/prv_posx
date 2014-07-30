@@ -148,9 +148,53 @@ function load_doc_lst(dt, zidx, clerk_id)
     
 }
 
+function() {
+    var lst = get_selected_docs();
+    var sc_ids = [];
+    for(var i = 0; i < lst.length; i++) {
+        var r = lst[i];
+        sc_ids.push(r.sc_id);
+    }
+    if(!sc_ids.length) return;
+    window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
+}
+
+function() {
+    var lst = get_selected_docs();
+    var sc_ids = [];
+    for(var i = 0; i < lst.length; i++) {
+        var r = lst[i];
+        if(!(r.sc_flag & ${REC_FLAG_ACCEPTED})) sc_ids.push(r.sc_id);
+    }
+    if(!sc_ids.length) return;
+                
+    post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
+        if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
+            load_doc_lst(0, 0, 1, 0);
+    });
+                
+}
+        
+function() {
+    var lst = get_selected_docs();
+    var sc_ids = [];
+    for(var i = 0; i < lst.length; i++) {
+        var r = lst[i];
+        if(!(r.sc_flag & ${REC_FLAG_ACCEPTED})) sc_ids.push(r.sc_id);
+    }
+    if(!sc_ids.length) return;
+    
+    post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
+        if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
+        load_doc_lst(0, 0, 1, 0);
+        window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
+    }, undefined, 1);
+    
+}
+
 $(function() {
 
-$('#doc_ctrl >select').change(function() {
+$('#doc_ctrl >select.ctrl_action').change(function() {
     $(this).val('');
 });
 
@@ -214,7 +258,8 @@ load_doc_lst(${dt}, -1, 0);
 </head>
 <body>
 <div id="doc_ctrl">
-<select><option value="">- Action -</option><option>打印</option><option>接受</option><option>接受 & 打印</option></select>
+<select class="ctrl_filter"><option value="">All Docs</option><option value="">Pending Docs Only</option></select>
+<select class="ctrl_action"><option value="">- Action -</option><option>打印</option><option>接受</option><option>接受 & 打印</option></select>
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">

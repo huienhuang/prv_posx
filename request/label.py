@@ -14,6 +14,7 @@ TEMPLATES = (
 ('5160', 'Small', 0),
 ('5160001', 'Small - All ALU', 0),
 
+('5960202', u"Arrow" + ' 30x', None),
 
 ('5163301', 'large - Warehouse', 2),
 
