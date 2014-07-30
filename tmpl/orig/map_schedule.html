@@ -91,7 +91,7 @@ function load_doc_lst(dt, zidx, clerk_id)
     }
     g_doc_js = null;
     
-    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, clerk_id: clerk_id, sort_reg: 1}, function(js) {
+    get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, clerk_id: clerk_id, sort_reg: 1, pending_only: parseInt(g_v_doc_filter.val()) || 0}, function(js) {
         g_doc_js = js;
         
         var lst = [];
@@ -148,7 +148,17 @@ function load_doc_lst(dt, zidx, clerk_id)
     
 }
 
-function() {
+function get_selected_docs() {
+    var lst = [];
+    if(!g_doc_js) return lst;
+    for(var i = 0; i < g_doc_js.lst.length; i++) {
+        var r = g_doc_js.lst[i];
+        r.selected && lst.push(r);
+    }
+    return lst;
+}
+
+function doc_print() {
     var lst = get_selected_docs();
     var sc_ids = [];
     for(var i = 0; i < lst.length; i++) {
@@ -159,7 +169,7 @@ function() {
     window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
 }
 
-function() {
+function doc_accept() {
     var lst = get_selected_docs();
     var sc_ids = [];
     for(var i = 0; i < lst.length; i++) {
@@ -170,12 +180,12 @@ function() {
                 
     post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
         if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
-            load_doc_lst(0, 0, 1, 0);
+            load_doc_lst(${dt}, -1, 0);
     });
                 
 }
         
-function() {
+function doc_accept_print() {
     var lst = get_selected_docs();
     var sc_ids = [];
     for(var i = 0; i < lst.length; i++) {
@@ -186,7 +196,7 @@ function() {
     
     post_js_ex('?fn=accept', {sc_ids: sc_ids.join('|')}, function(js) {
         if(js.i_warning_s) MsgBox('Warning', js.i_warning_s);
-        load_doc_lst(0, 0, 1, 0);
+        load_doc_lst(${dt}, -1, 0);
         window.open('?fn=print&auto_print=1&sc_ids=' + sc_ids.join('|'),'posx_batch_print','location=0');
     }, undefined, 1);
     
@@ -195,8 +205,19 @@ function() {
 $(function() {
 
 $('#doc_ctrl >select.ctrl_action').change(function() {
+    var v = parseInt( $(this).val() ) || 0;
     $(this).val('');
+    
+    if(v === 1)
+        doc_print();
+    else if (v === 2)
+        doc_accept();
+    else
+        doc_accept_print();
+        
 });
+
+g_v_doc_filter = $('#doc_ctrl >select.ctrl_filter').change(function() { load_doc_lst(${dt}, -1, 0); });
 
 g_v_dlg_view_doc = $('#dlg_view_doc').dialog({
     autoOpen: false,
@@ -218,9 +239,7 @@ g_map = new google.maps.Map(document.getElementById("map_canvas"),
 
 $(document).keydown(function(e){ g_ctrl_down = e.ctrlKey; }).keyup(function(e){ g_ctrl_down = e.ctrlKey; });
 
-%if dt:
 load_doc_lst(${dt}, -1, 0);
-%endif
 
 });
 
@@ -258,8 +277,8 @@ load_doc_lst(${dt}, -1, 0);
 </head>
 <body>
 <div id="doc_ctrl">
-<select class="ctrl_filter"><option value="">All Docs</option><option value="">Pending Docs Only</option></select>
-<select class="ctrl_action"><option value="">- Action -</option><option>打印</option><option>接受</option><option>接受 & 打印</option></select>
+<select class="ctrl_filter"><option value="">All Docs</option><option value="1">Pending Docs Only</option></select>
+<select class="ctrl_action"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
