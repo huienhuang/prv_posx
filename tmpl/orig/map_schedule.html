@@ -59,7 +59,7 @@ function chg_doc_cb()
     
     var lst = g_doc_js.lst;
     var sc = 0;
-    for(var i = 0; i < lst.length; i++) lst[i].selected && ++sc;
+    for(var j = 0; j < lst.length; j++) lst[j].selected && ++sc;
     $(g_v_doc_lst_ftr[1]).text('Selected: ' + sc);
     
     if(g_doc_js.fi === i) return;
