@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header.html" />
+
+<script type="text/javascript">
+
+function setup_data(item)
+{
+    var price_s = '';
+    var units = item[3].units;
+    for(var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        if(unit[3] <= 0) continue;
+        price_s += '$' + unit[0][0].toFixed(2) + (unit[2] ? '/' + unit[2].toUpperCase() : '') + '   ';
+    }
+    if(price_s) price_s = price_s.substring(0, price_s.length - 3);
+    
+    var alu_d = {};
+    var alu_l = [];
+    var vends = item[3].vends;
+    vends[0][1] = units[0][1];
+    for(var i = 0; i < vends.length; i++) {
+        var vend = vends[i];
+        var alu = vend[1].toLowerCase();
+        if(!alu || alu_d[alu] !== undefined) continue;
+        alu_d[alu] = true;
+        alu_l.push(vend[1]);
+    }
+    
+    return [ item[1], alu_l.join(' '), item[2], price_s ];
+}
+
+</script>
+
+<style type="text/css">
+.labelpaper > div {position:absolute;width:250px;height:94px;}
+
+.labelpaper > div > div {line-height:20px;height:20px;}
+.labelpaper > div > div.item_no {width:66px;top:3px}
+.labelpaper > div > div.item_alu {width:160px;top:3px;white-space:nowrap}
+.labelpaper > div > div.item_divider_0 {top:23px;border-bottom:2px solid #000}
+.labelpaper > div > div.item_price {font-size:20px;bottom:3px}
+.labelpaper > div > div.item_desc {top:27px;bottom:25px;font-size:20px;line-height:20px;}
+
+%for i in range(10):
+%for j in range(3):
+.labelpaper > div:nth-child(${i * 3 + j + 1}) {top:${'%0.2f' % (i * 1 + 0.5,)}in;left:${'%0.2f' % (j * 2.76 + 0.19,)}in}
+%endfor
+%endfor
+</style>
+
+</head>
+<body>
+
+<div class="labelpaper">
+%for i in range(10):
+%for j in range(3):
+<div>
+<div class="item_no le_id le_elem" title="Number"></div>
+<div class="item_alu le_elem" title="ALU"></div>
+<div class="item_divider item_divider_0"></div>
+<div class="item_desc le_elem le_elem_multi" title="Desc"><table><tr><td></td></tr></table></div>
+<div class="item_price le_elem" title="Price"></div>
+</div>
+%endfor
+%endfor
+</div>
+
+</body>
+</html>

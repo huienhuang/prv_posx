@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header.html" />
+
+<script type="text/javascript">
+
+function setup_data(item)
+{
+    var price_s = '';
+    var units = item[3].units;
+    for(var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        if(unit[3] <= 0) continue;
+        price_s += '$' + unit[0][0].toFixed(2) + (unit[2] ? '/' + unit[2].toUpperCase() : '') + '   ';
+    }
+    if(price_s) price_s = price_s.substring(0, price_s.length - 3);
+    
+    var alu_d = {};
+    var alu_l = [];
+    var vends = item[3].vends;
+    vends[0][1] = units[0][1];
+    for(var i = 0; i < vends.length; i++) {
+        var vend = vends[i];
+        var alu = vend[1].toLowerCase();
+        if(!alu || alu_d[alu] !== undefined) continue;
+        alu_d[alu] = true;
+        alu_l.push(vend[1]);
+    }
+    
+    return [ item[1], alu_l.join(' '), item[2], price_s ];
+}
+
+</script>
+
+<style type="text/css">
+.labelpaper > div:nth-child(1) {top:0.5in;left:0.16in}
+.labelpaper > div:nth-child(2) {top:0.5in;left:4.34in}
+.labelpaper > div:nth-child(3) {top:2.5in;left:0.16in}
+.labelpaper > div:nth-child(4) {top:2.5in;left:4.34in}
+.labelpaper > div:nth-child(5) {top:4.5in;left:0.16in}
+.labelpaper > div:nth-child(6) {top:4.5in;left:4.34in}
+.labelpaper > div:nth-child(7) {top:6.5in;left:0.16in}
+.labelpaper > div:nth-child(8) {top:6.5in;left:4.34in}
+.labelpaper > div:nth-child(9) {top:8.5in;left:0.16in}
+.labelpaper > div:nth-child(10) {top:8.5in;left:4.34in}
+
+
+.labelpaper > div > div.item_no {width:80px;}
+.labelpaper > div > div.item_alu {width:270px;white-space:nowrap}
+
+</style>
+
+</head>
+<body>
+
+<div class="labelpaper">
+%for i in range(10):
+<div>
+<div class="item_no le_id le_elem" title="Number"></div>
+<div class="item_alu le_elem" title="ALU"></div>
+<div class="item_divider item_divider_0"></div>
+<div class="item_desc le_elem le_elem_multi" title="Desc"><table><tr><td></td></tr></table></div>
+<div class="item_price le_elem" title="Price"></div>
+</div>
+%endfor
+</div>
+
+</body>
+</html>

@@ -8,12 +8,16 @@ import re
 
 
 TEMPLATES = (
-('5163', '5163 2 x 4 - large', 1),
-('5160', '5960 1 x 2 5/8 - small', 0),
+('5163', 'Large', 1),
+('5163001', 'Large - All ALU', 1),
 
-('5163301', '5163 2 x 4 - large - Warehouse', 2),
+('5160', 'Small', 0),
+('5160001', 'Small - All ALU', 0),
 
-('5160009', '5960 1 x 2 5/8 - small - repeat', None),
+
+('5163301', 'large - Warehouse', 2),
+
+('5160009', 'Small - Repeat', None),
                 
 ('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x', None),
 ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x', None),
