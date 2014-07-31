@@ -110,12 +110,13 @@ cols: [{name:'Num', width:100},
 click: function(r, c, d) {
     if(c == 2) {
         if(d[8])
-            window.open('sync?fn=printorder&type=2&rid='+d[8],'posx_so_wnd','location=0,width=992,height=700');
+            open_wnd('sync?fn=printorder&type=2&rid='+d[8],'posx_so_wnd');
+            
     } else {
         if (d[7])
-            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+            open_wnd('sorder?fn=print&rid=' + d[0],'posx_print_wnd');
         else
-            window.open('?fn=printreceipt&rid=' + d[6],'posx_print_wnd','location=0,width=992,height=700');
+            open_wnd('?fn=printreceipt&rid=' + d[6],'posx_print_wnd');
     }
 }
 });
@@ -132,7 +133,7 @@ cols: [{name:'#', width:100},
        {name:'MarkedDate', width:110},
        ],
 click: function(r, c, d) {
-    window.open('sync?fn=printorder&type=2&rid=' + d[7],'posx_so_wnd','location=0,width=992,height=700');
+    open_wnd('sync?fn=printorder&type=2&rid=' + d[7],'posx_so_wnd');
 },
 footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
 init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 1).change(show_all); }
@@ -152,7 +153,7 @@ click: function(r, c, d) {
     if(c == 4) {
         select__srch_item(null, {item:[d[6]]});
     } else
-        window.open('hist?fn=itemhist&tid='+d[6],'posx_item_hist','location=0,width=992,height=700');
+        open_wnd('hist?fn=itemhist&tid='+d[6],'posx_item_hist');
 },
 });
 
@@ -168,9 +169,9 @@ cols: [{name:'Receipt#', width:100},
        ],
 click: function(r, c, d) {
     if (d[6])
-        window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        open_wnd('sorder?fn=print&rid=' + d[0],'posx_print_wnd');
     else
-        window.open('?fn=printreceipt&rid=' + d[5],'posx_print_wnd','location=0,width=992,height=700');
+        open_wnd('?fn=printreceipt&rid=' + d[5],'posx_print_wnd');
 }
 });
 
@@ -189,12 +190,12 @@ cols: [{name:'Receipt#', width:100},
        ],
 click: function(r, c, d) {
     if (c === 4) {
-        window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[4],'posx_delivery_record','location=0,width=1150,height=800');
+        open_wnd('delivery?fn=delivery_edit&read_only=1&d_id='+d[4],'posx_delivery_record');
     } else {
         if (d[10])
-            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+            open_wnd('sorder?fn=print&rid=' + d[0],'posx_print_wnd');
         else
-            window.open('?fn=printreceipt&rid=' + d[9],'posx_print_wnd','location=0,width=992,height=700');
+            open_wnd('?fn=printreceipt&rid=' + d[9],'posx_print_wnd');
     }
 }
 });

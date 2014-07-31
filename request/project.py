@@ -36,11 +36,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_new(self):
         name = self.req.psv_ustr('name')
         desc = self.req.psv_ustr('desc')
+        prio = self.req.psv_int('prio')
         msg = json.dumps([self.user_id, self.user_name, '', int(time.time()), 0], separators=(',',':'))
         
         cur = self.cur()
-        cur.execute("insert into project values(null,0,0,0,%s,0,%s,%s,0,0,0,'',%s)", (
-            self.user_id, name, desc, msg
+        cur.execute("insert into project values(null,%s,0,0,0,%s,0,%s,%s,0,0,0,'',%s)", (
+            prio, self.user_id, name, desc, msg
             )
         )
         
@@ -104,6 +105,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     
     fn_approve.PERM = 1 << config.USER_PERM_BIT['admin']
     
+    def fn_setpriority(self):
+        p_id = self.req.psv_int('p_id')
+        p_prio = self.req.psv_int('prio')
+        
+        cur = self.cur()
+        cur.execute('update project set p_prio=%s where p_id=%s and p_state<%s', (
+            p_prio, p_id, P_STATES['completed']
+            )
+        )
+
+        self.req.writejs({'err':0})
+        
     def fn_setprogress(self):
         p_id = self.req.psv_int('p_id')
         p_percent = self.req.psv_int('percent')
@@ -247,12 +260,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             users = dict([(v[0], v[1])for v in self.getuserlist()])
             
-            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js from project where '+state_s+' order by p_id desc limit %d,%d') % (
+            cur.execute(('select SQL_CALC_FOUND_ROWS p_id,p_prio,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js from project where '+state_s+' order by p_prio desc,p_id desc limit %d,%d') % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
-                p_id,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js = r
+                p_id,p_prio,p_class,p_state,p_progress,p_created_by_uid,p_approved_by_uid,p_name,p_desc,p_deadline_ts,p_beginning_ts,p_completion_ts,p_js = r
                 
                 if p_state == P_STATES['validated']:
                     v = json.loads(p_js)['validation']
@@ -271,7 +284,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     p_completion_ts and time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(p_completion_ts)) or '',
                     users.get(p_created_by_uid, 'UNK'),
                     users.get(p_approved_by_uid, 'UNK'),
-                    p_state
+                    p_state,
+                    p_prio
                     )
                 )
                 

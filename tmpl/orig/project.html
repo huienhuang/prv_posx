@@ -12,10 +12,13 @@ function load_project(rd)
 {
     var state = rd[10];
     
-    if(state < ${P_STATES['completed']})
+    if(state < ${P_STATES['completed']}) {
         g_v_dvp_btn_delete.show();
-    else
+        g_v_dvp_btn_setpriority.show();
+    } else {
         g_v_dvp_btn_delete.hide();
+        g_v_dvp_btn_setpriority.hide();
+    }
     
     if(state < ${P_STATES['approved']})
         g_v_dvp_btn_approve.show();
@@ -51,8 +54,9 @@ g_v_tabs = $('#m_tabs').tabs({
             return false;
         } else if(nz == "new") {
             var els = g_v_dlg_new_project.data('in_els');
-            var name = els.name[0].val('');
-            var desc = els.desc[0].val('');
+            els.name[0].val('');
+            els.desc[0].val('');
+            els.prio[0].val('0');
             g_v_dlg_new_project.dialog('open');
             return false;
         }
@@ -157,15 +161,16 @@ click: function(r, c, d) {
 g_v_dlg_new_project = $('#dlg_new_project').dialog({
     autoOpen: false,
     width:500,
-    height:310,
+    height:360,
     buttons: {
         'create': function() {
             var els = g_v_dlg_new_project.data('in_els');
             var name = $.trim(els.name[0].val());
             var desc = $.trim(els.desc[0].val());
+            var prio = $.trim(els.prio[0].val());
             if(!name || !desc) return;
             
-            post_js_ex('?fn=new', {name:name, desc:desc}, function(js) {
+            post_js_ex('?fn=new', {name:name, desc:desc, prio:prio}, function(js) {
                 g_v_dlg_new_project.dialog('close');
                 
                 var idx = g_v_tabs.tabs('option', 'active');
@@ -192,6 +197,15 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
                 g_v_dlg_validate.find('select[name="v_on_time"]').val('');
                 
                 g_v_dlg_validate.data('p_id', rd[0]).dialog('open');
+            }
+        },
+        {
+            'id': 'dvp_btn_setpriority',
+            'text': 'SetPriority',
+            'click': function() {
+                var rd = g_v_dlg_view_project.data('rd');
+                g_v_dlg_setpriority.find('select').val(rd[11]);
+                g_v_dlg_setpriority.data('p_id', rd[0]).dialog('open');
             }
         },
         {
@@ -240,6 +254,7 @@ g_v_dlg_view_project = $('#dlg_view_project').dialog({
 
 
 g_v_dvp_btn_validate = $('#dvp_btn_validate');
+g_v_dvp_btn_setpriority = $('#dvp_btn_setpriority');
 g_v_dvp_btn_setprogress = $('#dvp_btn_setprogress');
 g_v_dvp_btn_approve = $('#dvp_btn_approve');
 g_v_dvp_btn_delete = $('#dvp_btn_delete');
@@ -318,6 +333,25 @@ g_v_dlg_setprogress = $('#dlg_setprogress').dialog({
             var p_id = g_v_dlg_setprogress.data('p_id');
             post_js_ex('?fn=setprogress', {p_id:p_id, percent:percent}, function(js) {
                 g_v_dlg_setprogress.dialog('close');
+                g_v_dlg_view_project.dialog('close');
+                var idx = g_v_tabs.tabs('option', 'active');
+                g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
+            });
+        }
+    }
+});
+
+g_v_dlg_setpriority = $('#dlg_setpriority').dialog({
+    modal: true,
+    autoOpen: false,
+    width:300,
+    height:200,
+    buttons: {
+        'update': function() {
+            var prio = g_v_dlg_setpriority.find('select').val();
+            var p_id = g_v_dlg_setpriority.data('p_id');
+            post_js_ex('?fn=setpriority', {p_id:p_id, prio:prio}, function(js) {
+                g_v_dlg_setpriority.dialog('close');
                 g_v_dlg_view_project.dialog('close');
                 var idx = g_v_tabs.tabs('option', 'active');
                 g_v_tg[idx] && g_v_tg[idx].tinygrid('update', -1, true, true, true);
@@ -406,6 +440,7 @@ body {-webkit-user-select:none;}
 <div id="dlg_new_project" title="New Project">
 <div class="xlabel"><div>Name:</div><div><input type="text" name="p_name" style="width:300px"/></div></div>
 <div class="xlabel" style="height:100px"><div>Desc:</div><div><textarea name="p_desc" style="width:300px;height:92px"></textarea></div></div>
+<div class="xlabel"><div>Priority:</div><div><select name="p_prio" style="width:306px"><option value="-2">Very Low</option><option value="-1">Low</option><option value="0">Normal</option><option value="1">High</option><option value="2">Urgent</option></select></div></div>
 </div>
 
 <div id="dlg_view_project" title="Project">
@@ -435,6 +470,13 @@ body {-webkit-user-select:none;}
 </select>
 </div></div>
 </div>
+
+<div id="dlg_setpriority" title="Set Priority">
+<div class="xlabel"><div>Priority:</div><div>
+<select name="p_prio"><option value="-2">Very Low</option><option value="-1">Low</option><option value="0">Normal</option><option value="1">High</option><option value="2">Urgent</option></select>
+</div></div>
+</div>
+
 
 <div id="dlg_validate" title="Validation">
 

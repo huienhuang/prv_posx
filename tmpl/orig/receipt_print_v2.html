@@ -11,27 +11,27 @@
 <script type="text/javascript">
 
 function open_wnd_item_hist(item_id) {
-    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    open_wnd('hist?fn=itemhist&tid='+item_id,'posx_item_hist');
     return false;
 }
 
 function open_wnd_cust_hist(cust_id) {
-    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    open_wnd('hist?fn=custhist&cid='+cust_id,'posx_customer_hist');
     return false;
 }
 
 function open_wnd_receipt(rid) {
-    window.open('?fn=printreceipt&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    open_wnd('?fn=printreceipt&rid=' + rid,'posx_print_wnd');
     return false;
 }
 
 function open_wnd_so(so_sid) {
-    window.open('sync?fn=printorder&type=2&rid='+so_sid,'posx_so_wnd','location=0,width=992,height=700');
+    open_wnd('sync?fn=printorder&type=2&rid='+so_sid,'posx_so_wnd');
     return false;
 }
 
 function open_wnd_delivery(d_id) {
-    window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d_id,'posx_delivery_record','location=0,width=1150,height=800');
+    open_wnd('delivery?fn=delivery_edit&read_only=1&d_id='+d_id,'posx_delivery_record');
     return false;
 }
 

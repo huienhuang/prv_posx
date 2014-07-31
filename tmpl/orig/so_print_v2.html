@@ -11,17 +11,17 @@
 <script type="text/javascript">
 
 function open_wnd_item_hist(item_id) {
-    window.open('hist?fn=itemhist&tid='+item_id,'posx_item_hist','location=0,width=992,height=700');
+    open_wnd('hist?fn=itemhist&tid='+item_id,'posx_item_hist');
     return false;
 }
 
 function open_wnd_cust_hist(cust_id) {
-    window.open('hist?fn=custhist&cid='+cust_id,'posx_customer_hist','location=0,width=992,height=700');
+    open_wnd('hist?fn=custhist&cid='+cust_id,'posx_customer_hist');
     return false;
 }
 
 function open_wnd_receipt(rid) {
-    window.open('hist?fn=printreceipt&rid=' + rid,'posx_print_wnd','location=0,width=992,height=700');
+    open_wnd('hist?fn=printreceipt&rid=' + rid,'posx_print_wnd');
     return false;
 }
 
