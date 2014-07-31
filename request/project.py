@@ -275,7 +275,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
                 apg.append((
                     p_id,
-                    P_CLASSES[p_class],
+                    P_CLASSES[p_class] + '(%d)' % (p_prio, ),
                     p_name +' - '+ p_desc,
                     ss,
                     '%d%%' % (p_progress,),
