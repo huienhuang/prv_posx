@@ -72,7 +72,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 REC_FLAG_CANCELLING, sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
-            d_note = 'Deleting From Schedule[%d] (%02d/%02d/%02d), Waiting For Confirmation' % (r['sc_id'], m, d, y)
+            d_note = 'Schedule[%d] (%02d/%02d/%02d) - Deleting, Waiting For Confirmation' % (r['sc_id'], m, d, y)
         else:
             cur.execute('delete from schedule where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
                 sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
@@ -106,7 +106,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 y,m = divmod(m, 100)
                 d_notes.append([r['doc_type'],
                                 r['doc_sid'],
-                                'Confirmed Deleting From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
+                                'Schedule[%d] (%02d/%02d/%02d) - Confirmed > Deleted' % (r['sc_id'], m, d, y)
                 ])
     
         if c:
@@ -145,7 +145,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
                 d_notes.append([r['doc_type'],
                                 r['doc_sid'],
-                                'Confirmed Rescheduling[%d] From %s To %s' % (r['sc_id'], s_od, s_nd)
+                                'Reschedule[%d] From %s To %s - Confirmed' % (r['sc_id'], s_od, s_nd)
                 ])
         if c:
             if d_notes: self.add_notes(d_notes)
@@ -277,9 +277,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 o_old_date = datetime.date(y, m, d)
                 
                 if old_sc_flag & REC_FLAG_ACCEPTED:
-                    d_note = 'Rescheduling Delivery Date From %s To %s, Waiting For Confirmation' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                    d_note = 'Rescheduling[%d] From %s To %s, Waiting For Confirmation' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
                 else:
-                    d_note = 'Reschedule Delivery Date From %s To %s' % (o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                    d_note = 'Reschedule[%d] From %s To %s' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
             
             if old_sc_flag & REC_FLAG_ACCEPTED:
                 if old_sc_prio != prio or old_sc_note != note: sc_flag_or |= REC_FLAG_CHANGED
