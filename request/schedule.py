@@ -78,7 +78,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
-            d_note = 'Deleted From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
+            d_note = 'Schedule[%d] (%02d/%02d/%02d) - Deleted' % (r['sc_id'], m, d, y)
             
         err = int(cur.rowcount <= 0)
         if not err:
@@ -256,7 +256,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 )
             )
             sc_id = cur.lastrowid
-            d_note = 'Schedule Delivery Date - %s' % (o_date.strftime('%m/%d/%y'), )
+            d_note = 'Schedule[%d] (%s) - Pending' % (sc_id, o_date.strftime('%m/%d/%y'), )
         else:
             cur.execute("select sc_flag,sc_date,sc_prio,sc_note from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
@@ -384,7 +384,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 y,m = divmod(m, 100)
                 d_notes.append([r['doc_type'],
                                 r['doc_sid'],
-                                'Accepted From Schedule[%d] (%02d/%02d/%02d)' % (r['sc_id'], m, d, y)
+                                'Schedule[%d] (%02d/%02d/%02d) - Accepted' % (r['sc_id'], m, d, y)
                 ])
     
         if c:
