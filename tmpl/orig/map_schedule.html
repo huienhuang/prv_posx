@@ -278,7 +278,9 @@ load_doc_lst(${dt}, -1, 0);
 <body>
 <div id="doc_ctrl">
 <select class="ctrl_filter"><option value="">All Docs</option><option value="1">Pending Docs Only</option></select>
+%if has_perm_delivery_mgr:
 <select class="ctrl_action"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
+%endif
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
