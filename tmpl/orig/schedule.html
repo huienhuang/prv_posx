@@ -71,7 +71,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             lst.push(
                 $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num) )
+                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );

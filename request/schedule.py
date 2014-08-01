@@ -18,6 +18,7 @@ REC_FLAG_RESCHEDULED = 1 << 1
 REC_FLAG_CANCELLING = 1 << 2
 REC_FLAG_CHANGED = 1 << 3
 REC_FLAG_DUPLICATED = 1 << 4
+REC_FLAG_R_RESCHEDULED = 1 << 5
 
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
@@ -38,6 +39,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
             'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
+            'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
             'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
             'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
@@ -127,8 +129,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
-            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
-                REC_FLAG_ACCEPTED | REC_FLAG_RESCHEDULED | REC_FLAG_CHANGED,
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
+                REC_FLAG_RESCHEDULED, REC_FLAG_R_RESCHEDULED, 
                 r['sc_new_date'],
                 r['sc_id'], r['sc_rev'],
                 REC_FLAG_RESCHEDULED | REC_FLAG_CANCELLING, REC_FLAG_RESCHEDULED
@@ -517,8 +519,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if mode:
             where = ' where sc_date>=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '')
         else:
-            where = ' where sc_date=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '') + ' order by '+ (sort_reg and 'sc_id asc' or 'sc_prio desc,sc_id desc')
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc from schedule ' + where, (date,))
+            where = ' where sc_date=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '') + ' order by '+ (sort_reg and 'sc_id asc' or 'is_accepted asc,sc_prio desc,sc_id desc')
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted from schedule ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -733,6 +735,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
             'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
+            'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
             'dt': self.qsv_int('dt'),
         }
         
