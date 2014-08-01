@@ -72,19 +72,21 @@ $(document).tooltip();
 .prntbl {position:relative}
 .prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr, .prntbl >.prntbl_cnt {overflow:visible;position:static}
 .prntbl .prntbl_row_hdr {border-bottom:none}
-.prntbl .prntbl_row_ftr {height:0px;border-bottom:none}
 .prntbl .prntbl_row >div:last-child {border-right:none}
-.prntbl .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(3) {width:130px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(1) {width:50px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(3) {width:60px}
+.prntbl .prntbl_row >div:nth-child(4) {width:130px;font-weight:bold}
 
 %if view_only:
-.prntbl .prntbl_row >div:nth-child(2) {width:437px}
-.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(2) {width:386px}
+.prntbl .prntbl_row >div:nth-child(5) {width:80px;font-weight:bold}
 %else:
-.prntbl .prntbl_row >div:nth-child(2) {width:407px}
-.prntbl .prntbl_row >div:nth-child(4) {width:80px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(5) {width:29px}
+.prntbl .prntbl_row >div:nth-child(2) {width:356px}
+.prntbl .prntbl_row >div:nth-child(5) {width:80px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(6) {width:29px}
 %endif
+
+.prntbl .prntbl_row_ftr >div:nth-child(1) {width:710px;font-weight:bold}
 
 %if view_only:
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
@@ -212,12 +214,13 @@ cust = gjs['shipping']
 %endif
 
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>ALU</div><div>Qty</div>${not view_only and '<div>CK</div>' or ''}</div>
+<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>Qty</div>${not view_only and '<div>CK</div>' or ''}</div>
 <div class="prntbl_cnt">
 %for t in r['ijs']:
 <div class="prntbl_row">
 <div>${t['itemno'] or ''}</div>
 <div>${t['desc1']|h}</div>
+<div>${'%0.2f' % (round_ex(t['price']),)}</div>
 <div>${t['alu']|h}</div>
 %if r['doc_type']:
 <div>${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
@@ -228,7 +231,7 @@ ${not view_only and '<div></div>' or ''}
 </div>
 %endfor
 </div>
-<div class="prntbl_row prntbl_row_ftr"></div>
+<div class="prntbl_row prntbl_row_ftr"><div>Total: $${'%0.2f' % (round_ex(gjs['total']),)}</div></div>
 </div>
 
 %if view_only and r['notes']:
