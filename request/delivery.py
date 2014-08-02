@@ -207,7 +207,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur_ts = int(time.time())
         d_id = self.req.psv_int('d_id')
         rev = self.req.psv_int('rev')
-        ts = cur_ts - self.get_day_ts(cur_ts) + self.get_day_ts(self.req.psv_int('ts'))
+        ts = self.get_day_ts(self.req.psv_int('ts'))
         name = self.req.psv_ustr('name')[:128].strip()
         recs = self.req.psv_js('recs')
         nums = [ int(x['num']) for x in recs if x.get('type') == 0 ]

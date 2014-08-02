@@ -618,9 +618,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         date = datetime.date(y, m, d)
         if date < datetime.date.today(): self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
         
+        cur = self.cur()
+        
         ss = 0
         if zone_id > 0:
-            cur = self.cur()
             cur.execute('select ss_val from schedule_special where ss_date=%s and ss_zidx=%s', (dt, zone_id))
             rows = cur.fetchall()
             if rows:
@@ -628,12 +629,46 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             elif date.weekday() in ZONES[zone_id][1]:
                 ss = 1
         
+        rc_sids = set()
+        so_sids = set()
+        lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only)
+        for r in lst:
+            if r['doc_type']:
+                rc_sids.add(r['doc_sid'])
+            else:
+                so_sids.add(r['doc_sid'])
+        
+        frm_ts = int(time.mktime(date.timetuple()))
+        to_ts = int(time.mktime((date + datetime.timedelta(1)).timetuple()))
+        
+        d_rc = {}
+        if rc_sids:
+            cur.execute('select sr.sid,(select count(*) from deliveryv2_receipt dr left join deliveryv2 d on(dr.d_id=d.d_id) where dr.num=sr.num and d.ts>=%s and d.ts<%s) as d_count from sync_receipts sr where sr.sid_type=0 and sr.sid in (%s)' % (
+                frm_ts, to_ts, ','.join(rc_sids),
+                )
+            )
+            for r in cur.fetchall(): d_rc[ r[0] ] = r[1]
+        
+        d_so = {}
+        if so_sids:
+            cur.execute('select sr.so_sid,(select count(*) from deliveryv2_receipt dr left join deliveryv2 d on(dr.d_id=d.d_id) where dr.num=sr.num and d.ts>=%s and d.ts<%s) as d_count from sync_receipts sr where sr.sid_type=0 and sr.so_type=0 and sr.so_sid in (%s)' % (
+                frm_ts, to_ts, ','.join(so_sids),
+                )
+            )
+            for r in cur.fetchall(): d_so[ r[0] ] = r[1]
+        
+        for r in lst:
+            if r['doc_type']:
+                r['delivery_count'] = d_rc.get(int(r['doc_sid']))
+            else:
+                r['delivery_count'] = d_so.get(int(r['doc_sid']))
+        
         self.req.writejs({
             'state': ss,
             'date': dt,
             'zone_nz': zone_id < 0 and 'All' or ZONES[zone_id][0],
             'zone_id': zone_id,
-            'lst': self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only)
+            'lst': lst
         })
 
     def fn_print(self):

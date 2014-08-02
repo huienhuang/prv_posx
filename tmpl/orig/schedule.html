@@ -72,7 +72,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
-                .append( $('<div></div>').text(r.cust_nz) )
+                .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+'></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
             );
             
@@ -579,11 +579,12 @@ load_overview();
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:360px}
 
-.doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91);}
-.doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d;}
-.doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032;}
-.doc_lst .doc_changed >div:nth-child(2) {background-color:#903815;}
-.doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5;}
+.doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91)}
+.doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d}
+.doc_lst .doc_cancelling >div:nth-child(2) {background-color:#f85032}
+.doc_lst .doc_changed >div:nth-child(2) {background-color:#903815}
+.doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5}
+.doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
 </style>
 
