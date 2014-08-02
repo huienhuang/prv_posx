@@ -26,7 +26,7 @@ CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 ORD_TYPE=('Sales', 'Return', 'Deposit', 'Refund', 'Payout', 'Payin')
 
 
-DEFAULT_PERM = 0x00000001
+DEFAULT_PERM = SALES_PERM | DELIVERY_MGR_PERM
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):

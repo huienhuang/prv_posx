@@ -12,6 +12,9 @@ PERM_ACCOUNTINGV2 = 1 << config.USER_PERM_BIT['accountingv2']
 PERM_CASHIER = 1 << config.USER_PERM_BIT['cashier']
 PERM_SALES_MGR = 1 << config.USER_PERM_BIT['sales_mgr']
 
+PERM_SALES = 1 << config.USER_PERM_BIT['sales']
+PERM_DELIVERY_MGR = 1 << config.USER_PERM_BIT['delivery_mgr']
+
 
 TOOLS_MAP = (
 
@@ -58,14 +61,12 @@ TOOLS_MAP = (
 )),
 
 ('Warehouse', (
-    ('Delivery', 'delivery', PERM_NORMAL_ACCESS),
-    ('Pallet Map', '', PERM_NORMAL_ACCESS),
-    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
+    ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR),
+#    ('Pallet Map', '', PERM_NORMAL_ACCESS),
+#    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
 )),
 
 )
-
-
 
 DEFAULT_PERM = PERM_BASE_ACCESS | PERM_NORMAL_ACCESS
 class RequestHandler(App.load('/advancehandler').RequestHandler):
