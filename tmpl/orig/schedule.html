@@ -364,6 +364,13 @@ g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
+g_v_dlg_help = $('#dlg_help').dialog({
+    autoOpen: false,
+    modal: true,
+    width:600,
+    height:260
+});
+
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
     width:600,
@@ -522,6 +529,10 @@ els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.dialog('open');
 });
 
+els.btn_help[0].button().click(function() {
+    g_v_dlg_help.dialog('open');
+});
+
 els.user[0].change(load_overview);
 
 window.posx_chk_login_args = function() {
@@ -589,6 +600,8 @@ load_overview();
 .doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5}
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
+#dlg_help {font-size:72px;font-weight:bold;text-align:center}
+
 </style>
 
 </head>
@@ -602,6 +615,7 @@ load_overview();
 %endfor
 </select>
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
+<input type="button" name="ctrl_btn_help" value="help" />
 </div>
 
 <div class="x_body">
@@ -639,6 +653,7 @@ load_overview();
 <iframe></iframe>
 </div>
 
+<div id="dlg_help" title="Help">Ask Nicole</div>
 
 </body>
 </html>
