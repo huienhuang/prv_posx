@@ -451,7 +451,7 @@ function _ui_get_doc(sc_id)
     
     var els = g_v_dlg_doc_form.data('pjs', null).data('in_els');
     els.info[0].val('');
-    $(els.rec[0].val('').prop('disabled', false).change().children().slice(1)).remove();
+    $(els.rec[0].prop('disabled', false).val('').change().children().slice(1)).remove();
     
     var type = els.type[0].val();
     var num = $.trim(els.num[0].val());
@@ -490,7 +490,7 @@ function _ui_get_doc(sc_id)
             if(ol.length) {
                 els.rec[0].append(ol);
                 if(sc_id)
-                    k >= 0 && els.rec[0].prop('disabled', true).val(k + '').change();
+                    k >= 0 && els.rec[0].val(k + '').change().prop('disabled', true);
                 else
                     els.rec[0].val((ol.length - 1) + '').change();
             }
