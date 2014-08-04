@@ -11,7 +11,7 @@ DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_default(self):
-        pass
+        self.req.write_html('cust_by_dept.html')
     
     
     
