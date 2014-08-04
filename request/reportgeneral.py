@@ -293,8 +293,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dps = []
         for k,v in js['summary']:
             if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
-            if not v[-1]: continue
-            dps.append( {'x': k * 1000, 'y': round(v[1] * 100 / float(v[-1][0]), 2)} );
+            if not v[-3]: continue
+            dps.append( {'x': k * 1000, 'y': round(v[1] * 100 / float(v[-3][0]), 2)} );
         
         chart_config = {
             'zoomEnabled': True,
@@ -314,8 +314,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         lst = []
         for k,v in js['summary']:
             if frm_ts and to_ts and (k < frm_ts or k > to_ts): continue
-            if not v[-1]: continue
-            lst.append( (k, round(v[1] * 100 / float(v[-1][0]), 2)) )
+            if not v[-3]: continue
+            lst.append( (k, round(v[1] * 100 / float(v[-3][0]), 2)) )
     
         return (('Inventory/Sales',), lst)
     

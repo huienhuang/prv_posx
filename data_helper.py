@@ -44,15 +44,15 @@ def get_location_hash(*args):
 
 
 def get_receipt_crc(r, jsd, items):
-    v = str((
+    v = unicode((
         sorted((jsd.get('customer') or {}).items()),
         sorted((jsd.get('shipping') or {}).items()),
         jsd['memo'],
-    ))
+    )).encode('utf-8')
     return zlib.crc32(v) & 0xFFFFFFFF
 
 def get_salesorder_crc(r, jsd, items):
-    v = str((
+    v = unicode((
         sorted((jsd.get('customer') or {}).items()),
         sorted((jsd.get('shipping') or {}).items()),
         jsd['memo'],
@@ -64,10 +64,6 @@ def get_salesorder_crc(r, jsd, items):
         jsd['total'], jsd['subtotal'], jsd['deposittaken'],
         
         [ (f_i['itemsid'], f_i['itemno'], f_i['snum'], f_i['desc1'], f_i['uom'], f_i['alu'], f_i['pricetax'], f_i['qty']) for f_i in items ]
-    ))
+    )).encode('utf-8')
     return zlib.crc32(v) & 0xFFFFFFFF
-
-
-
-
 

@@ -16,6 +16,7 @@ function apply(dont_load)
 {
     g_v_main_xtbl.data('js', null).empty();
     g_v_main_xtbl_header.empty();
+    g_v_main_xtbl_footer.empty();
     
     var v_cbs = $('.filter_month input:checked');
     if(!v_cbs.length) return;
@@ -141,6 +142,30 @@ function render(months, cates, users)
         llst.push( $('<div class="prntbl_row"></div>').append(lst) );
     }
     g_v_main_xtbl.append(llst).data('js', {months: months, clerks_d: clerks_d});
+    
+    var last_v = 0;
+    var lst = [ $('<div></div>') ];
+    for(var m = 0; m < months.length; m++) {
+        var v = 0;
+        for(var i = 0; i < clerks_d.length; i++) v += clerks_d[i][1][m] || 0;
+        var o = $('<div></div>');
+        if(v) {
+            o.append($('<span></span>').text(v.toFixed(2)));
+            if(last_v) {
+                var dp = (v - last_v) / last_v * 100;
+                if(dp){
+                    if(dp > 0)
+                        o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                    else
+                        o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                }
+            }
+        }
+        lst.push(o);
+        last_v = v;
+    }
+    g_v_main_xtbl_footer.append(lst);
+    
 }
 
 function open_dlg_clerk(cnz, mnz)
@@ -212,6 +237,7 @@ g_v_main_xtbl_footer = $('.main_tbl .prntbl_row_ftr');
 
 g_v_main_xtbl.scroll(function() {
     g_v_main_xtbl_header.css('left', '-' + g_v_main_xtbl.scrollLeft() + 'px' );
+    g_v_main_xtbl_footer.css('left', '-' + g_v_main_xtbl.scrollLeft() + 'px' );
 });
 
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
