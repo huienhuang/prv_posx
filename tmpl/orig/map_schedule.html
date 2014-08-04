@@ -94,10 +94,12 @@ function load_doc_lst(dt, zidx, clerk_id)
     get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, clerk_id: clerk_id, sort_reg: 1, pending_only: parseInt(g_v_doc_filter.val()) || 0}, function(js) {
         g_doc_js = js;
         
+        var dc = 0;
         var lst = [];
         for(var i = 0; i < js.lst.length; i++) {
             var r = js.lst[i];
             //r.i = i;
+            dc += r.delivery_count ? 1 : 0;
             
             var cls = '';
             if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
@@ -141,7 +143,7 @@ function load_doc_lst(dt, zidx, clerk_id)
         
         g_v_doc_lst.append(lst);
         js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
-        $(g_v_doc_lst_ftr[0]).text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length);
+        $(g_v_doc_lst_ftr[0]).text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length + ', Fill: ' + dc);
         $(g_v_doc_lst_ftr[1]).text('Selected: ' + js.lst.length);
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
@@ -260,8 +262,8 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(5) {width:90px}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
-.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:246px}
-.doc_lst .prntbl_row_ftr >div:nth-child(2) {width:160px}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:276px}
+.doc_lst .prntbl_row_ftr >div:nth-child(2) {width:130px}
 
 .doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
@@ -278,9 +280,9 @@ load_doc_lst(${dt}, -1, 0);
 </head>
 <body>
 <div id="doc_ctrl">
-<select class="ctrl_filter"><option value="">All Docs</option><option value="1">Pending Docs Only</option></select>
+<select class="ctrl_filter" style="width:140px"><option value="">All Docs</option><option value="1">Pending Only</option></select>
 %if has_perm_delivery_mgr:
-<select class="ctrl_action"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
+<select class="ctrl_action" style="width:120px"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
 %endif
 </div>
 <div id="doc_lst">

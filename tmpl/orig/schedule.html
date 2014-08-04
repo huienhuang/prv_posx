@@ -54,11 +54,13 @@ function load_doc_lst(dt, zidx, reload, auto_print)
     get_js_ex('?fn=get_docs', {dt: dt, zone_id: zidx, 'clerk_id': g_v_tp_ctrl.data('in_els').user[0].val()}, function(js) {
         g_v_dlg_documents.data('jsd', js).dialog('option', 'title', int2date_s(js.date) + ' - ' + js.zone_nz + (js.state ? js.state == 1 ? ' - Open' : ' - Close' : ''));
         
+        var dc = 0;
         var k = -1;
         var lst = [];
         for(var i = 0; i < js.lst.length; i++) {
             var r = js.lst[i];
             if(k < 0 && reload && o_sc_id === r.sc_id) k = i;
+            dc += r.delivery_count ? 1 : 0;
             
             var cls = '';
             if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
@@ -84,7 +86,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         } else 
             g_v_dd_doc_lst_body.append(lst);
         
-        g_v_dd_doc_lst_ftr.text('Total: ' + js.lst.length);
+        g_v_dd_doc_lst_ftr.text('Total: ' + js.lst.length + ', Fill: ' + dc);
         js.v_cbs = g_v_dd_doc_lst_body.find('input[type="checkbox"]');
         reload && k >= 0 && load_doc(k, auto_print);
         
@@ -556,6 +558,7 @@ load_overview();
 .x_body .t_row > div {display:inline-block;width:138px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
 .x_body .t_left_hdr .t_row > div {width:158px}
 .x_body .t_body .t_row > div, .x_body .t_top_hdr .t_row > div {cursor:pointer}
+.x_body .t_body >.t_row:nth-child(1) >div, .x_body .t_body >.t_row:nth-child(2) >div {background-color:#f1f1f1}
 
 .ovc_default {margin-right:4px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid rgb(242,130,91);border-radius:5px;padding:2px 4px;background:rgb(242,130,91);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(242,130,91,1)), color-stop(50%,rgba(229,91,43,1)), color-stop(100%,rgba(240,113,70,1)));}
 .ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
