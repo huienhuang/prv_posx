@@ -5,267 +5,58 @@
 <title>POSX - Cust By Dept</title>
 
 <script type="text/javascript">
-g_data = {};
-g_sales = {'anthony':1, 'ray': 1, 'hilda': 1};
+g_lst_args = {};
 
-function evt_apply()
+function refresh_lst()
 {
-    apply();
-}
-
-function apply(dont_load)
-{
-    g_v_main_xtbl.empty();
-    g_v_main_xtbl_footer.empty();
-    
-    var v_cbs = $('.filter_month input:checked');
-    if(!v_cbs.length) return;
-    
-    var lst = [[], []];
-    for(var i = 0; i < v_cbs.length; i++) {
-        var v = $(v_cbs[i]).val();
-        if(!g_data || !g_data[v])
-            lst[1].push(v);
-        else
-            lst[0].push(v);
-    }
-    
-    if (lst[1].length > 0) {
-        if(!dont_load) {
-            get_js('?fn=get_comm', {'months': lst[1].join('|')}, function(js) {
-                for(var k in js) g_data[k] = js[k][0];
-                apply(true);
-            });
-        }
-        
-        return;
-    }
-    
-    Array.prototype.push.apply(lst[0], lst[1]);
-    var months = lst[0];
-    
-    var v_cbs = $('.filter_cate input:checked');
-    var cates = [];
-    for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
-    
-    var sales_only = parseInt(g_v_ctrl_clerk.val()) || 0;
-    
-    render(months, cates, sales_only);
-}
-
-function render(months, cates, sales_only)
-{
-    var clerks_total = {};
-    for(var m = 0; m < months.length; m++) {
-        var clerks = g_data[ months[m] ];
-        for(var cnz in clerks) {
-            if(sales_only && !g_sales[cnz]) continue;
-            
-            var total = clerks_total[cnz];
-            if(total === undefined) total = clerks_total[cnz] = [0, 0, 0];
-            var cates_total = clerks[cnz];
-            for(var i = 0; i < cates.length; i++) {
-                cate_total = cates_total[ cates[i] || null ];
-                if(cate_total === undefined) continue;
-                total[0] += cate_total[0];
-                total[1] += cate_total[1];
-                total[2] += cate_total[2];
-            }
-        }
-        
-    }
-    
-    overall_total = [0, 0, 0];
-    var cnzs = [];
-    for(var cnz in clerks_total) cnzs.push(cnz);
-    cnzs.sort();
-    for(var i = 0; i < cnzs.length; i++) {
-        var cnz = cnzs[i];
-        var total = clerks_total[cnz];
-        
-        overall_total[0] += total[0];
-        overall_total[1] += total[1];
-        overall_total[2] += total[2];
-        
-        g_v_main_xtbl.append(
-            $('<div class="xtbl_row"></div>')
-            .append( $('<div onclick="open_dlg_clerk(\''+cnz+'\');return false;"></div>').text(cnz) )
-            .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
-            .append( $('<div></div>').text(total[0].toFixed(2)) )
-            .append( $('<div></div>').text(total[1].toFixed(2)) )
-            .append( $('<div></div>').text(total[2].toFixed(2)) )
-            .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
-            .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) )
-        );
-        
-    }
-    
-    var total = overall_total;
-    g_v_main_xtbl_footer
-    .append( $('<div></div>') )
-    .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
-    .append( $('<div></div>').text(total[0].toFixed(2)) )
-    .append( $('<div></div>').text(total[1].toFixed(2)) )
-    .append( $('<div></div>').text(total[2].toFixed(2)) )
-    .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
-    .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) );
-
-}
-
-function open_dlg_clerk(cnz)
-{
-    g_v_clerk_xtbl_footer.empty();
-    g_v_clerk_xtbl.empty();
-    
-    var v_cbs = $('.filter_month input:checked');
-    if(!v_cbs.length) return;
-    var months = [];
-    for(var i = 0; i < v_cbs.length; i++) months.push( $(v_cbs[i]).val() );
-    
-    var v_cbs = $('.filter_cate input');
-    var cates = [];
-    for(var i = 0; i < v_cbs.length; i++) cates.push( [$(v_cbs[i]).val(), [0, 0, 0]] );
-    
-    for(var m = 0; m < months.length; m++) {
-        var cates_total = g_data[ months[m] ][cnz];
-        if(cates_total === undefined) continue;
-        
-        for(var i = 0; i < cates.length; i++) {
-            var s = cates[i];
-            cate_total = cates_total[ s[0] || null ];
-            if(cate_total === undefined) continue;
-            
-            var total = s[1];
-            total[0] += cate_total[0];
-            total[1] += cate_total[1];
-            total[2] += cate_total[2];
-        }
-    }
-    
-    var total_all = [0, 0, 0, 0, 0];
-    for(var i = 0; i < cates.length; i++) {
-        var s = cates[i];
-        var total = s[1];
-        
-        var r_total = total[0] + total[1];
-        var r_pending = total[0];
-        var r_recved = total[1];
-        var r_prevrecved = total[2];
-        var r_estimated = total[1] + total[2];
-        
-        total_all[0] += r_total;
-        total_all[1] += r_pending;
-        total_all[2] += r_recved;
-        total_all[3] += r_prevrecved;
-        total_all[4] += r_estimated;
-        
-        g_v_clerk_xtbl.append(
-            $('<div class="xtbl_row"></div>')
-            .append( $('<div></div>').text(s[0] || '*NotInList*') )
-            .append( $('<div></div>').text(r_total.toFixed(2)) )
-            .append( $('<div></div>').text(r_pending.toFixed(2)) )
-            .append( $('<div></div>').text(r_recved.toFixed(2)))
-            .append( $('<div></div>').text(r_prevrecved.toFixed(2)) )
-            .append( $('<div></div>').text(r_estimated.toFixed(2)) )
-        );
-    }
-    g_v_clerk_xtbl_footer
-    .append( $('<div></div>') )
-    .append( $('<div></div>').text(total_all[0].toFixed(2)) )
-    .append( $('<div></div>').text(total_all[1].toFixed(2)) )
-    .append( $('<div></div>').text(total_all[2].toFixed(2)) )
-    .append( $('<div></div>').text(total_all[3].toFixed(2)) )
-    .append( $('<div></div>').text(total_all[4].toFixed(2)) )
-    
-    g_v_dlg_clerk.dialog('option', 'title', cnz).dialog('open');
-    
+    var els = g_v_ctrl.data('in_els')
+    g_lst_args['frm'] = els.dt_frm[0].val();
+    g_lst_args['to'] = els.dt_to[0].val();
+    g_v_lst.tinygrid('update', -1, true, true, true);
 }
 
 $(function() {
 
 $('.btn').button();
-$('.tp_ctrl > input[value="quit"]').click(go_home);
-$('.xtbl_header').tooltip();
 
-g_v_tp_ctrl = $('.tp_ctrl');
-g_v_ctrl_clerk = $('select[name="ctrl_clerk"]', g_v_tp_ctrl).change(evt_apply);
-g_v_main_xtbl = $('.main_tbl .xtbl');
-g_v_main_xtbl_footer = $('.main_tbl .xtbl_footer .xtbl_row');
-
-g_v_dlg_clerk = $('#dlg_clerk').dialog({
-    autoOpen: false,
-    width:850,
-    height:500,
+g_v_lst = $('#lst').tinygrid({
+len:0,
+src:{page:'?fn=get', data:g_lst_args},
+cols: [
+       {name:'Customer', width:250},
+       {name:'Address', width:"100%"},
+       {name:'Phone', width:200},
+       {name:'Sales', width:100},
+       ],
+click: function(r, c, d) {
+    open_wnd('hist?fn=custhist&cid='+d[4],'posx_customer_hist');
+}
 });
 
-g_v_clerk_xtbl = $('.xtbl', g_v_dlg_clerk);
-g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 
+g_v_ctrl = $('.tp_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els')
+var dto = new Date();
+var dts = dto.getFullYear() + '-' + str_pad(dto.getMonth() + 1, 2, '0');
+els.dt_frm[0].change(refresh_lst).val(dts);
+els.dt_to[0].change(refresh_lst).val(dts);
+els.quit[0].click(go_home);
 
-g_v_filter_chg = false;
-$('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
+refresh_lst();
 
-function filter_chk_all(chk) {
-    var d = $(this);
-    var p = d.parent().parent();
-    p.find('input[type="checkbox"]').prop('checked', chk);
-    
-    g_v_filter_chg = true;
-}
+});
 
-v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
-v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
-v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
-
-$('.filter').hover(null, function() {
-    if(!g_v_filter_chg) return;
-    g_v_filter_chg = false;
-    apply();
-})
-
-
-}); //ready
 
 </script>
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
+
 .tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
-.tp_ctrl button {height:32px;vertical-align:middle;}
 
-.main_tbl {position:absolute;top:50px;bottom:0;right:0;left:0;z-index:-1}
-
-.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:720px;}
-.xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:120px;position:relative}
-.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%}
-.xtbl_row > div:nth-child(1) {cursor:pointer}
-
-.xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
-.xtbl .xtbl_row:hover {background-color:#ffe7d7}
-.xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
-.xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
-.xtbl_header {top:0}
-.xtbl_footer {bottom:0;top:auto}
-.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
-.xtbl {position:absolute;top:37px;bottom:37px;right:0;left:0;overflow:auto;}
-
-#dlg_clerk {position:relative}
-#dlg_clerk .xtbl_row {min-width:820px;}
-#dlg_clerk .xtbl_row > div:nth-child(1) {width:220px;}
-
-
-.tiny_popup {position:relative;display:inline-block;line-height:32px;}
-.tiny_popup >div:nth-child(1) {text-align:center}
-.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
-.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
-.tiny_popup:hover >div:nth-child(2) {display:block;}
-
-.tiny_popup >div:nth-child(2) {width:510px;}
-.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
-.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
-.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
-.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+#lst {top:50px}
 
 
 </style>
@@ -274,50 +65,12 @@ $('.filter').hover(null, function() {
 <body>
 
 <div class="tp_ctrl">
-
-<div class="tiny_popup filter" style="width:100px">
-<div>Filter</div>
-<div>
-
-
-<div class="filter_month">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
-%for r in reports:
-<div><input type="checkbox" value="${r|h}" name="filter_month" /><span>${r|h}</span></div>
-%endfor
+<input type="month" placeholder="From" name="ctrl_dt_frm" />
+<input type="month" placeholder="To" name="ctrl_dt_to" />
+<input type="button" value="Export" class="btn" name="ctrl_export" />
+<input type="button" value="Quit" class="btn" name="ctrl_quit" style="float:right;margin-top:9px" />
 </div>
-
-
-<div class="filter_cate">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
-<div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
-%for cate in const.ITEM_L_CATE:
-<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
-%endfor
-</div>
-
-</div>
-</div>
-
-<select name="ctrl_clerk" style="width:130px"><option value="0">All Clerks</option><option value="1">Sales Only</option></select>
-<input style="margin-left:10px" type="button" value="export" class="btn" />
-<input style="margin-left:10px" type="button" value="quit" class="btn" />
-
-</div>
-
-<div class="main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="NotRcved + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div title="1% of Estimated">*Commission*</div></div></div>
-<div class="xtbl"></div>
-<div class="xtbl_footer"><div class="xtbl_row"></div></div>
-</div>
-
-<div id="dlg_clerk">
-<div class="xtbl_header"><div class="xtbl_row"><div>Dept</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div></div></div>
-<div class="xtbl"></div>
-<div class="xtbl_footer"><div class="xtbl_row"></div></div>
-</div>
+<div id="lst"></div>
 
 </body>
 </html>
-
-

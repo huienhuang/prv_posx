@@ -11,6 +11,7 @@ cur = mdb.cursor()
 
 
 g_s = {}
+g_c = {}
 
 cur.execute('select sr.*,(select count(*) from deliveryv2_receipt where num=sr.num and d_excluded=0) as is_delivery from sync_receipts sr where sr.sid_type=0 and (sr.type&0xFF00)<0x0200')
 nzs = cur.column_names
@@ -54,6 +55,9 @@ for r in cur:
         s[5] += s_t_cost
         s[8] += 1
   
+    if r['cid'] != None:
+        g_c.setdefault(r['cid'], {}).setdefault(dt, [0])[0] += s_t_price
+  
         
 cur.execute('select * from sorder where (ord_flag&8)!=0')
 nzs = cur.column_names
@@ -96,6 +100,7 @@ for k, v in g_s.items():
 
 s = g_s.items()
 s.sort(key=lambda f_x:f_x[0])
-cPickle.dump({'summary': s}, open(os.path.join(config.DATA_DIR, 'receipt_report.txt'), "wb"), 1)
+g_c = dict([(f_k, sorted(f_v.items(), key=lambda f_x:f_x[0])) for f_k,f_v in g_c.items()])
+cPickle.dump({'summary': s, 'customer': g_c}, open(os.path.join(config.DATA_DIR, 'receipt_report.txt'), "wb"), 1)
 
 
