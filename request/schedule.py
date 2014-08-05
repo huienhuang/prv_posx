@@ -506,7 +506,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
 
-    def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0, pending_only=0):
+    def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0, pending_only=0, dup_chk=0):
         clerk = None
         if clerk_id:
             clerk = self.finduser(clerk_id)
@@ -520,7 +520,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             where = ' where sc_date>=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '')
         else:
             where = ' where sc_date=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '') + ' order by '+ (sort_reg and 'sc_id asc' or 'is_accepted asc,sc_prio desc,sc_id desc')
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted from schedule ' + where, (date,))
+        sql_dup_chk = ''
+        if dup_chk: sql_dup_chk = ',(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup'
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted' + sql_dup_chk + ' from schedule sa ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -631,7 +633,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         rc_sids = set()
         so_sids = set()
-        lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only)
+        lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only, 1)
         for r in lst:
             if r['doc_type']:
                 rc_sids.add(r['doc_sid'])

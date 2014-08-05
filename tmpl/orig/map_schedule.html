@@ -116,6 +116,7 @@ function load_doc_lst(dt, zidx, clerk_id)
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="locate('+i+')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+                .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
             );
             r.selected = 1;
             
@@ -251,9 +252,9 @@ load_doc_lst(${dt}, -1, 0);
 <style type="text/css">
 .ui-widget {font-size:18px;}
 
-#doc_ctrl {position:absolute;top:0;width:400px;height:32px;left:0;padding:9px 5px}
-#doc_lst {position:absolute;top:50px;width:410px;bottom:0;left:0;}
-#map_canvas {position:absolute;top:0;right:0;bottom:0;left:410px;}
+#doc_ctrl {position:absolute;top:0;width:420px;height:32px;left:0;padding:9px 5px}
+#doc_lst {position:absolute;top:50px;width:430px;bottom:0;left:0;}
+#map_canvas {position:absolute;top:0;right:0;bottom:0;left:430px;}
 
 .doc_lst {top:0;bottom:0;left:0;right:0}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
@@ -261,13 +262,14 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .prntbl_row >div:nth-child(3) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(5) {width:90px}
+.doc_lst .prntbl_row >div:nth-child(6) {width:19px;font-weight:bold}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
-.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:276px}
+.doc_lst .prntbl_row_ftr >div:nth-child(1) {width:296px}
 .doc_lst .prntbl_row_ftr >div:nth-child(2) {width:130px}
 
 .doc_lst .doc_pending >div:nth-child(3) {background-color:rgb(242,130,91);}
 .doc_lst .doc_accepted >div:nth-child(3) {background-color:#627d4d;}
-.doc_lst .doc_cancelling >div:nth-child(3) {background-color:#f85032;}
+.doc_lst .doc_cancelling >div:nth-child(3) {background-color:#ff3019;}
 .doc_lst .doc_changed >div:nth-child(3) {background-color:#903815;}
 .doc_lst .doc_rescheduled >div:nth-child(3) {background-color:#3578b5;}
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
@@ -287,7 +289,7 @@ load_doc_lst(${dt}, -1, 0);
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div><div>D</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div><div></div></div>
 </div>
