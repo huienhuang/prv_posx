@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>POSX - Sales Report</title>
+<%include file="header_inc_v3.html" />
+
+<script type="text/javascript">
+
+$(function() {
+$('.btn').button();
+
+g_v_tabs = $('#m_tabs').tabs({
+    'heightStyle': 'fill',
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'quit') {
+            go_home();
+            return false;
+        } else if(nz == 'empty') {
+            
+            return false;
+        }
+        
+        return true;
+    },
+    activate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        var im = ui.newPanel.children('iframe');
+        var src = im.attr('src');
+        if(!src) im.attr('src', '?fn=' + nz);
+        
+    },
+    active: 0
+});
+
+g_v_tabs.tabs({active: 1});
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+#m_tabs {position:absolute;top:0;left:0;right:0;bottom:0;font-size:18px;padding:0px;}
+#m_tabs > div {position:absolute;top:49px;left:0;right:0;bottom:0;height:auto !important;width:auto !important;padding:0px;}
+#m_tabs > div > iframe {border:0;margin:0;padding:0;position:absolute;top:0;bottom:0;width:100%;height:100%;}
+
+</style>
+
+</head>
+<body>
+
+<div id="m_tabs">
+<ul>
+    <li style="float:right"><a href="#tabs_empty">&nbsp;</a></li>
+    <li><a href="#tabs_year_to_year">YearToYear</a></li>
+    <li><a href="#tabs_transaction">Transaction</a></li>
+    <li><a href="#tabs_sales">Sales</a></li>
+    <li style="float:right"><a href="#tabs_quit">Quit</a></li>
+</ul>
+
+<div id="tabs_year_to_year"><iframe></iframe></div>
+<div id="tabs_transaction"><iframe></iframe></div>
+<div id="tabs_sales"><iframe></iframe></div>
+</div>
+
+</body>
+</html>

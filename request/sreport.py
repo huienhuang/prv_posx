@@ -13,6 +13,32 @@ DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
+        self.req.writefile('report_cnt.html')
+
+    def fn_year_to_year(self):
+        yrs = {}
+        rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('summary', [])
+        for r in rjs:
+            yrs.setdefault(time.localtime(r[0]).tm_year, [0])[0] += r[1][1]
+        yrs = yrs.items()
+        yrs.sort(key=lambda f_x: f_x[0])
+        dps = []
+        for yr,amt in yrs:
+            dps.append({'label': yr, 'y': round(amt[0], 2)})
+        
+        cfg = {
+            'zoomEnabled': True,
+            'theme': "theme2",
+            'title': {'text': "Year To Year"},
+            'axisY': {'title':"Total Sale $"},
+            'data': [
+                {'type': "column", 'dataPoints': dps},
+            ]
+        }
+        
+        self.req.writefile('report/year_to_year.html', {'chart_cfg': json.dumps(cfg, separators=(',',':'))})
+
+    def fn_cust_by_dept(self):
         r = {
             'const': const
         }

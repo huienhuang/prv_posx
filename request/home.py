@@ -28,10 +28,10 @@ TOOLS_MAP = (
 #    ('Commision', 'comm', PERM_ADMIN),
     ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('Item Sale', 'reportitem', PERM_ADMIN),
-    ('Customer Sale', 'sreport', PERM_ADMIN),
+    ('Customer Sale', 'sreport?fn=cust_by_dept', PERM_ADMIN),
     ('General Report', 'reportgeneral', PERM_ADMIN),
     ('Daily Report', 'reportdaily', PERM_ADMIN),
-    
+    ('Report', 'sreport', PERM_ADMIN),
 )),
 
 ('HR', (
