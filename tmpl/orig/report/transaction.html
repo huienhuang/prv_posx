@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+<title>POSX - Report</title>
+
+<script type="text/javascript">
+
+function render_chart()
+{
+    
+}
+
+$(function() {
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+els.export[0].button();
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<select name="ctrl_type"><option>AVG Value</option><option>Number</option><option>Unit</option></select>
+<select name="ctrl_interval"><option>Monthly</option><option>Weekly</option><option>Daily</option></select>
+<input type="date" name="ctrl_dt_frm" />
+<input type="date" name="ctrl_dt_to" />
+
+<input type="button" value="Export" name="ctrl_export" />
+</div>
+<div class="x_body"></div>
+
+</body>
+</html>

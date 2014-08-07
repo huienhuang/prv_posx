@@ -38,6 +38,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         self.req.writefile('report/year_to_year.html', {'chart_cfg': json.dumps(cfg, separators=(',',':'))})
 
+    def fn_transaction(self):
+        
+        self.req.writefile('report/transaction.html')
+        
     def fn_cust_by_dept(self):
         r = {
             'const': const
