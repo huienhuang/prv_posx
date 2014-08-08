@@ -5,7 +5,17 @@
 <title>POSX - Report A Problem</title>
 
 <script type="text/javascript">
-    
+g_item = null;
+
+function select_item(item) {
+    g_item = item;
+    var v_open_case = g_v_ctrl.data('in_els').open_case[0];
+    if(item)
+        v_open_case.val('OpenCase(#'+item[1]+')');
+    else
+        v_open_case.val('OpenCase');
+}
+
 $(function() {
 
 g_v_ctrl = $('.x_ctrl');
@@ -14,9 +24,11 @@ var els = g_v_ctrl.data('in_els');
 els.open_case[0].button().click(function() {
     
 });
-
+els.clear[0].button().click(function() {
+    select_item(null);
+});
 init_item_ac(els.srch[0], function(event, ui) {
-    g_v_ctrl.data('in_els').open_case[0].val('OpenCase(#'+ui.item[1]+')');
+    select_item(ui.item);
 }, {});
 
 g_v_dlg_problem_form = $('#dlg_problem_form').dialog({
@@ -30,8 +42,8 @@ g_v_tg_lst = $('.x_body').tinygrid({
 len: 0,
 src: {page:'?fn=get_item_custs'},
 cols: [{name:'Item#', width:100},
-       {name:'Name', width:"100%"},
-       {name:'Type', width:100},
+       {name:'Name', width:"50%"},
+       {name:'Issue', width:"50%"},
        {name:'Date', width:250},
        ],
 click: function(r, c, d) {
@@ -55,6 +67,7 @@ click: function(r, c, d) {
 <div class="x_ctrl">
 <input type="text" name="ctrl_srch" placeholder="item search" />
 <input type="button" value="OpenCase" name="ctrl_open_case" />
+<input type="button" value="Clear" name="ctrl_clear" />
 </div>
 <div class="x_body"></div>
 
