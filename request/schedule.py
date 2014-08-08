@@ -45,6 +45,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         }
         self.req.writefile('schedule.html', r)
     
+    def fn_v2(self):
+        r = {
+            'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
+            'zones': [ (f_x[0], f_x[2]) for f_x in ZONES ],
+            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
+            'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
+            'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
+            'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
+            'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
+            'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
+            'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
+            'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
+            'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
+        }
+        self.req.writefile('schedulev2.html', r)
+    
     def inc_seq(self):
         self.cur().execute('update config set cval=cval+1 where cid=%s', (CFG_SCHEDULE_UPDATE_SEQ,))
     

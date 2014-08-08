@@ -6103,6 +6103,8 @@ $.widget( "ui.autocomplete", {
 				}
 			},
 			menuselect: function( event, ui ) {
+				if(this.search_pending || this.pending) return false;
+				
 				var item = ui.item.data( "ui-autocomplete-item" ),
 					previous = this.previous;
 
@@ -6250,6 +6252,7 @@ $.widget( "ui.autocomplete", {
 				this.selectedItem = null;
 				this.search( null, event );
 			}
+			this.search_pending = 0;
 		}, this.options.delay );
 	},
 

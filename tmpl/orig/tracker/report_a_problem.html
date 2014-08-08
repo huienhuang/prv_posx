@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - Report A Problem</title>
+
+<script type="text/javascript">
+    
+$(function() {
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+els.add[0].button().click(function() {
+    
+    
+});
+
+init_item_ac(els.srch[0], function() {
+    
+}, {});
+
+g_v_dlg_problem_form = $('#dlg_problem_form').dialog({
+    autoOpen: false,
+    width:800,
+    height:500,
+    
+});
+
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<input type="text" name="ctrl_srch" placeholder="item search" />
+<input type="button" value="Add" name="ctrl_add" />
+</div>
+<div class="x_body"></div>
+
+
+<div id="dlg_problem_form">
+<div>
+<div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
+</div>
+</div>
+
+
+</body>
+</html>
