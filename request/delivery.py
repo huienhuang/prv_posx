@@ -117,15 +117,22 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select d.d_id,d.name,u.user_name,d.count,d.ts from deliveryv2 d left join user u on (d.user_id=u.user_id) order by d.d_id desc limit %d,%d' % (
+            d_users = dict([f_v[:2] for f_v in self.getuserlist()])
+            cur.execute('select d_id,name,user_id,count,ts,(select group_concat(distinct driver_id) from deliveryv2_receipt where d_id=d.d_id) from deliveryv2 d order by d_id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
                 r = list(r)
+                if r[5]:
+                    drvs = ','.join([ d_users.get(int(f_v)) or f_v for f_v in r[5].split(',') if f_v.isdigit() ])
+                else:
+                    drvs = ''
+                r[1] = u'%s - %s' % (r[1], drvs)
+                r[2] = d_users.get(r[2])
                 r[3] = '%d/%d' % ((r[3] >> 16) & 0xFF, r[3] & 0xFF)
                 r[4] = time.strftime("%m/%d/%Y", time.localtime(r[4]))
-                apg.append(r)
+                apg.append(r[:-1])
         
         cur.execute('select count(*) from deliveryv2')
         rlen = int(cur.fetchall()[0][0])

@@ -12,7 +12,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = {
             'tab_cur_idx' : 2,
             'title': 'Problem Tracker',
-            'tabs': [ ('report_a_problem', 'Report A Problem'), ]
+            'tabs': [ ('report_a_problem', 'Item'), ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
 
