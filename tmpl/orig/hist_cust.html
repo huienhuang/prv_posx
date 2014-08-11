@@ -98,12 +98,15 @@ function load_sale_report()
 {
     var v_hdr = g_v_cust_sale_tbl.children('.prntbl_row_hdr').empty();
     var v_cnt = g_v_cust_sale_tbl.children('.prntbl_cnt').empty();
-    //g_v_cust_sale_tbl.children('.prntbl_row_ftr').empty();
+    var v_ftr = g_v_cust_sale_tbl.children('.prntbl_row_ftr').empty();
     
     get_js_ex('sreport?fn=get_customer_sale&cid=${cust_sid}', {}, function(js) {
         var o_lst = [ $('<div>Month</div>') ];
-        for(var i = 0; i < js.length; i++)
+        var ss = [];
+        for(var i = 0; i < js.length; i++) {
+            ss.push(0);
             o_lst.push( $('<div></div>').text(js[i][0]) );
+        }
         v_hdr.append(o_lst);
         
         o_lst = [];
@@ -111,11 +114,17 @@ function load_sale_report()
             var v = $('<div class="prntbl_row"></div>').append( $('<div>'+(j+1)+'</div>') );
             for(var i = 0; i < js.length; i++) {
                 var o = js[i][1][j];
+                ss[i] += o;
                 v.append( $('<div></div>').text(o ? o.toFixed(2) : '') );
             }
             o_lst.push(v);
         }
         v_cnt.append(o_lst);
+        
+        o_lst = [ $('<div></div>') ];
+        for(var i = 0; i < js.length; i++)
+            o_lst.push( $('<div></div>').text(ss[i] ? ss[i].toFixed(2) : '') );
+        v_ftr.append(o_lst);
         
     }, undefined, undefined, undefined, '__load_sale_report__');
 }
