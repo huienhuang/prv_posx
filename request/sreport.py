@@ -15,6 +15,17 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_default(self):
         self.req.writefile('report_cnt.html')
 
+    def fn_get_customer_sale(self):
+        cid = self.req.qsv_int('cid')
+        rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('customer', {})
+        ms = rjs.get(cid) or []
+        
+        lst = []
+        for mts,msa in ms: lst.append( (time.strftime("%Y-%m", time.localtime(mts)), '%0.2f' % (msa[0],)) )
+        lst.reverse()
+        
+        self.req.writejs(lst)
+
     def fn_year_to_year(self):
         yrs = {}
         rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('summary', [])

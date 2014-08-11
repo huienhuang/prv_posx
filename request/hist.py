@@ -11,6 +11,9 @@ import const
 import cPickle
 import base64
 
+
+ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
+
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
 DEFAULT_PERM = 0x00000001
@@ -625,7 +628,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not res: return
         res = res[0]
         jsd = json.loads(res[2])
-        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type}
+        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type, 'has_report_access': self.user_lvl & ADMIN_PERM}
         
         loc = jsd.get('loc')
         zidx = 0

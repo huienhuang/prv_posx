@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v3.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - Customer > History</title>
 
 <script type="text/javascript">
@@ -94,11 +94,26 @@ function open_dlg_note(note_id, to_user_id, to_user_name)
     g_v_dlg_comment.dialog('option', 'title', title).dialog('open');
 }
 
+function load_sale_report()
+{
+    g_v_cust_sale_tbl_body.empty();
+    get_js_ex('sreport?fn=get_customer_sale&cid=${cust_sid}', {}, function(js) {
+        var o_lst = [];
+        for (var i = 0; i < js.length; i++) {
+            var o = js[i];
+            o_lst.push( $('<div class="prntbl_row"></div>')
+                       .append( $('<div></div').text(o[0]) )
+                       .append( $('<div></div').text(o[1]) )
+            );
+        }
+        g_v_cust_sale_tbl_body.append(o_lst);
+    }, undefined, undefined, undefined, '__load_sale_report__');
+}
 
 $(function() {
 
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
-len:1,
+len:0,
 src:{page:'?fn=getpagecust', data:{'cid': '${cust_sid}'}},
 cols: [{name:'Num', width:100},
        {name:'Type', width:150},
@@ -297,10 +312,20 @@ g_v_note = $('#c_note').tinylist({
     }
 });
 
+g_v_cust_sale_tbl_body = $('#cust_sale_tbl > .prntbl_cnt');
 
 g_v_item_tabs = $('.item_tabs').tabs({
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'empty') return false;
+        
+        return true;
+    },
     activate: function(event, ui) {
         var idx = $(this).tabs('option', 'active');
+        if(!idx) return;
+        --idx;
+        
         g_v_datagrid[idx] && g_v_datagrid[idx].tinygrid('update', -1, true);
         
         var nz = ui.newTab.children('a').prop('hash').substr(12);
@@ -308,13 +333,13 @@ g_v_item_tabs = $('.item_tabs').tabs({
             g_v_schedule.data('in_els').refresh[0].click();
         } else if (nz === 'note') {
             g_v_note.tinylist('refresh');
+        } else if (nz === 'sale') {
+            load_sale_report();
         }
         
     },
-    active:${dg_type}
+    active: 0
 });
-
-
 
 g_v_dlg_comment = $('#dlg_comment').dialog({
     autoOpen: false,
@@ -344,6 +369,8 @@ $('.cust_add_note').click(function() {
 });
 
 $('#cust_addr').tooltip();
+
+g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 });
 
@@ -400,6 +427,8 @@ $('#cust_addr').tooltip();
 
 #cust_addr {cursor:pointer;width:300px;}
 
+#cust_sale_tbl {top:49px;bottom:0;left:0;right:0}
+
 </style>
 
 </head>
@@ -433,12 +462,16 @@ ${cust_info['address2']|h}
 <div class="item_tabs">
 
 <ul>
+<li style="float:right"><a href="#tabs_empty">&nbsp;</a></li>
 <li><a href="#item_tab_0_hist">History</a></li>
 <li><a href="#item_tab_1_so">SalesOrder</a></li>
 <li><a href="#item_tab_2_item">Item</a></li>
 <li style="float:right"><a href="#item_tab_3_receipt">Result</a></li>
 <li><a href="#item_tab_4_delivery">Delivery</a></li>
 <li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
+%if has_report_access:
+<li><a href="#item_tab_6_sale">Sale</a></li>
+%endif
 <li style="float:right"><a href="#item_tab_4_schedule">Schedule</a></li>
 </ul>
 
@@ -466,6 +499,15 @@ ${cust_info['address2']|h}
 </div>
 
 </div>
+%if has_report_access:
+<div id="item_tab_6_sale">
+<div class="prntbl" id="cust_sale_tbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Date</div><div>Sale</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
+%endif
 </div>
 
 <div id="dlg_comment">
