@@ -20,11 +20,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('customer', {})
         ms = rjs.get(cid) or []
         
-        lst = []
-        for mts,msa in ms: lst.append( (time.strftime("%Y-%m", time.localtime(mts)), '%0.2f' % (msa[0],)) )
-        lst.reverse()
+        ym = []
+        for mts,msa in ms:
+            tp = time.localtime(mts)
+            if not ym or ym[-1][0] != tp.tm_year: ym.append( (tp.tm_year, [0,] * 12) )
+            m = ym[-1][1]
+            m[tp.tm_mon - 1] += msa[0]
         
-        self.req.writejs(lst)
+        self.req.writejs(ym)
 
     def fn_year_to_year(self):
         yrs = {}
