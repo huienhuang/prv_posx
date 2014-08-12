@@ -13,7 +13,15 @@ DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
-        self.req.writefile('report_cnt.html')
+        r = {
+            'tab_cur_idx' : 3,
+            'title': 'Sales Report',
+            'tabs': [
+                ('year_to_year', 'YearToYear'),
+                ('sale_by_month', 'SaleByMonth'),
+            ]
+        }
+        self.req.writefile('tmpl_multitabs.html', r)
 
     def fn_get_customer_sale(self):
         cid = self.req.qsv_int('cid')
@@ -28,6 +36,22 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             m[tp.tm_mon - 1] += msa[0]
         
         self.req.writejs(ym)
+
+    def fn_get_sale(self):
+        rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('summary', [])
+        ms = rjs
+        
+        ym = []
+        for mts,msa in ms:
+            tp = time.localtime(mts)
+            if not ym or ym[-1][0] != tp.tm_year: ym.append( (tp.tm_year, [0,] * 12) )
+            m = ym[-1][1]
+            m[tp.tm_mon - 1] += msa[1]
+        
+        self.req.writejs(ym)
+
+    def fn_sale_by_month(self):
+        self.req.writefile('report/sale_by_month.html')
 
     def fn_year_to_year(self):
         yrs = {}

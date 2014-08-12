@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+<title>POSX - Report</title>
+
+<script type="text/javascript">
+g_js = null;
+
+
+function show_chart_cmp_same_month(n)
+{
+    if(!g_js) return;
+    var js = g_js;
+    
+    var dps = [];
+    for(var i = 0; i < js.length; i++) {
+        var m = js[i];
+        var o = m[1][n];
+        
+        dps.push({'label': m[0], 'y': o})
+    }
+    
+    var cfg = {
+        'zoomEnabled': true,
+        'theme': "theme2",
+        'title': {'text': "Month - " + n},
+        'axisY': {'title':"Total Sale $"},
+        'data': [
+            {'type': "column", 'dataPoints': dps},
+        ]
+    };
+    
+    g_v_chart_cnt.show();
+    new CanvasJS.Chart('report_chart', cfg).render();
+}
+
+function load_sale_report()
+{
+    g_js = null;
+    var v_hdr = g_v_sale_tbl.children('.prntbl_row_hdr').empty();
+    var v_cnt = g_v_sale_tbl.children('.prntbl_cnt').empty();
+    var v_ftr = g_v_sale_tbl.children('.prntbl_row_ftr').empty();
+    
+    get_js_ex('sreport?fn=get_sale', {}, function(js) {
+        g_js = js;
+        var o_lst = [ $('<div>Month</div>') ];
+        var ss = [];
+        for(var i = 0; i < js.length; i++) {
+            ss.push(0);
+            o_lst.push( $('<div></div>').text(js[i][0]) );
+        }
+        v_hdr.append(o_lst);
+        
+        o_lst = [];
+        for(var j = 0; j < 12; j++) {
+            var v = $('<div class="prntbl_row" onclick="show_chart_cmp_same_month('+j+')"></div>').append( $('<div>'+(j+1)+'</div>') );
+            var last_o = 0;
+            for(var i = 0; i < js.length; i++) {
+                var o = js[i][1][j];
+                ss[i] += o;
+                var v_o = $('<div></div>');
+                if(o) {
+                    v_o.append( $('<span></span>').text( o.toFixed(2) ) );
+                    if(last_o){
+                        var dp = (o - last_o) / last_o * 100;
+                        if(dp){
+                            if(dp > 0)
+                                v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                            else
+                                v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                        }
+                    }
+                }
+                last_o = o;
+                v.append(v_o);
+            }
+            o_lst.push(v);
+        }
+        v_cnt.append(o_lst);
+        
+        o_lst = [ $('<div></div>') ];
+        var last_o = 0;
+        for(var i = 0; i < js.length; i++) {
+            var o = ss[i];
+            var v_o = $('<div></div>');
+            if(o) {
+                v_o.append( $('<span></span>').text( o.toFixed(2) ) );
+                if(last_o){
+                    var dp = (o - last_o) / last_o * 100;
+                    if(dp){
+                        if(dp > 0)
+                            v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                        else
+                            v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                    }
+                }
+            }
+            last_o = o;
+            
+            o_lst.push(v_o);
+        }
+        v_ftr.append(o_lst);
+        
+    }, undefined, undefined, undefined, '__load_sale_report__');
+}
+
+
+$(function() {
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+els.export[0].button();
+
+g_v_sale_tbl = $('#sale_tbl');
+
+g_v_chart_cnt = $('#report_chart_cnt');
+g_v_chart_cnt.children('#report_chart_btn_close').click(function() { g_v_chart_cnt.hide(); });
+
+load_sale_report();
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_body {z-index:0}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+#sale_tbl {top:0;bottom:0;left:0;right:0}
+#sale_tbl .prntbl_row > div {width:180px}
+
+.diff_pct_inc {color:#579942}
+.diff_pct_dec {color:#e93f3f}
+
+#report_chart_cnt {display:none;background-color:#fff;z-index:1}
+#report_chart_cnt,#report_chart{position:absolute;top:0;bottom:0;left:0;right:0}
+#report_chart_btn_close {position:absolute;cursor:pointer;right:10px;top:10px;height:26px;width:26px;background:url('img/tools.png') no-repeat}
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<input type="button" value="Export" name="ctrl_export" />
+</div>
+<div class="x_body">
+<div class="prntbl" id="sale_tbl">
+<div class="prntbl_row prntbl_row_hdr"></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
+
+<div id="report_chart_cnt"><div id="report_chart"></div><div id="report_chart_btn_close"></div></div>
+
+</body>
+</html>
