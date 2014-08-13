@@ -522,6 +522,109 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'dt': n_dt, 'zones': zones})
 
+
+    def fn_get_cust_docs(self):
+        cid = self.req.qsv_int('cid')
+        fdt = datetime.date.today() - datetime.timedelta(30)
+        fdt = fdt.year * 10000 + fdt.month * 100 + fdt.day
+        
+        so_sids = set()
+        rc_sids = set()
+        sc_lst = []
+        
+        d_user = dict([ (f_u[0], f_u[1]) for f_u in self.getuserlist() ])
+        
+        cur = self.cur()
+        
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,sc_note,(sc_flag&1) as is_accepted,(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup from schedule sa where sc_date>=%s order by sc_id desc', (fdt,))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            sc_lst.append(r)
+            if r['doc_type']:
+                rc_sids.add(r['doc_sid'])
+            else:
+                so_sids.add(r['doc_sid'])
+
+        d_so = {}
+        if so_sids:
+            cur.execute('select sid,status,sonum,clerk,sodate,global_js from sync_salesorders where cust_sid=%s and sid in (%s)' % (cid, ','.join(map(str, so_sids)), ))
+            for r in cur.fetchall(): d_so[r[0]] = r
+            
+        d_rc = {}
+        if rc_sids:
+            cur.execute('select sid,type,num,assoc,order_date,global_js from sync_receipts where cid=%s and sid_type=0 and sid in (%s)' % (cid, ','.join(map(str, rc_sids)), ))
+            for r in cur.fetchall(): d_rc[r[0]] = r
+
+
+        _sc_lst = sc_lst
+        so_sids = {}
+        rc_nums = set()
+        sc_lst = []
+        for r in _sc_lst:
+            if r['doc_type']:
+                doc = d_rc.get(r['doc_sid'])
+            else:
+                doc = d_so.get(r['doc_sid'])
+            if not doc: continue
+            sc_lst.append(r)
+            
+            gjs = json.loads(doc[5])
+            r['doc']  = doc = {
+                'num': doc[2],
+                'assoc': doc[3],
+                'date': doc[4],
+                'amt': gjs.get('total') or 0
+            }
+            
+            if r['doc_type']:
+                rc_nums.add(doc['num'])
+            else:
+                so_sids[ r['doc_sid'] ] = r
+                r['nums'] = []
+                
+            r['doc_sid'] = str(r['doc_sid'])
+            
+                
+        if so_sids:
+            cur.execute('select so_sid,num from sync_receipts sr where sid_type=0 and so_type=0 and so_sid in (%s)' % (','.join(map(str, so_sids.keys())), ))
+            for rr in cur.fetchall():
+                r = so_sids.get(rr[0])
+                if not r: continue
+                r['nums'].append(rr[1])
+                rc_nums.add(rr[1])
+        
+        d_dr = {}  
+        if rc_nums:
+            cur.execute('select dr.num,d.ts,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) where dr.num in (%s)' % (','.join(map(str, rc_nums)),))
+            for r in cur.fetchall():
+                r = list(r)
+                r.append(0)
+                tp = time.localtime(r[1])
+                r[1] = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
+                d_dr.setdefault(r[0], []).append(r)
+        
+        
+        for r in sc_lst:
+            if not r['doc_type']: continue
+            dr = []
+            for d in d_dr.get(r['doc']['num']) or []:
+                if d[1] == r['sc_date']:
+                    d[-1] = 1
+                    dr.append( (d_user.get(d[2]) or 'UNK', d[3]) )
+            r['dr'] = dr
+            
+        for r in sc_lst:
+            if r['doc_type']: continue
+            dr = []
+            for n in r['nums']:
+                for d in d_dr.get(n) or []:
+                    if not d[-1] and d[1] == r['sc_date']:
+                        dr.append( (d_user.get(d[2]) or 'UNK', d[3]) )
+            r['dr'] = dr
+        
+        self.req.writejs(sc_lst)
+
     def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0, pending_only=0, dup_chk=0):
         clerk = None
         if clerk_id:

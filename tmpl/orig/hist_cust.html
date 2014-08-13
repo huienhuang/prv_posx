@@ -129,6 +129,46 @@ function load_sale_report()
     }, undefined, undefined, undefined, '__load_sale_report__');
 }
 
+function int2date_s(i) {
+    var s = i + '';
+    return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
+}
+
+function open_wnd_receipt(sid)
+{
+    open_wnd('?fn=printreceipt&rid=' + sid,'posx_print_wnd');
+}
+
+function open_wnd_salesorder(sid)
+{
+    open_wnd('sync?fn=printorder&type=2&rid=' + sid,'posx_so_wnd');
+}
+
+function load_schedule_delivery()
+{
+    //var v_hdr = g_v_schedule_tbl.children('.prntbl_row_hdr').empty();
+    var v_cnt = g_v_schedule_tbl.children('.prntbl_cnt').empty();
+    //var v_ftr = g_v_schedule_tbl.children('.prntbl_row_ftr').empty();
+    
+    get_js_ex('schedule?fn=get_cust_docs&cid=${cust_sid}', {}, function(js) {
+        var o_lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            var v = $('<div class="prntbl_row"></div>')
+            .append( $('<div></div>').text( int2date_s(r.sc_date) ) )
+            .append( $('<div onclick="open_wnd_'+(r.doc_type ? 'receipt' : 'salesorder')+'(\''+r.doc_sid+'\')"></div>').text( (r.doc_type ? 'R_' : 'S_') + r.doc.num ) )
+            .append( $('<div></div>').text( r.doc.assoc ) )
+            .append( $('<div></div>').text( r.doc.amt.toFixed(2) ) )
+            .append( $('<div></div>').text( r.dr.length ? r.dr[0][0] : '' ) )
+            .append( $('<div></div>').text( r.dr.length && r.dr[0][1] ? 'Y' : '' ) )
+            .append( $('<div></div>').text( (r.doc_dup > 1 ? '*DUP* ': '') + r.sc_note ) )
+            o_lst.push(v);
+        }
+        v_cnt.append(o_lst);
+        
+    }, undefined, undefined, undefined, '__load_schedule_delivery__');
+}
+
 $(function() {
 
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
@@ -332,6 +372,7 @@ g_v_note = $('#c_note').tinylist({
 });
 
 g_v_cust_sale_tbl = $('#cust_sale_tbl');
+g_v_schedule_tbl = $('#schedule_tbl');
 
 g_v_item_tabs = $('.item_tabs').tabs({
     beforeActivate: function(event, ui) {
@@ -354,6 +395,10 @@ g_v_item_tabs = $('.item_tabs').tabs({
             g_v_note.tinylist('refresh');
         } else if (nz === 'sale') {
             load_sale_report();
+        } else if (nz === 'receipt') {
+            g_v_srch_item.focus();
+        } else if (nz === 'schedule_delivery') {
+            load_schedule_delivery();
         }
         
     },
@@ -446,7 +491,15 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 #cust_addr {cursor:pointer;width:300px;}
 
-#cust_sale_tbl {top:49px;bottom:0;left:0;right:0}
+#cust_sale_tbl,#schedule_tbl {top:49px;bottom:0;left:0;right:0}
+
+#schedule_tbl .prntbl_row >div:nth-child(1) {width:90px}
+#schedule_tbl .prntbl_row >div:nth-child(2) {width:100px;cursor:pointer}
+#schedule_tbl .prntbl_row >div:nth-child(3) {width:90px}
+#schedule_tbl .prntbl_row >div:nth-child(4) {width:80px}
+#schedule_tbl .prntbl_row >div:nth-child(5) {width:90px}
+#schedule_tbl .prntbl_row >div:nth-child(6) {width:80px}
+#schedule_tbl .prntbl_row >div:nth-child(7) {width:430px}
 
 </style>
 
@@ -482,16 +535,17 @@ ${cust_info['address2']|h}
 
 <ul>
 <li style="float:right"><a href="#tabs_empty">&nbsp;</a></li>
-<li><a href="#item_tab_0_hist">History</a></li>
-<li><a href="#item_tab_1_so">SalesOrder</a></li>
+<li><a href="#item_tab_0_hist">Receipt</a></li>
+<li><a href="#item_tab_1_so">SO</a></li>
 <li><a href="#item_tab_2_item">Item</a></li>
-<li style="float:right"><a href="#item_tab_3_receipt">Result</a></li>
+<li style="float:right"><a href="#item_tab_3_receipt">Search</a></li>
 <li><a href="#item_tab_4_delivery">Delivery</a></li>
+<li><a href="#item_tab_9_schedule_delivery">Schedule</a></li>
 <li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
 %if has_report_access:
 <li><a href="#item_tab_6_sale">Sale</a></li>
 %endif
-<li style="float:right"><a href="#item_tab_4_schedule">Schedule</a></li>
+<li style="float:right"><a href="#item_tab_4_schedule">Info</a></li>
 </ul>
 
 <div id="item_tab_0_hist"><div id="datagrid_hist"></div></div>
@@ -499,6 +553,13 @@ ${cust_info['address2']|h}
 <div id="item_tab_2_item"><div id="datagrid_item"></div></div>
 <div id="item_tab_3_receipt"><div id="datagrid_receipt"></div></div>
 <div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
+<div id="item_tab_9_schedule_delivery">
+<div class="prntbl" id="schedule_tbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Scheduled</div><div>DocNum</div><div>DocAssoc</div><div>DocAmt</div><div>Driver</div><div>Delivered</div><div>Note</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
 <div id="item_tab_5_note"><div id="c_note"></div></div>
 <div id="item_tab_4_schedule">
 <div>
