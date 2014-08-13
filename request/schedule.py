@@ -620,7 +620,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             for n in r['nums']:
                 for d in d_dr.get(n) or []:
                     if not d[-1] and d[1] == r['sc_date']:
-                        dr.append( (d_user.get(d[2]) or 'UNK', d[3]) )
+                        dr.append( (d_user.get(d[2]) or 'UNK', d[3], n) )
             r['dr'] = dr
         
         self.req.writejs(sc_lst)

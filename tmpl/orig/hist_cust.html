@@ -158,7 +158,7 @@ function load_schedule_delivery()
             var vd = [];
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
-                vd.push( $('<div class="delivered_'+d[1]+'"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                vd.push( $('<div class="delivered_'+d[1]+'"></div>').text((r.doc_type ? '' : '('+d[2]+') ') + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
             }
             
             var v = $('<div class="prntbl_row"></div>')
