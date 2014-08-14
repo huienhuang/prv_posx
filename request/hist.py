@@ -398,7 +398,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['round_ex'] = config.round_ex
         
         r['d_notes'] = d_notes = []
-        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
+        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 50', (
                     1, r['r_sid']
             )
         )
@@ -418,9 +418,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
         r['PROBLEMS'] = Delivery.PROBLEMS
         
+        cur.execute('select sc_id,sc_date,sc_note from schedule where doc_type=1 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
+        r['scs'] = scs = []
+        for x in cur.fetchall():
+            m,d = divmod(x[1], 100)
+            y,m = divmod(m, 100)
+            scs.append(
+                (x[0], '%02d/%02d/%02d' % (m,d,y), x[2])
+            )
+        
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)
         
     
+    def fn_add_doc_note(self):
+        doc_type = self.req.psv_int('doc_type')
+        doc_sid = self.req.psv_int('doc_sid')
+        doc_note = self.req.psv_ustr('doc_note')[:256].strip()
+        if not doc_note: return
+    
+        cur = self.cur()
+        cur.execute('insert into doc_note values(null,%s,%s,%s,1,%s,%s)', (
+            int(time.time()), doc_type, doc_sid, self.user_id, doc_note
+            )
+        )
+        rid = cur.lastrowid
+        self.req.writejs({'rid': rid})
+        
     def fn_addcomment(self):
         rid = self.req.psv_int('rid')
         if not rid: return

@@ -653,7 +653,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_so = {}
         if so_sids:
-            sql = 'select sid,sonum,clerk,sodate,global_js from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), )
+            sql = 'select sid,sonum,clerk,sodate,global_js,cust_sid from sync_salesorders where sid in (%s)' % (','.join(map(str, so_sids)), )
             if clerk:
                 cur.execute(sql + ' and clerk=%s', (clerk[1].lower(),))
             else:
@@ -662,7 +662,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
         d_rc = {}
         if rc_sids:
-            sql = 'select sid,num,assoc,order_date,global_js from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), )
+            sql = 'select sid,num,assoc,order_date,global_js,cid from sync_receipts where sid_type=0 and sid in (%s)' % (','.join(map(str, rc_sids)), )
             if clerk:
                 cur.execute(sql + ' and assoc=%s', (clerk[1].lower(),))
             else:
@@ -712,6 +712,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_geo'] = geo
             r['zone_id'] = zid
             r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
+            r['cid'] = doc_data[5] != None and str(doc_data[5]) or ''
             r['num'] = doc_data[1]
             r['doc_assoc'] = doc_data[2]
             r['doc_date'] = doc_data[3]
@@ -897,4 +898,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writefile('map_schedule.html', r)
         
+    def fn_status(self):
         
+        self.req.writefile('schedule_status.html')
+    

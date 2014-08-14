@@ -249,7 +249,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['r_ref_receipts'] = [ dict(zip(nzs, f_row)) for f_row in cur.fetchall() ]
         
         r['d_notes'] = d_notes = []
-        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
+        cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 50', (
                     0, r['r_sid']
             )
         )
@@ -270,6 +270,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         r['round_ex'] = config.round_ex
         r['price_lvls'] = config.PRICE_LEVELS
+        
+        cur.execute('select sc_id,sc_date,sc_note from schedule where doc_type=0 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
+        r['scs'] = scs = []
+        for x in cur.fetchall():
+            m,d = divmod(x[1], 100)
+            y,m = divmod(m, 100)
+            scs.append(
+                (x[0], '%02d/%02d/%02d' % (m,d,y), x[2])
+            )
         
         self.req.writefile(self.qsv_int('simple') and 'so_print_v2_simple.html' or 'so_print_v2.html', r)
 

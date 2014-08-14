@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link type="text/css" href="css/excite-bike/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
+<link type="text/css" href="css/flick/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" />
 <script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
 <script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
 <script type="text/javascript" src="js/posx_f1.js"></script>
@@ -32,22 +32,45 @@ $('#btn_print').button().click(function() {
     window.print();
 });
 
+$('#btn_add_note').button().click(function() {
+    g_v_dlg_add_note.find('textarea').val('');
+    g_v_dlg_add_note.dialog('open');
+});
+
 $('.maincnt').tooltip();
+
+$('.schedule_lst').accordion({collapsible:true, active:false});
+
+g_v_dlg_add_note = $('#dlg_add_note').dialog({
+    modal: true,
+    autoOpen: false,
+    width:700,
+    height:300,
+    buttons: {
+        'Add': function() {
+            var v = $.trim(g_v_dlg_add_note.find('textarea').val());
+            if(!v) return;
+            
+            post_js_ex('hist?fn=add_doc_note&doc_type=0&doc_sid=${r_sid}', {'doc_note': v}, function() {
+                window.location.reload();
+            });
+        }
+    }
+});
 
 //
 });
 </script>
 
 <style type="text/css">
+.ui-widget {font-size:16px;}
+    
 body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
 
 .maincnt {width:952px;margin:0 auto;}
 
-.ctrlcnt {width:952px;margin-bottom:10px;height:52px;border-bottom:1px solid #ccc;position:relative}
-.ctrlcnt > input {font-size:20px;position:absolute;display:block;top:3px;}
-.ctrlcnt > input#btn_print {left:0;}
-.ctrlcnt > input#btn_reverse {right:0;}
-
+.ctrlcnt {width:952px;margin-bottom:10px;height:40px;padding:6px 0;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {font-size:20px;height:40px;margin-right:6px;}
 
 .ordinfo {width:952px;position:relative;margin-bottom:5px}
 .ordinfo.ord_type_reversing {color:#CC0000}
@@ -59,14 +82,14 @@ body {min-width:952px;margin:0;background-color:white;font-family:"Times New Rom
 .ordinfo > div > div:nth-child(3) {right:270px;width:100px;}
 .ordinfo > div > div:nth-child(4) {right:0;width:260px;}
 
-.custinfo {width:952px;height:130px;position:relative;overflow:hidden;margin:0 0 10px 0;}
-.custinfo > div {position:absolute;top:10px;width:350px;height:95px;border:1px solid #ccc;padding:10px;}
+.custinfo {width:952px;height:140px;position:relative;overflow:hidden}
+.custinfo > div {position:absolute;top:20px;width:350px;height:95px;border:1px solid #ccc;padding:10px;}
 .custinfo > div > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;width:70px;left:5px;top:-10px;background-color:#FFF;text-align:center}
 .custinfo > div > div:nth-child(2) {font-weight:bold;cursor:pointer}
 .custinfo > .billto {left:0}
 .custinfo > .shipto {right:0}
 
-.vtable {width:952px;}
+.vtable {width:952px;margin-top:10px;}
 .vtable > div:nth-child(2) {padding-top:10px;}
 .vtable > div > div {position:relative;page-break-inside:avoid;}
 .vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
@@ -96,11 +119,18 @@ body {min-width:952px;margin:0;background-color:white;font-family:"Times New Rom
 
 
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
-.p_doc_note >div {padding-left:100px;margin:2px 0}
+.p_doc_note >div {padding-left:100px;margin:2px 0;position:relative}
+.p_doc_note >div:hover {background-color:#ffcbb7}
 .p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
 .p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
 .p_doc_note .doc_note_type_1 {color:#418c46}
 
+.srec {white-space:pre-wrap;margin-bottom:3px}
+.srec >span {font-weight:bold;color:#315b8a}
+
+#dlg_add_note {position:relative}
+#dlg_add_note >div {position:absolute;top:0;right:0;bottom:0;left:0;overflow:hidden;margin:6px 0 0 0;border:1px solid #ccc;padding:3px;}
+#dlg_add_note >div >textarea {width:100%;height:100%;margin:0;padding:0;border:none;outline:none;resize:none}
 
 @media print {
 .maincnt {margin:0 auto;}
@@ -109,6 +139,7 @@ body {min-width:952px;margin:0;background-color:white;font-family:"Times New Rom
 .p_doc_note {display:none}
 .cls_redcolor {color:#000}
 .ctrlcnt {display:none}
+.schedule_lst {display:none}
 }
 @page {
 margin:60px 50px;
@@ -137,6 +168,7 @@ margin:60px 50px;
 
 <div class="ctrlcnt">
 <input type="button" value="Print" id="btn_print" />
+<input type="button" value="Add Note" id="btn_add_note" />
 </div>
 
 <%
@@ -211,6 +243,17 @@ if (r_status >> 16) & 0xFF: status += ' - **Deleted**'
 %endif
 
 </div>
+
+%if scs:
+<div class="schedule_lst">
+<h3>Scheduled Delivery (${len(scs)})</h3>
+<div>
+%for sc in scs:
+<div class="srec"><span>${sc[1]} (${sc[0]}):</span> ${sc[2]|h}</div>
+%endfor
+</div>
+</div>
+%endif
 
 %if r_global['customer'] or r_global['shipping']:
 <div class="custinfo">
@@ -323,6 +366,10 @@ shipping_total = r_global['shipping']['amt'] + r_global['shipping']['taxamt']
 %endif
 
 </div>
+
+
+<div id="dlg_add_note" title="Add Note"><div><textarea></textarea></div></div>
+
 
 </body>
 

@@ -74,7 +74,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 $('<div class="prntbl_row'+cls+'"></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
-                .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+'></div>').text(r.cust_nz) )
+                .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
                 .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
             );
@@ -166,6 +166,11 @@ function get_selected_docs()
     if(!lst.length && js.cur_sel !== undefined && js.lst[js.cur_sel]) lst.push(js.lst[js.cur_sel]);
     
     return lst;
+}
+
+function open_wnd_cust(cid)
+{
+    open_wnd('hist?fn=custhist&dg_type=5&cid='+cid,'posx_customer_hist');
 }
 
 $(function() {
@@ -365,12 +370,14 @@ g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
+/*
 g_v_dlg_help = $('#dlg_help').dialog({
     autoOpen: false,
     modal: true,
     width:600,
     height:260
 });
+*/
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
@@ -530,8 +537,8 @@ els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.dialog('open');
 });
 
-els.btn_help[0].button().click(function() {
-    g_v_dlg_help.dialog('open');
+els.btn_status[0].button().click(function() {
+    open_wnd('?fn=status','posx_schedule_status_wnd');
 });
 
 els.user[0].change(load_overview);
@@ -589,7 +596,7 @@ load_overview();
 .doc_lst {top:0px;bottom:0;left:0;right:0}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
-.doc_lst .prntbl_row >div:nth-child(3) {width:180px}
+.doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:90px}
 .doc_lst .prntbl_row >div:nth-child(5) {width:19px;font-weight:bold}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
@@ -617,7 +624,7 @@ load_overview();
 %endfor
 </select>
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
-<input type="button" name="ctrl_btn_help" value="help" />
+<input type="button" name="ctrl_btn_status" value="status" />
 </div>
 
 <div class="x_body">

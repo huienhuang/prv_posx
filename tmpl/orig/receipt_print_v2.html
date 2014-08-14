@@ -43,13 +43,39 @@ $('#btn_print').button().click(function() {
     window.print();
 });
 
+$('#btn_add_note').button().click(function() {
+    g_v_dlg_add_note.find('textarea').val('');
+    g_v_dlg_add_note.dialog('open');
+});
+
 $('.maincnt').tooltip();
+
+$('.schedule_lst').accordion({collapsible:true, active:false});
+
+g_v_dlg_add_note = $('#dlg_add_note').dialog({
+    modal: true,
+    autoOpen: false,
+    width:700,
+    height:300,
+    buttons: {
+        'Add': function() {
+            var v = $.trim(g_v_dlg_add_note.find('textarea').val());
+            if(!v) return;
+            
+            post_js_ex('hist?fn=add_doc_note&doc_type=1&doc_sid=${r_sid}', {'doc_note': v}, function() {
+                window.location.reload();
+            });
+        }
+    }
+});
 
 //
 });
 </script>
 
 <style type="text/css">
+.ui-widget {font-size:16px;}
+    
 body {min-width:952px;margin:0;background-color:white;font-family:"Times New Roman",Times,serif;font-size:16px;line-height:20px;font-weight:normal;overflow-y:scroll}
 input,select {margin:0;outline:none;padding:1px;border:1px solid #ccc}
 
@@ -116,10 +142,18 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .p_cur {cursor:pointer}
 
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
-.p_doc_note >div {padding-left:100px;margin:2px 0}
+.p_doc_note >div {padding-left:100px;margin:2px 0;position:relative}
+.p_doc_note >div:hover {background-color:#ffcbb7}
 .p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
 .p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
 .p_doc_note .doc_note_type_1 {color:#418c46}
+
+.srec {white-space:pre-wrap;margin-bottom:3px}
+.srec >span {font-weight:bold;color:#315b8a}
+
+#dlg_add_note {position:relative}
+#dlg_add_note >div {position:absolute;top:0;right:0;bottom:0;left:0;overflow:hidden;margin:6px 0 0 0;border:1px solid #ccc;padding:3px;}
+#dlg_add_note >div >textarea {width:100%;height:100%;margin:0;padding:0;border:none;outline:none;resize:none}
 
 @media print {
 .maincnt {margin:0 auto;}
@@ -130,6 +164,7 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .ctrlcnt {display:none}
 .problem_msg {display:none}
 .ordinfo .shipping_status {display:none}
+.schedule_lst {display:none}
 }
 @page {
 margin:60px 50px;
@@ -157,6 +192,7 @@ r_status = (r_flag >> 0) & 0xFF
 
 <div class="ctrlcnt">
 <input type="button" value="Print" id="btn_print" />
+<input type="button" value="Add Note" id="btn_add_note" />
 </div>
 <%
 if r_status == 1:
@@ -233,6 +269,17 @@ if d['problem_flag']:
 
 
 </div>
+
+%if scs:
+<div class="schedule_lst">
+<h3>Scheduled Delivery (${len(scs)})</h3>
+<div>
+%for sc in scs:
+<div class="srec"><span>${sc[1]} (${sc[0]}):</span> ${sc[2]|h}</div>
+%endfor
+</div>
+</div>
+%endif
 
 %if r_global['memo']:
 <div class="recmemo">
@@ -343,6 +390,10 @@ shipping_total = r_global['shipping']['amt'] + r_global['shipping']['taxamt']
 %endif
 
 </div>
+
+
+<div id="dlg_add_note" title="Add Note"><div><textarea></textarea></div></div>
+
 
 </body>
 
