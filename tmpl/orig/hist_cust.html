@@ -136,7 +136,12 @@ function int2date_s(i) {
 
 function open_wnd_receipt(sid)
 {
-    open_wnd('?fn=printreceipt&rid=' + sid,'posx_print_wnd');
+    open_wnd('hist?fn=printreceipt&rid=' + sid,'posx_print_wnd');
+}
+
+function open_wnd_receipt2(num)
+{
+    open_wnd('hist?fn=printreceipt&rno=' + num,'posx_print_wnd');
 }
 
 function open_wnd_salesorder(sid)
@@ -158,7 +163,10 @@ function load_schedule_delivery()
             var vd = [];
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
-                vd.push( $('<div class="delivered_'+d[1]+'"></div>').text((r.doc_type ? '' : '('+d[2]+') ') + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                if(r.doc_type)
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+r.doc.num+')"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                else
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
             }
             
             var v = $('<div class="prntbl_row'+(r.doc_dup > 1 ? ' row_srec_dup' : '')+'"></div>')
@@ -502,11 +510,11 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 #schedule_tbl .prntbl_cnt .row_srec_dup {background-color:#f6f1cb}
 #schedule_tbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe4c7}
-#schedule_tbl .prntbl_row >div:nth-child(1) {width:90px}
+#schedule_tbl .prntbl_row >div:nth-child(1) {width:90px;font-weight:bold}
 #schedule_tbl .prntbl_row >div:nth-child(2) {width:100px;cursor:pointer;font-weight:bold}
 #schedule_tbl .prntbl_row >div:nth-child(3) {width:90px}
 #schedule_tbl .prntbl_row >div:nth-child(4) {width:80px}
-#schedule_tbl .prntbl_row >div:nth-child(5) {width:190px}
+#schedule_tbl .prntbl_row >div:nth-child(5) {width:190px;cursor:pointer}
 #schedule_tbl .prntbl_row >div:nth-child(6) {width:410px}
 
 .delivered_0 {color:#b43838;font-weight:bold}

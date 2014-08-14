@@ -70,15 +70,23 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 else cls = ' doc_accepted';
             } else cls = ' doc_pending';
             
-            lst.push(
-                $('<div class="prntbl_row'+cls+'"></div>')
-                .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
-                .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
-                .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-                .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
-            );
-            
+            var vd = [];
+            for(var j = 0; j < r.dr.length; j++) {
+                var d = r.dr[j];
+                if(r.doc_type)
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+r.num+')"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                else
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+            }
+            var v = $('<div class="prntbl_row'+cls+'"></div>')
+            .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
+            .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
+            .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
+            .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+            .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
+            .append( $('<div></div>').append(vd) );
+            if(vd.length > 1) v.height( 30 * vd.length );
+            lst.push(v);
         }
         if(reload) {
             var cs = g_v_dd_doc_lst_body.children();
@@ -173,6 +181,11 @@ function open_wnd_cust(cid)
     open_wnd('hist?fn=custhist&dg_type=5&cid='+cid,'posx_customer_hist');
 }
 
+function open_wnd_receipt(num)
+{
+    open_wnd('hist?fn=printreceipt&rno=' + num,'posx_print_wnd');
+}
+
 $(function() {
 
 g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
@@ -208,7 +221,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
 
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
-    width:1150,
+    width:1300,
     height:700,
     buttons: [
 %if has_perm_delivery_mgr:
@@ -600,7 +613,8 @@ load_overview();
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:90px}
-.doc_lst .prntbl_row >div:nth-child(5) {width:19px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(5) {width:14px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(6) {width:156px;cursor:pointer}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
 
@@ -612,6 +626,10 @@ load_overview();
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
 #dlg_help {font-size:72px;font-weight:bold;text-align:center}
+
+.delivered_0 {color:#b43838}
+.delivered_1 {color:#33600f}
+
 
 </style>
 
@@ -656,7 +674,7 @@ load_overview();
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>D</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>F</div><div>Driver/Delivered</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>

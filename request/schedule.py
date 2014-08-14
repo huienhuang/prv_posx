@@ -451,6 +451,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_dt = {}
         for r in self.get_docs(cdt, -1, clerk_id, 1):
+            r['cid'] = r['cid'] != None and str(r['cid']) or ''
+            r['doc_sid'] = str(r['doc_sid'])
+            
             zid = r['zone_id']
             d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
             if not d[zid]: d[zid] = [0, 0, 0, 0, 0]
@@ -580,21 +583,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if r['doc_type']:
                 rc_nums.add(doc['num'])
             else:
-                so_sids[ r['doc_sid'] ] = r
-                r['nums'] = []
+                r['nums'] = so_sids.setdefault(r['doc_sid'], [])
                 
             r['doc_sid'] = str(r['doc_sid'])
             
-                
         if so_sids:
             cur.execute('select so_sid,num from sync_receipts sr where sid_type=0 and so_type=0 and so_sid in (%s)' % (','.join(map(str, so_sids.keys())), ))
             for rr in cur.fetchall():
-                r = so_sids.get(rr[0])
-                if not r: continue
-                r['nums'].append(rr[1])
+                so_sids[ rr[0] ].append(rr[1])
                 rc_nums.add(rr[1])
         
-        d_dr = {}  
+        d_dr = {}
         if rc_nums:
             cur.execute('select dr.num,d.ts,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) where dr.num in (%s)' % (','.join(map(str, rc_nums)),))
             for r in cur.fetchall():
@@ -603,7 +602,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 tp = time.localtime(r[1])
                 r[1] = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
                 d_dr.setdefault(r[0], []).append(r)
-        
         
         for r in sc_lst:
             if not r['doc_type']: continue
@@ -712,7 +710,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_geo'] = geo
             r['zone_id'] = zid
             r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
-            r['cid'] = doc_data[5] != None and str(doc_data[5]) or ''
+            #r['cid'] = doc_data[5] != None and str(doc_data[5]) or ''
+            r['cid'] = doc_data[5]
             r['num'] = doc_data[1]
             r['doc_assoc'] = doc_data[2]
             r['doc_date'] = doc_data[3]
@@ -721,7 +720,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != doc_js.get('crc', 0): r['sc_flag'] |= REC_FLAG_CHANGED
             
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
-            r['doc_sid'] = str(r['doc_sid'])
+            #r['doc_sid'] = str(r['doc_sid'])
             
             lst.append(r)
     
@@ -751,39 +750,59 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             elif date.weekday() in ZONES[zone_id][1]:
                 ss = 1
         
-        rc_sids = set()
-        so_sids = set()
-        lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only, 1)
-        for r in lst:
-            if r['doc_type']:
-                rc_sids.add(r['doc_sid'])
-            else:
-                so_sids.add(r['doc_sid'])
-        
         frm_ts = int(time.mktime(date.timetuple()))
         to_ts = int(time.mktime((date + datetime.timedelta(1)).timetuple()))
         
-        d_rc = {}
-        if rc_sids:
-            cur.execute('select sr.sid,(select count(*) from deliveryv2_receipt dr left join deliveryv2 d on(dr.d_id=d.d_id) where dr.num=sr.num and d.ts>=%s and d.ts<%s) as d_count from sync_receipts sr where sr.sid_type=0 and sr.sid in (%s)' % (
-                frm_ts, to_ts, ','.join(rc_sids),
-                )
-            )
-            for r in cur.fetchall(): d_rc[ r[0] ] = r[1]
-        
-        d_so = {}
-        if so_sids:
-            cur.execute('select sr.so_sid,(select count(*) from deliveryv2_receipt dr left join deliveryv2 d on(dr.d_id=d.d_id) where dr.num=sr.num and d.ts>=%s and d.ts<%s) as d_count from sync_receipts sr where sr.sid_type=0 and sr.so_type=0 and sr.so_sid in (%s)' % (
-                frm_ts, to_ts, ','.join(so_sids),
-                )
-            )
-            for r in cur.fetchall(): d_so[ r[0] ] = r[1]
-        
+        rc_nums = set()
+        so_sids = {}
+        lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only, 1)
         for r in lst:
             if r['doc_type']:
-                r['delivery_count'] = d_rc.get(int(r['doc_sid']))
+                rc_nums.add(r['num'])
             else:
-                r['delivery_count'] = d_so.get(int(r['doc_sid']))
+                r['nums'] = so_sids.setdefault(r['doc_sid'], [])
+                
+            r['cid'] = r['cid'] != None and str(r['cid']) or ''
+            r['doc_sid'] = str(r['doc_sid'])
+            
+        if so_sids:
+            cur.execute('select so_sid,num from sync_receipts sr where sid_type=0 and so_type=0 and so_sid in (%s)' % (','.join(map(str, so_sids.keys())), ))
+            for rr in cur.fetchall():
+                so_sids[ rr[0] ].append(rr[1])
+                rc_nums.add(rr[1])
+        
+        d_dr = {}
+        if rc_nums:
+            cur.execute('select dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id and d.ts>=%s and d.ts<%s) where dr.num in (%s) and d.d_id is not null' % (
+                frm_ts, to_ts, ','.join(map(str, rc_nums))
+                )
+            )
+            for r in cur.fetchall():
+                r = list(r)
+                r.append(0)
+                d_dr.setdefault(r[0], []).append(r)
+        
+        d_user = dict([ (f_u[0], f_u[1]) for f_u in self.getuserlist() ])
+        
+        for r in lst:
+            if not r['doc_type']: continue
+            dr = []
+            for d in d_dr.get(r['num']) or []:
+                d[-1] = 1
+                dr.append( (d_user.get(d[1]) or 'UNK', d[2]) )
+            r['dr'] = dr
+            r['delivery_count'] = len(dr)
+            
+        for r in lst:
+            if r['doc_type']: continue
+            dr = []
+            for n in r['nums']:
+                for d in d_dr.get(n) or []:
+                    if not d[-1]:
+                        dr.append( (d_user.get(d[1]) or 'UNK', d[2], n) )
+            r['dr'] = dr
+            r['delivery_count'] = len(dr)
+        
         
         self.req.writejs({
             'state': ss,

@@ -373,12 +373,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     PRICE_LEVELS = ['Regular Price', 'Wholesale 1', 'Wholesale 2', 'special', 'Dealer Price']
     def fn_printreceipt(self):
         rid = self.qsv_int('rid', None)
-        if rid == None: return
+        rno = self.qsv_int('rno', None)
+        if rid == None and rno == None: return
         
-        db = self.db()
-        cur = db.cur()
+        cur = self.cur()
+        
         db_col_nzs = ('r_sid', 'r_sid_type', 'r_rid', 'r_cid', 'r_so_sid', 'r_so_type', 'r_flag', 'r_num', 'r_assoc', 'r_cashier', 'r_price_level', 'r_order_date', 'r_creation_date', 'r_global', 'r_items')
-        cur.execute('select * from sync_receipts where sid=%d and sid_type=0' % (rid,))
+        if rid != None:
+            cur.execute('select * from sync_receipts where sid=%d and sid_type=0' % (rid,))
+        else:
+            cur.execute('select * from sync_receipts where num=%d and sid_type=0' % (rno,))
         r = cur.fetchall()
         if not r: return
         r = dict(zip(db_col_nzs, r[0]))
