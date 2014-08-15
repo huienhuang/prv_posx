@@ -599,7 +599,9 @@ load_overview();
 #dlg_documents > div:first-child {position:absolute;left:0;top:0;bottom:0;right:740px;border-right:1px solid #ccc}
 #dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
 
-.doc_lst {top:0px;bottom:0;left:0;right:0}
+.doc_lst {top:0px;bottom:0;left:0;right:0;overflow:hidden}
+.doc_lst .prntbl_row {min-width:1000px}
+.doc_lst .prntbl_cnt {overflow-x:hidden}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}

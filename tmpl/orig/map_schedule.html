@@ -256,7 +256,9 @@ load_doc_lst(${dt}, -1, 0);
 #doc_lst {position:absolute;top:50px;width:430px;bottom:0;left:0;}
 #map_canvas {position:absolute;top:0;right:0;bottom:0;left:430px;}
 
-.doc_lst {top:0;bottom:0;left:0;right:0}
+.doc_lst {top:0;bottom:0;left:0;right:0;overflow:hidden}
+.doc_lst .prntbl_row {min-width:1000px}
+.doc_lst .prntbl_cnt {overflow-x:hidden}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:30px;font-weight:bold}
 .doc_lst .prntbl_row >div:nth-child(3) {width:70px;cursor:pointer}

@@ -63,7 +63,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 .center_blk {position:fixed;top:50%;left:50%;height:48px;line-height:48px;width:248px;background-color:#e8f8ff;border:1px solid #5bcbff;margin-left:-125px;margin-top:-25px;font-size:32px;font-weight:bold;text-align:center;color:#2f2f2f}
 
 .prntbl {position:absolute;}
-.prntbl .prntbl_row {position:relative;page-break-inside:avoid;height:30px;font-size:16px;line-height:30px;border:1px solid #eeeeee;border-bottom:none;}
+.prntbl .prntbl_row {position:relative;page-break-inside:avoid;height:30px;font-size:16px;line-height:30px;border:1px solid #eeeeee;border-bottom:none;overflow:hidden}
 .prntbl .prntbl_row >div {float:left;height:100%;width:120px;white-space:nowrap;text-align:center;overflow:hidden;border:1px solid #eeeeee;border-top:none;border-left:none;}
 .prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr {border-bottom:1px solid #eeeeee;background-color:#f5f5f5;font-weight:bold;position:absolute;left:0;right:0;z-index:1}
 .prntbl .prntbl_row_hdr {top:0}
