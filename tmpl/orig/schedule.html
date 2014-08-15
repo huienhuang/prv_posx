@@ -103,6 +103,13 @@ function load_doc_lst(dt, zidx, reload, auto_print)
     
 }
 
+function new_schedule_with_preset_date(di)
+{
+    g_v_dlg_doc_form.data('in_els').num[0].val('');
+    g_v_dlg_doc_form.dialog('open').data('preset_date', di).dialog('option', 'title', 'Schedule - PresetDate ' + int2date_s(di));
+    load_doc_schedule();
+}
+
 function load_overview_cb(js)
 {
     g_v_t_top_hdr.empty();
@@ -146,7 +153,12 @@ function load_overview_cb(js)
     $(ocs).remove();
     
     var l_o = [];
-    for(var j = 0; j < dt.length; j++) l_o.push($('<div onclick="return load_map('+dt[j][3]+')"></div>').text(dt[j][0]));
+    for(var j = 0; j < dt.length; j++) {
+        l_o.push( $('<div></div>')
+                 .append($('<span title="Show Map" onclick="return load_map('+dt[j][3]+')"></span>').text(dt[j][0]))
+                 .append($('<img title="New Schedule" src="img/add_new.png" alt="" border="0" onclick="return new_schedule_with_preset_date('+dt[j][3]+')" />'))
+        );
+    }
     g_v_t_top_hdr.append( $('<div class="t_row"></div>').append(l_o) );
     
 }
@@ -210,10 +222,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
                 
             post_js_ex('?fn=del_rec', {sc_id: rec.sc_id}, function() {
                 if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
-                    
-                g_v_dlg_doc_form.dialog('open');
-                load_doc_schedule();
-                    
+                if( g_v_dlg_doc_form.dialog('isOpen') ) load_doc_schedule();
             });
         }
     }
@@ -362,9 +371,8 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 var els = g_v_dlg_doc_form.data('in_els');
                 els.num[0].val(r.num);
                 els.type[0].val(r.doc_type ? '1' : '');
-                load_doc_schedule(r.sc_id);
                 g_v_dlg_doc_form.dialog('open');
-                
+                load_doc_schedule(r.sc_id);
             },
         },
     ]
@@ -387,6 +395,9 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
     width:600,
     height:562,
+    open: function() {
+        g_v_dlg_doc_form.data('preset_date', null).dialog('option', 'title', 'Schedule');
+    },
     buttons: [
         {
             text: 'Delete',
@@ -412,10 +423,7 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
                 
                 post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, sc_id: rec.sc_id, prio:prio, date:date, note:note, rev:rec.sc_rev}, function(js) {
                     if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
-                    
-                    g_v_dlg_doc_form.dialog('open');
-                    load_doc_schedule(js.sc_id);
-                    
+                    if( g_v_dlg_doc_form.dialog('isOpen') ) load_doc_schedule(js.sc_id);
                 });
             }
         }
@@ -507,6 +515,17 @@ function _ui_get_doc(sc_id)
                     els.rec[0].val((ol.length - 1) + '').change();
             }
             
+            var preset_date = g_v_dlg_doc_form.data('preset_date');
+            if(preset_date) {
+                if(!js.recs.length) {
+                    var d_d = preset_date % 100;
+                    var d_y = parseInt(preset_date / 100);
+                    var d_m = d_y % 100;
+                    d_y = parseInt(d_y / 100);
+                    els.date[0].datepicker('setDate', new Date(d_y, d_m - 1, d_d));
+                }
+            }
+            
         }, function(t, args) {
             if(t === 1) els.info[0].val(args[0].err_s);
         });
@@ -537,8 +556,8 @@ var els = g_v_tp_ctrl.data('in_els');
 
 els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.data('in_els').num[0].val('');
-    ui_get_doc();
     g_v_dlg_doc_form.dialog('open');
+    ui_get_doc();
 });
 
 /*
@@ -580,10 +599,13 @@ load_overview();
 .t_block {position:absolute;top:51px;left:0;height:38px;width:158px;background-color:#eaeaea;border:1px solid #9eb6ce}
 
 .x_body .t_row {height:39px;white-space:nowrap}
-.x_body .t_row > div {display:inline-block;width:138px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
+.x_body .t_row > div {display:inline-block;width:148px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
 .x_body .t_left_hdr .t_row > div {width:158px}
 .x_body .t_body .t_row > div, .x_body .t_top_hdr .t_row > div {cursor:pointer}
 .x_body .t_body >.t_row:nth-child(1) >div, .x_body .t_body >.t_row:nth-child(2) >div {background-color:#f1f1f1}
+
+.x_body .t_top_hdr .t_row > div {width:110px;padding-right:38px;position:relative}
+.x_body .t_top_hdr .t_row > div >img {position:absolute;right:4px;top:4px;width:30px;height:30px;}
 
 .ovc_default {margin-right:4px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid rgb(242,130,91);border-radius:5px;padding:2px 4px;background:rgb(242,130,91);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(242,130,91,1)), color-stop(50%,rgba(229,91,43,1)), color-stop(100%,rgba(240,113,70,1)));}
 .ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
@@ -622,7 +644,6 @@ load_overview();
 
 .delivered_0 {color:#b43838}
 .delivered_1 {color:#33600f}
-
 
 </style>
 
