@@ -634,12 +634,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sc_lst = []
         cur = self.cur()
         if mode:
+            addqs = ''
             where = ' where sc_date>=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '')
         else:
+            addqs = ',length(sc_note) as sc_note_len'
             where = ' where sc_date=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '') + ' order by '+ (sort_reg and 'sc_id asc' or 'is_accepted asc,sc_prio desc,sc_id desc')
         sql_dup_chk = ''
         if dup_chk: sql_dup_chk = ',(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup'
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted' + sql_dup_chk + ' from schedule sa ' + where, (date,))
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted' + sql_dup_chk + addqs + ' from schedule sa ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))

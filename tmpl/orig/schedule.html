@@ -83,7 +83,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
             .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
             .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-            .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
+            .append( $('<div></div>').text( (r.sc_note_len ? '*' : '') + (r.doc_dup > 1 ? r.doc_dup : '') ) )
             .append( $('<div></div>').append(vd) );
             if(vd.length > 1) v.height( 30 * vd.length );
             lst.push(v);
@@ -383,15 +383,6 @@ g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
-/*
-g_v_dlg_help = $('#dlg_help').dialog({
-    autoOpen: false,
-    modal: true,
-    width:600,
-    height:260
-});
-*/
-
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
     width:600,
@@ -613,7 +604,7 @@ load_overview();
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:90px}
-.doc_lst .prntbl_row >div:nth-child(5) {width:14px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(5) {width:18px;font-weight:bold}
 .doc_lst .prntbl_row >div:nth-child(6) {width:186px;cursor:pointer}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
@@ -681,8 +672,6 @@ load_overview();
 </div>
 <iframe></iframe>
 </div>
-
-<div id="dlg_help" title="Help">Ask Nicole</div>
 
 </body>
 </html>

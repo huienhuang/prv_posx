@@ -116,7 +116,7 @@ function load_doc_lst(dt, zidx, clerk_id)
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="locate('+i+')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-                .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
+                .append( $('<div></div>').text( (r.sc_note_len ? '*' : '') + (r.doc_dup > 1 ? r.doc_dup : '') ) )
             );
             r.selected = 1;
             
@@ -289,7 +289,7 @@ load_doc_lst(${dt}, -1, 0);
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div><div>D</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div><div>F</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div><div></div></div>
 </div>
