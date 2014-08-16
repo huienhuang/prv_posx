@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 18, 2014 at 05:44 PM
+-- Generation Time: Aug 15, 2014 at 05:35 PM
 -- Server version: 5.6.14
 -- PHP Version: 5.4.21
 
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS `customer_comment` (
   `js` blob NOT NULL,
   PRIMARY KEY (`id`),
   KEY `cid` (`cid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=20 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=21 ;
 
 -- --------------------------------------------------------
 
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS `deliveryv2` (
   `name` varchar(256) NOT NULL,
   `js` blob NOT NULL,
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=556 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=562 ;
 
 -- --------------------------------------------------------
 
@@ -215,6 +215,7 @@ CREATE TABLE IF NOT EXISTS `deliveryv2` (
 CREATE TABLE IF NOT EXISTS `deliveryv2_receipt` (
   `d_id` int(11) NOT NULL,
   `num` int(11) NOT NULL,
+  `d_excluded` tinyint(4) NOT NULL,
   `driver_id` int(11) NOT NULL,
   `delivered` tinyint(4) NOT NULL,
   `user_id` int(11) NOT NULL,
@@ -225,6 +226,24 @@ CREATE TABLE IF NOT EXISTS `deliveryv2_receipt` (
   UNIQUE KEY `d_id` (`d_id`,`num`),
   KEY `num` (`num`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `doc_note`
+--
+
+CREATE TABLE IF NOT EXISTS `doc_note` (
+  `dn_id` int(11) NOT NULL AUTO_INCREMENT,
+  `dn_ts` int(10) unsigned NOT NULL,
+  `doc_type` tinyint(4) NOT NULL,
+  `doc_sid` bigint(11) NOT NULL,
+  `dn_flag` int(11) unsigned NOT NULL,
+  `dn_uid` int(11) NOT NULL,
+  `dn_val` varchar(256) NOT NULL,
+  PRIMARY KEY (`dn_id`),
+  KEY `doc_type` (`doc_type`,`doc_sid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=128 ;
 
 -- --------------------------------------------------------
 
@@ -335,6 +354,7 @@ CREATE TABLE IF NOT EXISTS `msg` (
 
 CREATE TABLE IF NOT EXISTS `project` (
   `p_id` int(11) NOT NULL AUTO_INCREMENT,
+  `p_prio` tinyint(4) NOT NULL,
   `p_class` tinyint(4) NOT NULL,
   `p_state` tinyint(4) unsigned NOT NULL,
   `p_progress` tinyint(4) NOT NULL,
@@ -348,7 +368,7 @@ CREATE TABLE IF NOT EXISTS `project` (
   `p_js` blob NOT NULL,
   `p_msg` blob NOT NULL,
   PRIMARY KEY (`p_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=9 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=12 ;
 
 -- --------------------------------------------------------
 
@@ -384,7 +404,7 @@ CREATE TABLE IF NOT EXISTS `receipt_comment` (
   `comment` varchar(256) NOT NULL,
   PRIMARY KEY (`rc_id`),
   KEY `sid` (`sid`,`sid_type`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=10857 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=10859 ;
 
 -- --------------------------------------------------------
 
@@ -423,16 +443,18 @@ CREATE TABLE IF NOT EXISTS `salesorder` (
 CREATE TABLE IF NOT EXISTS `schedule` (
   `sc_id` int(11) NOT NULL AUTO_INCREMENT,
   `sc_date` int(10) unsigned NOT NULL,
+  `sc_new_date` int(10) unsigned NOT NULL,
   `sc_rev` int(11) NOT NULL,
   `sc_flag` int(11) unsigned NOT NULL,
   `sc_prio` tinyint(4) NOT NULL,
   `doc_type` tinyint(4) NOT NULL,
   `doc_sid` bigint(20) NOT NULL,
-  `sc_note` varchar(128) NOT NULL,
+  `doc_crc` int(10) unsigned NOT NULL,
+  `sc_note` varchar(256) NOT NULL,
   PRIMARY KEY (`sc_id`),
-  KEY `sc_date` (`sc_date`),
-  KEY `doc_type` (`doc_type`,`doc_sid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=29 ;
+  UNIQUE KEY `doc_type` (`doc_type`,`doc_sid`,`sc_date`),
+  KEY `sc_date` (`sc_date`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=76 ;
 
 -- --------------------------------------------------------
 
@@ -481,7 +503,7 @@ CREATE TABLE IF NOT EXISTS `sync_chg` (
   `c_type` tinyint(4) NOT NULL,
   `c_js` blob NOT NULL,
   PRIMARY KEY (`c_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=38 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=56 ;
 
 -- --------------------------------------------------------
 
@@ -512,7 +534,7 @@ CREATE TABLE IF NOT EXISTS `sync_feed` (
   `f_type` int(11) NOT NULL,
   `f_val` text NOT NULL,
   PRIMARY KEY (`f_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22438 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22439 ;
 
 -- --------------------------------------------------------
 
@@ -735,6 +757,25 @@ CREATE TABLE IF NOT EXISTS `time` (
   KEY `user_id` (`user_id`,`in_ts`),
   KEY `in_ts` (`in_ts`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tracker`
+--
+
+CREATE TABLE IF NOT EXISTS `tracker` (
+  `tid` int(11) NOT NULL AUTO_INCREMENT,
+  `flag` tinyint(3) unsigned NOT NULL,
+  `uid` int(11) NOT NULL,
+  `sid` bigint(20) NOT NULL,
+  `type` tinyint(4) NOT NULL,
+  `c_uid` int(11) NOT NULL,
+  `js` blob NOT NULL,
+  PRIMARY KEY (`tid`),
+  KEY `sid` (`sid`),
+  KEY `flag` (`flag`,`tid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
