@@ -2,7 +2,7 @@
 <html>
 <head>
 <%include file="header_inc_v4.html" />
-<title>POSX - Schedule</title>
+<title>POSX - Schedule V2</title>
 
 <script type="text/javascript">
 g_last_upd_seq = ${sc_upd_seq};
@@ -70,15 +70,23 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 else cls = ' doc_accepted';
             } else cls = ' doc_pending';
             
-            lst.push(
-                $('<div class="prntbl_row'+cls+'"></div>')
-                .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
-                .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
-                .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+'></div>').text(r.cust_nz) )
-                .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-                .append( $('<div></div>').text(r.doc_dup > 1 ? r.doc_dup : '') )
-            );
-            
+            var vd = [];
+            for(var j = 0; j < r.dr.length; j++) {
+                var d = r.dr[j];
+                if(r.doc_type)
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+r.num+')"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                else
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+            }
+            var v = $('<div class="prntbl_row'+cls+'"></div>')
+            .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
+            .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
+            .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
+            .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
+            .append( $('<div></div>').text( (r.sc_note_len ? '*' : '') + (r.doc_dup > 1 ? r.doc_dup : '') ) )
+            .append( $('<div></div>').append(vd) );
+            if(vd.length > 1) v.height( 30 * vd.length );
+            lst.push(v);
         }
         if(reload) {
             var cs = g_v_dd_doc_lst_body.children();
@@ -93,6 +101,13 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         
     }, undefined, undefined, undefined, '__load_doc_lst__');
     
+}
+
+function new_schedule_with_preset_date(di)
+{
+    g_v_dlg_doc_form.data('in_els').num[0].val('');
+    g_v_dlg_doc_form.dialog('open').data('preset_date', di).dialog('option', 'title', 'Schedule - PresetDate ' + int2date_s(di));
+    load_doc_schedule();
 }
 
 function load_overview_cb(js)
@@ -138,7 +153,12 @@ function load_overview_cb(js)
     $(ocs).remove();
     
     var l_o = [];
-    for(var j = 0; j < dt.length; j++) l_o.push($('<div onclick="return load_map('+dt[j][3]+')"></div>').text(dt[j][0]));
+    for(var j = 0; j < dt.length; j++) {
+        l_o.push( $('<div></div>')
+                 .append($('<span title="Show Map" onclick="return load_map('+dt[j][3]+')"></span>').text(dt[j][0]))
+                 .append($('<img title="New Schedule" src="img/add_new.png" alt="" border="0" onclick="return new_schedule_with_preset_date('+dt[j][3]+')" />'))
+        );
+    }
     g_v_t_top_hdr.append( $('<div class="t_row"></div>').append(l_o) );
     
 }
@@ -149,7 +169,8 @@ function load_overview()
               undefined, undefined, undefined, '__load_overview__');
 }
 
-function int2date_s(i) {
+function int2date_s(i)
+{
     var s = i + '';
     return s.substr(s.length - 4, 2) + '/' + s.substr(s.length - 2, 2) + '/' + s.substr(0, s.length - 4);
 }
@@ -166,6 +187,16 @@ function get_selected_docs()
     if(!lst.length && js.cur_sel !== undefined && js.lst[js.cur_sel]) lst.push(js.lst[js.cur_sel]);
     
     return lst;
+}
+
+function open_wnd_cust(cid)
+{
+    open_wnd('hist?fn=custhist&dg_type=5&cid='+cid,'posx_customer_hist');
+}
+
+function open_wnd_receipt(num)
+{
+    open_wnd('hist?fn=printreceipt&rno=' + num,'posx_print_wnd');
 }
 
 $(function() {
@@ -192,10 +223,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
                 
             post_js_ex('?fn=del_rec', {sc_id: rec.sc_id}, function() {
                 if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
-                    
-                g_v_dlg_doc_form.dialog('open');
-                load_doc_schedule();
-                    
+                if( g_v_dlg_doc_form.dialog('isOpen') ) load_doc_schedule();
             });
         }
     }
@@ -203,7 +231,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
 
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
-    width:1150,
+    width:1330,
     height:700,
     buttons: [
 %if has_perm_delivery_mgr:
@@ -344,9 +372,8 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 var els = g_v_dlg_doc_form.data('in_els');
                 els.num[0].val(r.num);
                 els.type[0].val(r.doc_type ? '1' : '');
-                load_doc_schedule(r.sc_id);
                 g_v_dlg_doc_form.dialog('open');
-                
+                load_doc_schedule(r.sc_id);
             },
         },
     ]
@@ -365,17 +392,13 @@ g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
-g_v_dlg_help = $('#dlg_help').dialog({
-    autoOpen: false,
-    modal: true,
-    width:600,
-    height:260
-});
-
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     autoOpen: false,
-    width:1200,
-    height:650,
+    width:600,
+    height:562,
+    open: function() {
+        g_v_dlg_doc_form.data('preset_date', null).dialog('option', 'title', 'Schedule');
+    },
     buttons: [
         {
             text: 'Delete',
@@ -401,10 +424,7 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
                 
                 post_js_ex('?fn=set_doc', {type:pjs.type, sid:pjs.sid, sc_id: rec.sc_id, prio:prio, date:date, note:note, rev:rec.sc_rev}, function(js) {
                     if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
-                    
-                    g_v_dlg_doc_form.dialog('open');
-                    load_doc_schedule(js.sc_id);
-                    
+                    if( g_v_dlg_doc_form.dialog('isOpen') ) load_doc_schedule(js.sc_id);
                 });
             }
         }
@@ -496,6 +516,17 @@ function _ui_get_doc(sc_id)
                     els.rec[0].val((ol.length - 1) + '').change();
             }
             
+            var preset_date = g_v_dlg_doc_form.data('preset_date');
+            if(preset_date) {
+                if(!js.recs.length) {
+                    var d_d = preset_date % 100;
+                    var d_y = parseInt(preset_date / 100);
+                    var d_m = d_y % 100;
+                    d_y = parseInt(d_y / 100);
+                    els.date[0].datepicker('setDate', new Date(d_y, d_m - 1, d_d));
+                }
+            }
+            
         }, function(t, args) {
             if(t === 1) els.info[0].val(args[0].err_s);
         });
@@ -526,13 +557,15 @@ var els = g_v_tp_ctrl.data('in_els');
 
 els.btn_schedule[0].button().click(function() {
     g_v_dlg_doc_form.data('in_els').num[0].val('');
-    ui_get_doc();
     g_v_dlg_doc_form.dialog('open');
+    ui_get_doc();
 });
 
-els.btn_help[0].button().click(function() {
-    g_v_dlg_help.dialog('open');
+/*
+els.btn_status[0].button().click(function() {
+    open_wnd('?fn=status','posx_schedule_status_wnd');
 });
+*/
 
 els.user[0].change(load_overview);
 
@@ -557,10 +590,9 @@ load_overview();
 .ui-widget {font-size:18px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
-#dlg_doc_form > div {position:absolute;top:0;left:0;right:0;bottom:0}
-#dlg_doc_form input {width:294px}
-#dlg_doc_form select {width:300px}
-#dlg_doc_form textarea {width:294px;height:136px;white-space:nowrap}
+#dlg_doc_form input {width:394px}
+#dlg_doc_form select {width:400px}
+#dlg_doc_form textarea {width:394px;height:136px;white-space:nowrap}
 
 .x_body {padding:40px 0 0 160px;overflow:scroll}
 .x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
@@ -568,10 +600,13 @@ load_overview();
 .t_block {position:absolute;top:51px;left:0;height:38px;width:158px;background-color:#eaeaea;border:1px solid #9eb6ce}
 
 .x_body .t_row {height:39px;white-space:nowrap}
-.x_body .t_row > div {display:inline-block;width:138px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
+.x_body .t_row > div {display:inline-block;width:148px;height:38px;text-align:center;line-height:38px;border:1px solid #9eb6ce;border-top:none;border-left:none;}
 .x_body .t_left_hdr .t_row > div {width:158px}
 .x_body .t_body .t_row > div, .x_body .t_top_hdr .t_row > div {cursor:pointer}
 .x_body .t_body >.t_row:nth-child(1) >div, .x_body .t_body >.t_row:nth-child(2) >div {background-color:#f1f1f1}
+
+.x_body .t_top_hdr .t_row > div {width:110px;padding-right:38px;position:relative}
+.x_body .t_top_hdr .t_row > div >img {position:absolute;right:4px;top:4px;width:30px;height:30px;}
 
 .ovc_default {margin-right:4px;font-size:20px;font-weight:bold;height:22px;line-height:22px;display:inline-block;color:#fff;border:1px solid rgb(242,130,91);border-radius:5px;padding:2px 4px;background:rgb(242,130,91);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(242,130,91,1)), color-stop(50%,rgba(229,91,43,1)), color-stop(100%,rgba(240,113,70,1)));}
 .ovc_accepted {border-color:#627d4d;background:#627d4d;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#627d4d), color-stop(100%,#1f3b08));}
@@ -587,12 +622,15 @@ load_overview();
 #dlg_documents > div:first-child {position:absolute;left:0;top:0;bottom:0;right:740px;border-right:1px solid #ccc}
 #dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
 
-.doc_lst {top:0px;bottom:0;left:0;right:0}
+.doc_lst {top:0px;bottom:0;left:0;right:0;overflow:hidden}
+.doc_lst .prntbl_row {min-width:1000px}
+.doc_lst .prntbl_cnt {overflow-x:hidden}
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
-.doc_lst .prntbl_row >div:nth-child(3) {width:180px}
+.doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:90px}
-.doc_lst .prntbl_row >div:nth-child(5) {width:19px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(5) {width:18px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(6) {width:180px;cursor:pointer}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
 
@@ -604,6 +642,9 @@ load_overview();
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
 #dlg_help {font-size:72px;font-weight:bold;text-align:center}
+
+.delivered_0 {color:#b43838}
+.delivered_1 {color:#33600f}
 
 </style>
 
@@ -618,7 +659,7 @@ load_overview();
 %endfor
 </select>
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
-<input type="button" name="ctrl_btn_help" value="help" />
+
 </div>
 
 <div class="x_body">
@@ -636,29 +677,25 @@ load_overview();
 <div id="dlg_doc_del">Are You Sure?</div>
 
 <div id="dlg_doc_form" title="Schedule Form">
-<div>
 <div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" placeholder="Document Number" /></div></div>
-<div class="xlabel" style="height:140px;display:none"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
+<div class="xlabel" style="height:140px"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
 <div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
 <div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
 <div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
 <div class="xlabel" style="height:80px"><div>Note:</div><div><textarea name="rec_note" style="height:70px"></textarea></div></div>
-</div>
 </div>
 
 <div id="dlg_documents">
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>D</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>F</div><div>Driver/Delivered</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 </div>
 <iframe></iframe>
 </div>
-
-<div id="dlg_help" title="Help">Ask Nicole</div>
 
 </body>
 </html>
