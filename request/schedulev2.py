@@ -19,6 +19,7 @@ REC_FLAG_CANCELLING = 1 << 2
 REC_FLAG_CHANGED = 1 << 3
 REC_FLAG_DUPLICATED = 1 << 4
 REC_FLAG_R_RESCHEDULED = 1 << 5
+REC_FLAG_PARTIAL = 1 << 6
 
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
@@ -43,7 +44,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
             'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
-        self.req.writefile('schedule.html', r)
+        self.req.writefile('schedule_v2.html', r)
     
     def inc_seq(self):
         self.cur().execute('update config set cval=cval+1 where cid=%s', (CFG_SCHEDULE_UPDATE_SEQ,))
@@ -166,19 +167,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         if d_type:
-            cur.execute('select sid,num,assoc,order_date,global_js from sync_receipts where num=%s and sid_type=0 and (type&0xFF)=0 order by sid desc limit 1', (
+            cur.execute('select sid,num,assoc,order_date,global_js,items_js from sync_receipts where num=%s and sid_type=0 and (type&0xFF)=0 order by sid desc limit 1', (
                 int(d_num),
                 )
             )
         else:
-            cur.execute('select sid,sonum,clerk,sodate,global_js from sync_salesorders where sonum=%s and (status>>4)=0 order by sid desc limit 1', (
+            cur.execute('select sid,sonum,clerk,sodate,global_js,items_js from sync_salesorders where sonum=%s and (status>>4)=0 order by sid desc limit 1', (
                 d_num,
                 )
             )
         
         row = cur.fetchall()
         if not row: self.req.exitjs({'err': -1, 'err_s': 'document #%s not found' % (d_num,)})
-        sid,num,assoc,doc_date,gjs = row[0]
+        sid,num,assoc,doc_date,gjs,ijs = row[0]
         
         gjs = json.loads(gjs)
         company = (gjs.get('customer') or {}).get('company') or ''
@@ -194,7 +195,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             cur.execute('select zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
             rr = cur.fetchall()
             if rr: zidx = rr[0][0]
-            
+        
+        n_ijs = []
+        for item in json.loads(ijs):
+            n_item = {
+                'sid': str(item['itemsid']),
+                'num': item['itemno'],
+                'name': item['desc1'],
+                'price': item['price'],
+                'uom': item['uom'],
+                'qty': item['qty'],
+            }
+            n_ijs.append(n_item)
+        
         recs = []
         js = {
             'type': d_type,
@@ -205,7 +218,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'total': gjs['total'],
             'recs': recs,
             'doc_date': time.strftime("%m/%d/%Y", time.localtime(doc_date)),
-            'zone_nz': ZONES[zidx][0]
+            'zone_nz': ZONES[zidx][0],
+            'ijs' : n_ijs
         }
         
         cur.execute('select * from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
@@ -232,24 +246,25 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         prio = min(max(-1, self.req.psv_int('prio')), 2)
         sc_id = self.req.psv_int('sc_id')
         note = self.req.psv_ustr('note')[:256].strip()
+        mode = self.req.psv_int('mode')
         
         cts = int(time.time())
         
         cur = self.cur()
         if d_type:
-            cur.execute('select num from sync_receipts where sid=%s and sid_type=0 and (type&0xFF)=0', (
+            cur.execute('select num,items_js from sync_receipts where sid=%s and sid_type=0 and (type&0xFF)=0', (
                 d_sid,
                 )
             )
         else:
-            cur.execute('select sonum from sync_salesorders where sid=%s and (status>>4)=0', (
+            cur.execute('select sonum,items_js from sync_salesorders where sid=%s and (status>>4)=0', (
                 d_sid,
                 )
             )
         
         row = cur.fetchall()
         if not row: return
-        d_num = row[0][0]
+        d_num,ijs = row[0]
         
         d_note = None
         if sc_id == 0:

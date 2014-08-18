@@ -393,9 +393,10 @@ g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
+    modal: true,
     autoOpen: false,
-    width:600,
-    height:562,
+    width:1200,
+    height:600,
     open: function() {
         g_v_dlg_doc_form.data('preset_date', null).dialog('option', 'title', 'Schedule');
     },
@@ -430,6 +431,8 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
         }
     ],
 });
+g_v_df_item_lst_cnt = g_v_dlg_doc_form.find('.item_lst .prntbl_cnt');
+
 idx_elements(g_v_dlg_doc_form, 4);
 g_v_dlg_doc_form_btns = {
     'cancel': $('#df_btn_cancel'),
@@ -473,6 +476,7 @@ function _ui_get_doc(sc_id)
     var els = g_v_dlg_doc_form.data('pjs', null).data('in_els');
     els.info[0].val('');
     $(els.rec[0].val('').change().children().slice(1)).remove();
+    g_v_df_item_lst_cnt.empty();
     
     var type = els.type[0].val();
     var num = $.trim(els.num[0].val());
@@ -527,6 +531,21 @@ function _ui_get_doc(sc_id)
                 }
             }
             
+            var ijs = js.ijs;
+            var v_lst = [];
+            for(var i = 0; i < ijs.length; i++) {
+                var item = ijs[i];
+                v_lst.push(
+                           $('<div class="prntbl_row"></div>')
+                           .append( $('<div><input type="checkbox" value="'+i+'" /></div>') )
+                           .append( $('<div></div>').text(item.num) )
+                           .append( $('<div></div>').text(item.alu) )
+                           .append( $('<div></div>').text(item.name) )
+                           .append( $('<div></div>').append( $('<input type="text" />') ).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) )
+                );
+            }
+            g_v_df_item_lst_cnt.append(v_lst);
+            
         }, function(t, args) {
             if(t === 1) els.info[0].val(args[0].err_s);
         });
@@ -561,11 +580,6 @@ els.btn_schedule[0].button().click(function() {
     ui_get_doc();
 });
 
-/*
-els.btn_status[0].button().click(function() {
-    open_wnd('?fn=status','posx_schedule_status_wnd');
-});
-*/
 
 els.user[0].change(load_overview);
 
@@ -590,9 +604,20 @@ load_overview();
 .ui-widget {font-size:18px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
-#dlg_doc_form input {width:394px}
-#dlg_doc_form select {width:400px}
-#dlg_doc_form textarea {width:394px;height:136px;white-space:nowrap}
+#dlg_doc_form >div:nth-child(1) input[type="text"] {width:394px}
+#dlg_doc_form >div:nth-child(1) select {width:400px}
+#dlg_doc_form >div:nth-child(1) textarea {width:394px;height:136px;white-space:nowrap}
+#dlg_doc_form >div:nth-child(1) {position:absolute;top:0;left:0;bottom:0;width:530px}
+#dlg_doc_form >div:nth-child(2) {position:absolute;top:0;left:530px;bottom:0;right:0;overflow:hidden}
+.item_lst .prntbl_row {min-width:1000px}
+.item_lst .prntbl_cnt {overflow-x:hidden}
+.item_lst .prntbl_row >div:nth-child(1) {width:20px}
+.item_lst .prntbl_row >div:nth-child(2) {width:56px;cursor:pointer;font-weight:bold}
+.item_lst .prntbl_row >div:nth-child(3) {width:100px}
+.item_lst .prntbl_row >div:nth-child(4) {width:350px}
+.item_lst .prntbl_row_hdr >div:nth-child(5) {width:114px}
+.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) {position:relative;padding-left:54px;width:60px;font-weight:bold;text-align:left}
+.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) input[type="text"] {width:40px;height:22px !important;position:absolute;top:1px;left:4px;background-color:#c4d8ed;text-align:right}
 
 .x_body {padding:40px 0 0 160px;overflow:scroll}
 .x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
@@ -677,12 +702,20 @@ load_overview();
 <div id="dlg_doc_del">Are You Sure?</div>
 
 <div id="dlg_doc_form" title="Schedule Form">
+<div>
 <div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" placeholder="Document Number" /></div></div>
 <div class="xlabel" style="height:140px"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
 <div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
 <div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
-<div class="xlabel"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
+<div class="xlabel"><div>Mode:</div><div><select name="rec_mode"><option value="0">Complete Delivery</option><option value="1">Partial Delivery</option></select></div></div>
+<div class="xlabel" style="display:none"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
 <div class="xlabel" style="height:80px"><div>Note:</div><div><textarea name="rec_note" style="height:70px"></textarea></div></div>
+</div>
+<div class="prntbl item_lst">
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" name="rec_item_cb_all" /></div><div>#</div><div>ALU</div><div>Name</div><div>QTY</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
 </div>
 
 <div id="dlg_documents">
