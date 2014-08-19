@@ -205,6 +205,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 'price': item['price'],
                 'uom': item['uom'],
                 'qty': item['qty'],
+                'alu': item['alu'],
             }
             n_ijs.append(n_item)
         
@@ -229,6 +230,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
+            r['ijs'] = []
             recs.append(r)
         
         self.req.writejs(js)
