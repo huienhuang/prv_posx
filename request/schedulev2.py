@@ -41,6 +41,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
             'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
             'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
+            'REC_FLAG_PARTIAL': REC_FLAG_PARTIAL,
             'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
             'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
@@ -230,7 +231,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
-            r['ijs'] = []
             recs.append(r)
         
         self.req.writejs(js)

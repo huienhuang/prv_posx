@@ -204,9 +204,8 @@ function chg__item_list_cb(i)
     var js = g_v_dlg_doc_form.data('pjs');
     if(!js) return;
     
-    //var rec = js.recs[i];
     var v_com = js.v_com_lst[i];
-    v_com[1].val( v_com[0].prop('checked') ? '2' : '' );
+    v_com[1].val( v_com[0].prop('checked') && js.ijs[i].qty || '' );
 }
 
 function chg__item_list_in(i)
@@ -471,9 +470,10 @@ els.rec[0].change(function() {
         els.date[0].val('');
         els.prio[0].val('0');
         els.note[0].val('');
+        els.mode[0].val('0').change();
         
         var pjs = g_v_dlg_doc_form.data('pjs');
-        if(pjs && pjs.recs.length) MsgBox('Warning', 'Records Already Exists!\nAre You Sure To Create New One?');
+        if(pjs && pjs.recs.length) MsgBox('Warning', 'Records Already Exists!\nAre You Sure To Create A New One?');
 
         return;
     }
@@ -483,6 +483,7 @@ els.rec[0].change(function() {
     els.date[0].val(int2date_s(rec.sc_date));
     els.note[0].val(rec.sc_note);
     els.prio[0].val(rec.sc_prio + '');
+    els.mode[0].val(rec.sc_flag & ${REC_FLAG_PARTIAL} ? '1' : '0').change();
     
     if(rec.sc_flag & ${REC_FLAG_CANCELLING})
         g_v_dlg_doc_form_btns.cancel.hide();
@@ -495,12 +496,17 @@ els.mode[0].change(function() {
     if(!js) return;
     
     var els = g_v_dlg_doc_form.data('in_els');
-    var r_mode = !parseInt(els.mode[0].val());
+    var full = !parseInt(els.mode[0].val());
     
-    els.cb_item_sel_all[0].prop('disabled', r_mode);
+    var ridx = els.rec[0].val();
+    var ijs = ridx && js.recs[parseInt(ridx)].ijs || js.ijs;
+    
+    els.cb_item_sel_all[0].prop('disabled', full).prop('checked', true);
     for(var i = 0; i < js.v_com_lst.length; i++) {
-        js.v_com_lst[i].prop('disabled', r_mode);
-        
+        var v_com = js.v_com_lst[i];
+        var val = ijs[i].qty;
+        v_com[1].prop('disabled', full).val(val || '');
+        v_com[0].prop('disabled', full).prop('checked', !!val);
     }
     
 });
@@ -509,11 +515,12 @@ els.cb_item_sel_all[0].change(function() {
     var js = g_v_dlg_doc_form.data('pjs');
     if(!js) return;
     
+    var ijs = js.ijs;
     var chk = $(this).prop('checked');
     for(var i = 0; i < js.v_com_lst.length; i++) {
         var v_com = js.v_com_lst[i];
         v_com[0].prop('checked', chk);
-        v_com[1].val( chk ? '2' : '' );
+        v_com[1].val( chk && ijs[i].qty || '' );
     }
     
 });
@@ -541,6 +548,27 @@ function _ui_get_doc(sc_id)
             if(seq !== ts_doc_lku_seq) return;
             
             g_v_dlg_doc_form.data('pjs', js);
+            
+            var ijs = js.ijs;
+            var v_lst = [];
+            var v_com_lst = js.v_com_lst = [];
+            for(var i = 0; i < ijs.length; i++) {
+                var item = ijs[i];
+                var item_v_com = [
+                                  $('<input type="checkbox" value="'+i+'" onchange="chg__item_list_cb('+i+')" />'),
+                                  $('<input type="text" onchange="chg__item_list_in('+i+')" />')
+                ];
+                v_lst.push(
+                           $('<div class="prntbl_row"></div>')
+                           .append( $('<div></div>').append(item_v_com[0]) )
+                           .append( $('<div></div>').text(item.num) )
+                           .append( $('<div></div>').text(item.alu) )
+                           .append( $('<div></div>').text(item.name) )
+                           .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) )
+                );
+                v_com_lst.push(item_v_com);
+            }
+            g_v_df_item_lst_cnt.append(v_lst);
             
             var lst = [];
             if(js.company) lst.push(js.company + ' *By ' + js.assoc);
@@ -582,27 +610,6 @@ function _ui_get_doc(sc_id)
                     els.date[0].datepicker('setDate', new Date(d_y, d_m - 1, d_d));
                 }
             }
-            
-            var ijs = js.ijs;
-            var v_lst = [];
-            var v_com_lst = js.v_com_lst = [];
-            for(var i = 0; i < ijs.length; i++) {
-                var item = ijs[i];
-                var item_v_com = [
-                                  $('<input type="checkbox" value="'+i+'" onchange="chg__item_list_cb('+i+')" />'),
-                                  $('<input type="text" onchange="chg__item_list_in('+i+')" />')
-                ];
-                v_lst.push(
-                           $('<div class="prntbl_row"></div>')
-                           .append( $('<div></div>').append(item_v_com[0]) )
-                           .append( $('<div></div>').text(item.num) )
-                           .append( $('<div></div>').text(item.alu) )
-                           .append( $('<div></div>').text(item.name) )
-                           .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) )
-                );
-                v_com_lst.push(item_v_com);
-            }
-            g_v_df_item_lst_cnt.append(v_lst);
             
         }, function(t, args) {
             if(t === 1) els.info[0].val(args[0].err_s);
@@ -767,7 +774,7 @@ load_overview();
 <div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
 <div class="xlabel"><div>Mode:</div><div><select name="rec_mode"><option value="0">Complete Delivery</option><option value="1">Partial Delivery</option></select></div></div>
 <div class="xlabel" style="display:none"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
-<div class="xlabel" style="height:80px"><div>Note:</div><div><textarea name="rec_note" style="height:70px"></textarea></div></div>
+<div class="xlabel" style="height:130px"><div>Note:</div><div><textarea name="rec_note" style="height:120px"></textarea></div></div>
 </div>
 <div class="prntbl item_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" name="rec_cb_item_sel_all" /></div><div>#</div><div>ALU</div><div>Name</div><div>QTY</div></div>
