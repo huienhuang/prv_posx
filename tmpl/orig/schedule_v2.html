@@ -205,7 +205,9 @@ function chg__item_list_cb(i)
     if(!js) return;
     
     var v_com = js.v_com_lst[i];
-    v_com[1].val( v_com[0].prop('checked') && js.ijs[i].qty || '' );
+    var qty = v_com[0].prop('checked') && js.ijs[i].qty || 0;
+    v_com[1].val(qty || '');
+    v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#fff');
 }
 
 function chg__item_list_in(i)
@@ -213,9 +215,11 @@ function chg__item_list_in(i)
     var js = g_v_dlg_doc_form.data('pjs');
     if(!js) return;
     var v_com = js.v_com_lst[i];
-    var val = parseInt(v_com[1].val());
-    v_com[1].val(val || '');
-    v_com[0].prop('checked', !!val);
+    var qty = parseInt(v_com[1].val()) || 0;
+    v_com[1].val(qty || '');
+    v_com[0].prop('checked', !!qty);
+    
+    v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#fff');
 }
 
 $(function() {
@@ -527,10 +531,11 @@ els.mode[0].change(function() {
     els.cb_item_sel_all[0].prop('disabled', full).prop('checked', true);
     for(var i = 0; i < js.v_com_lst.length; i++) {
         var v_com = js.v_com_lst[i];
-        var val = ijs[i].qty;
-        v_com[1].prop('disabled', full).val(val || '');
-        v_com[0].prop('disabled', full).prop('checked', !!val);
-        
+        var qty = ijs[i].qty;
+        v_com[1].prop('disabled', full).val(qty || '');
+        v_com[0].prop('disabled', full).prop('checked', !!qty);
+        v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#fff');
+        ijs[i].err === 1 ? v_com[2].addClass('row_unmatched') : v_com[2].removeClass('row_unmatched');
     }
     
 });
@@ -543,8 +548,10 @@ els.cb_item_sel_all[0].change(function() {
     var chk = $(this).prop('checked');
     for(var i = 0; i < js.v_com_lst.length; i++) {
         var v_com = js.v_com_lst[i];
+        var qty = chk && ijs[i].qty || 0;
         v_com[0].prop('checked', chk);
-        v_com[1].val( chk && ijs[i].qty || '' );
+        v_com[1].val(qty || '');
+        v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#fff');
     }
     
 });
@@ -581,14 +588,14 @@ function _ui_get_doc(sc_id)
                 var item_v_com = [
                                   $('<input type="checkbox" value="'+i+'" onchange="chg__item_list_cb('+i+')" />'),
                                   $('<input type="text" onchange="chg__item_list_in('+i+')" />'),
-                
-                        $('<div class="prntbl_row"></div>')
+                ];
+                item_v_com[2] = $('<div class="prntbl_row"></div>')
                            .append( $('<div></div>').append(item_v_com[0]) )
                            .append( $('<div></div>').text(item.num) )
                            .append( $('<div></div>').text(item.alu) )
                            .append( $('<div></div>').text(item.name) )
-                           .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) )
-                ];
+                           .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) );
+                
                 v_lst.push(item_v_com[2]);
                 v_com_lst.push(item_v_com);
             }
@@ -708,10 +715,8 @@ load_overview();
 .item_lst .prntbl_row >div:nth-child(4) {width:350px}
 .item_lst .prntbl_row_hdr >div:nth-child(5) {width:114px}
 .item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) {position:relative;padding-left:54px;width:60px;font-weight:bold;text-align:left}
-.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) input[type="text"] {width:40px;height:22px !important;position:absolute;top:1px;left:4px;background-color:#c4d8ed;text-align:right}
+.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) input[type="text"] {width:40px;height:22px !important;position:absolute;top:1px;left:4px;text-align:right}
 .item_lst .prntbl_cnt .row_unmatched {background-color:#ff8888}
-.item_lst .prntbl_cnt .row_partial_fill {background-color:#a3b9fe}
-.item_lst .prntbl_cnt .row_full_fill {background-color:#d6ffce}
 
 .x_body {padding:40px 0 0 160px;overflow:scroll}
 .x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
