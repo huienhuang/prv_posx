@@ -35,6 +35,10 @@ function open_wnd_delivery(d_id) {
     return false;
 }
 
+function open_wnd_schedule_print(sc_id) {
+    open_wnd('schedulev2?fn=print&view_only=1&sc_ids='+sc_id,'posx_schedule_print', 750);
+    return false;
+}
 
 $(function() {
 // 
@@ -150,7 +154,7 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .p_doc_note >div:nth-child(even) {background-color:#dfe8ff}
 .p_doc_note >div:hover {background-color:#ffcbb7}
 
-.srec {white-space:pre-wrap;margin-bottom:3px}
+.srec {white-space:pre-wrap;margin-bottom:3px;cursor:pointer}
 .srec >span {font-weight:bold;color:#315b8a}
 
 #dlg_add_note {position:relative}
@@ -277,7 +281,7 @@ if d['problem_flag']:
 <h3>Scheduled Delivery (${len(scs)})</h3>
 <div>
 %for sc in scs:
-<div class="srec"><span>${sc[1]} (${sc[0]}):</span> ${sc[2]|h}</div>
+<div class="srec" onclick="open_wnd_schedule_print(${sc[0]})"><span>${sc[1]} (${sc[0]})${sc[2] and ': ' or ''}</span>${sc[2]|h}</div>
 %endfor
 </div>
 </div>

@@ -102,21 +102,26 @@ function load_doc_lst(dt, zidx, clerk_id)
             dc += r.delivery_count ? 1 : 0;
             
             var cls = '';
-            if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
-                if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
-                else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
-                else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
-                else cls = ' doc_accepted';
-            } else cls = ' doc_pending';
+            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+            else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
+            else if(r.sc_flag & ${REC_FLAG_PARTIAL_CHANGED}) cls = ' doc_partial_changed';
+            else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
+            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
+            else cls = ' doc_pending';
+            
+            var sflag = '';
+            if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
+            if(r.sc_note_len) sflag += 'N';
+            if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
             
             lst.push(
-                $('<div class="prntbl_row'+cls+'"></div>')
+                $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>')
                 .append( $('<div><input type="checkbox" value="'+i+'" checked="checked" /></div>') )
                 .append( $('<div>'+(i+1)+'</div>') )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="locate('+i+')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-                .append( $('<div></div>').text( (r.sc_note_len ? '*' : '') + (r.doc_dup > 1 ? r.doc_dup : '') ) )
+                .append( $('<div></div>').text(sflag) )
             );
             r.selected = 1;
             
@@ -252,9 +257,9 @@ load_doc_lst(${dt}, -1, 0);
 <style type="text/css">
 .ui-widget {font-size:18px;}
 
-#doc_ctrl {position:absolute;top:0;width:420px;height:32px;left:0;padding:9px 5px}
-#doc_lst {position:absolute;top:50px;width:430px;bottom:0;left:0;}
-#map_canvas {position:absolute;top:0;right:0;bottom:0;left:430px;}
+#doc_ctrl {position:absolute;top:0;width:440px;height:32px;left:0;padding:9px 5px}
+#doc_lst {position:absolute;top:50px;width:450px;bottom:0;left:0;}
+#map_canvas {position:absolute;top:0;right:0;bottom:0;left:450px;}
 
 .doc_lst {top:0;bottom:0;left:0;right:0;overflow:hidden}
 .doc_lst .prntbl_row {min-width:1000px}
@@ -263,8 +268,8 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .prntbl_row >div:nth-child(2) {width:30px;font-weight:bold}
 .doc_lst .prntbl_row >div:nth-child(3) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:170px;cursor:pointer}
-.doc_lst .prntbl_row >div:nth-child(5) {width:90px}
-.doc_lst .prntbl_row >div:nth-child(6) {width:19px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(5) {width:80px}
+.doc_lst .prntbl_row >div:nth-child(6) {width:50px;font-weight:bold}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(3) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:296px}
 .doc_lst .prntbl_row_ftr >div:nth-child(2) {width:130px}
@@ -274,6 +279,7 @@ load_doc_lst(${dt}, -1, 0);
 .doc_lst .doc_cancelling >div:nth-child(3) {background-color:#ff3019;}
 .doc_lst .doc_changed >div:nth-child(3) {background-color:#903815;}
 .doc_lst .doc_rescheduled >div:nth-child(3) {background-color:#3578b5;}
+.doc_lst .doc_partial_changed >div:nth-child(3) {background-color:rgb(203,96,179)}
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
 #dlg_view_doc {position:relative}
@@ -291,7 +297,7 @@ load_doc_lst(${dt}, -1, 0);
 </div>
 <div id="doc_lst">
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div><div>F</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>#</div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div><div></div></div>
 </div>

@@ -64,12 +64,12 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             dc += r.delivery_count ? 1 : 0;
             
             var cls = '';
-            if(r.sc_flag & ${REC_FLAG_ACCEPTED}) {
-                if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
-                else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
-                else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
-                else cls = ' doc_accepted';
-            } else cls = ' doc_pending';
+            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+            else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
+            else if(r.sc_flag & ${REC_FLAG_PARTIAL_CHANGED}) cls = ' doc_partial_changed';
+            else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
+            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
+            else cls = ' doc_pending';
             
             var vd = [];
             for(var j = 0; j < r.dr.length; j++) {
@@ -80,10 +80,10 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                     vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
             }
             var sflag = '';
-            if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += 'P';
+            if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
             if(r.sc_note_len) sflag += 'N';
             if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
-            var v = $('<div class="prntbl_row'+cls+'"></div>')
+            var v = $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>')
             .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
             .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
             .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
@@ -228,6 +228,17 @@ function chg__item_list_in(i)
     v_com[0].prop('checked', !!qty);
     
     v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#faf7c9');
+}
+
+function get_item_possible_match_content()
+{
+    var pm = $(this).data('possible_match');
+    if(!pm) return null;
+
+    var m = pm.v[1];
+    var s = [];
+    for(var i = 0; i < m.length; i++) s.push( '> ' + m[i][1] + ' / ' + m[i][0] );
+    return $('<div class="p_item_pm"></div>').text('Possible Match:\n' + s.join('\n'));
 }
 
 $(function() {
@@ -464,10 +475,16 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
                         MsgBox('Warning - Please Check And Confirm!', 'Document Changed! Please Make Sure That Everything Is Correct!');
                         return;
                     }
-                    for(var i = 0; i < pjs.ijs.length; i++) {
-                        var r = [pjs.ijs[i].sid, 0];
+                    var o_ijs = pjs.ijs;
+                    for(var i = 0; i < o_ijs.length; i++) {
+                        var t = o_ijs[i];
+                        var r = [t.sid, 0];
                         var v_com = pjs.v_com_lst[i];
                         if(v_com[0].prop('checked')) r[1] = parseInt(v_com[1].val()) || 0;
+                        if(t.qty * r[1] < 0 || Math.abs(r[1]) > Math.abs(t.qty)) {
+                            MsgBox('Invalid Qty', 'Line #' + (i + 1) + ' - ItemNo - ' + t.num);
+                            return;
+                        }
                         ijs.push(r);
                     }
                     doc = JSON.stringify([pjs.crc, ijs])
@@ -555,11 +572,12 @@ els.mode[0].change(function() {
     els.cb_item_sel_all[0].prop('disabled', full).prop('checked', true);
     for(var i = 0; i < js.v_com_lst.length; i++) {
         var v_com = js.v_com_lst[i];
-        var qty = ijs[i].qty;
+        var t = ijs[i];
+        var qty = t.qty;
         v_com[1].prop('disabled', full).val(qty || '');
         v_com[0].prop('disabled', full).prop('checked', !!qty);
         v_com[1].css('background-color', qty ? (qty === js.ijs[i].qty ? '#d4f0c2' : '#cae4ff') : '#faf7c9');
-        ijs[i].err === 1 ? v_com[2].addClass('row_unmatched') : v_com[2].removeClass('row_unmatched');
+        t.err === 1 ? v_com[2].data('possible_match', t).addClass('row_unmatched') : v_com[2].data('possible_match', null).removeClass('row_unmatched');
     }
     
 });
@@ -619,7 +637,10 @@ function _ui_get_doc(sc_id)
                            .append( $('<div></div>').text(item.alu) )
                            .append( $('<div></div>').text(item.name) )
                            .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) );
-                
+                item_v_com[2].tooltip({
+                    items: '.prntbl_row',
+                    content: get_item_possible_match_content
+                });
                 v_lst.push(item_v_com[2]);
                 v_com_lst.push(item_v_com);
             }
@@ -745,6 +766,7 @@ load_overview();
 .item_lst .prntbl_cnt .row_unmatched {background-color:#f78e8e !important}
 .item_lst .prntbl_row_ftr >div:nth-child(1) {width:460px;color:#2441c1}
 .item_lst .prntbl_row_ftr >div:nth-child(2) {width:120px;color:#e42222}
+.p_item_pm {white-space:pre-wrap}
 
 .x_body {padding:40px 0 0 160px;overflow:scroll}
 .x_body .t_top_hdr {font-weight:bold;position:absolute;top:0;left:160px;background-color:#f2f5f6;height:39px;color:#27413e;border-top:1px solid #9eb6ce;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f5f6), color-stop(37%,#e3eaed), color-stop(100%,#c8d7dc));}
@@ -792,6 +814,7 @@ load_overview();
 .doc_lst .doc_cancelling >div:nth-child(2) {background-color:#ff3019}
 .doc_lst .doc_changed >div:nth-child(2) {background-color:#903815}
 .doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5}
+.doc_lst .doc_partial_changed >div:nth-child(2) {background-color:rgb(203,96,179)}
 .doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
 
 #dlg_help {font-size:72px;font-weight:bold;text-align:center}
@@ -850,7 +873,7 @@ load_overview();
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>FLAG</div><div>Driver/Delivered</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div><div>Driver/Delivered</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>

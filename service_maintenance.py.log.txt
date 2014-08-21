@@ -1,3 +1,0 @@
-E:\sqlany\data\service_maintenance.py  > start
-LOC: 1, MS: 40, TS: 2014-08-20 23:56:12.216000
-GEO: (1, 0), MS: 744, TS: 2014-08-20 23:56:13.545000

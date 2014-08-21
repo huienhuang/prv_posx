@@ -251,9 +251,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_items = {}
         for r in doc_ijs:
             if not r[3]: continue
-            v = d_items.setdefault((r[0], r[1]), [0, {}])
-            v[0] += 1
-            v[1].setdefault(r[2], []).append(r[3])
+            v = d_items.setdefault((r[0], r[1]), [0, {}])[1].setdefault(r[2], []).append(r[3])
             
         n_ijs = []
         for r in ijs:
@@ -266,7 +264,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if v1:
                 t['qty'] = v1.pop(0)
                 t['err'] = 0
-                v[0] -= 1
             else:
                 t['err'] = 1
                 t['v'] = v
@@ -274,9 +271,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         unmatched = 0
         for r in n_ijs:
             if r['err'] != 1: continue
-            if r['v'][0]:
+            v = r['v']
+            if not v[0]:
+                m = []
+                for q,c_q_l in v[1].items():
+                    for c_q in c_q_l:
+                       m.append( (q, c_q) )
+                v[0] = 1
+                v[1] = m
+            
+            if len(v[1]):
                 unmatched += 1
-                del r['v']
             else:
                 r['err'] = -1
         
@@ -369,19 +374,30 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
                 
             if mode and o_r['sc_flag'] & REC_FLAG_PARTIAL:
+                m_note = False
                 if new_doc_crc != o_r['doc_crc']:
-                    chg = True
+                    m_note = chg = True
                     if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Document Changed! Please Check!"})
-                
+                    
                 o_r['doc_ijs'] = o_r['doc_ijs'] and json.loads(o_r['doc_ijs']) or []
                 if n_ijs != o_r['doc_ijs']:
                     chg = True
-                    d_notes.append('Schedule[%d] (%s) - Partial Delivery - Updated Packing List\n%s' % (
+                    if [ f_x for f_x in n_ijs if f_x[3] ] != [ f_x for f_x in o_r['doc_ijs'] if f_x[3] ]:
+                        m_note = False
+                        d_notes.append('Schedule[%d] (%s) - Partial Delivery - Updated Packing List\n%s' % (
+                            sc_id, o_date.strftime('%m/%d/%y'),
+                            '\n'.join(ijs_note)
+                            )
+                        )
+                        if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
+                    else:
+                        m_note = True
+                
+                if m_note:
+                    d_notes.append('Schedule[%d] (%s) - Partial Delivery - Checked' % (
                         sc_id, o_date.strftime('%m/%d/%y'),
-                        '\n'.join(ijs_note)
                         )
                     )
-                    if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
                 
             if not chg: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
@@ -504,7 +520,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     REC_FLAG_ACCEPTED, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
             else:
-                crc = json.loads(r['doc'][7]).get('crc', 0)
+                crc = json.loads(r['doc'][7]).get('crc')
                 cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
                     REC_FLAG_ACCEPTED, crc, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
@@ -945,6 +961,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             ijs = dr['ijs'] = json.loads(dr['ijs'])
             dr['doc_date'] = time.strftime("%m/%d/%Y", time.localtime(dr['doc_date']))
             r.update(dr)
+            r['is_accepted'] = bool(r['sc_flag'] & REC_FLAG_ACCEPTED)
             
             type_s = ''
             count_s = ''
@@ -1052,12 +1069,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
             'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
             'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
+            'REC_FLAG_PARTIAL': REC_FLAG_PARTIAL,
+            'REC_FLAG_PARTIAL_CHANGED': REC_FLAG_PARTIAL_CHANGED,
             'dt': self.qsv_int('dt'),
         }
         
         self.req.writefile('map_schedule.html', r)
-        
-    def fn_status(self):
-        
-        self.req.writefile('schedule_status.html')
+
+
+
     

@@ -14,8 +14,10 @@ import base64
 
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
+Schedule_v2 = App.load('/request/schedulev2')
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
+
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
@@ -422,13 +424,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
         r['PROBLEMS'] = Delivery.PROBLEMS
         
-        cur.execute('select sc_id,sc_date,sc_note from schedule where doc_type=1 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
+        cur.execute('select sc_id,sc_date,sc_note,sc_flag from schedule where doc_type=1 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
         r['scs'] = scs = []
         for x in cur.fetchall():
             m,d = divmod(x[1], 100)
             y,m = divmod(m, 100)
             scs.append(
-                (x[0], '%02d/%02d/%02d' % (m,d,y), x[2])
+                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & Schedule_v2.REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
             )
         
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)

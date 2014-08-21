@@ -161,7 +161,7 @@ gjs = r['gjs']
 <!-- +i_hdr -->
 <div>
 <div>Date:</div><div>${r['doc_date']}</div>
-<div>Mode:</div><div>${r.get('mode') and 'Partial' or 'Complete'} Delivery</div>
+<div>Schedule:</div><div>${r['sc_id']} - ${r.get('mode') and 'Partial' or 'Complete'} - ${r['is_accepted'] and 'Accepted' or 'Pending'}</div>
 </div>
 <!-- -i_hdr -->
 </div>
