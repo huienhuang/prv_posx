@@ -43,14 +43,17 @@ $(document).tooltip();
 <style type="text/css">
 
 .p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px;position:relative;}
+.p_doc > div {margin-bottom:8px}
+
 .p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:26px;}
 .p_doc_meta >div {position:absolute;top:0;bottom:0;text-align:center}
 .p_doc_meta >div:nth-child(1) {width:200px;right:300px}
 .p_doc_meta >div:nth-child(2) {width:50px;right:250px}
 .p_doc_meta >div:nth-child(3) {width:250px;right:0;text-align:right}
 
-.p_doc_memo {border:1px solid #ccc;white-space:pre-wrap;padding:5px 5px;}
-.p_doc > div {margin-bottom:8px}
+.p_doc_memo {border:1px solid #ccc;padding:12px 6px 6px 6px;position:relative;margin-top:14px;}
+.p_doc_memo >div:nth-child(1) {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
+.p_doc_memo >div:nth-child(2) {white-space:pre-wrap;}
 
 .p_doc_hdr {position:relative;}
 .p_doc_hdr > div {position:relative;height:20px;line-height:20px;font-weight:bold;font-size:18px;}
@@ -166,7 +169,7 @@ gjs = r['gjs']
 
 %if gjs['memo'] or r['sc_note']:
 <!-- +i_memo -->
-<div class="p_doc_memo">${(r['sc_note'] + '\n' + gjs['memo']).strip()|h}</div>
+<div class="p_doc_memo"><div>Instruction / 指示:</div><div>${(r['sc_note'] + '\n' + gjs['memo']).strip()|h}</div></div>
 <!-- -i_memo -->
 %endif
 
@@ -251,7 +254,7 @@ ${not view_only and '<div></div>' or ''}
 %if view_only and r['notes']:
 <div class="p_doc_note">
 %for n in r['notes']:
-<div title="${n[0]|h}" class="doc_note_type_${n[1]&1}"><div>${n[3]|h}:</div><div>${n[2]|h}</div></div>
+<div title="MsgDate: ${n[0]|h}" class="doc_note_type_${n[1]&1}"><div>${n[3]|h}:</div><div>${n[2]|h}</div></div>
 %endfor
 </div>
 %endif

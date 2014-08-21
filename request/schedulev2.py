@@ -20,6 +20,7 @@ REC_FLAG_CHANGED = 1 << 3
 REC_FLAG_DUPLICATED = 1 << 4
 REC_FLAG_R_RESCHEDULED = 1 << 5
 REC_FLAG_PARTIAL = 1 << 6
+REC_FLAG_PARTIAL_CHANGED = 1 << 7
 
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
@@ -42,6 +43,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_DUPLICATED': REC_FLAG_DUPLICATED,
             'REC_FLAG_R_RESCHEDULED': REC_FLAG_R_RESCHEDULED,
             'REC_FLAG_PARTIAL': REC_FLAG_PARTIAL,
+            'REC_FLAG_PARTIAL_CHANGED': REC_FLAG_PARTIAL_CHANGED,
             'CFG_SCHEDULE_UPDATE_SEQ': CFG_SCHEDULE_UPDATE_SEQ,
             'sc_upd_seq': self.getconfig(CFG_SCHEDULE_UPDATE_SEQ)
         }
@@ -350,6 +352,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
             o_r = dict(zip(cur.column_names, row[0]))
+            new_sc_flag = o_r['sc_flag']
             
             chg = False
             if o_r['sc_flag'] & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
@@ -363,6 +366,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     mode and '\n' + '\n'.join(ijs_note) or ''
                     )
                 )
+                if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
                 
             if mode and o_r['sc_flag'] & REC_FLAG_PARTIAL:
                 if new_doc_crc != o_r['doc_crc']:
@@ -377,10 +381,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         '\n'.join(ijs_note)
                         )
                     )
+                    if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
                 
             if not chg: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            new_sc_flag = o_r['sc_flag']
             if mode:
                 new_sc_flag |= REC_FLAG_PARTIAL
             else:
@@ -429,7 +433,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sc_lst = []
         
         cur = self.cur()
-        cur.execute('select ' + (full and '*' or 'sc_id,sc_date,doc_type,doc_sid') + ' from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
+        cur.execute('select ' + (full and '*' or 'sc_id,sc_flag,sc_date,doc_type,doc_sid') + ' from schedule where sc_id in (%s)' % (','.join(map(str,sc_ids)),))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -469,10 +473,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
-            crc = json.loads(r['doc'][2]).get('crc', 0)
-            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
-                REC_FLAG_CHANGED, crc, r['sc_id'], REC_FLAG_ACCEPTED
-            ))
+            if r['sc_flag'] & REC_FLAG_PARTIAL:
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s) where sc_id=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, r['sc_id'], REC_FLAG_ACCEPTED
+                ))
+            else:
+                crc = json.loads(r['doc'][2]).get('crc')
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, crc, r['sc_id'], REC_FLAG_ACCEPTED
+                ))
             if cur.rowcount > 0: c += 1
     
         if c: self.inc_seq()
@@ -490,10 +499,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_notes = []
         c = 0
         for r in docs:
-            crc = json.loads(r['doc'][7]).get('crc', 0)
-            cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                REC_FLAG_ACCEPTED, crc, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
-            ))
+            if r['sc_flag'] & REC_FLAG_PARTIAL:
+                cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1 where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                ))
+            else:
+                crc = json.loads(r['doc'][7]).get('crc', 0)
+                cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, crc, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                ))
             if cur.rowcount > 0:
                 c += 1
                 m,d = divmod(r['sc_date'], 100)
@@ -554,26 +568,27 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             zid = r['zone_id']
             d = d_dt.setdefault(r['sc_date'], [None,] * len(ZONES))
-            if not d[zid]: d[zid] = [0, 0, 0, 0, 0]
+            if not d[zid]: d[zid] = [0, 0, 0, 0, 0, 0]
             d = d[zid]
             
             sc_flag = r['sc_flag']
-            if sc_flag & REC_FLAG_ACCEPTED:
-                if sc_flag & REC_FLAG_CANCELLING:
-                    d[3] += 1
-                elif sc_flag & REC_FLAG_RESCHEDULED:
-                    d[2] += 1
-                elif sc_flag & REC_FLAG_CHANGED:
-                    d[4] += 1
-                else:
-                    d[1] += 1
+            if sc_flag & REC_FLAG_CANCELLING:
+                d[3] += 1
+            elif sc_flag & REC_FLAG_RESCHEDULED:
+                d[2] += 1
+            elif sc_flag & REC_FLAG_PARTIAL_CHANGED:
+                d[5] += 1
+            elif sc_flag & REC_FLAG_CHANGED:
+                d[4] += 1
+            elif sc_flag & REC_FLAG_ACCEPTED:
+                d[1] += 1
             else:
                 d[0] += 1
         
         l_dt = d_dt.items()
         l_dt.sort(key=lambda f_x: f_x[0])
         for dt,dd in l_dt:
-            za = [0, 0, 0, 0, 0]
+            za = [0, 0, 0, 0, 0, 0]
             for z in dd:
                 if not z: continue
                 for i in range(len(z)): za[i] += z[i] or 0
@@ -818,8 +833,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_date'] = doc_data[3]
             r['doc_amt'] = doc_js['total']
             
-            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != doc_js.get('crc', 0): r['sc_flag'] |= REC_FLAG_CHANGED
-            
+            crc = doc_js.get('crc')
+            if r['sc_flag'] & REC_FLAG_PARTIAL:
+                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
+            elif r['sc_flag'] & REC_FLAG_ACCEPTED:
+                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
+                
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
             #r['doc_sid'] = str(r['doc_sid'])
             

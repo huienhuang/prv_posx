@@ -79,12 +79,16 @@ function load_doc_lst(dt, zidx, reload, auto_print)
                 else
                     vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
             }
+            var sflag = '';
+            if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += 'P';
+            if(r.sc_note_len) sflag += 'N';
+            if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
             var v = $('<div class="prntbl_row'+cls+'"></div>')
             .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
             .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
             .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
             .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
-            .append( $('<div></div>').text( (r.sc_note_len ? '*' : '') + (r.doc_dup > 1 ? r.doc_dup : '') ) )
+            .append( $('<div></div>').text(sflag) )
             .append( $('<div></div>').append(vd) );
             if(vd.length > 1) v.height( 30 * vd.length );
             lst.push(v);
@@ -148,6 +152,7 @@ function load_overview_cb(js)
                 if(z[3]) oo.append( $('<div class="ovc_default ovc_cancelling"></div>').text(z[3]) );
                 if(z[2]) oo.append( $('<div class="ovc_default ovc_rescheduled"></div>').text(z[2]) );
                 if(z[4]) oo.append( $('<div class="ovc_default ovc_changed"></div>').text(z[4]) );
+                if(z[5]) oo.append( $('<div class="ovc_default ovc_partial_changed"></div>').text(z[5]) );
             }
         }
         o.append(l_oo);
@@ -257,7 +262,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
 
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
-    width:1330,
+    width:1350,
     height:700,
     buttons: [
 %if has_perm_delivery_mgr:
@@ -760,6 +765,7 @@ load_overview();
 .ovc_rescheduled {border-color:#6db3f2;background:#6db3f2;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(109,179,242,1)), color-stop(50%,rgba(84,163,238,1)), color-stop(51%,rgba(54,144,240,1)), color-stop(100%,rgba(30,105,222,1)));}
 .ovc_cancelling {border-color:#ff3019;background:#ff3019;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,48,25,1)), color-stop(100%,rgba(207,4,4,1)));}
 .ovc_changed {border-color:#903815;background:#903815;background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(240,183,161,1)), color-stop(50%,rgba(140,51,16,1)), color-stop(51%,rgba(117,34,1,1)), color-stop(100%,rgba(191,110,78,1)));}
+.ovc_partial_changed {border-color:rgb(203,96,179);background:rgb(203,96,179);background: -webkit-linear-gradient(top, rgba(203,96,179,1) 0%,rgba(173,18,131,1) 50%,rgba(222,71,172,1) 100%);}
 
 .dd_open {background-color:#d5eab5}
 .dd_close {background-color:#f6414d}
@@ -775,8 +781,8 @@ load_overview();
 .doc_lst .prntbl_row >div:nth-child(1) {width:20px;}
 .doc_lst .prntbl_row >div:nth-child(2) {width:70px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
-.doc_lst .prntbl_row >div:nth-child(4) {width:90px}
-.doc_lst .prntbl_row >div:nth-child(5) {width:18px;font-weight:bold}
+.doc_lst .prntbl_row >div:nth-child(4) {width:80px}
+.doc_lst .prntbl_row >div:nth-child(5) {width:50px;font-weight:bold}
 .doc_lst .prntbl_row >div:nth-child(6) {width:180px;cursor:pointer}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
@@ -844,7 +850,7 @@ load_overview();
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>F</div><div>Driver/Delivered</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>FLAG</div><div>Driver/Delivered</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
