@@ -117,13 +117,14 @@ body {min-width:952px;margin:0;background-color:white;font-family:"Times New Rom
 
 .cls_redcolor {color:red}
 
-
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
-.p_doc_note >div {padding-left:100px;margin:2px 0;position:relative}
-.p_doc_note >div:hover {background-color:#ffcbb7}
-.p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
+.p_doc_note >div {padding-left:100px;position:relative;border-bottom:1px dotted #ccc}
+.p_doc_note >div >div {padding:4px 0}
+.p_doc_note >div >div:nth-child(1) {position:absolute;left:0;top:0;width:90px;text-align:right;font-weight:bold;color:#98562a}
 .p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
 .p_doc_note .doc_note_type_1 {color:#418c46}
+.p_doc_note >div:nth-child(even) {background-color:#dfe8ff}
+.p_doc_note >div:hover {background-color:#ffcbb7}
 
 .srec {white-space:pre-wrap;margin-bottom:3px}
 .srec >span {font-weight:bold;color:#315b8a}

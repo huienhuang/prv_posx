@@ -69,6 +69,9 @@ $(document).tooltip();
 .p_doc_addr > .billto {float:left}
 .p_doc_addr > .shipto {float:right}
 
+.p_doc_partial_note {text-align:center;font-weight:bold;color:#f11818}
+.p_doc_partial_note >div:first-child {color:#3566c9}
+
 .prntbl {position:relative}
 .prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr, .prntbl >.prntbl_cnt {overflow:visible;position:static}
 .prntbl .prntbl_row_hdr {border-bottom:none}
@@ -90,10 +93,13 @@ $(document).tooltip();
 
 %if view_only:
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
-.p_doc_note >div {padding-left:100px;margin:2px 0}
-.p_doc_note >div >div:nth-child(1) {position:absolute;left:0px;width:90px;text-align:right;font-weight:bold;color:#98562a}
+.p_doc_note >div {padding-left:100px;position:relative;border-bottom:1px dotted #ccc}
+.p_doc_note >div >div {padding:4px 0}
+.p_doc_note >div >div:nth-child(1) {position:absolute;left:0;top:0;width:90px;text-align:right;font-weight:bold;color:#98562a}
 .p_doc_note >div >div:nth-child(2) {white-space:pre-wrap}
 .p_doc_note .doc_note_type_1 {color:#418c46}
+.p_doc_note >div:nth-child(even) {background-color:#dfe8ff}
+.p_doc_note >div:hover {background-color:#ffcbb7}
 %else:
 .p_doc_signature {display:none;height:32px;}
 .p_doc_signature .xlabel {position:absolute;width:320px;margin:0}
@@ -152,7 +158,7 @@ gjs = r['gjs']
 <!-- +i_hdr -->
 <div>
 <div>Date:</div><div>${r['doc_date']}</div>
-<div></div><div></div>
+<div>Mode:</div><div>${r.get('mode') and 'Partial' or 'Complete'} Delivery</div>
 </div>
 <!-- -i_hdr -->
 </div>
@@ -213,6 +219,18 @@ cust = gjs['shipping']
 </div>
 %endif
 
+%if r.get('mode'):
+<div class="p_doc_partial_note">
+<div>****** Partial Delivery / 只送以下 ******</div>
+%if r['doc_crc'] != gjs.get('crc'):
+<div>The document has been changed, unreliable! / 文档已经被改变, 不可靠!</div>
+%if r['unmatched']:
+<div>无法匹配! Call ${r['assoc']|h} 确认!</div>
+%endif
+%endif
+</div>
+%endif
+
 <div class="prntbl">
 <div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>Qty</div>${not view_only and '<div>CK</div>' or ''}</div>
 <div class="prntbl_cnt">
@@ -222,11 +240,7 @@ cust = gjs['shipping']
 <div>${t['desc1']|h}</div>
 <div>${'%0.2f' % (round_ex(t['price']),)}</div>
 <div>${t['alu']|h}</div>
-%if r['doc_type']:
 <div>${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
-%else:
-<div>${int(t['qtysent'])} / ${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
-%endif
 ${not view_only and '<div></div>' or ''}
 </div>
 %endfor

@@ -239,7 +239,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r['doc_crc'] == crc:
                     r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
                 else:
-                    r['doc_ijs'] = self.map_item(ijs, doc_ijs)
+                    r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
 
             recs.append(r)
         
@@ -248,6 +248,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def map_item(self, ijs, doc_ijs):
         d_items = {}
         for r in doc_ijs:
+            if not r[3]: continue
             v = d_items.setdefault((r[0], r[1]), [0, {}])
             v[0] += 1
             v[1].setdefault(r[2], []).append(r[3])
@@ -268,14 +269,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 t['err'] = 1
                 t['v'] = v
         
+        unmatched = 0
         for r in n_ijs:
             if r['err'] != 1: continue
             if r['v'][0]:
+                unmatched += 1
                 del r['v']
             else:
                 r['err'] = -1
         
-        return n_ijs
+        return (n_ijs, unmatched)
         
     def fn_set_doc(self):
         cts = int(time.time())
@@ -292,8 +295,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sc_id = self.req.psv_int('sc_id')
         note = self.req.psv_ustr('note')[:256].strip()
         mode = self.req.psv_int('mode')
-        if mode: r_crc,r_ijs = self.req.psv_js('doc')
-        
+
+        d_notes = []
         cur = self.cur()
         if d_type:
             cur.execute('select num,global_js,items_js from sync_receipts where sid=%s and sid_type=0 and (type&0xFF)=0', (
@@ -314,9 +317,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         new_doc_crc = gjs.get('crc')
         
         if mode:
+            r_crc,r_ijs = self.req.psv_js('doc')
+            
             ijs = json.loads(ijs)
             if new_doc_crc != r_crc: self.req.exitjs({'err': -11, 'err_s': 'Doc Changed, CRC Error!'})
             
+            ijs_note = []
             n_ijs = []
             for i in range(len(ijs)):
                 r_item = r_ijs[i]
@@ -325,54 +331,74 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if int(r_item[0]) != item['itemsid'] or r_qty * item['qty'] < 0 or abs(r_qty) > abs(item['qty']):
                     self.req.exitjs({'err': -10, 'err_s': 'Item Unmatched!'})
                 n_ijs.append([item['itemsid'], item['uom'], item['qty'], r_qty])
+                if r_qty: ijs_note.append(u'> %d - %s - %s - %d / %d %s' % (item['itemno'], item['alu'], item['desc1'], r_qty, item['qty'], item['uom']))
             
             s_ijs = json.dumps(n_ijs, separators=(',',':'))
             
-        d_note = None
         if sc_id == 0:
             cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s)', (
                 d_date, mode and REC_FLAG_PARTIAL or 0, prio, d_type, d_sid, new_doc_crc, note, mode and s_ijs or None
                 )
             )
             sc_id = cur.lastrowid
-            d_note = 'Schedule[%d] (%s) - Pending' % (sc_id, o_date.strftime('%m/%d/%y'), )
+            d_notes.append('Schedule[%d] (%s) - Created(Pending) - %s' % (sc_id, o_date.strftime('%m/%d/%y'), mode and 'Partial Delivery\n' + '\n'.join(ijs_note) or 'Complete Delivery'))
         else:
-            cur.execute("select sc_flag,sc_date,sc_prio,sc_note,doc_ijs from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_flag,sc_date,sc_prio,sc_note,doc_crc,doc_ijs from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
             row = cur.fetchall()
             if not row: self.req.exitjs({'err': -3, 'err_s': "document #%s - record #%s - can't find the record" % (d_num, sc_id)})
+            o_r = dict(zip(cur.column_names, row[0]))
             
             chg = False
-            old_sc_flag,old_sc_date,old_sc_prio,old_sc_note,old_doc_ijs = row[0]
-            if old_sc_flag & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
-            if old_sc_date != d_date or old_sc_prio != prio or old_sc_note != note: chg = True
-            if bool(old_sc_flag & REC_FLAG_PARTIAL) != bool(mode): chg = True
-            if mode:
-                old_doc_ijs = old_doc_ijs and json.loads(old_doc_ijs) or []
-                if n_ijs != old_doc_ijs: chg = True
+            if o_r['sc_flag'] & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
+            if o_r['sc_date'] != d_date or o_r['sc_prio'] != prio or o_r['sc_note'] != note: chg = True
+            if bool(o_r['sc_flag'] & REC_FLAG_PARTIAL) != bool(mode):
+                chg = True
+                d_notes.append('Schedule[%d] (%s) - Changed Mode From %s To %s%s' % (
+                    sc_id, o_date.strftime('%m/%d/%y'),
+                    mode and 'Complete' or 'Partial',
+                    mode and 'Partial' or 'Complete',
+                    mode and '\n' + '\n'.join(ijs_note) or ''
+                    )
+                )
+                
+            if mode and o_r['sc_flag'] & REC_FLAG_PARTIAL:
+                if new_doc_crc != o_r['doc_crc']:
+                    chg = True
+                    if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Document Changed! Please Check!"})
+                
+                o_r['doc_ijs'] = o_r['doc_ijs'] and json.loads(o_r['doc_ijs']) or []
+                if n_ijs != o_r['doc_ijs']:
+                    chg = True
+                    d_notes.append('Schedule[%d] (%s) - Partial Delivery - Updated Packing List\n%s' % (
+                        sc_id, o_date.strftime('%m/%d/%y'),
+                        '\n'.join(ijs_note)
+                        )
+                    )
+                
             if not chg: self.req.exitjs({'err': -2, 'err_s': "document #%s - record #%s - nothing changed" % (d_num, sc_id)})
             
-            new_sc_flag = old_sc_flag
+            new_sc_flag = o_r['sc_flag']
             if mode:
                 new_sc_flag |= REC_FLAG_PARTIAL
             else:
                 new_sc_flag &= (~REC_FLAG_PARTIAL)
             
-            if old_sc_date != d_date:
-                m,d = divmod(old_sc_date, 100)
+            if o_r['sc_date'] != d_date:
+                m,d = divmod(o_r['sc_date'], 100)
                 y,m = divmod(m, 100)
                 o_old_date = datetime.date(y, m, d)
                 
-                if old_sc_flag & REC_FLAG_ACCEPTED:
+                if o_r['sc_flag'] & REC_FLAG_ACCEPTED:
                     new_sc_flag |= REC_FLAG_RESCHEDULED
-                    d_note = 'Rescheduling[%d] From %s To %s, Waiting For Confirmation' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                    d_notes.append('Rescheduling[%d] From %s To %s, Waiting For Confirmation' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), ))
                 else:
-                    d_note = 'Reschedule[%d] From %s To %s' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), )
+                    d_notes.append('Reschedule[%d] From %s To %s' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), ))
             
-            if old_sc_flag & REC_FLAG_ACCEPTED:
-                if old_sc_prio != prio or old_sc_note != note: new_sc_flag |= REC_FLAG_CHANGED
+            if o_r['sc_flag'] & REC_FLAG_ACCEPTED:
+                if o_r['sc_prio'] != prio or o_r['sc_note'] != note: new_sc_flag |= REC_FLAG_CHANGED
                 cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
                     new_sc_flag, d_date, prio, note, new_doc_crc, mode and s_ijs or None, sc_id, rev
                     )
@@ -387,7 +413,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if err:
             self.req.exitjs({'err': -2, 'err_s': "document #%s - can't make any update" % (d_num, )})
         else:
-            if d_note: self.add_notes(([d_type, d_sid, d_note],))
+            if d_notes: self.add_notes([ (d_type, d_sid, f_note) for f_note in d_notes ])
             self.inc_seq()
         
         self.req.exitjs({'err': err, 'sc_id': sc_id})
@@ -753,11 +779,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             r['doc_data'] = doc_data
             doc_js = r['doc_js'] = json.loads(doc_data[4])
+            doc_loc = None
             if doc_js['shipping']:
                 doc_loc = doc_js['shipping'].get('loc')
             elif doc_js['customer']:
                 doc_loc = doc_js['customer'].get('loc')
-            
+
             r['doc_loc'] = doc_loc
             if doc_loc != None:
                 doc_loc_dc = r['doc_loc_dc'] = base64.b64decode(doc_loc)
@@ -906,7 +933,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 d_type = (r['flag'] >> 8) & 0xFF
                 d_status = (r['flag'] >> 0) & 0xFF
                 
-                
                 if d_type >= 0 and d_type < len(ORD_TYPE):
                     type_s = ORD_TYPE[d_type]
                 else:
@@ -932,12 +958,33 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     type_s += 'Pending'
                 if (r['flag'] >> 16) & 0xFF: type_s += ' - **Deleted**'
             
-                count_s = 'Item %d, Qty %d / %d' % (
-                    gjs['itemcount'],
-                    int(gjs['sentcount']),
-                    int(gjs['qtycount'])
-                )
+                count_s = 'Item %d, Qty %d' % (gjs['itemcount'], int(gjs['qtycount']))
             
+            
+            if r['sc_flag'] & REC_FLAG_PARTIAL:
+                r['mode'] = 1
+                doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
+                if r['doc_crc'] == gjs.get('crc'):
+                    r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
+                else:
+                    r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
+                
+                t_item_sid = set()
+                t_item_qty = 0
+                n_ijs = []
+                for i in range(len(r['doc_ijs'])):
+                    t = r['doc_ijs'][i]
+                    t_qty = t['qty']
+                    if not t_qty: continue
+                    n_t = ijs[i]
+                    n_ijs.append(n_t)
+                    t_item_qty += abs(t_qty)
+                    t_item_sid.add(n_t['itemsid'])
+                    n_t['qty'] = t_qty
+                ijs = r['ijs'] = n_ijs
+                
+                count_s = 'Item %d, Qty %d' % (len(t_item_sid), t_item_qty)
+                
             r['type_s'] = type_s
             r['count_s'] = count_s
             
