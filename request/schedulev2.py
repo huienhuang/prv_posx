@@ -948,10 +948,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'lst': lst
         })
 
-    def int2date_s(self, v):
+    def int2date(self, v):
         m,d = divmod(v, 100)
         y,m = divmod(m, 100)
-        return '%02d/%02d/%02d' % (m, d, y)
+        return datetime.date(y, m, d)
 
     def fn_print(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
@@ -967,7 +967,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             dr['doc_date'] = time.strftime("%m/%d/%Y", time.localtime(dr['doc_date']))
             r.update(dr)
             r['is_accepted'] = bool(r['sc_flag'] & REC_FLAG_ACCEPTED)
-            r['sc_date_s'] = self.int2date_s(r['sc_date'])
+            sc_date_o = self.int2date(r['sc_date'])
+            r['sc_date_s'] = sc_date_o.strftime("%m/%d/%Y")
+            r['sc_date_wd'] = sc_date_o.weekday()
             
             type_s = ''
             count_s = ''
@@ -1030,20 +1032,20 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['type_s'] = type_s
             r['count_s'] = count_s
             
-            if not view_only:
-                loc = None
-                if gjs['shipping']:
-                    loc = gjs['shipping'].get('loc')
-                elif gjs['customer']:
-                    loc = gjs['customer'].get('loc')
+            loc = None
+            if gjs['shipping']:
+                loc = gjs['shipping'].get('loc')
+            elif gjs['customer']:
+                loc = gjs['customer'].get('loc')
                 
-                zidx = 0
-                if loc != None:
-                    cur.execute('select zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
-                    rr = cur.fetchall()
-                    if rr: zidx = rr[0][0]
-                r['zone_nz'] = ZONES[zidx][0]
-            else:
+            zidx = 0
+            if loc != None:
+                cur.execute('select zone_id from address where loc=%s and flag=1', (base64.b64decode(loc),))
+                rr = cur.fetchall()
+                if rr: zidx = rr[0][0]
+            r['zone_nz'] = ZONES[zidx][0]
+            
+            if view_only:
                 r['notes'] = d_notes = []
                 cur.execute('select dn_ts,dn_flag,dn_val,(select user_name from user where user_id=dn_uid limit 1) as dn_unz from doc_note where doc_type=%s and doc_sid=%s order by dn_id desc limit 20', (
                     r['doc_type'], r['doc_sid']
