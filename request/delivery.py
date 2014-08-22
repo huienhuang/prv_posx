@@ -200,18 +200,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['terms'] = r['detail'].get('udf5') or ''
         r['detail'] = ''
         
-        cur.execute('select distinct d_id from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
-        rows = [ str(f_x[0]) for f_x in cur.fetchall() ]
+        cur.execute('select d.ts from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) where dr.num=%s and dr.d_id!=%s', (num, d_id))
+        c_dt = datetime.date.today()
+        frm_ts = int(time.mktime(c_dt.timetuple()))
+        to_ts = int(time.mktime((c_dt + datetime.timedelta(1)).timetuple()))
+        rows = cur.fetchall()
         r['dup'] = len(rows)
-        if rows:
-            dt = datetime.date.today()
-            frm_ts = int(time.mktime(dt.timetuple()))
-            to_ts = int(time.mktime((dt + datetime.timedelta(1)).timetuple()))
-            cur.execute('select count(*) from deliveryv2 where d_id in (%s) and ts>=%d and ts<%d' % (
-                ','.join(rows), frm_ts, to_ts
-                )
-            )
-            r['dup_cur_day'] = cur.fetchall()[0][0]
+        r['dup_cur_day'] = len([ f_x for f_x in rows if f_x[0] >= frm_ts and f_x[0] < to_ts ])
         
         self.req.writejs({'rec': r})
 
