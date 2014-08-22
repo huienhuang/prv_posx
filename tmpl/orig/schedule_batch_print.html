@@ -45,12 +45,13 @@ $(document).tooltip();
 .p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px;position:relative;}
 .p_doc > div {margin-bottom:8px}
 
-.p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:26px;}
+.p_doc_prn_hdr {text-align:center;font-size:16px;font-weight:bold;margin-bottom:0 !important;display:none}
+
+.p_doc_meta {border-bottom:1px solid #ccc;margin-bottom:5px;font-weight:bold;position:relative;height:36px;line-height:36px}
 .p_doc_meta >div {position:absolute;top:0;bottom:0;text-align:center}
-.p_doc_meta >div:nth-child(1) {width:290px;left:0}
-.p_doc_meta >div:nth-child(2) {width:150px;right:270px}
-.p_doc_meta >div:nth-child(3) {width:50px;right:220px}
-.p_doc_meta >div:nth-child(4) {width:220px;right:0;text-align:right}
+.p_doc_meta >div:nth-child(1) {width:480px;left:0;text-align:left}
+.p_doc_meta >div:nth-child(2) {width:170px;right:60px}
+.p_doc_meta >div:nth-child(3) {width:60px;right:0;text-align:right}
 
 .p_doc_memo {border:1px solid #ccc;padding:12px 6px 6px 6px;position:relative;margin-top:14px;}
 .p_doc_memo >div:nth-child(1) {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
@@ -116,10 +117,10 @@ $(document).tooltip();
 @media print {
 div {border-color:#000 !important}
 .prntbl {-webkit-print-color-adjust:exact}
-.p_doc_signature {display:block}
+.p_doc_signature, .p_doc_prn_hdr {display:block}
 }
 @page {
-margin:60px 50px;
+margin:50px 50px;
 }
 
 </style>
@@ -144,7 +145,8 @@ gjs = r['gjs']
 
 %>
 <div class="p_doc">
-<div class="p_doc_meta"><div>Deliver On ${ENG_DAYS[ r['sc_date_wd'] ]} / 星期${CHS_DAYS[ r['sc_date_wd'] ]|h}送</div><div>${r['zone_nz']|h}</div><div>${i + 1}/${len(sc_docs)}</div><div>${cts_s}</div></div>
+<div class="p_doc_prn_hdr">*** Packing Slip / 执货单 - 打印时间: ${cts_s} ***</div>
+<div class="p_doc_meta"><div>#${r['sc_id']} - Deliver On ${ENG_DAYS[ r['sc_date_wd'] ]} / 星期${CHS_DAYS[ r['sc_date_wd'] ]}送 (${r['sc_date_s']})</div><div>${r['zone_nz']|h}</div><div>${i + 1}/${len(sc_docs)}</div></div>
 <!-- +hdr -->
 <div class="p_doc_hdr">
 <!-- +i_hdr -->
