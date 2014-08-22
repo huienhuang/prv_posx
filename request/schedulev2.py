@@ -948,6 +948,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'lst': lst
         })
 
+    def int2date_s(self, v):
+        m,d = divmod(v, 100)
+        y,m = divmod(m, 100)
+        return '%02d/%02d/%02d' % (m, d, y)
+
     def fn_print(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
         view_only = self.qsv_int('view_only')
@@ -962,6 +967,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             dr['doc_date'] = time.strftime("%m/%d/%Y", time.localtime(dr['doc_date']))
             r.update(dr)
             r['is_accepted'] = bool(r['sc_flag'] & REC_FLAG_ACCEPTED)
+            r['sc_date_s'] = self.int2date_s(r['sc_date'])
             
             type_s = ''
             count_s = ''
