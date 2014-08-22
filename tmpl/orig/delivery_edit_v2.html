@@ -267,18 +267,22 @@ function click_save__data_input()
                 return;
             }
         
+            var d_dt = g_v_delivery_date.datepicker('getDate');
             $.ajax({
                 async: false,
                 type: 'get',
                 url: '?fn=get_delivery_receipt',
-                data: {'num': num, 'd_id': g_cur_delivery_id},
+                data: {'num': num, 'd_id': g_cur_delivery_id, 'd_ts': d_dt ? d_dt.getTime() / 1000 : 0},
                 success: function(d) {
                     if(d.err) { g_v_dlg_data_input_msg.text(d.err); return; }
                     
                     var n_rec = d.rec;
                     var note = $.trim(in_els['note'][0].val());
                     if(n_rec.dup && !note) {
-                        g_v_dlg_data_input_msg.text('receipt exists, need to enter the note');
+                        g_v_dlg_data_input_msg.text(
+                            'Receipt Already Exists, Require A Note Or Reason' +
+                            (n_rec.dup_cur_day ? '\nDelivery Count For Today: ' + n_rec.dup_cur_day : '')
+                        );
                         return;
                     }
                     
@@ -864,8 +868,8 @@ g_v_receipt_tbl_footer = $('.receipt_tbl_footer');
 
 g_v_dlg_data_input = $('#dlg_data_input').dialog({
     autoOpen: false,
-    width:400,
-    height:350,
+    width:500,
+    height:400,
     close:function() { g_v_dlg_data_input.data('rec_v', null); },
     buttons: {
         'save': click_save__data_input,
@@ -1143,9 +1147,9 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 #dlg_problem div.xlabel > div:nth-child(2) {left:70px}
 
 #dlg_data_input {font-size:18px;}
-#dlg_data_input .dlg_msg {height:26px;text-align:center;color:#ff3535}
-.dlg_cls input[type="text"] {width:194px}
-.dlg_cls select {width:200px}
+#dlg_data_input .dlg_msg {height:70px;text-align:center;color:#ff3535;border:1px solid #ccc;background-color:#f6f6f6;white-space:pre-wrap}
+.dlg_cls input[type="text"] {width:294px}
+.dlg_cls select {width:300px}
 
 
 .ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
