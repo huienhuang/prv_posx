@@ -280,7 +280,7 @@ function click_save__data_input()
                     var note = $.trim(in_els['note'][0].val());
                     if(n_rec.dup && !note) {
                         g_v_dlg_data_input_msg.text(
-                            'Receipt Already Exists, Require A Note Or Reason' +
+                            'Receipt Already Exists('+n_rec.dup+'), Require A Note Or Reason' +
                             (n_rec.dup_cur_day ? '\nDelivery Count For Today: ' + n_rec.dup_cur_day : '')
                         );
                         return;

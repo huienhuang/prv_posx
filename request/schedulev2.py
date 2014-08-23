@@ -1013,6 +1013,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 else:
                     r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
                 
+                n_total = 0
                 t_item_sid = set()
                 t_item_qty = 0
                 n_ijs = []
@@ -1025,8 +1026,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     t_item_qty += abs(t_qty)
                     t_item_sid.add(n_t['itemsid'])
                     n_t['qty'] = t_qty
+                    if n_t['itemsid'] != 1000000005: n_total += t_qty * n_t['pricetax']
                 ijs = r['ijs'] = n_ijs
+                n_total *= (100 - gjs['discprc']) / 100.0
                 
+                gjs['n_total'] = n_total
                 count_s = 'Item %d, Qty %d' % (len(t_item_sid), t_item_qty)
                 
             r['type_s'] = type_s

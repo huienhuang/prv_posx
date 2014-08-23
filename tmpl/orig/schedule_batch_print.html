@@ -256,7 +256,7 @@ ${not view_only and '<div></div>' or ''}
 </div>
 %endfor
 </div>
-<div class="prntbl_row prntbl_row_ftr"><div>Total: $${'%0.2f' % (round_ex(gjs['total']),)}</div></div>
+<div class="prntbl_row prntbl_row_ftr"><div>Total: ${r.get('mode') and '$%0.2f / ' % (gjs['n_total'],) or ''}$${'%0.2f' % (round_ex(gjs['total']),)}</div></div>
 </div>
 
 %if view_only and r['notes']:
