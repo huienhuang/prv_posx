@@ -6,7 +6,7 @@ import re
 import datetime
 import traceback
 
-Schedule_v2 = App.load('/request/schedulev2')
+REC_FLAG_PARTIAL = 1 << 6
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -279,7 +279,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             m,d = divmod(x[1], 100)
             y,m = divmod(m, 100)
             scs.append(
-                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & Schedule_v2.REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
+                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
             )
         
         self.req.writefile(self.qsv_int('simple') and 'so_print_v2_simple.html' or 'so_print_v2.html', r)

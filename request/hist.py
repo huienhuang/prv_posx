@@ -14,7 +14,8 @@ import base64
 
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
-Schedule_v2 = App.load('/request/schedulev2')
+REC_FLAG_PARTIAL = 1 << 6
+
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
 
@@ -430,7 +431,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             m,d = divmod(x[1], 100)
             y,m = divmod(m, 100)
             scs.append(
-                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & Schedule_v2.REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
+                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
             )
         
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)

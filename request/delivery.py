@@ -16,6 +16,7 @@ PROBLEMS = [
     'Delivered Late'
 ]
 
+REC_FLAG_PARTIAL = 1 << 6
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -189,6 +190,17 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         if not r['sc_count']: self.req.exitjs({'err': 'No Schedule Found For Receipt(%s) in %02d/%02d' % (num, d_dt.month, d_dt.day)})
         
+        cur.execute('select count(*),bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
+        r['dup'],dup_ok = cur.fetchall()[0]
+        if r['dup'] and not dup_ok:
+            cur.execute('select sc_flag from schedule where sc_date=%s and doc_type=1 and doc_sid=%s', (
+                d_dt_i, r['sid']
+                )
+            )
+            rows = cur.fetchall()
+            if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
+                self.req.exitjs({'err': "Receipt(%s) Duplicated, No Redelivery Is Allowed.\n*** Except it's a partial shipment or previous shipment is marked with problems!" % (num, )})
+            
         r['sid'] = str(r['sid'])
         r['cid'] = r['cid'] != None and str(r['cid']) or ''
         r['global_js'] = r['global_js'] and json.loads(r['global_js']) or {}
@@ -199,14 +211,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['detail'] = r['detail'] and json.loads(r['detail']) or {}
         r['terms'] = r['detail'].get('udf5') or ''
         r['detail'] = ''
-        
-        cur.execute('select d.ts from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) where dr.num=%s and dr.d_id!=%s', (num, d_id))
-        c_dt = datetime.date.today()
-        frm_ts = int(time.mktime(c_dt.timetuple()))
-        to_ts = int(time.mktime((c_dt + datetime.timedelta(1)).timetuple()))
-        rows = cur.fetchall()
-        r['dup'] = len(rows)
-        r['dup_cur_day'] = len([ f_x for f_x in rows if f_x[0] >= frm_ts and f_x[0] < to_ts ])
         
         self.req.writejs({'rec': r})
 
@@ -261,7 +265,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         nums_lku = {}
         if nums:
-            cur.execute('select num,sid,sid_type,(select count(*) from schedule where sc_date=%d and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_count from sync_receipts sr where num in (%s)' % (d_dt_i, ','.join(map(str,nums)),))
+            qs_sc = '(select count(*) from schedule where sc_date='+str(d_dt_i)+' and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_count'
+            qs_pb = '(select bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=sr.num and d_id!='+str(d_id)+') as dr_pb'
+            cur.execute('select num,sid,sid_type,'+qs_sc+','+qs_pb+' from sync_receipts sr where num in ('+','.join(map(str,nums))+')')
             for r in cur.fetchall(): nums_lku[ r[0] ] = r
         
         cids = [ int(x['cid']) for x in recs if x.get('type') == 1 ]
@@ -317,16 +323,27 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 }
             
             if r_type == 0:
-                if date_chg or rec['changed'] or not orig_nums_lku.has_key(rec['num']):
+                is_new = not orig_nums_lku.has_key(rec['num'])
+                if date_chg or rec['changed'] or is_new:
                     r = nums_lku.get(rec['num'])
                     if not r:
                         err.append('row#%d receipt#%d not exists' % (i + 1, rec['num']))
                         continue
                     else:
-                        if (date_chg or not orig_nums_lku.has_key(rec['num'])) and not r[3]:
-                            err.append('row#%d receipt#%d not in schedule %02d/%02d' % (i + 1, rec['num'], d_dt.month, d_dt.day))
-                            continue
-                        
+                        if (date_chg or is_new):
+                            if not r[3]:
+                                err.append('row#%d receipt#%d not in schedule %02d/%02d' % (i + 1, rec['num'], d_dt.month, d_dt.day))
+                                continue
+                            if not r[4]:
+                                cur.execute('select sc_flag from schedule where sc_date=%s and doc_type=1 and doc_sid=%s', (
+                                    d_dt_i, r[0]
+                                    )
+                                )
+                                rows = cur.fetchall()
+                                if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
+                                    err.append('row#%d receipt#%d - No Redelivery Is Allowed' % (i + 1, rec['num']))
+                                    continue
+                    
                         recs_db.append( (rec, r) )
                 
                 recs_js.append( {'type': 0, 'num': rec['num']} )
