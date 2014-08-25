@@ -444,6 +444,25 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     },
     buttons: [
         {
+            text: 'Confirm Rescheduling',
+            id: "df_btn_confirm_rescheduling",
+            click: function() {
+                var pjs = g_v_dlg_doc_form.data('pjs');
+                if(!pjs) return;
+                
+                var els = g_v_dlg_doc_form.data('in_els');
+                var ridx = els.rec[0].val();
+                if(!ridx) return;
+                var rec = pjs.recs[ parseInt(ridx) ];
+                if(!rec) return;
+                
+                post_js_ex('?fn=confirm_rescheduling', {sc_ids: rec.sc_id}, function(js) {
+                    if( g_v_dlg_documents.dialog('isOpen') ) load_doc_lst(0, 0, 1, 0);
+                    if( g_v_dlg_doc_form.dialog('isOpen') ) load_doc_schedule(rec.sc_id);
+                });
+            },
+        },
+        {
             text: 'Delete',
             id: "df_btn_cancel",
             click: function() { g_v_dlg_doc_del.dialog('open'); },
@@ -516,7 +535,7 @@ idx_elements(g_v_dlg_doc_form, 4);
 g_v_dlg_doc_form_btns = {
     'cancel': $('#df_btn_cancel'),
     'save': $('#df_btn_save'),
-
+    'confirm_rescheduling': $('#df_btn_confirm_rescheduling'),
 };
 var els = g_v_dlg_doc_form.data('in_els');
 
@@ -527,6 +546,7 @@ els.rec[0].change(function() {
     var v = $(this).val();
     if(!v) {
         g_v_dlg_doc_form_btns.cancel.hide();
+        g_v_dlg_doc_form_btns.confirm_rescheduling.hide();
         els.date[0].val('');
         els.prio[0].val('0');
         els.note[0].val('');
@@ -549,6 +569,12 @@ els.rec[0].change(function() {
         g_v_dlg_doc_form_btns.cancel.hide();
     else
         g_v_dlg_doc_form_btns.cancel.show();
+        
+    if(rec.sc_flag & ${REC_FLAG_RESCHEDULED})
+        g_v_dlg_doc_form_btns.confirm_rescheduling.show();
+    else
+        g_v_dlg_doc_form_btns.confirm_rescheduling.hide();
+        
 });
 
 els.mode[0].change(function() {

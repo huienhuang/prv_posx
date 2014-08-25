@@ -414,26 +414,36 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             rr[0] = time.strftime("%m/%d/%y %I:%M %p", time.localtime(rr[0]))
             d_notes.append(rr)
         
-        cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num=%s order by r.d_id desc', (r['r_num'],))
-        nzs = cur.column_names
-        r['delivery_info'] = delivery_info = []
-        for x in cur.fetchall():
-            x = dict(zip(nzs, x))
-            x['ts'] = time.strftime("%m/%d/%y", time.localtime(x['ts']))
-            x['js'] = json.loads(x['js'])
-            delivery_info.append(x)
+        
         r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
         r['PROBLEMS'] = Delivery.PROBLEMS
         
-        cur.execute('select sc_id,sc_date,sc_note,sc_flag from schedule where doc_type=1 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
-        r['scs'] = scs = []
+        sc_d = {}
+        cur.execute('select sc_id,sc_flag,sc_date,sc_note from schedule where doc_type=1 and doc_sid=%s', (r['r_sid'],))
+        nzs = cur.column_names
         for x in cur.fetchall():
-            m,d = divmod(x[1], 100)
-            y,m = divmod(m, 100)
-            scs.append(
-                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
-            )
+            x = dict(zip(nzs, x))
+            x['dr_lst'] = []
+            sc_d[ x['sc_date'] ] = x
         
+        cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num=%s order by r.d_id desc', (r['r_num'],))
+        nzs = cur.column_names
+        for x in cur.fetchall():
+            x = dict(zip(nzs, x))
+            dt = datetime.date.fromtimestamp(x['ts'])
+            dt_i = dt.year * 10000 + dt.month * 100 + dt.day
+            sc = sc_d.get(dt_i)
+            if sc == None: sc = sc_d[dt_i] = {'sc_id': 0, 'dr_lst': []}
+            sc['dr_lst'].append(x)
+        
+        r['sc_lst'] = sc_lst = sc_d.items()
+        sc_lst.sort(key=lambda f_x: f_x[0], reverse=True)
+        for dt_i,sc in sc_lst:
+            m,d = divmod(dt_i, 100)
+            y,m = divmod(m, 100)
+            sc['dt_s'] = '%02d/%02d/%02d' % (m, d, y)
+            sc['sc_mode'] = sc['sc_flag'] & REC_FLAG_PARTIAL
+            
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)
         
     
