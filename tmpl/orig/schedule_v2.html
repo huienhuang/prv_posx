@@ -75,9 +75,9 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
                 if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+r.num+')"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+r.num+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
                 else
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
             }
             var sflag = '';
             if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
@@ -273,7 +273,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
 
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
-    width:1350,
+    width:1320,
     height:700,
     buttons: [
 %if has_perm_delivery_mgr:
@@ -437,7 +437,7 @@ g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     modal: true,
     autoOpen: false,
-    width:1200,
+    width:1070,
     height:600,
     open: function() {
         g_v_dlg_doc_form.data('preset_date', null).dialog('option', 'title', 'Schedule');
@@ -749,21 +749,21 @@ load_overview();
 .ui-widget {font-size:18px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
-#dlg_doc_form >div:nth-child(1) input[type="text"] {width:394px}
-#dlg_doc_form >div:nth-child(1) select {width:400px}
-#dlg_doc_form >div:nth-child(1) textarea {width:394px;height:136px;white-space:nowrap}
+#dlg_doc_form >div:nth-child(1) input[type="text"] {width:354px}
+#dlg_doc_form >div:nth-child(1) select {width:360px}
+#dlg_doc_form >div:nth-child(1) textarea {width:354px;height:136px;white-space:nowrap}
 #dlg_doc_form >div:nth-child(1) textarea[name="doc_info"] {background-color:#fbfbfb}
-#dlg_doc_form >div:nth-child(1) {position:absolute;top:0;left:0;bottom:0;width:530px}
-#dlg_doc_form >div:nth-child(2) {position:absolute;top:0;left:530px;bottom:0;right:0;overflow:hidden}
+#dlg_doc_form >div:nth-child(1) {position:absolute;top:0;left:0;bottom:0;width:480px}
+#dlg_doc_form >div:nth-child(2) {position:absolute;top:0;left:480px;bottom:0;right:0;overflow:hidden}
 .item_lst .prntbl_row {min-width:1000px}
 .item_lst .prntbl_cnt {overflow-x:hidden}
 .item_lst .prntbl_row >div:nth-child(1) {width:20px}
 .item_lst .prntbl_row >div:nth-child(2) {width:56px;cursor:pointer;font-weight:bold}
-.item_lst .prntbl_row >div:nth-child(3) {width:100px}
-.item_lst .prntbl_row >div:nth-child(4) {width:350px}
-.item_lst .prntbl_row_hdr >div:nth-child(5) {width:114px}
-.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) {position:relative;padding-left:54px;width:60px;font-weight:bold;text-align:left}
-.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) input[type="text"] {width:40px;height:22px !important;position:absolute;top:1px;left:4px;text-align:right}
+.item_lst .prntbl_row >div:nth-child(3) {width:80px}
+.item_lst .prntbl_row >div:nth-child(4) {width:300px}
+.item_lst .prntbl_row_hdr >div:nth-child(5) {width:104px}
+.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) {position:relative;padding-left:44px;width:60px;font-weight:bold;text-align:left}
+.item_lst .prntbl_cnt .prntbl_row >div:nth-child(5) input[type="text"] {width:30px;height:22px !important;position:absolute;top:1px;left:4px;text-align:right}
 .item_lst .prntbl_cnt .row_unmatched {background-color:#f78e8e !important}
 .item_lst .prntbl_row_ftr >div:nth-child(1) {width:460px;color:#2441c1}
 .item_lst .prntbl_row_ftr >div:nth-child(2) {width:120px;color:#e42222}
@@ -806,7 +806,7 @@ load_overview();
 .doc_lst .prntbl_row >div:nth-child(3) {width:180px;cursor:pointer}
 .doc_lst .prntbl_row >div:nth-child(4) {width:80px}
 .doc_lst .prntbl_row >div:nth-child(5) {width:50px;font-weight:bold}
-.doc_lst .prntbl_row >div:nth-child(6) {width:180px;cursor:pointer}
+.doc_lst .prntbl_row >div:nth-child(6) {width:150px;cursor:pointer}
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
 
@@ -855,10 +855,10 @@ load_overview();
 
 <div id="dlg_doc_form" title="Schedule Form">
 <div>
-<div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px" placeholder="Document Number" /></div></div>
+<div class="xlabel"><div>Document:</div><div><select name="doc_type" style="width:124px"><option value="">SalesOrder</option><option value="1">Receipt</option></select><input type="text" name="doc_num" style="width:224px;margin-left:6px;background-color:#fff4da" placeholder="Document Number" /></div></div>
 <div class="xlabel" style="height:140px"><div>Result:</div><div><textarea name="doc_info" disabled="disabled"></textarea></div></div>
-<div class="xlabel"><div>Record:</div><div><select name="doc_rec"><option value="">- New -</option></select></div></div>
-<div class="xlabel"><div>Date:</div><div><input type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
+<div class="xlabel"><div>Record:</div><div><select name="doc_rec" style="background-color:#adc0eb"><option value="">- New -</option></select></div></div>
+<div class="xlabel"><div>Date:</div><div><input style="background-color:#daedce" type="text" name="rec_date" placeholder="Scheduled Delivery Date" /></div></div>
 <div class="xlabel"><div>Mode:</div><div><select name="rec_mode"><option value="0">Complete Delivery</option><option value="1">Partial Delivery</option></select></div></div>
 <div class="xlabel" style="display:none"><div>Priority:</div><div><select name="rec_prio" ><option value="-1">Low</option><option value="0">Normal</option><option value="1">Medium</option><option value="2">High</option></select></div></div>
 <div class="xlabel" style="height:130px"><div>Note:</div><div><textarea name="rec_note" style="height:120px"></textarea></div></div>
@@ -874,11 +874,12 @@ load_overview();
 <div>
 <div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
 <div class="prntbl doc_lst">
-<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div><div>Driver/Delivered</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div><div>Tracking</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 </div>
+
 <iframe></iframe>
 </div>
 

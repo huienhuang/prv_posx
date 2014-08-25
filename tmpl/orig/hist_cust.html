@@ -160,7 +160,7 @@ function load_schedule_delivery()
     var v_cnt = g_v_schedule_tbl.children('.prntbl_cnt').empty();
     //var v_ftr = g_v_schedule_tbl.children('.prntbl_row_ftr').empty();
     
-    get_js_ex('schedule?fn=get_cust_docs&cid=${cust_sid}', {}, function(js) {
+    get_js_ex('schedulev2?fn=get_cust_docs&cid=${cust_sid}', {}, function(js) {
         var o_lst = [];
         for(var i = 0; i < js.length; i++) {
             var r = js[i];
@@ -169,9 +169,9 @@ function load_schedule_delivery()
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
                 if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+r.doc.num+')"></div>').text(d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+r.doc.num+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
                 else
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+d[2]+')"></div>').text('('+d[2]+') ' + d[0] + ' / ' + (d[1] ? 'YES' : 'NO')) );
+                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+d[2]+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
             }
             
             var v = $('<div class="prntbl_row'+(r.doc_dup > 1 ? ' row_srec_dup' : '')+'"></div>')
@@ -519,8 +519,8 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 #schedule_tbl .prntbl_row >div:nth-child(2) {width:100px;cursor:pointer;font-weight:bold}
 #schedule_tbl .prntbl_row >div:nth-child(3) {width:90px}
 #schedule_tbl .prntbl_row >div:nth-child(4) {width:80px}
-#schedule_tbl .prntbl_row >div:nth-child(5) {width:190px;cursor:pointer}
-#schedule_tbl .prntbl_row >div:nth-child(6) {width:410px}
+#schedule_tbl .prntbl_row >div:nth-child(5) {width:160px;cursor:pointer}
+#schedule_tbl .prntbl_row >div:nth-child(6) {width:440px}
 
 .delivered_0 {color:#b43838;font-weight:bold}
 .delivered_1 {color:#33600f;font-weight:bold}
@@ -579,7 +579,7 @@ ${cust_info['address2']|h}
 <div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
 <div id="item_tab_9_schedule_delivery">
 <div class="prntbl" id="schedule_tbl">
-<div class="prntbl_row prntbl_row_hdr"><div>Scheduled</div><div>Num</div><div>Assoc</div><div>Amt</div><div>Driver / Delivered</div><div>Note</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>Scheduled</div><div>Num</div><div>Assoc</div><div>Amt</div><div>Tracking</div><div>Note</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
