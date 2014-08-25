@@ -442,7 +442,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             m,d = divmod(dt_i, 100)
             y,m = divmod(m, 100)
             sc['dt_s'] = '%02d/%02d/%02d' % (m, d, y)
-            sc['sc_mode'] = sc['sc_flag'] & REC_FLAG_PARTIAL
+            if sc['sc_id']: sc['sc_mode'] = sc['sc_flag'] & REC_FLAG_PARTIAL
             
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)
         
