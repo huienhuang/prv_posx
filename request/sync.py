@@ -6,7 +6,10 @@ import re
 import datetime
 import traceback
 
+REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_PARTIAL = 1 << 6
+
+Delivery = App.load('/request/delivery')
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -273,14 +276,47 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['round_ex'] = config.round_ex
         r['price_lvls'] = config.PRICE_LEVELS
         
-        cur.execute('select sc_id,sc_date,sc_note,sc_flag from schedule where doc_type=0 and doc_sid=%s order by sc_id desc', (r['r_sid'],))
-        r['scs'] = scs = []
+        r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
+        
+        sc_d = {}
+        cur.execute('select sc_id,sc_flag,sc_date,sc_note from schedule where doc_type=0 and doc_sid=%s', (r['r_sid'],))
+        nzs = cur.column_names
         for x in cur.fetchall():
-            m,d = divmod(x[1], 100)
-            y,m = divmod(m, 100)
-            scs.append(
-                (x[0], '%02d/%02d/%02d - %s' % (m, d, y, x[3] & REC_FLAG_PARTIAL and 'Partial' or 'Complete'), x[2])
+            x = dict(zip(nzs, x))
+            x['dr_lst'] = []
+            sc_d[ x['sc_date'] ] = x
+        
+        r_nums = [ str(f_x['num']) for f_x in r['r_ref_receipts'] ]
+        if r_nums:
+            cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num in (%s) order by r.d_id desc' % (
+                ','.join(r_nums),
+                )
             )
+            nzs = cur.column_names
+            for x in cur.fetchall():
+                x = dict(zip(nzs, x))
+                dt = datetime.date.fromtimestamp(x['ts'])
+                dt_i = dt.year * 10000 + dt.month * 100 + dt.day
+                sc = sc_d.get(dt_i)
+                if sc == None: sc = sc_d[dt_i] = {'sc_id': 0, 'dr_lst': []}
+                sc['dr_lst'].append(x)
+                
+                if x['problem_flag']:
+                    js = x['js'] and json.loads(x['js']) or {}
+                    pbs = js.get('problems')
+                    x['problem_s'] = ', '.join([ Delivery.PROBLEMS[int(f_i)] + (f_v[1] and ': ' + f_v[1] or '') for f_i,f_v in pbs.items() ])
+            
+        r['sc_lst'] = sc_lst = sc_d.items()
+        sc_lst.sort(key=lambda f_x: f_x[0], reverse=True)
+        for dt_i,sc in sc_lst:
+            m,d = divmod(dt_i, 100)
+            y,m = divmod(m, 100)
+            sc['dt_s'] = '%02d/%02d/%02d' % (m, d, y)
+            if sc['sc_id']:
+                sc['sc_info'] = '%s - %s' % (
+                    sc['sc_flag'] & REC_FLAG_PARTIAL and 'Partial' or 'Complete',
+                    sc['sc_flag'] & REC_FLAG_ACCEPTED and 'Accepted' or 'Pending',
+                )
         
         self.req.writefile(self.qsv_int('simple') and 'so_print_v2_simple.html' or 'so_print_v2.html', r)
 

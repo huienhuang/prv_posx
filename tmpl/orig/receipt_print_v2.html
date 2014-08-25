@@ -264,6 +264,7 @@ tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] a
 
 </div>
 
+%if sc_lst:
 <div class="prntbl schedule_lst">
 <div class="prntbl_row prntbl_row_hdr"><div>Date</div><div>Schedule</div><div>Tracking</div></div>
 <div class="prntbl_cnt">
@@ -293,6 +294,7 @@ tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] a
 </div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+%endif
 
 %if r_global['memo']:
 <div class="recmemo">
