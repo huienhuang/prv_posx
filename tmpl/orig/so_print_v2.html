@@ -21,6 +21,11 @@ function open_wnd_receipt(rid) {
     return false;
 }
 
+function open_wnd_delivery(d_id) {
+    open_wnd('delivery?fn=delivery_edit&read_only=1&d_id='+d_id,'posx_delivery_record');
+    return false;
+}
+
 function open_wnd_schedule_print(sc_id) {
     open_wnd('schedulev2?fn=print&view_only=1&sc_ids='+sc_id,'posx_schedule_print', 750);
     return false;
