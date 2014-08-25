@@ -14,6 +14,7 @@ import base64
 
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
+REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_PARTIAL = 1 << 6
 
 Receipt = App.load('/request/receipt')
@@ -416,7 +417,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         
         r['users_lku'] = dict([ x[:2] for x in self.getuserlist() ])
-        r['PROBLEMS'] = Delivery.PROBLEMS
+        #r['PROBLEMS'] = Delivery.PROBLEMS
         
         sc_d = {}
         cur.execute('select sc_id,sc_flag,sc_date,sc_note from schedule where doc_type=1 and doc_sid=%s', (r['r_sid'],))
@@ -435,6 +436,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             sc = sc_d.get(dt_i)
             if sc == None: sc = sc_d[dt_i] = {'sc_id': 0, 'dr_lst': []}
             sc['dr_lst'].append(x)
+            
+            if x['problem_flag']:
+                js = x['js'] and json.loads(x['js']) or {}
+                pbs = js.get('problems')
+                x['problem_s'] = ', '.join([ Delivery.PROBLEMS[int(f_i)] + (f_v[1] and ': ' + f_v[1] or '') for f_i,f_v in pbs.items() ])
         
         r['sc_lst'] = sc_lst = sc_d.items()
         sc_lst.sort(key=lambda f_x: f_x[0], reverse=True)
@@ -442,7 +448,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             m,d = divmod(dt_i, 100)
             y,m = divmod(m, 100)
             sc['dt_s'] = '%02d/%02d/%02d' % (m, d, y)
-            if sc['sc_id']: sc['sc_mode'] = sc['sc_flag'] & REC_FLAG_PARTIAL
+            if sc['sc_id']:
+                sc['sc_info'] = '%s - %s' % (
+                    sc['sc_flag'] & REC_FLAG_PARTIAL and 'Partial' or 'Complete',
+                    sc['sc_flag'] & REC_FLAG_ACCEPTED and 'Accepted' or 'Pending',
+                )
             
         self.req.writefile(self.qsv_int('simple') and 'receipt_print_v2_simple.html' or 'receipt_print_v2.html', r)
         

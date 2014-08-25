@@ -133,8 +133,6 @@ div.xlabel > div {display:block;position:absolute;top:0;bottom:0;}
 div.xlabel > div:nth-child(1) {left:0;width:80px;text-align:right;white-space:nowrap}
 div.xlabel > div:nth-child(2) {left:90px;right:0;}
 
-.delivery_problem {background-color:#ffd9d9}
-
 .p_cur {cursor:pointer}
 
 .p_doc_note {font-size:18px;margin-top:12px;border-top:1px solid #ccc;padding-top:4px;}
@@ -159,12 +157,14 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .schedule_lst .prntbl_row >div:last-child {border-right:none}
 .schedule_lst .prntbl_row >div:nth-child(1) {width:100px;font-weight:bold}
 .schedule_lst .prntbl_row >div:nth-child(2) {width:300px;cursor:pointer;font-weight:bold}
-.schedule_lst .prntbl_row >div:nth-child(3) {width:540px;cursor:pointer}
+.schedule_lst .prntbl_row >div:nth-child(3) {width:540px;cursor:pointer;font-weight:bold}
 .schedule_lst .prntbl_row >div:nth-child(3) >div {height:30px}
 .schedule_lst .prntbl_row >div:nth-child(3) >div >div {float:left}
-.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(1) {width:300px}
+.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(1) {width:300px;background-color:#fff}
+.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(1).dr_problem {background-color:#ffd9d9}
 .schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(2) {width:120px;background-color:#fffde2}
-.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3) {width:120px;background-color:#d0edff;font-weight:bold}
+.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3) {width:120px;background-color:#d0edff;color:#b43838}
+.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3).dr_delivered {color:#33600f}
 .schedule_lst >.prntbl_row_ftr {height:0;border-bottom:none}
 
 @media print {
@@ -268,16 +268,24 @@ tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] a
 <div class="prntbl_row prntbl_row_hdr"><div>Date</div><div>Schedule</div><div>Tracking</div></div>
 <div class="prntbl_cnt">
 %for dt_i,sc in sc_lst:
-<div class="prntbl_row">
+<div class="prntbl_row"${len(sc['dr_lst']) > 1 and ' style="height:%dpx"' % (len(sc['dr_lst']) * 30,) or ''}>
 <div>${sc['dt_s']}</div>
 %if sc['sc_id']:
-<div onclick="open_wnd_schedule_print(${sc['sc_id']})" title="${sc['sc_note']|h}">${'#%d - %s' % (sc['sc_id'], sc['sc_mode'] and 'Partial' or 'Complete')}</div>
+<div onclick="open_wnd_schedule_print(${sc['sc_id']})" title="${sc['sc_note']|h}">#${sc['sc_id']} - ${sc['sc_info']}</div>
 %else:
-<div>No Schedule</div>
+<div></div>
 %endif
 <div>
 %for dr in sc['dr_lst']:
-<div${dr['problem_flag'] and ' class="delivery_problem"' or ''} onclick="open_wnd_delivery(${dr['d_id']})"><div>#${dr['d_id']} - ${dr['name']|h}</div><div>${users_lku.get(dr['driver_id'], 'UNK')|h}</div><div>${dr['delivered'] and 'Delivered' or 'Out For Delivery'}</div></div>
+<div title="${dr.get('problem_s') or ''|h}" onclick="open_wnd_delivery(${dr['d_id']})">
+<div${dr['problem_flag'] and ' class="dr_problem"' or ''}>#${dr['d_id']} - ${dr['name']|h}</div>
+<div>${users_lku.get(dr['driver_id'], 'UNK')|h}</div>
+%if dr['delivered']:
+<div class="dr_delivered">Delivered</div>
+%else:
+<div>Out For Delivery</div>
+%endif
+</div>
 %endfor
 </div>
 </div>
