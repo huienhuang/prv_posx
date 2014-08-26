@@ -96,22 +96,23 @@ g_v_receipts = $('#tabs_receipts > #receipts', g_v_tabs).tinygrid({
 len:0,
 src:{page:'delivery?fn=get_problem_receipts'},
 cols: [{name:'#', width:100},
-       {name:'Company', width:'50%'},
+       {name:'Company', width:260},
        {name:'Clerk', width:100},
+       {name:'Record', width:70},
        {name:'Driver', width:100},
-       {name:'Record#', width:90},
-       {name:'RecordName', width:'50%'},
-       {name:'OrderDate', width:120},
-       {name:'ShipDate', width:120},
+       {name:'RecordName', width:0},
+       {name:'OrderDate', width:90},
+       {name:'ShipDate', width:90},
+       {name:'Problem', width:'100%'},
        ],
 click: function(r, c, d) {
-    if (c === 4) {
-        window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[4],'posx_delivery_record','location=0,width=1150,height=800');
+    if (c === 3) {
+        window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[3],'posx_delivery_record','location=0,width=1150,height=800');
     } else {
-        if (d[9])
+        if (d[10])
             window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
         else
-            window.open('hist?fn=printreceipt&rid=' + d[8],'posx_print_wnd','location=0,width=992,height=700');
+            window.open('hist?fn=printreceipt&rid=' + d[9],'posx_print_wnd','location=0,width=992,height=700');
     }
 }
 });
