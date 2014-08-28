@@ -17,7 +17,7 @@ def sync_items(cj_data, mode=0):
         if not sids: return 0
         where_sql = 'i.itemsid in (%s)' % (','.join(sids),)
     
-    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
+    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendsid,i.vendname,i.alu,i.upc,i.qtystore1,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
     
     item_upcs = {}
     rep_seq = del_seq = 0
@@ -52,14 +52,14 @@ def sync_items(cj_data, mode=0):
             )
         )
         
-        sur.execute('select vendname,alu,upc,ordercost from InventoryVendor where itemsid=? and vendname is not null', (itemsid,))
+        sur.execute('select vendname,alu,upc,ordercost,vendsid from InventoryVendor where itemsid=? and vendname is not null', (itemsid,))
         vends = []
         costs = []
         for x in sur.fetchall():
-            vends.append( (x[0] or '', x[1] or '', x[2] and str(x[2]) or '') )
+            vends.append( (x[0] or '', x[1] or '', x[2] and str(x[2]) or '', x[4]) )
             costs.append( rf2(x[3]) )
             if x[2]: upc_lku[ x[2] ] = sbu_idx
-        vends.insert(0, (r['vendname'] or '', '', ''))
+        vends.insert(0, (r['vendname'] or '', '', '', 0))
         costs.insert(0, rf2(r['lastcost']))
         
         if r['upc']: upc_lku[ r['upc'] ] = 0
