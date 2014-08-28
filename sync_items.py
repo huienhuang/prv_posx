@@ -59,7 +59,7 @@ def sync_items(cj_data, mode=0):
             vends.append( (x[0] or '', x[1] or '', x[2] and str(x[2]) or '', x[4]) )
             costs.append( rf2(x[3]) )
             if x[2]: upc_lku[ x[2] ] = sbu_idx
-        vends.insert(0, (r['vendname'] or '', '', '', 0))
+        vends.insert(0, (r['vendname'] or '', '', '', r['vendsid']))
         costs.insert(0, rf2(r['lastcost']))
         
         if r['upc']: upc_lku[ r['upc'] ] = 0
