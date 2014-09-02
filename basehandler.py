@@ -3,7 +3,7 @@ import time
 import winlib
 import bisect
 import struct
-import tinywsgi2
+import tinywsgi3 as tinywsgi
 import config
 import dbref
 import urllib
@@ -14,10 +14,10 @@ LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
 DEFAULT_PERM = ADMIN_PERM
-class RequestHandler(tinywsgi2.RequestHandler):
+class RequestHandler(tinywsgi.RequestHandler):
     
     def setup(self):
-        tinywsgi2.RequestHandler.setup(self)
+        tinywsgi.RequestHandler.setup(self)
         
         self.environ = self.req.environ
         self.cookie = self.req.cookie
@@ -34,7 +34,7 @@ class RequestHandler(tinywsgi2.RequestHandler):
         self.is_ajax = bool(self.qsv_int('ajax'))
     
     def cleanup(self):
-        tinywsgi2.RequestHandler.cleanup(self)
+        tinywsgi.RequestHandler.cleanup(self)
         
         if self.__db != None: dbref.put(self.req)
         self.__db = None
