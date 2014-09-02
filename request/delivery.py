@@ -344,7 +344,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                                     err.append('row#%d receipt#%d - No Redelivery Is Allowed' % (i + 1, rec['num']))
                                     continue
                     
-                        recs_db.append( (rec, r) )
+                        recs_db.append( (rec, r, is_new) )
                 
                 recs_js.append( {'type': 0, 'num': rec['num']} )
                 orig_nums_lku.get(rec['num'], [False])[0] = True
@@ -380,12 +380,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         rec_exists = {}
         if recs_db:
             cur.execute('select num,count(*) from deliveryv2_receipt where d_id!=%d and num in (%s) group by num' % (
-                d_id, ','.join([ str(f_rec['num']) for f_rec,f_r in recs_db ])
+                d_id, ','.join([ str(f_rec['num']) for f_rec,f_r,f_is_new in recs_db ])
                 )
             )
             for r in cur.fetchall(): rec_exists[ r[0] ] = r[1]
         
-        for rec,r in recs_db:
+        for rec,r,is_new in recs_db:
             s_js = json.dumps(rec['js'], separators=(',',':'))
             cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
                 d_id, rec['num'], int(bool(rec_exists.get(rec['num'], 0))), rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
@@ -394,15 +394,17 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             )
             rc = cur.rowcount
             if rc > 0:
-                self.add_comment((r[1], r[2]), 1, None, 'SetDelivery_V2 -> ID#%d Driver(%s) PRCV(%s) Delivered(%s) Problem(%s) PREQ(%s)' % (
+                nl = ['%s DeliveryLog(#%d), Driver - %s' % (
+                    is_new and 'Add To' or 'Update',
                     d_id,
                     rec['driver_id'] and users_lku.get(rec['driver_id'], 'UNK') or '',
-                    '%0.2f' % ( sum([x[1] for x in rec['js']['payments']]), ),
-                    rec['delivered'] and 'Y' or 'N',
-                    rec['problem_flag'] and 'Y' or 'N',
-                    rec['payment_required'] and 'Y' or 'N',
-                    )
-                )
+                )]
+                if rec['payment_required']: nl.append('> Payment Required')
+                if rec['js']['payments']: nl.append('> Payment Received: $%0.2f' % ( sum([f_x[1] for f_x in rec['js']['payments']]), ))
+                if rec['delivered']: nl.append('> Delivered')
+                if rec['problem_flag']: nl.append('> Problem Occurred')
+                
+                self.add_comment((r[1], r[2]), 1, None, '\n'.join(nl))
         
         ret = {}
         nums = [ str(x[0]) for x in orig_nums_lku.items() if not x[1][0] ]
