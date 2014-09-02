@@ -88,7 +88,7 @@ nzs = cur.column_names
 for r in cur.fetchall():
     r = dict(zip(nzs, r))
     
-    r['gjs'] = json.loads('global_js')
+    r['gjs'] = json.loads(r['global_js'])
     
     for t in r['gjs']['tender']:
         if t['type'] not in (3, 4): continue
@@ -103,7 +103,7 @@ for r in cur.fetchall():
 
 print '> Not Matched'
 for t, r in l_trans_not_found:
-    print 'RNum: %d, TransAmt: %0.2f' % (r['receiptnum'], t['amount'])
+    print 'RNum: %d, TransAmt: %0.2f' % (r['num'], t['amount'])
 
 print "> The Rest"
 for x in d_rec.values():
