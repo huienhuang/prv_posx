@@ -88,7 +88,7 @@ nzs = cur.column_names
 for r in cur.fetchall():
     r = dict(zip(nzs, r))
     
-    r['gjs'] = json.load('global_js')
+    r['gjs'] = json.loads('global_js')
     
     for t in r['gjs']['tender']:
         if t['type'] not in (3, 4): continue
