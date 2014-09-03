@@ -355,7 +355,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             sc_id = cur.lastrowid
             d_notes.append('Schedule[%d] (%s) - Created(Pending) - %s' % (sc_id, o_date.strftime('%m/%d/%y'), mode and 'Partial Delivery\n' + '\n'.join(ijs_note) or 'Complete Delivery'))
         else:
-            cur.execute("select sc_flag,sc_date,sc_prio,sc_note,doc_crc,doc_ijs from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_flag,sc_date,sc_new_date,sc_prio,sc_note,doc_crc,doc_ijs from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
@@ -366,7 +366,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             chg = False
             if o_r['sc_flag'] & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
-            if o_r['sc_date'] != d_date or o_r['sc_prio'] != prio or o_r['sc_note'] != note: chg = True
+            if o_r['sc_date'] != d_date and o_r['sc_new_date'] != d_date or o_r['sc_prio'] != prio or o_r['sc_note'] != note: chg = True
             if bool(o_r['sc_flag'] & REC_FLAG_PARTIAL) != bool(mode):
                 chg = True
                 d_notes.append('Schedule[%d] (%s) - Changed Mode From %s To %s%s' % (
@@ -411,7 +411,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             else:
                 new_sc_flag &= (~REC_FLAG_PARTIAL)
             
-            if o_r['sc_date'] != d_date:
+            if o_r['sc_date'] != d_date and o_r['sc_new_date'] != d_date:
                 m,d = divmod(o_r['sc_date'], 100)
                 y,m = divmod(m, 100)
                 o_old_date = datetime.date(y, m, d)
