@@ -207,6 +207,22 @@ function open_wnd_receipt(num)
     open_wnd('hist?fn=printreceipt&rno=' + num,'posx_print_wnd');
 }
 
+function open_wnd_receipt_by_sid(sid)
+{
+    open_wnd('hist?fn=printreceipt&rid=' + sid,'posx_print_wnd');
+}
+
+function open_wnd_salesorder(sid)
+{
+    open_wnd('sync?fn=printorder&type=2&rid=' + sid,'posx_so_wnd');
+}
+
+function open_wnd_schedule_print(sc_id)
+{
+    open_wnd('schedulev2?fn=print&view_only=1&sc_ids='+sc_id,'posx_schedule_print', 750);
+    return false;
+}
+
 function chg__item_list_cb(i)
 {
     var js = g_v_dlg_doc_form.data('pjs');
@@ -241,7 +257,50 @@ function get_item_possible_match_content()
     return $('<div class="p_item_pm"></div>').text('Possible Match:\n' + s.join('\n'));
 }
 
+function load_nd_sc_docs()
+{
+    var v_cnt = g_v_dlg_check.find('.prntbl_cnt').empty();
+    var v_ftr = g_v_dlg_check.find('.prntbl_row_ftr > div').text('');
+    
+    get_js_ex('?fn=get_nd_sc_docs', {}, function(js) {
+        var lst = [];
+        for(var i = 0; i < js.lst.length; i++) {
+            var r = js.lst[i];
+            
+            var cls = '';
+            if(r.sc_flag & ${REC_FLAG_CANCELLING}) cls = ' doc_cancelling';
+            else if(r.sc_flag & ${REC_FLAG_RESCHEDULED}) cls = ' doc_rescheduled';
+            else if(r.sc_flag & ${REC_FLAG_PARTIAL_CHANGED}) cls = ' doc_partial_changed';
+            else if(r.sc_flag & ${REC_FLAG_CHANGED}) cls = ' doc_changed';
+            else if(r.sc_flag & ${REC_FLAG_ACCEPTED}) cls = ' doc_accepted';
+            else cls = ' doc_pending';
+            
+            var sflag = '';
+            if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
+            if(r.sc_note_len) sflag += 'N';
+            if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
+            var v = $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>')
+            .append( $('<div onclick="open_wnd_schedule_print('+r.sc_id+')">'+int2date_s(r.sc_date)+'</div>') )
+            .append( $('<div onclick="open_wnd_'+(r.doc_type ? 'receipt_by_sid' : 'salesorder')+'(\''+r.doc_sid+'\')"></div>').text(r.doc.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
+            .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.doc.cid+'\')"></div>').text(r.doc.company) )
+            .append( $('<div></div>').text(r.doc.amt.toFixed(2)) )
+            .append( $('<div></div>').text(sflag) );
+            lst.push(v);
+        }
+        v_cnt.append(lst);
+        v_ftr.text('Total: ' + js.lst.length);
+        
+    }, undefined, undefined, undefined, '__load_nd_sc_docs__');
+}
+
 $(function() {
+
+g_v_dlg_check = $('#dlg_check').dialog({
+    modal: true,
+    autoOpen: false,
+    width:560,
+    height:400,
+});
 
 g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
     modal: true,
@@ -751,6 +810,12 @@ els.btn_schedule[0].button().click(function() {
     els.num[0].focus();
 });
 
+%if has_perm_delivery_mgr:
+els.btn_check[0].button().click(function() {
+    g_v_dlg_check.dialog('open');
+    load_nd_sc_docs();
+});
+%endif
 
 els.user[0].change(load_overview);
 
@@ -836,13 +901,26 @@ load_overview();
 .doc_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
 .doc_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
 
-.doc_lst .doc_pending >div:nth-child(2) {background-color:rgb(242,130,91)}
-.doc_lst .doc_accepted >div:nth-child(2) {background-color:#627d4d}
-.doc_lst .doc_cancelling >div:nth-child(2) {background-color:#ff3019}
-.doc_lst .doc_changed >div:nth-child(2) {background-color:#903815}
-.doc_lst .doc_rescheduled >div:nth-child(2) {background-color:#3578b5}
-.doc_lst .doc_partial_changed >div:nth-child(2) {background-color:rgb(203,96,179)}
-.doc_lst .doc_in_delivery_log {background-color:#cfe0c5}
+.doc_pending >div:nth-child(2) {background-color:rgb(242,130,91)}
+.doc_accepted >div:nth-child(2) {background-color:#627d4d}
+.doc_cancelling >div:nth-child(2) {background-color:#ff3019}
+.doc_changed >div:nth-child(2) {background-color:#903815}
+.doc_rescheduled >div:nth-child(2) {background-color:#3578b5}
+.doc_partial_changed >div:nth-child(2) {background-color:rgb(203,96,179)}
+.doc_in_delivery_log {background-color:#cfe0c5}
+
+
+.chk_lst {top:0px;bottom:0;left:0;right:0;overflow:hidden}
+.chk_lst .prntbl_row {min-width:1000px}
+.chk_lst .prntbl_cnt {overflow-x:hidden}
+.chk_lst .prntbl_row >div:nth-child(1) {width:100px;cursor:pointer}
+.chk_lst .prntbl_row >div:nth-child(2) {width:80px;cursor:pointer}
+.chk_lst .prntbl_row >div:nth-child(3) {width:220px;cursor:pointer}
+.chk_lst .prntbl_row >div:nth-child(4) {width:80px}
+.chk_lst .prntbl_row >div:nth-child(5) {width:50px;font-weight:bold}
+.chk_lst .prntbl_cnt .prntbl_row >div:nth-child(2) {color:#fff}
+.chk_lst .prntbl_row_ftr >div:nth-child(1) {width:380px}
+
 
 #dlg_help {font-size:72px;font-weight:bold;text-align:center}
 
@@ -862,7 +940,9 @@ load_overview();
 %endfor
 </select>
 <input type="button" name="ctrl_btn_schedule" value="schedule" />
-
+%if has_perm_delivery_mgr:
+<input type="button" name="ctrl_btn_check" value="check" />
+%endif
 </div>
 
 <div class="x_body">
@@ -907,6 +987,14 @@ load_overview();
 </div>
 
 <iframe></iframe>
+</div>
+
+<div id="dlg_check" title="Docs - No Delivery Record Found">
+<div class="prntbl chk_lst">
+<div class="prntbl_row prntbl_row_hdr"><div>Scheduled</div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"><div></div></div>
+</div>
 </div>
 
 </body>

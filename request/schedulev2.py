@@ -665,6 +665,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         fdt = datetime.date.today() - datetime.timedelta(30)
         fdt = fdt.year * 10000 + fdt.month * 100 + fdt.day
         
+        self.req.writejs(self.get_full_docs(fdt, None, cid))
+
+    def fn_get_nd_sc_docs(self):
+        fdt = datetime.date.today() - datetime.timedelta(15)
+        fdt = fdt.year * 10000 + fdt.month * 100 + fdt.day
+        tdt = datetime.date.today() - datetime.timedelta(1)
+        tdt = tdt.year * 10000 + tdt.month * 100 + tdt.day
+        
+        sc_lst = []
+        for r in self.get_full_docs(fdt, tdt, None):
+            if r['dr']: continue
+            sc_lst.append(r)
+        
+        self.req.writejs({'lst': sc_lst})
+
+    def get_full_docs(self, fdt, tdt, cid=None):
         so_sids = set()
         rc_sids = set()
         sc_lst = []
@@ -673,7 +689,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,sc_note,(sc_flag&1) as is_accepted,(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup from schedule sa where sc_date>=%s order by sc_id desc', (fdt,))
+        ws = []
+        if fdt != None: ws.append('sc_date >= %d' % (fdt, ))
+        if tdt != None: ws.append('sc_date <= %d' % (tdt, ))
+        if ws:
+            ws = ' where ' + ' and '.join(ws)
+        else:
+            ws = ''
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,sc_note,(sc_flag&1) as is_accepted,(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup from schedule sa'+ws+' order by sc_id desc')
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -685,12 +708,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         d_so = {}
         if so_sids:
-            cur.execute('select sid,status,sonum,clerk,sodate,global_js from sync_salesorders where cust_sid=%s and sid in (%s)' % (cid, ','.join(map(str, so_sids)), ))
+            cur.execute('select sid,status,sonum,clerk,sodate,global_js,cust_sid from sync_salesorders where'+(cid != None and ' cust_sid=%d and' % (cid,) or '')+' sid in (%s)' % (','.join(map(str, so_sids)), ))
             for r in cur.fetchall(): d_so[r[0]] = r
             
         d_rc = {}
         if rc_sids:
-            cur.execute('select sid,type,num,assoc,order_date,global_js from sync_receipts where cid=%s and sid_type=0 and sid in (%s)' % (cid, ','.join(map(str, rc_sids)), ))
+            cur.execute('select sid,type,num,assoc,order_date,global_js,cid from sync_receipts where'+(cid != None and ' cid=%d and' % (cid,) or '')+' sid in (%s)' % (','.join(map(str, rc_sids)), ))
             for r in cur.fetchall(): d_rc[r[0]] = r
 
 
@@ -711,7 +734,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 'num': doc[2],
                 'assoc': doc[3],
                 'date': doc[4],
-                'amt': gjs.get('total') or 0
+                'amt': gjs.get('total') or 0,
+                'company': (gjs['customer'] or {}).get('company') or '',
+                'cid': str(doc[6])
             }
             
             if r['doc_type']:
@@ -755,7 +780,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         dr.append( (d_user.get(d[2]) or 'UNK', d[3], n) )
             r['dr'] = dr
         
-        self.req.writejs(sc_lst)
+        return sc_lst
 
     def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0, pending_only=0, dup_chk=0):
         clerk = None
