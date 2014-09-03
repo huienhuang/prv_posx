@@ -1010,6 +1010,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 count_s = 'Item %d, Qty %d' % (gjs['itemcount'], int(gjs['qtycount']))
             
             
+            if r['sc_flag'] & REC_FLAG_RESCHEDULED:
+                rsc_dt_o = self.int2date(r['sc_new_date'])
+                r['rescheduling'] = (rsc_dt_o.strftime("%m/%d/%Y"), rsc_dt_o.weekday())
+            
             if r['sc_flag'] & REC_FLAG_PARTIAL:
                 r['mode'] = 1
                 doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
