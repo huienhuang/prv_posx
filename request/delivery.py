@@ -402,7 +402,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 if rec['payment_required']: nl.append('> Payment Required')
                 if rec['js']['payments']: nl.append('> Payment Received: $%0.2f' % ( sum([f_x[1] for f_x in rec['js']['payments']]), ))
                 if rec['delivered']: nl.append('> Delivered')
-                if rec['problem_flag']: nl.append('> Problem Occurred')
+                if rec['problem_flag']:
+                    #nl.append('> Problem Occurred')
+                    nl.extend([ '> Problem - ' + PROBLEMS[int(f_i)] + (f_v[1] and ': ' + f_v[1] or '') for f_i,f_v in rec['js']['problems'].items() ])
                 
                 self.add_comment((r[1], r[2]), 1, None, '\n'.join(nl))
         
