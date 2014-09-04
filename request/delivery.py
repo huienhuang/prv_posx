@@ -77,7 +77,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 r['global_js'] = r.has_key('global_js') and json.loads(r['global_js']) or {}
                 if mode: r['gjs'] = r['global_js']
                 
-                r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
+                cust = r['global_js'].get('customer') or {}
+                r['company'] = cust.get('company') or cust.get('name') or ''
                 r['amount'] = r['global_js'].get('total') or 0
                 r['sid'] = r.get('sid') != None and str(r['sid']) or ''
                 r['cid'] = cid != None and str(cid) or ''
@@ -204,7 +205,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['sid'] = str(r['sid'])
         r['cid'] = r['cid'] != None and str(r['cid']) or ''
         r['global_js'] = r['global_js'] and json.loads(r['global_js']) or {}
-        r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
+        cust = r['global_js'].get('customer') or {}
+        r['company'] = cust.get('company') or cust.get('name') or ''
         r['amount'] = r['global_js']['total']
         r['global_js'] = ''
         
@@ -494,7 +496,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 r = rec_lku.get(l['num'])
                 if not r: r = {}
                 r['global_js'] = r.has_key('global_js') and json.loads(r['global_js']) or {}
-                r['company'] = (r['global_js'].get('customer') or {}).get('company') or ''
+                cust = r['global_js'].get('customer') or {}
+                r['company'] = cust.get('company') or cust.get('name') or ''
                 r['amount'] = r['global_js'].get('total') or 0
                 l['js'] = r.get('js') != None and json.loads(r['js']) or {}
                 
@@ -634,7 +637,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 r = list(r)
                 
                 r[1] = r[1] and json.loads(r[1]) or {}
-                r[1] = (r[1].get('customer') or {}).get('company') or ''
+                cust = r[1].get('customer') or {}
+                r[1] = cust.get('company') or cust.get('name') or ''
                 r[2] = r[2] and users_lku.get(r[2], 'UNK') or ''
                 r[4] = r[4] and users_lku.get(r[4], 'UNK') or ''
                 r[6] = time.strftime("%m/%d/%y", time.localtime(r[6]))
