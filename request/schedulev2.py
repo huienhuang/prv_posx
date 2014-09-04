@@ -184,7 +184,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         sid,num,assoc,doc_date,gjs,ijs = row[0]
         
         gjs = json.loads(gjs)
-        company = (gjs.get('customer') or {}).get('company') or ''
+        cust = gjs.get('customer') or {}
+        company = cust.get('company') or cust.get('name') or ''
         
         loc = None
         if gjs['shipping']:
@@ -730,12 +731,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             sc_lst.append(r)
             
             gjs = json.loads(doc[5])
+            cust = gjs['customer'] or {}
             r['doc']  = doc = {
                 'num': doc[2],
                 'assoc': doc[3],
                 'date': doc[4],
                 'amt': gjs.get('total') or 0,
-                'company': (gjs['customer'] or {}).get('company') or '',
+                'company': cust.get('company') or cust.get('name') or '',
                 'cid': str(doc[6])
             }
             
@@ -871,7 +873,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
             r['doc_geo'] = geo
             r['zone_id'] = zid
-            r['cust_nz'] = (doc_js['customer'] or {}).get('company') or ''
+            cust = doc_js['customer'] or {}
+            r['cust_nz'] = cust.get('company') or cust.get('name') or ''
             #r['cid'] = doc_data[5] != None and str(doc_data[5]) or ''
             r['cid'] = doc_data[5]
             r['num'] = doc_data[1]
