@@ -9,4 +9,4 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
         self.req.writefile('inv_srv.html')
-        
+

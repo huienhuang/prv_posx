@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v3.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - Item &gt; History</title>
 
 <%
@@ -13,7 +13,7 @@ import json
 g_item_units = ${json.dumps(item_info['units'])};
 g_item_qty = ${json.dumps(item_info['qty'])};
 g_cur_factor = 0;
-g_v_datagrid = [];
+g_tgs = {};
 
 function load_item_sold_report_cb(js)
 {
@@ -76,7 +76,7 @@ function load_item_sold_report()
 function show_all()
 {
     var o = $(this);
-    var d = g_v_datagrid[ o.data('tg_idx') ];
+    var d = g_tgs[ o.data('tg_nz') ];
     d.tinygrid('src').data['flag'] = o.prop('checked') ? 1 : 0;
     d.tinygrid('update', -1, true, [-1], true);
 }
@@ -137,7 +137,7 @@ function load_wnd_cust_by_histid(sid, sid_type)
 
 $(function() {
 
-g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
+g_tgs['hist'] = $('#datagrid_hist').tinygrid({
 len:0,
 src:{page:'?fn=getpageitem', data:{'tid': '${item_sid}'}},
 cols: [{name:'Num', width:90},
@@ -198,7 +198,7 @@ getval: function(r, org_getval) {
 }
 });
 
-g_v_datagrid[2] = $('#datagrid_so').tinygrid({
+g_tgs['so'] = $('#datagrid_so').tinygrid({
 len:0,
 src:{page:'sync?fn=getitemorders', data:{'rid': '${item_sid}', 'type': 2}},
 cols: [{name:'#', width:100},
@@ -234,10 +234,10 @@ getval: function(r, org_getval) {
     return row;
 },
 footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
-init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 2).change(show_all); }
+init: function() { this.data.footer_row.showall.children('input').data('tg_nz', 'so').change(show_all); }
 });
 
-g_v_datagrid[1] = $('#datagrid_po').tinygrid({
+g_tgs['po'] = $('#datagrid_po').tinygrid({
 len:0,
 src:{page:'sync?fn=getitemorders', data:{'rid': '${item_sid}', 'type': 1}},
 cols: [{name:'#', width:100},
@@ -268,12 +268,12 @@ getval: function(r, org_getval) {
     return row;
 },
 footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
-init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 1).change(show_all); }
+init: function() { this.data.footer_row.showall.children('input').data('tg_nz', 'po').change(show_all); }
 });
 
 
 
-g_v_datagrid[3] = $('#datagrid_cust').tinygrid({
+g_tgs['cust'] = $('#datagrid_cust').tinygrid({
 len:0,
 src:{page:'?fn=get_item_custs', data:{'tid': '${item_sid}'}},
 cols: [{name:'Name', width:"100%"},
@@ -294,27 +294,8 @@ getval: function(r, org_getval) {
 
 
 g_v_item_unit = $('.cnt_top > .item_unit');
-g_v_item_unit_ordqty = g_v_item_unit.children('.s_qty_ord').click(function() { g_v_item_tabs.tabs('option', 'active', 2); });
-g_v_item_unit_purqty = g_v_item_unit.children('.s_qty_pur').click(function() { g_v_item_tabs.tabs('option', 'active', 1); });
-
-g_v_item_tabs = $('.item_tabs').tabs({
-    activate: function( event, ui ) {
-        var a_idx = g_v_item_tabs.tabs('option', 'active');
-        if(a_idx == 5) {
-            load_item_imgs();
-            
-        } else if(a_idx == 4) {
-            load_item_sold_report();
-            
-        } else {
-            var tg = g_v_datagrid[a_idx];
-            if(tg !== undefined) tg.tinygrid('update', -1, true);
-            
-        }
-    },
-    active:${dg_type}
-});
-
+g_v_item_unit_ordqty = g_v_item_unit.children('.s_qty_ord').click(function() { g_v_item_tabs.tabs('option', 'active', 3); });
+g_v_item_unit_purqty = g_v_item_unit.children('.s_qty_pur').click(function() { g_v_item_tabs.tabs('option', 'active', 2); });
 
 g_dlg_item_chg_hist = $('#dlg_item_chg_hist').dialog({
     width: 200,
@@ -325,7 +306,7 @@ g_dlg_item_chg_hist = $('#dlg_item_chg_hist').dialog({
 
 //++
 (function() {
-    var tp = $('#item_tab_4_sold');
+    var tp = $('#tabs_sold');
     g_v_sold_tp_ctrl = tp.children('.tp_ctrl');
     
     g_v_sold_tp_ctrl.children('input[name="frm_date"]').datepicker().datepicker("setDate", '-6m').change(load_item_sold_report);
@@ -346,7 +327,7 @@ g_v_img_upload_form__img = $('input[name="img"]', g_v_img_upload_form).change(fu
 
 //++
 (function() {
-    var tp = $('#item_tab_5_pics');
+    var tp = $('#tabs_pics');
     g_v_img_lst = tp.children('.img_lst').sortable();
     var ctrl = tp.children('.tp_ctrl');
     ctrl.children('input[value="Upload"]').button().click(function() { g_v_img_upload_form__img.click(); });
@@ -355,8 +336,9 @@ g_v_img_upload_form__img = $('input[name="img"]', g_v_img_upload_form).change(fu
 })();
 //--
 
-g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
-    var unit = g_item_units[ parseInt($(this).val()) ];
+function chg_uom()
+{
+    var unit = g_item_units[ parseInt(g_v_item_unit_select.val()) ];
     g_cur_factor = unit[3];
     
     var qty = g_item_qty.slice(0);
@@ -372,19 +354,51 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
     g_v_item_unit_ordqty.text('OrdQty: ' + (g_cur_factor ? qty[1].toFixed(2) : 'Err'));
     g_v_item_unit_purqty.text('PurQty: ' + (g_cur_factor ? qty[3].toFixed(2) : 'Err'));
     
-    for(var i = 0; i < g_v_datagrid.length; i++) g_v_datagrid[i].tinygrid('update', -1, false, true, false, true);
+    for(var k in g_tgs) g_tgs[k].tinygrid('update', -1, false, true, false, true);
+}
+
+g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
+    chg_uom();
     
-    var a_idx = g_v_item_tabs.tabs('option', 'active');
-    if(a_idx == 4) {
+    var idx = g_v_item_tabs.tabs('option', 'active');
+    var nz = $(g_v_item_tabs.children('ul').children('li')[idx]).children('a').prop('hash').substr(6);
+    if(nz === 'sold') {
         load_item_sold_report();
-        
     } else {
-        var tg = g_v_datagrid[a_idx];
+        var tg = g_tgs[nz];
         if(tg !== undefined) tg.tinygrid('update', -1, true);
-        
     }
     
-}).val("${item_info['default_uom_idx']}").change();
+}).val("${item_info['default_uom_idx']}");
+
+chg_uom();
+
+g_v_item_tabs = $('.item_tabs').tabs({
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'empty') {    
+            return false;
+        }
+        
+        return true;
+    },
+    activate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        
+        if(nz === 'pics') {
+            load_item_imgs();
+            
+        } else if(nz === 'sold') {
+            load_item_sold_report();
+            
+        } else {
+            var tg = g_tgs[nz];
+            if(tg !== undefined) tg.tinygrid('update', -1, true);
+        }
+    },
+    active:0
+});
+g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 });
 
@@ -393,7 +407,7 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
-.tinygrid {position:absolute;left:0;top:49px;bottom:0;right:0;width:auto;height:auto;}
+.tinygrid {position:absolute;left:0;top:0;bottom:0;right:0;width:auto;height:auto;}
 .cnt_top {height:95px;padding:5px 5px 0 5px;font-size:20px;line-height:22px;}
 .cnt_top .item_name {font-size:20px;font-weight:bold;height:24px;line-height:24px;}
 .cnt_top .item_name > span {margin-right:10px;}
@@ -414,14 +428,15 @@ g_v_item_unit_select = g_v_item_unit.children('select').change(function() {
 
 .tp_ctrl select, .tp_ctrl input {width:100px;margin-right:15px;}
 
+.item_tabs > div {position:absolute;top:49px;left:0;right:0;bottom:0}
 .item_tabs > div > .tp_ctrl {margin-bottom:10px}
 
 .item_img {position:absolute;width:120px;height:120px;right:0;top:0;text-align:right}
 .item_img > img {max-width:150px;max-height:150px;border:none}
 
-#item_tab_5_pics .img_lst > li {width:200px;height:200px;line-height:200px;float:left;text-align:center;margin-bottom:10px;position:relative}
-#item_tab_5_pics .img_lst > li > img {max-width:200px;max-height:200px;border:none;vertical-align:middle;}
-#item_tab_5_pics .img_lst > li > span {display:block;color:red;font-size:18px;font-weight:bold;height:24px;line-height:24px;width:24px;text-align:center;position:absolute;right:0;top:0;cursor:pointer;background-color:#ffe4c5;}
+#tabs_pics .img_lst > li {width:200px;height:200px;line-height:200px;float:left;text-align:center;margin-bottom:10px;position:relative}
+#tabs_pics .img_lst > li > img {max-width:200px;max-height:200px;border:none;vertical-align:middle;}
+#tabs_pics .img_lst > li > span {display:block;color:red;font-size:18px;font-weight:bold;height:24px;line-height:24px;width:24px;text-align:center;position:absolute;right:0;top:0;cursor:pointer;background-color:#ffe4c5;}
 </style>
 
 </head>
@@ -462,19 +477,22 @@ k += 1
 <div class="item_tabs">
 
 <ul>
-<li><a href="#item_tab_0_hist">History</a></li>
-<li><a href="#item_tab_1_po">PO</a></li>
-<li><a href="#item_tab_2_so">SO</a></li>
-<li><a href="#item_tab_3_cust">Customer</a></li>
-<li><a href="#item_tab_4_sold">Sold</a></li>
-<li><a href="#item_tab_5_pics">Pictures</a></li>
+<li style="float:right"><a href="#tabs_empty">&nbsp;</a></li>
+<li><a href="#tabs_hist">History</a></li>
+<li><a href="#tabs_po">PO</a></li>
+<li><a href="#tabs_so">SO</a></li>
+<li><a href="#tabs_cust">Customers</a></li>
+<li><a href="#tabs_sold">Sold</a></li>
+<li><a href="#tabs_pics">Pictures</a></li>
+<li><a href="#tabs_pbs">Problems</a></li>
+<li><a href="#tabs_notes">Notes</a></li>
 </ul>
 
-<div id="item_tab_0_hist"><div id="datagrid_hist"></div></div>
-<div id="item_tab_1_po"><div id="datagrid_po"></div></div>
-<div id="item_tab_2_so"><div id="datagrid_so"></div></div>
-<div id="item_tab_3_cust"><div id="datagrid_cust"></div></div>
-<div id="item_tab_4_sold">
+<div id="tabs_hist"><div id="datagrid_hist"></div></div>
+<div id="tabs_po"><div id="datagrid_po"></div></div>
+<div id="tabs_so"><div id="datagrid_so"></div></div>
+<div id="tabs_cust"><div id="datagrid_cust"></div></div>
+<div id="tabs_sold">
     
 <div class="tp_ctrl">
 <span>From: </span><input type="text" name="frm_date" />
@@ -488,7 +506,7 @@ k += 1
 </div>
 
 <!-- ++item_tab_5_pics -->
-<div id="item_tab_5_pics">
+<div id="tabs_pics">
 
 <div class="tp_ctrl">
 <input type="button" value="Upload" />

@@ -108,6 +108,24 @@ g_sync_tp = (
     ['FS', get_max_fs_id, get_fs_data, get_last_fs_id, set_last_fs_id, None, False]
 )
 
+def fs_to_cj(data):
+    data = [(f_x[1],) for f_x in data if f_x[0] == 'customer']
+    if not data: return
+    n = len(data)
+    
+    dbc = sqlanydb.connect(**g_pos_server)
+    cur = dbc.cursor()
+    try:
+        while data:
+            cur.executemany("insert into changejournal values(default,'Customer',?,1,now(),'POSX', '-1')", data[:500])
+            data = data[500:]
+        cur.execute('commit')
+        cur.close()
+    finally:
+        dbc.close()
+
+    print 'fs_to_cj: N(%d)' % (n, )
+
 def sync(sync_cbs, mode):
     for tp in g_sync_tp:
         ts = time.time()
@@ -123,8 +141,11 @@ def sync(sync_cbs, mode):
             data = get_data(last_id, max_id)
             
         if mode and init_call or data:
-            for cb in sync_cbs:
-                ct += cb[1](data, mode)
+            if name == 'FS':
+                fs_to_cj(data)
+            else:
+                for cb in sync_cbs:
+                    ct += cb[1](data, mode)
         
         set_last_id(max_id)
         tp[5] = max_id
