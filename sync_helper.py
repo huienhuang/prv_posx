@@ -143,6 +143,7 @@ def sync(sync_cbs, mode):
         if mode and init_call or data:
             if name == 'FS':
                 fs_to_cj(data)
+                ct += len(data)
             else:
                 for cb in sync_cbs:
                     ct += cb[1](data, mode)
