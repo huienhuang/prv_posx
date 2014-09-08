@@ -330,6 +330,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         new_doc_crc = gjs.get('crc')
         
         if mode:
+            if not note: self.req.exitjs({'err': -66, 'err_s': 'Require A Note For Partial Delivery!'})
+            
             r_crc,r_ijs = self.req.psv_js('doc')
             
             ijs = json.loads(ijs)
