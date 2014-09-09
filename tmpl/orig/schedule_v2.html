@@ -337,7 +337,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
     buttons: [
 %if has_perm_delivery_mgr:
         {
-            text: '开放/关闭 此区',
+            text: 'Open/Close This Zone',
             id: "dd_btn_close",
             click: function() {
                 var js = g_v_dlg_documents.data('jsd');
@@ -348,6 +348,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 });
             },
         },
+/*
         {
             text: '清除标志',
             id: "dd_btn_clear",
@@ -405,9 +406,9 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
                 
             },
         },
-        
+*/
         {
-            text: '打印',
+            text: 'Print',
             id: "dd_btn_print",
             click: function() {
                 var lst = get_selected_docs();
@@ -423,7 +424,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
         },
         
         {
-            text: '接受',
+            text: 'Accept',
             id: "dd_btn_accept",
             click: function() {
                 var lst = get_selected_docs();
@@ -443,7 +444,7 @@ g_v_dlg_documents = $('#dlg_documents').dialog({
         },
         
         {
-            text: '接受 & 打印',
+            text: 'Accept & Print',
             id: "dd_btn_accept_n_print",
             click: function() {
                 var lst = get_selected_docs();

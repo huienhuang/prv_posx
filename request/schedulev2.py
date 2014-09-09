@@ -1100,6 +1100,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     d_notes.append(rr)
                     
         r = {
+            'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
+            'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
+            'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
+            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
             'view_only': view_only,
             'auto_print': self.qsv_int('auto_print'),
             'round_ex': config.round_ex,

@@ -33,9 +33,24 @@ function view_map()
     open_wnd('http://maps.google.com/maps?q=' + s, 'posx_map', 992, 700);
 }
 
+function doc_action(fn, sc_id)
+{
+    if(!$(this).prev('input[type="checkbox"]').prop('checked')) return;
+    post_js_ex('?fn=' + fn, {sc_ids: sc_id}, function(js) {
+        parent.load_doc_lst && parent.load_doc_lst(0, 0, 1, 0);
+    });
+}
 
 $(function() {
 $(document).tooltip();
+
+g_doc_notice_d2 = $('.p_doc_notice > div:nth-child(2)');
+g_doc_notice_d2.children('input[type="button"]').button();
+
+%if has_perm_delivery_mgr and view_only:
+g_doc_notice_d2.show();
+%endif
+
 })
 </script>
 %endif
@@ -53,7 +68,8 @@ $(document).tooltip();
 .p_doc_meta >div:nth-child(2) {width:170px;right:60px}
 .p_doc_meta >div:nth-child(3) {width:60px;right:0;text-align:right}
 
-.p_doc_resc {text-align:center;font-weight:bold;color:#3578b5;height:26px;line-height:26px;font-style:italic}
+.p_doc_notice {text-align:center;font-weight:bold;color:#ee1b1b;line-height:26px;font-style:italic;border-bottom:1px solid #ccc;padding-bottom:8px}
+.p_doc_notice > div:nth-child(2) {margin-top:6px;display:none}
 
 .p_doc_memo {border:1px solid #ccc;padding:12px 6px 6px 6px;position:relative;margin-top:14px;}
 .p_doc_memo >div:nth-child(1) {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
@@ -120,6 +136,7 @@ $(document).tooltip();
 div {border-color:#000 !important}
 .prntbl {-webkit-print-color-adjust:exact}
 .p_doc_signature, .p_doc_prn_hdr {display:block}
+.p_doc_partial_note, .p_doc_partial_note >div:first-child, .p_doc_notice {color:#000}
 }
 @page {
 margin:50px 50px;
@@ -150,8 +167,19 @@ gjs = r['gjs']
 <div class="p_doc_prn_hdr">*** Packing Slip / 执货单 - 打印时间: ${cts_s} ***</div>
 <div class="p_doc_meta"><div>#${r['sc_id']} - Deliver On ${ENG_DAYS[ r['sc_date_wd'] ]} / 星期${CHS_DAYS[ r['sc_date_wd'] ]}送 (${r['sc_date_s']})</div><div>${r['zone_nz']|h}</div><div>${i + 1}/${len(sc_docs)}</div></div>
 
-%if r.get('rescheduling'):
-<div class="p_doc_resc">* Rescheduling / 正在改期 -&gt; ${ENG_DAYS[ r['rescheduling'][1] ]} / 星期${CHS_DAYS[ r['rescheduling'][1] ]} (${r['rescheduling'][0]}) *</div>
+%if r['sc_flag'] & (REC_FLAG_CANCELLING | REC_FLAG_RESCHEDULED | REC_FLAG_CHANGED):
+<div class="p_doc_notice">
+%if r['sc_flag'] & REC_FLAG_CANCELLING:
+<div>* Request Cancellation / 要求取消送货 *</div>
+<div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'del', '${r["sc_id"]}')" /></div>
+%elif r['sc_flag'] & REC_FLAG_RESCHEDULED:
+<div>* Rescheduling / 正在改期 -&gt; ${ENG_DAYS[ r['rescheduling'][1] ]} / 星期${CHS_DAYS[ r['rescheduling'][1] ]} (${r['rescheduling'][0]}) *</div>
+<div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'confirm_rescheduling', '${r["sc_id"]}')" /></div>
+%elif r['sc_flag'] & REC_FLAG_CHANGED:
+<div>* The Document Has Been Changed, Please Check / 货单改动, 请检查 *</div>
+<div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'clear_cflag', '${r["sc_id"]}')" /></div>
+%endif
+</div>
 %endif
 
 <!-- +hdr -->
@@ -250,7 +278,40 @@ cust = gjs['shipping']
 %endif
 
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>Qty</div>${not view_only and '<div>CK</div>' or ''}</div>
+<div class="prntbl_row prntbl_row_hdr">
+<div>
+%if view_only:
+NUM
+%else:
+号码
+%endif
+</div><div>
+%if view_only:
+Name
+%else:
+货名
+%endif
+</div><div>
+%if view_only:
+UPrice
+%else:
+单价
+%endif
+</div><div>
+%if view_only:
+ALU
+%else:
+查询号码
+%endif
+</div><div>
+%if view_only:
+Qty
+%else:
+送货数量
+%endif
+</div>
+${not view_only and '<div>CK</div>' or ''}
+</div>
 <div class="prntbl_cnt">
 %for t in r['ijs']:
 <div class="prntbl_row">
