@@ -192,6 +192,7 @@ gjs = r['gjs']
 <div>* The Document Has Been Changed, Please Check / 货单改动, 请检查 *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'clear_cflag', '${r["sc_id"]}')" /></div>
 
+%if r['diff_ijs']:
 <div class="prntbl cls_dont_print">
 <div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>ChgQty</div></div>
 <div class="prntbl_cnt">
@@ -210,6 +211,7 @@ f_diff,f_pos,t = f_v
 </div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+%endif
 
 %endif
 </div>

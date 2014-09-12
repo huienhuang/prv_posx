@@ -206,6 +206,7 @@ def sync_receipts(cj_data, mode=0):
             'station': r['workstation'],
         }
         gjs['crc'] = data_helper.get_receipt_crc(r, gjs, items)
+        gjs['items_crc'] = data_helper.get_doc_items_crc(items)
         global_js = json.dumps(gjs, separators=(',',':'))
         
         seq += 1

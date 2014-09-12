@@ -128,6 +128,7 @@ def sync_salesorders(cj_data, mode=0):
             'due': round(float(r['sodue']), 5),
         }
         gjs['crc'] = data_helper.get_salesorder_crc(r, gjs, items)
+        gjs['items_crc'] = data_helper.get_doc_items_crc(items)
         global_js = json.dumps(gjs, separators=(',',':'))
         
         

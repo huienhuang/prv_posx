@@ -67,3 +67,8 @@ def get_salesorder_crc(r, jsd, items):
     )).encode('utf-8')
     return zlib.crc32(v) & 0xFFFFFFFF
 
+
+def get_doc_items_crc(items):
+    v = unicode([ (f_i['itemsid'], f_i['uom'], f_i['qty']) for f_i in items ])
+    return zlib.crc32(v) & 0xFFFFFFFF
+

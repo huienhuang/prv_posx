@@ -215,6 +215,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         recs = []
         crc = gjs.get('crc')
+        items_crc = gjs.get('items_crc')
         js = {
             'type': d_type,
             'num': num,
@@ -226,10 +227,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'doc_date': time.strftime("%m/%d/%Y", time.localtime(doc_date)),
             'zone_nz': ZONES[zidx][0],
             'ijs' : n_ijs,
-            'crc': crc
+            'crc': crc,
+            'items_crc': items_crc
         }
         
-        cur.execute('select * from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
+        cur.execute('select sc_id,sc_date,sc_new_date,sc_rev,sc_flag,sc_prio,doc_type,doc_sid,doc_crc,sc_note,doc_ijs_crc,doc_ijs from schedule where doc_type=%s and doc_sid=%s order by sc_id asc', (
             d_type, sid
             )
         )
@@ -237,13 +239,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
             
+            if r['sc_flag'] & REC_FLAG_PARTIAL and r['doc_ijs_crc'] != items_crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
+            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
+
             if r['sc_flag'] & REC_FLAG_PARTIAL:
                 doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
-                if r['doc_crc'] == crc:
-                    r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
-                else:
+                if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
                     r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
-
+                else:
+                    r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
+                    
             recs.append(r)
         
         self.req.writejs(js)
@@ -403,6 +408,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         gjs = json.loads(gjs)
         new_doc_crc = gjs.get('crc')
+        new_doc_ijs_crc = gjs.get('items_crc')
         
         if mode:
             if not note: self.req.exitjs({'err': -66, 'err_s': 'Require A Note For Partial Delivery!'})
@@ -426,14 +432,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             s_ijs = json.dumps(n_ijs, separators=(',',':'))
             
         if sc_id == 0:
-            cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s,null)', (
-                d_date, mode and REC_FLAG_PARTIAL or 0, prio, d_type, d_sid, new_doc_crc, note, mode and s_ijs or None
+            cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s,%s,null)', (
+                d_date, mode and REC_FLAG_PARTIAL or 0, prio, d_type, d_sid, new_doc_crc, note, new_doc_ijs_crc, mode and s_ijs or None
                 )
             )
             sc_id = cur.lastrowid
             d_notes.append('Schedule[%d] (%s) - Created(Pending) - %s' % (sc_id, o_date.strftime('%m/%d/%y'), mode and 'Partial Delivery\n' + '\n'.join(ijs_note) or 'Complete Delivery'))
         else:
-            cur.execute("select sc_flag,sc_date,sc_new_date,sc_prio,sc_note,doc_crc,doc_ijs from schedule where sc_id=%s and sc_rev=%s", (
+            cur.execute("select sc_flag,sc_date,sc_new_date,sc_prio,sc_note,doc_crc,doc_ijs,doc_ijs_crc from schedule where sc_id=%s and sc_rev=%s", (
                 sc_id, rev
                 )
             )
@@ -458,10 +464,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 
             if mode and o_r['sc_flag'] & REC_FLAG_PARTIAL:
                 m_note = False
-                if new_doc_crc != o_r['doc_crc']:
+                if new_doc_ijs_crc != o_r['doc_ijs_crc']:
                     m_note = chg = True
-                    if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Document Changed! Please Check!"})
-                    if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
+                    if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Items Changed! Please Check!"})
                     
                 o_r['doc_ijs'] = o_r['doc_ijs'] and json.loads(o_r['doc_ijs']) or []
                 if n_ijs != o_r['doc_ijs']:
@@ -504,8 +509,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if o_r['sc_flag'] & REC_FLAG_ACCEPTED:
                 if o_r['sc_prio'] != prio or o_r['sc_note'] != note: new_sc_flag |= REC_FLAG_CHANGED
                 if mode:
-                    cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
-                        new_sc_flag, d_date, prio, note, new_doc_crc, s_ijs, sc_id, rev
+                    cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_ijs_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
+                        new_sc_flag, d_date, prio, note, new_doc_ijs_crc, s_ijs, sc_id, rev
                         )
                     )
                 else:
@@ -514,8 +519,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                         )
                     )
             else:
-                cur.execute("update schedule set sc_rev=sc_rev+1,sc_new_date=0,sc_flag=%s,sc_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
-                    new_sc_flag,d_date, prio, note, new_doc_crc, mode and s_ijs or None, sc_id, rev
+                cur.execute("update schedule set sc_rev=sc_rev+1,sc_new_date=0,sc_flag=%s,sc_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
+                    new_sc_flag,d_date, prio, note, new_doc_crc, new_doc_ijs_crc, mode and s_ijs or None, sc_id, rev
                     )
                 )
             
@@ -582,23 +587,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             gjs = json.loads(r['doc'][7])
             ijs = json.loads(r['doc'][8])
             crc = gjs.get('crc')
+            items_crc = gjs.get('items_crc')
 
             if r['sc_flag'] & REC_FLAG_PARTIAL:
-                if r['doc_crc'] != crc: continue
+                if r['doc_ijs_crc'] != items_crc: continue
 
                 doc_ijs = json.loads(r['doc_ijs'])
                 for i in range(len(ijs)):
                     ijs[i]['qty'] = doc_ijs[i][3]
                 p_ijs = ijs
 
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
-                    REC_FLAG_CHANGED, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
                 ))
             else:
                 p_ijs = ijs
 
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
-                    REC_FLAG_CHANGED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s,doc_ijs_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, crc, items_crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
                 ))
             if cur.rowcount > 0: c += 1
     
@@ -620,23 +626,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             gjs = json.loads(r['doc'][7])
             ijs = json.loads(r['doc'][8])
             crc = gjs.get('crc')
+            items_crc = gjs.get('items_crc')
 
             if r['sc_flag'] & REC_FLAG_PARTIAL:
-                if r['doc_crc'] != crc: continue
+                if r['doc_ijs_crc'] != items_crc: continue
 
                 doc_ijs = json.loads(r['doc_ijs'])
                 for i in range(len(doc_ijs)):
                     ijs[i]['qty'] = doc_ijs[i][3]
                 p_ijs = ijs
 
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                    REC_FLAG_ACCEPTED, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
             else:
                 p_ijs = ijs
 
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                    REC_FLAG_ACCEPTED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_crc=%s,doc_ijs_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, crc, items_crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
             if cur.rowcount > 0:
                 c += 1
@@ -910,7 +917,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             where = ' where sc_date=%s' + (pending_only and ' and sc_flag&%d=0' % (REC_FLAG_ACCEPTED,) or '') + ' order by '+ (sort_reg and 'sc_id asc' or 'sc_id desc')
         sql_dup_chk = ''
         if dup_chk: sql_dup_chk = ',(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup'
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,(sc_flag&1) as is_accepted' + sql_dup_chk + addqs + ' from schedule sa ' + where, (date,))
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,doc_ijs_crc,(sc_flag&1) as is_accepted' + sql_dup_chk + addqs + ' from schedule sa ' + where, (date,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -976,7 +983,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             zid = geo and geo[0] or 0
             if zone_id >= 0 and zid != zone_id: continue
             
-            doc_js = r['doc_js']
+            gjs = doc_js = r['doc_js']
             doc_data = r['doc_data']
 
             r['doc_geo'] = geo
@@ -990,11 +997,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             r['doc_date'] = doc_data[3]
             r['doc_amt'] = doc_js['total']
             
-            crc = doc_js.get('crc')
-            if r['sc_flag'] & REC_FLAG_PARTIAL:
-                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
-            elif r['sc_flag'] & REC_FLAG_ACCEPTED:
-                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
+
+            items_crc = gjs.get('items_crc')
+            if r['sc_flag'] & REC_FLAG_PARTIAL and r['doc_ijs_crc'] != items_crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
+            
+            crc = gjs.get('crc')
+            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
+
                 
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
             #r['doc_sid'] = str(r['doc_sid'])
@@ -1149,11 +1158,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 rsc_dt_o = self.int2date(r['sc_new_date'])
                 r['rescheduling'] = (rsc_dt_o.strftime("%m/%d/%Y"), rsc_dt_o.weekday())
                 
+            items_crc = gjs.get('items_crc')
+            if r['sc_flag'] & REC_FLAG_PARTIAL and r['doc_ijs_crc'] != items_crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
+            
             crc = gjs.get('crc')
-            if r['sc_flag'] & REC_FLAG_PARTIAL:
-                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
-            elif r['sc_flag'] & REC_FLAG_ACCEPTED:
-                if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
+            if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
             
             r['diff_ijs'] = []
             if r['sc_flag'] & REC_FLAG_PARTIAL:

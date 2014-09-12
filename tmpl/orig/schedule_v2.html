@@ -550,8 +550,8 @@ g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
                 var doc = null;
                 if(mode) {
                     check_n_confirm = $(g_v_df_item_lst_ftr_c[0]).children('input').prop('checked') ? 1 : 0;
-                    if(ridx && rec.sc_flag & ${REC_FLAG_PARTIAL} && pjs.crc !== rec.doc_crc && !check_n_confirm) {
-                        MsgBox('Warning - Please Check And Confirm!', 'Document Changed! Please Make Sure That Everything Is Correct!');
+                    if(ridx && (rec.sc_flag & ${REC_FLAG_PARTIAL_CHANGED}) && !check_n_confirm) {
+                        MsgBox('Warning - Please Check And Confirm!', 'Items Changed! Please Make Sure That Everything Is Correct!');
                         return;
                     }
                     var o_ijs = pjs.ijs;
@@ -651,7 +651,7 @@ els.mode[0].change(function() {
     var rec = ridx && js.recs[parseInt(ridx)] || null;
     var ijs = !full && rec && rec.doc_ijs || js.ijs;
     
-    if(!full && rec && rec.sc_flag & ${REC_FLAG_PARTIAL} && rec.doc_crc !== js.crc) {
+    if(!full && rec && (rec.sc_flag & ${REC_FLAG_PARTIAL_CHANGED})) {
         g_v_df_item_lst_ftr_c.show();
         $(g_v_df_item_lst_ftr_c[1]).text(rec.unmatched ? 'Unmatched' : '');
     }
@@ -1006,7 +1006,7 @@ load_overview();
 <div class="prntbl item_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" name="rec_cb_item_sel_all" /></div><div>#</div><div>ALU</div><div>Name</div><div>QTY</div></div>
 <div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"><div><input type="checkbox" name="rec_cb_check_n_confirm" /> Document Changed, Please Check And Confirm</div><div></div></div>
+<div class="prntbl_row prntbl_row_ftr"><div><input type="checkbox" name="rec_cb_check_n_confirm" /> Items Changed, Please Check And Confirm</div><div></div></div>
 </div>
 </div>
 
