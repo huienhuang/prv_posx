@@ -68,8 +68,11 @@ g_doc_notice_d2.show();
 .p_doc_meta >div:nth-child(2) {width:170px;right:60px}
 .p_doc_meta >div:nth-child(3) {width:60px;right:0;text-align:right}
 
-.p_doc_notice {text-align:center;font-weight:bold;color:#ee1b1b;line-height:26px;font-style:italic;border-bottom:1px solid #ccc;padding-bottom:8px}
+.p_doc_notice {text-align:center;font-weight:bold;line-height:26px;font-style:italic;border-bottom:1px solid #ccc;padding-bottom:8px}
+.p_doc_notice > div:nth-child(1) {color:#ee1b1b;}
 .p_doc_notice > div:nth-child(2) {margin-top:6px;display:none}
+.p_doc_notice > div:nth-child(3) {margin:10px 0 2px 0;}
+.p_doc_notice > div:nth-child(3) > .prntbl_row_ftr {height:0}
 
 .p_doc_memo {border:1px solid #ccc;padding:12px 6px 6px 6px;position:relative;margin-top:14px;}
 .p_doc_memo >div:nth-child(1) {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
@@ -133,10 +136,8 @@ g_doc_notice_d2.show();
 %endif
 
 .cls_print_only {display:none;font-size:48px;text-align:center;padding:20px 0}
-.prntbl .cls_nil_item {background-color:#dca1a1 !important}
-.prntbl .cls_nil_item > div:nth-child(n+2) {text-decoration:line-through}
-.prntbl .cls_cmp_mode_modified {background-color:#adbfe3 !important}
-.prntbl .cls_cmp_mode_new {background-color:#cae4b9 !important}
+.prntbl .cls_item_diff_minus {background-color:#ff5252 !important}
+.prntbl .cls_item_diff_add {background-color:#cae4b9 !important}
 .prntbl .cls_cmp_mode_unmatched {background-color:#e3c7e5 !important}
 
 .prntbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe7d7 !important}
@@ -146,7 +147,7 @@ g_doc_notice_d2.show();
 div {border-color:#000 !important}
 .prntbl {-webkit-print-color-adjust:exact}
 .p_doc_signature, .p_doc_prn_hdr {display:block}
-.p_doc_partial_note, .p_doc_partial_note >div:first-child, .p_doc_notice {color:#000}
+.p_doc_partial_note, .p_doc_partial_note >div:first-child, .p_doc_notice > div:nth-child(1) {color:#000}
 .cls_dont_print {display:none}
 .cls_print_only {display:block}
 }
@@ -190,6 +191,26 @@ gjs = r['gjs']
 %elif not(r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED) and r['sc_flag'] & REC_FLAG_CHANGED:
 <div>* The Document Has Been Changed, Please Check / 货单改动, 请检查 *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'clear_cflag', '${r["sc_id"]}')" /></div>
+
+<div class="prntbl cls_dont_print">
+<div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>ChgQty</div></div>
+<div class="prntbl_cnt">
+%for f_v in r['diff_ijs']:
+<%
+f_diff,f_pos,t = f_v
+%>
+<div class="prntbl_row cls_item_diff_${f_diff > 0 and 'add' or 'minus'}">
+<div>${t['itemno'] or ''}</div>
+<div>${t['desc1']|h}</div>
+<div>${'%0.2f' % (round_ex(t['price']),)}</div>
+<div>${t['alu']|h}</div>
+<div>${'%+d' % int(f_diff)}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+</div>
+%endfor
+</div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
 %endif
 </div>
 %endif
@@ -291,37 +312,11 @@ cust = gjs['shipping']
 
 <div class="prntbl${(not r['is_accepted'] or r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED) and ' cls_dont_print' or ''}">
 <div class="prntbl_row prntbl_row_hdr">
-<div>
 %if view_only:
-NUM
+<div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>Qty</div>
 %else:
-号码
+<div>号码</div><div>货名</div><div>单价</div><div>查询号码</div><div>送货数量</div>
 %endif
-</div><div>
-%if view_only:
-Name
-%else:
-货名
-%endif
-</div><div>
-%if view_only:
-UPrice
-%else:
-单价
-%endif
-</div><div>
-%if view_only:
-ALU
-%else:
-查询号码
-%endif
-</div><div>
-%if view_only:
-Qty
-%else:
-送货数量
-%endif
-</div>
 ${not view_only and '<div>CK</div>' or ''}
 </div>
 <div class="prntbl_cnt">
@@ -337,16 +332,6 @@ elif cmp_mode == 2:
     cmp_mode_cls = ' cls_cmp_mode_unmatched'
 %>
 <div class="prntbl_row${cmp_mode_cls}">
-<div>${t['itemno'] or ''}</div>
-<div>${t['desc1']|h}</div>
-<div>${'%0.2f' % (round_ex(t['price']),)}</div>
-<div>${t['alu']|h}</div>
-<div>${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
-${not view_only and '<div></div>' or ''}
-</div>
-%endfor
-%for t in r['nil_ijs']:
-<div class="prntbl_row cls_nil_item">
 <div>${t['itemno'] or ''}</div>
 <div>${t['desc1']|h}</div>
 <div>${'%0.2f' % (round_ex(t['price']),)}</div>

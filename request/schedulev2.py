@@ -343,6 +343,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         return (n_ijs, unmatched, nil_ijs)
 
 
+    def diff_items(self, c_ijs, o_ijs):
+        d_t = {}
+
+        for i in range(len(c_ijs)):
+            t = c_ijs[i]
+            d_t.setdefault((t['itemsid'], t['uom']), [0, i, t])[0] += t['qty']
+
+        for i in range(len(o_ijs)):
+            t = o_ijs[i]
+            ct = d_t.setdefault((t['itemsid'], t['uom']), [0, i, t])
+            ct[0] -= t['qty']
+
+        ts = []
+        for v in d_t.values():
+            if not v[0]: continue
+            ts.append(v)
+        ts.sort(key=lambda f_v:(f_v[1], f_v[2]['itemno']))
+
+        return ts
+
     def fn_set_doc(self):
         cts = int(time.time())
         d_sid = self.req.psv_int('sid')
@@ -1135,10 +1155,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             elif r['sc_flag'] & REC_FLAG_ACCEPTED:
                 if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
             
-            r['nil_ijs'] = []
+            r['diff_ijs'] = []
             if r['sc_flag'] & REC_FLAG_PARTIAL:
                 r['mode'] = 1
-                ijs_cmp = False
                 doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
                 if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
                     doc_ijs,r['unmatched'] = self.map_item(ijs, doc_ijs)
@@ -1151,8 +1170,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
                     if r['sc_flag'] & REC_FLAG_CHANGED and r['doc_cur_ijs'] != None:
                         doc_cur_ijs = json.loads(r['doc_cur_ijs'])
-                        doc_cur_ijs,r_unk,r['nil_ijs'] = self.map_item_v2(ijs, doc_cur_ijs)
-                        ijs_cmp = True
+                        r['diff_ijs'] = self.diff_items(ijs, doc_cur_ijs)
 
                 n_total = 0
                 t_item_sid = set()
@@ -1165,7 +1183,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     t_item_qty += abs(t['qty'])
                     t_item_sid.add(t['itemsid'])
                     if t['itemsid'] != 1000000005: n_total += t['qty'] * t['pricetax']
-                    if ijs_cmp: t['cmp_mode'] = doc_cur_ijs[i].get('err')
 
                 ijs = r['ijs'] = n_ijs
                 n_total *= (100 - gjs['discprc']) / 100.0
@@ -1175,10 +1192,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             elif r['sc_flag'] & REC_FLAG_CHANGED and r['doc_cur_ijs'] != None:
                 doc_cur_ijs = json.loads(r['doc_cur_ijs'])
-                doc_cur_ijs,r_unk,r['nil_ijs'] = self.map_item_v2(ijs, doc_cur_ijs)
-
-                for i in range(len(ijs)): ijs[i]['cmp_mode'] = doc_cur_ijs[i].get('err')
-
+                r['diff_ijs'] = self.diff_items(ijs, doc_cur_ijs)
 
             r['type_s'] = type_s
             r['count_s'] = count_s
