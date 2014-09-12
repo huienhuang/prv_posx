@@ -74,7 +74,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_note = None
         if r['sc_flag'] & REC_FLAG_ACCEPTED:
-            cur.execute('update schedule set sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
                 REC_FLAG_CANCELLING, sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
@@ -283,11 +283,66 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             if len(v[1]):
                 unmatched += 1
+                r['qty'] = v[1].pop(0)[1]
             else:
                 r['err'] = -1
         
         return (n_ijs, unmatched)
+    
+
+    def map_item_v2(self, c_ijs, o_ijs):
+        d_items = {}
+        for r in o_ijs:
+            if not r['qty']: continue
+            v = d_items.setdefault((r['itemsid'], r['uom']), [0, {}])[1].setdefault(r['qty'], []).append(r)
+
+        n_ijs = []
+        for r in c_ijs:
+            v = d_items.get((r['itemsid'], r['uom']))
+            t = {'qty': 0, 'err': -1}
+            n_ijs.append(t)
+            if not r['qty'] or not v: continue
+            
+            v1 = v[1].get(r['qty'])
+            if v1:
+                ro = v1.pop(0)
+                t['qty'] = ro['qty']
+                t['err'] = 0
+            else:
+                t['err'] = 1
+                t['v'] = v
         
+        unmatched = 0
+        for r in n_ijs:
+            if r['err'] != 1: continue
+            v = r['v']
+            if not v[0]:
+                m = []
+                for f_lst in v[1].values():
+                    for f_ro in f_lst:
+                       m.append(f_ro)
+                v[0] = 1
+                v[1] = m
+            
+            if len(v[1]):
+                unmatched += 1
+                ro = v[1].pop(0)
+                t['qty'] = ro['qty']
+            else:
+                r['err'] = -1
+
+        nil_ijs = []
+        for f_type,f_v in d_items.values():
+            if f_type:
+                nil_ijs.extend(f_v)
+            else:
+                for f_lst in f_v.values():
+                    for f_ro in f_lst:
+                       nil_ijs.append(f_ro)
+
+        return (n_ijs, unmatched, nil_ijs)
+
+
     def fn_set_doc(self):
         cts = int(time.time())
         d_sid = self.req.psv_int('sid')
@@ -351,7 +406,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             s_ijs = json.dumps(n_ijs, separators=(',',':'))
             
         if sc_id == 0:
-            cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s)', (
+            cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s,null)', (
                 d_date, mode and REC_FLAG_PARTIAL or 0, prio, d_type, d_sid, new_doc_crc, note, mode and s_ijs or None
                 )
             )
@@ -386,6 +441,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if new_doc_crc != o_r['doc_crc']:
                     m_note = chg = True
                     if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Document Changed! Please Check!"})
+                    if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
                     
                 o_r['doc_ijs'] = o_r['doc_ijs'] and json.loads(o_r['doc_ijs']) or []
                 if n_ijs != o_r['doc_ijs']:
@@ -427,10 +483,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             if o_r['sc_flag'] & REC_FLAG_ACCEPTED:
                 if o_r['sc_prio'] != prio or o_r['sc_note'] != note: new_sc_flag |= REC_FLAG_CHANGED
-                cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
-                    new_sc_flag, d_date, prio, note, new_doc_crc, mode and s_ijs or None, sc_id, rev
+                if mode:
+                    cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
+                        new_sc_flag, d_date, prio, note, new_doc_crc, s_ijs, sc_id, rev
+                        )
                     )
-                )
+                else:
+                    cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_ijs=null where sc_id=%s and sc_rev=%s", (
+                        new_sc_flag, d_date, prio, note, sc_id, rev
+                        )
+                    )
             else:
                 cur.execute("update schedule set sc_rev=sc_rev+1,sc_new_date=0,sc_flag=%s,sc_date=%s,sc_prio=%s,sc_note=%s,doc_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
                     new_sc_flag,d_date, prio, note, new_doc_crc, mode and s_ijs or None, sc_id, rev
@@ -492,19 +554,31 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_clear_cflag(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
-        docs = self.get_docs_by_sc_ids(sc_ids)
+        docs = self.get_docs_by_sc_ids(sc_ids, True)
         
         cur = self.cur()
         c = 0
         for r in docs:
+            gjs = json.loads(r['doc'][7])
+            ijs = json.loads(r['doc'][8])
+            crc = gjs.get('crc')
+
             if r['sc_flag'] & REC_FLAG_PARTIAL:
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s) where sc_id=%s and sc_flag&%s!=0', (
-                    REC_FLAG_CHANGED, r['sc_id'], REC_FLAG_ACCEPTED
+                if r['doc_crc'] != crc: continue
+
+                doc_ijs = json.loads(r['doc_ijs'])
+                for i in range(len(ijs)):
+                    ijs[i]['qty'] = doc_ijs[i][3]
+                p_ijs = ijs
+
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
                 ))
             else:
-                crc = json.loads(r['doc'][2]).get('crc')
-                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s where sc_id=%s and sc_flag&%s!=0', (
-                    REC_FLAG_CHANGED, crc, r['sc_id'], REC_FLAG_ACCEPTED
+                p_ijs = ijs
+
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+                    REC_FLAG_CHANGED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
                 ))
             if cur.rowcount > 0: c += 1
     
@@ -523,14 +597,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_notes = []
         c = 0
         for r in docs:
+            gjs = json.loads(r['doc'][7])
+            ijs = json.loads(r['doc'][8])
+            crc = gjs.get('crc')
+
             if r['sc_flag'] & REC_FLAG_PARTIAL:
-                cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1 where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                    REC_FLAG_ACCEPTED, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                if r['doc_crc'] != crc: continue
+
+                doc_ijs = json.loads(r['doc_ijs'])
+                for i in range(len(doc_ijs)):
+                    ijs[i]['qty'] = doc_ijs[i][3]
+                p_ijs = ijs
+
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
             else:
-                crc = json.loads(r['doc'][7]).get('crc')
-                cur.execute('update schedule set sc_flag=sc_flag|%s,sc_rev=sc_rev+1,doc_crc=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
-                    REC_FLAG_ACCEPTED, crc, r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
+                p_ijs = ijs
+
+                cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+                    REC_FLAG_ACCEPTED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
                 ))
             if cur.rowcount > 0:
                 c += 1
@@ -1048,35 +1134,52 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_PARTIAL_CHANGED
             elif r['sc_flag'] & REC_FLAG_ACCEPTED:
                 if r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
-                
+            
+            r['nil_ijs'] = []
             if r['sc_flag'] & REC_FLAG_PARTIAL:
                 r['mode'] = 1
+                ijs_cmp = False
                 doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
-                if r['doc_crc'] == gjs.get('crc'):
-                    r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
+                if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
+                    doc_ijs,r['unmatched'] = self.map_item(ijs, doc_ijs)
+                    for i in range(len(ijs)):
+                        ijs[i]['qty'] = doc_ijs[i]['qty']
+                        if doc_ijs[i]['err'] == 1: ijs[i]['cmp_mode'] = 2
+                        
                 else:
-                    r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
-                
+                    for i in range(len(ijs)): ijs[i]['qty'] = doc_ijs[i][3]
+
+                    if r['sc_flag'] & REC_FLAG_CHANGED and r['doc_cur_ijs'] != None:
+                        doc_cur_ijs = json.loads(r['doc_cur_ijs'])
+                        doc_cur_ijs,r_unk,r['nil_ijs'] = self.map_item_v2(ijs, doc_cur_ijs)
+                        ijs_cmp = True
+
                 n_total = 0
                 t_item_sid = set()
                 t_item_qty = 0
                 n_ijs = []
-                for i in range(len(r['doc_ijs'])):
-                    t = r['doc_ijs'][i]
-                    t_qty = t['qty']
-                    if not t_qty: continue
-                    n_t = ijs[i]
-                    n_ijs.append(n_t)
-                    t_item_qty += abs(t_qty)
-                    t_item_sid.add(n_t['itemsid'])
-                    n_t['qty'] = t_qty
-                    if n_t['itemsid'] != 1000000005: n_total += t_qty * n_t['pricetax']
+                for i in range(len(ijs)):
+                    t = ijs[i]
+                    if not t['qty']: continue
+                    n_ijs.append(t)
+                    t_item_qty += abs(t['qty'])
+                    t_item_sid.add(t['itemsid'])
+                    if t['itemsid'] != 1000000005: n_total += t['qty'] * t['pricetax']
+                    if ijs_cmp: t['cmp_mode'] = doc_cur_ijs[i].get('err')
+
                 ijs = r['ijs'] = n_ijs
                 n_total *= (100 - gjs['discprc']) / 100.0
                 
                 gjs['n_total'] = n_total
                 count_s = 'Item %d, Qty %d' % (len(t_item_sid), t_item_qty)
-                
+            
+            elif r['sc_flag'] & REC_FLAG_CHANGED and r['doc_cur_ijs'] != None:
+                doc_cur_ijs = json.loads(r['doc_cur_ijs'])
+                doc_cur_ijs,r_unk,r['nil_ijs'] = self.map_item_v2(ijs, doc_cur_ijs)
+
+                for i in range(len(ijs)): ijs[i]['cmp_mode'] = doc_cur_ijs[i].get('err')
+
+
             r['type_s'] = type_s
             r['count_s'] = count_s
             
@@ -1105,6 +1208,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     d_notes.append(rr)
                     
         r = {
+            'REC_FLAG_PARTIAL_CHANGED': REC_FLAG_PARTIAL_CHANGED,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,

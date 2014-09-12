@@ -728,10 +728,10 @@ function _ui_get_doc(sc_id)
                            .append( $('<div></div>').text(item.alu) )
                            .append( $('<div></div>').text(item.name) )
                            .append( $('<div></div>').append(item_v_com[1]).append( $('<span></span>').text('/ ' + item.qty + (item.uom ? ' ' + item.uom : '')) ) );
-                item_v_com[2].tooltip({
-                    items: '.prntbl_row',
-                    content: get_item_possible_match_content
-                });
+                //item_v_com[2].tooltip({
+                //    items: '.prntbl_row',
+                //    content: get_item_possible_match_content
+                //});
                 v_lst.push(item_v_com[2]);
                 v_com_lst.push(item_v_com);
             }

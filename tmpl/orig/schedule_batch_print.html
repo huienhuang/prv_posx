@@ -132,11 +132,23 @@ g_doc_notice_d2.show();
 .p_doc_signature .xlabel:nth-child(2) {right:0px;}
 %endif
 
+.cls_print_only {display:none;font-size:48px;text-align:center;padding:20px 0}
+.prntbl .cls_nil_item {background-color:#dca1a1 !important}
+.prntbl .cls_nil_item > div:nth-child(n+2) {text-decoration:line-through}
+.prntbl .cls_cmp_mode_modified {background-color:#adbfe3 !important}
+.prntbl .cls_cmp_mode_new {background-color:#cae4b9 !important}
+.prntbl .cls_cmp_mode_unmatched {background-color:#e3c7e5 !important}
+
+.prntbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe7d7 !important}
+
+
 @media print {
 div {border-color:#000 !important}
 .prntbl {-webkit-print-color-adjust:exact}
 .p_doc_signature, .p_doc_prn_hdr {display:block}
 .p_doc_partial_note, .p_doc_partial_note >div:first-child, .p_doc_notice {color:#000}
+.cls_dont_print {display:none}
+.cls_print_only {display:block}
 }
 @page {
 margin:50px 50px;
@@ -175,7 +187,7 @@ gjs = r['gjs']
 %elif r['sc_flag'] & REC_FLAG_RESCHEDULED:
 <div>* Rescheduling / 正在改期 -&gt; ${ENG_DAYS[ r['rescheduling'][1] ]} / 星期${CHS_DAYS[ r['rescheduling'][1] ]} (${r['rescheduling'][0]}) *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'confirm_rescheduling', '${r["sc_id"]}')" /></div>
-%elif r['sc_flag'] & REC_FLAG_CHANGED:
+%elif not(r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED) and r['sc_flag'] & REC_FLAG_CHANGED:
 <div>* The Document Has Been Changed, Please Check / 货单改动, 请检查 *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'clear_cflag', '${r["sc_id"]}')" /></div>
 %endif
@@ -268,7 +280,7 @@ cust = gjs['shipping']
 %if r.get('mode'):
 <div class="p_doc_partial_note">
 <div>****** Partial Delivery / 只送以下 ******</div>
-%if r['doc_crc'] != gjs.get('crc'):
+%if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
 <div>The document has been changed, unreliable! / 文档已经被改变, 不可靠!</div>
 %if r['unmatched']:
 <div>无法匹配! Call ${r['assoc']|h} 确认!</div>
@@ -277,7 +289,7 @@ cust = gjs['shipping']
 </div>
 %endif
 
-<div class="prntbl">
+<div class="prntbl${(not r['is_accepted'] or r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED) and ' cls_dont_print' or ''}">
 <div class="prntbl_row prntbl_row_hdr">
 <div>
 %if view_only:
@@ -314,7 +326,27 @@ ${not view_only and '<div>CK</div>' or ''}
 </div>
 <div class="prntbl_cnt">
 %for t in r['ijs']:
-<div class="prntbl_row">
+<%
+cmp_mode_cls = ''
+cmp_mode = t.get('cmp_mode', 0)
+if cmp_mode == 1:
+    cmp_mode_cls = ' cls_cmp_mode_modified'
+elif cmp_mode == -1:
+    cmp_mode_cls = ' cls_cmp_mode_new'
+elif cmp_mode == 2:
+    cmp_mode_cls = ' cls_cmp_mode_unmatched'
+%>
+<div class="prntbl_row${cmp_mode_cls}">
+<div>${t['itemno'] or ''}</div>
+<div>${t['desc1']|h}</div>
+<div>${'%0.2f' % (round_ex(t['price']),)}</div>
+<div>${t['alu']|h}</div>
+<div>${int(t['qty'])}${t['uom'] and ' ' + t['uom'] or ''|h}</div>
+${not view_only and '<div></div>' or ''}
+</div>
+%endfor
+%for t in r['nil_ijs']:
+<div class="prntbl_row cls_nil_item">
 <div>${t['itemno'] or ''}</div>
 <div>${t['desc1']|h}</div>
 <div>${'%0.2f' % (round_ex(t['price']),)}</div>
@@ -326,6 +358,12 @@ ${not view_only and '<div></div>' or ''}
 </div>
 <div class="prntbl_row prntbl_row_ftr"><div>Total: ${r.get('mode') and '$%0.2f / ' % (gjs['n_total'],) or ''}$${'%0.2f' % (round_ex(gjs['total']),)}</div></div>
 </div>
+
+%if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
+<div class="cls_print_only">Please Call ${r['assoc']|h} To Verify The Change!</div>
+%elif not r['is_accepted']:
+<div class="cls_print_only">Please Accept The document First!</div>
+%endif
 
 %if view_only and r['notes']:
 <div class="p_doc_note">
