@@ -327,7 +327,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if len(v[1]):
                 unmatched += 1
                 ro = v[1].pop(0)
-                t['qty'] = ro['qty']
+                r['qty'] = ro['qty']
             else:
                 r['err'] = -1
 
@@ -1145,7 +1145,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     for i in range(len(ijs)):
                         ijs[i]['qty'] = doc_ijs[i]['qty']
                         if doc_ijs[i]['err'] == 1: ijs[i]['cmp_mode'] = 2
-                        
+
                 else:
                     for i in range(len(ijs)): ijs[i]['qty'] = doc_ijs[i][3]
 
