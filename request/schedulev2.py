@@ -136,7 +136,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
-            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s and (select count(*) from deliveryv2_receipt where sc_id=schedule.sc_id)=0', (
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
                 REC_FLAG_RESCHEDULED, REC_FLAG_R_RESCHEDULED, 
                 r['sc_new_date'],
                 r['sc_id'], r['sc_rev'],
