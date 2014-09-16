@@ -280,13 +280,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         d_id = self.req.psv_int('d_id')
         rev = self.req.psv_int('rev')
         
-        d_ts = self.req.psv_int('ts')
-        if d_ts:
-            d_dt = datetime.date.fromtimestamp(d_ts)
-        else:
-            d_dt = datetime.date.today()
+        ts = self.get_day_ts( self.req.psv_int('ts') )
+        d_dt = datetime.date.fromtimestamp(ts)
         d_dt_i = d_dt.year * 10000 + d_dt.month * 100 + d_dt.day
-        ts = int(time.mktime(d_dt.timetuple()))
         
         name = self.req.psv_ustr('name')[:128].strip()
         recs = self.req.psv_js('recs')
@@ -305,7 +301,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             rows = cur.fetchall()
             if not rows: self.req.exitjs({'err': 'No Record ID #%s' % (d_id,)})
             r = dict(zip(cur.column_names, rows[0]))
-            if r['ts'] == ts: date_chg = False
+            if self.get_day_ts(r['ts']) == ts: date_chg = False
             if r['rev'] != rev: self.req.exitjs({'err': 'Revision Not Matched (%d, %d)' % (r['rev'], rev)})
             for n in json.loads(r['js']):
                 if n['type'] == 0:
