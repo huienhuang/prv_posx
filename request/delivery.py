@@ -40,7 +40,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         js = json.loads(dv['js'])
         
         rec_lku = {}
-        cur.execute('select dr.*,sr.sid,sr.sid_type,sr.cid,sr.global_js,(select count(*) from deliveryv2_receipt sdr where sdr.num=dr.num) as dup from deliveryv2_receipt dr left join sync_receipts sr on (dr.num=sr.num) where dr.d_id=%s', (d_id,))
+        cur.execute('select dr.*,sr.sid,sr.sid_type,sr.cid,sr.global_js,(select sonum from sync_salesorders where sid=sr.so_sid) as so_num,(select count(*) from deliveryv2_receipt sdr where sdr.num=dr.num) as dup,sc.sc_id,sc.sc_flag,sc.doc_type,sc.doc_sid,sc.sc_note from deliveryv2_receipt dr left join sync_receipts sr on (dr.num=sr.num) left join schedule sc on (dr.sc_id=sc.sc_id) where dr.d_id=%s', (d_id,))
         nzs = cur.column_names
         cids = set()
         for r in cur.fetchall():
@@ -48,6 +48,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             r['dup'] = r['dup'] > 1 and 1 or 0
             rec_lku[ r['num'] ] = r
             cids.add(r['cid'])
+
+            if r['sc_id']:
+                r['sc_mode'] = r['sc_flag'] & REC_FLAG_PARTIAL
+                if r['doc_type']:
+                    r['doc_num'] = r['num']
+                else:
+                    r['doc_num'] = r['so_num']
         
         for x in js:
             if x['type'] == 1:
@@ -172,6 +179,43 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writefile('delivery_edit_v2.html', r)
 
 
+    def get_sc_recs(self, num, d_dt_i):
+        cur = self.cur()
+        cur.execute('select sid,so_sid,(select sonum from sync_salesorders where sid=sr.so_sid) as so_num from sync_receipts sr where sid_type=0 and num=%s', (num, ))
+        rows = cur.fetchall()
+        if not rows: return
+        sid,so_sid,so_num = rows[0]
+
+        sc_recs = []
+        if so_sid != None:
+            cur.execute('select sc_id,sc_flag,doc_type,doc_sid,sc_note from schedule where sc_date=%s and (doc_type=1 and doc_sid=%s or doc_type=0 and doc_sid=%s) order by doc_type desc', (d_dt_i, sid, so_sid))
+        else:
+            cur.execute('select sc_id,sc_flag,doc_type,doc_sid,sc_note from schedule where sc_date=%s and doc_type=1 and doc_sid=%s ', (d_dt_i, sid))
+        cnz = cur.column_names
+        for s in cur.fetchall():
+            s = dict(zip(cnz, s))
+            s['sc_mode'] = s['sc_flag'] & REC_FLAG_PARTIAL
+            if s['doc_type']:
+                s['doc_num'] = num
+            else:
+                s['doc_num'] = so_num
+            sc_recs.append(s)
+
+        return sc_recs
+
+
+    def fn_get_sc_recs(self):
+        num = self.req.qsv_int('num')
+        if not num: return
+        d_ts = self.req.qsv_int('d_ts')
+        if d_ts:
+            d_dt = datetime.date.fromtimestamp(d_ts)
+        else:
+            d_dt = datetime.date.today()
+        d_dt_i = d_dt.year * 10000 + d_dt.month * 100 + d_dt.day
+
+        self.req.writejs(self.get_sc_recs(num, d_dt_i)) 
+
     def fn_get_delivery_receipt(self):
         num = self.req.qsv_int('num')
         if not num: self.req.exitjs({'err': 'error Num'})
@@ -184,11 +228,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         d_dt_i = d_dt.year * 10000 + d_dt.month * 100 + d_dt.day
         
         cur = self.cur()
-        cur.execute('select sr.num,sr.cid,sr.sid,sr.sid_type,sr.global_js,sc.detail,(select count(*) from schedule where sc_date=%d and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_count from sync_receipts sr left join sync_customers sc on (sc.sid=sr.cid) where sr.num=%d' % (d_dt_i, num,))
+        cur.execute('select sr.num,sr.cid,sr.sid,sr.sid_type,sr.so_sid,sr.global_js,sc.detail from sync_receipts sr left join sync_customers sc on (sc.sid=sr.cid) where sr.sid_type=0 and sr.num=%s', (num, ))
         rows = cur.fetchall()
         if not rows: self.req.exitjs({'err': 'No Such Receipt(%s)' % (num,)})
         r = dict(zip(cur.column_names, rows[0]))
         
+        sc_recs = r['sc_recs'] = self.get_sc_recs(num, d_dt_i)
+        r['sc_count'] = len(sc_recs)
         if not r['sc_count']: self.req.exitjs({'err': 'No Schedule Found For Receipt(%s) in %02d/%02d' % (num, d_dt.month, d_dt.day)})
         
         cur.execute('select count(*),bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
@@ -267,10 +313,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         nums_lku = {}
         if nums:
-            qs_sc = '(select count(*) from schedule where sc_date='+str(d_dt_i)+' and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_count'
+            qs_sc = '(select group_concat(sc_id) from schedule where sc_date='+str(d_dt_i)+' and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_ids'
             qs_pb = '(select bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=sr.num and d_id!='+str(d_id)+') as dr_pb'
             cur.execute('select num,sid,sid_type,'+qs_sc+','+qs_pb+' from sync_receipts sr where num in ('+','.join(map(str,nums))+')')
-            for r in cur.fetchall(): nums_lku[ r[0] ] = r
+            for r in cur.fetchall():
+                r = list(r)
+                if r[3]: r[3] = set(map(int, r[3].split(',')))
+                nums_lku[ r[0] ] = r
         
         cids = [ int(x['cid']) for x in recs if x.get('type') == 1 ]
         cids_lku = {}
@@ -287,6 +336,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             r_type = rec.get('type')
             if r_type not in (0, 1): continue
             
+            rec['sc_id'] = int(rec.get('sc_id') or 0)
             rec['num'] = int(rec.get('num') or 0)
             rec['changed'] = int(rec.get('changed') or 0)
             rec['driver_id'] = int(rec.get('driver_id') or 0)
@@ -296,6 +346,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             
             if not rec['driver_id']:
                 err.append('row#%d no driver assigned' % (i + 1,))
+                continue
+
+            if not r_type and not rec['sc_id']:
+                err.append('row#%d no schedule assigned' % (i + 1,))
                 continue
             
             usr_inst = rec['js'].get('inst') or {}
@@ -333,7 +387,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                         continue
                     else:
                         if (date_chg or is_new):
-                            if not r[3]:
+                            if not r[3] or rec['sc_id'] not in r[3]:
                                 err.append('row#%d receipt#%d not in schedule %02d/%02d' % (i + 1, rec['num'], d_dt.month, d_dt.day))
                                 continue
                             if not r[4]:
@@ -389,16 +443,16 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         for rec,r,is_new in recs_db:
             s_js = json.dumps(rec['js'], separators=(',',':'))
-            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
-                d_id, rec['num'], int(bool(rec_exists.get(rec['num'], 0))), rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
-                rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js
+            cur.execute('insert into deliveryv2_receipt values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on duplicate key update sc_id=%s,driver_id=%s,delivered=%s,user_id=%s,payment_required=%s,problem_flag=%s,problem_flag_s=problem_flag_s|%s,js=%s', (
+                d_id, rec['num'], int(bool(rec_exists.get(rec['num'], 0))), rec['sc_id'], rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js,
+                rec['sc_id'], rec['driver_id'], rec['delivered'], 0, rec['payment_required'], rec['problem_flag'], rec['problem_flag'], s_js
                 )
             )
             rc = cur.rowcount
             if rc > 0:
-                nl = ['%s DeliveryLog(#%d), Driver - %s' % (
+                nl = ['%s DeliveryLog(#%d), Schedule(%d), Driver - %s' % (
                     is_new and 'Add To' or 'Update',
-                    d_id,
+                    d_id, rec['sc_id'],
                     rec['driver_id'] and users_lku.get(rec['driver_id'], 'UNK') or '',
                 )]
                 if rec['payment_required']: nl.append('> Payment Required')

@@ -59,6 +59,7 @@ function update__receipt_tbl_row_0(rec_v, rec)
 {
     var dnz = rec['driver_id'] ? g_v_dlg_data_input.data('in_els')['driver_id'][1][rec['driver_id']] : '';
     rec_v.children('.rec_driver').text(dnz === undefined ? 'UNK' : dnz);
+    rec_v.children('.rec_sc_id').text(rec['type'] ? '' : rec['sc_id'] || '');
 }
 
 function update__receipt_tbl_row_1(rec_v, rec)
@@ -121,13 +122,28 @@ function update__receipt_tbl_row(rec_v, rec)
     update__receipt_tbl_row_color(rec_v, rec);
 }
 
+function get_schedule_content()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if(rec.type || !rec.sc_id) return null;
+    
+    var o = $('<div></div>');
+    o.append( $('<div></div>').text((rec.sc_mode ? 'Partial' : 'Completed') + ' - ' + (rec.doc_type ? 'Receipt' : 'SalesOrder') + '(' + rec.doc_num + ')') );
+    if(rec.sc_note) o.append( $('<div></div>').text(rec.sc_note) );
+    
+    return o;
+}
+
 function get_note_content()
 {
     var je = $(this);
     var rec_v = je.closest('.receipt_tbl_row');
     var rec = rec_v.data('rec');
     
-    return rec.type !== 0 || !rec.js.note ? null : rec.js.note;
+    return rec.type !== 0 || !rec.js.note ? null : $('<div></div>').text(rec.js.note);
 }
 
 function get_problem_content()
@@ -211,6 +227,11 @@ function new__receipt_tbl_row(pos, rec)
        content: get_instruction_content
     });
     
+    rec_v.children('.rec_sc_id').tooltip({
+       items: '.rec_sc_id',
+       content: get_schedule_content
+    });
+    
     return rec_v;
 }
 
@@ -220,6 +241,24 @@ function add_new_row(rec)
     g_v_receipt_tbl.append(rec_v);
     g_v_receipt_tbl.scrollTop(rec_v.outerHeight() * (g_v_receipt_tbl.children(':visible').length - 1));
     return rec_v;
+}
+
+function update_schedule(rec)
+{
+    var in_els = g_v_dlg_data_input.data('in_els');
+    var sc_id = parseInt(in_els['sc_id'][0].val()) || 0;
+    if(rec.sc_id === sc_id) return;
+    
+    rec.sc_id = sc_id;
+    var sc = in_els['sc_id'][0].data('sc');
+    if(!sc || sc.sc_id !== sc_id) sc = {};
+    
+    rec.sc_flag = sc.sc_flag;
+    rec.sc_mode = sc.sc_mode;
+    rec.doc_type = sc.doc_type;
+    rec.doc_sid = sc.doc_sid;
+    rec.sc_note = sc.sc_note;
+    rec.doc_num = sc.doc_num;
 }
 
 function enter__data_input(e)
@@ -278,9 +317,20 @@ function click_save__data_input()
                     
                     var n_rec = d.rec;
                     var note = $.trim(in_els['note'][0].val());
+                    var sc_id = parseInt(in_els['sc_id'][0].val()) || 0;
+                    
                     if(n_rec.dup && !note) {
                         g_v_dlg_data_input_msg.text('Receipt Already Exists('+n_rec.dup+'), Require A Note Or Reason');
                         return;
+                    }
+                    
+                    if(!sc_id) {
+                        if(n_rec.sc_count == 1)
+                            in_els['sc_id'][0].val( n_rec.sc_recs[0].sc_id ).data('sc', n_rec.sc_recs[0]);
+                        else {
+                            open_dlg_schedule_list();
+                            return;
+                        }
                     }
                     
                     if(rec && rec.num) delete g_recs[rec.num];
@@ -296,6 +346,7 @@ function click_save__data_input()
                     rec['js']['note'] = note;
                     rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
                     
+                    update_schedule(rec);
                     update__receipt_tbl_row(rec_v, rec);
                     delivery_record_changed(rec);
                     new__data_input();
@@ -308,6 +359,7 @@ function click_save__data_input()
             });
             
         } else {
+            update_schedule(rec);
             rec['driver_id'] = parseInt(in_els['driver_id'][0].val());
             rec['js']['note'] = $.trim(in_els['note'][0].val());
             update__receipt_tbl_row_0(rec_v, rec);
@@ -367,6 +419,7 @@ function edit__row_tool(rec_v)
     if(!rec.type) {
         in_els['num'][0].val(rec['num'] || '');
         in_els['note'][0].val(rec['js']['note'] || '');
+        in_els['sc_id'][0].val(rec['sc_id'] || '');
     } else {
         in_els['customer'][0].val(rec['company'] || '');
         in_els['cid'][0].val(rec['cid'] || '');
@@ -453,6 +506,23 @@ function open_dlg_instruction()
     in_els.inst_memo[0].val(inst['memo'] || '');
     
     g_v_dlg_instruction.data('rec_v', rec_v).dialog('open').dialog('option', 'title', 'Instruction - Row #' + rec_v.children('.rec_pos').text());
+}
+
+function open_schedule()
+{
+    var je = $(this);
+    var rec_v = je.closest('.receipt_tbl_row');
+    var rec = rec_v.data('rec');
+    
+    if(rec.type || !rec.sc_id) return;
+    
+    open_wnd_schedule_print(rec.sc_id);
+}
+
+function open_wnd_schedule_print(sc_id)
+{
+    open_wnd('schedulev2?fn=print&view_only=1&sc_ids='+sc_id,'posx_schedule_print', 750);
+    return false;
 }
 
 function delivery_record_changed(rec)
@@ -853,6 +923,47 @@ function delete_delivery_record()
     }, 'json');
 }
 
+function select_schedule(i)
+{
+    var js = g_v_dlg_schedule_list.data('js');
+    if(!js) return;
+    var sc = js[i];
+    g_v_dlg_data_input.data('in_els').sc_id[0].val(sc.sc_id).data('sc', sc);
+    g_v_dlg_schedule_list.dialog('close');
+}
+
+function open_wnd_receipt_by_num(num)
+{
+    open_wnd('hist?fn=printreceipt&rno=' + num,'posx_print_wnd');
+}
+
+function open_dlg_schedule_list()
+{
+    var in_els = g_v_dlg_data_input.data('in_els');
+    var num = parseInt($.trim(in_els['num'][0].val()));
+    if (!num) return;
+    var d_dt = g_v_delivery_date.datepicker('getDate');
+    
+    g_v_dlg_schedule_list.data('js', null).empty().dialog('open');
+    get_js_ex('?fn=get_sc_recs', {'num': num, 'd_ts': d_dt ? d_dt.getTime() / 1000 : 0}, function(js) {
+        g_v_dlg_schedule_list.data('js', js);
+        var sc_id = parseInt(in_els['sc_id'][0].val());
+        
+        var lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var sr = js[i];
+            lst.push( $('<div'+(sr.sc_id === sc_id ? ' class="selected"' : '')+' onclick="select_schedule('+i+')"></div>').text('#' + sr.sc_id
+                                              + ' - ' + (sr.mode ? 'Partial' : 'Completed')
+                                              + ' - ' + (sr.doc_type ? 'Receipt' : 'SalesOrder') + '(' + sr.doc_num + ')'
+                                              + (sr.sc_note ? '\n' + sr.sc_note : '')
+                )
+            );
+        }
+        g_v_dlg_schedule_list.append(lst);
+        
+    }, undefined, undefined, undefined, '__get_sc_recs__');  
+}
+
 $(function() {
 
 $('.btn').button();
@@ -863,15 +974,34 @@ g_v_delivery_id = g_v_ctrl.children('.delivery_id');
 g_v_receipt_tbl = $('.receipt_tbl');
 g_v_receipt_tbl_footer = $('.receipt_tbl_footer');
 
+g_v_dlg_schedule_list = $('#dlg_schedule_list').dialog({
+    modal: true,
+    autoOpen: false,
+    width:600,
+    height:300,
+});
+
 g_v_dlg_data_input = $('#dlg_data_input').dialog({
     autoOpen: false,
-    width:500,
+    width:530,
     height:400,
     close:function() { g_v_dlg_data_input.data('rec_v', null); },
-    buttons: {
-        'save': click_save__data_input,
-    }
+    buttons:
+    [
+     {
+        'id': 'dd_di_open_sc_lst',
+        'text': 'select schedule',
+        'click': open_dlg_schedule_list
+     },
+     {
+        'id': 'dd_di_save',
+        'text': 'save',
+        'click': click_save__data_input
+     },
+    ],
 });
+g_v_dd_di_open_sc_lst = $('#dd_di_open_sc_lst');
+
 
 g_v_dlg_payment = $('#dlg_payment').dialog({
     autoOpen: false,
@@ -981,12 +1111,15 @@ in_els.type[0].change(function() {
         els.amount[0].val('').parent().parent().show();
         els.customer[0].parent().parent().show();
         els.customer[0].val('').focus();
+        g_v_dd_di_open_sc_lst.hide();
     } else {
+        els.sc_id[0].val('');
         els.amount[0].parent().parent().hide();
         els.customer[0].parent().parent().hide();
         els.note[0].val('').parent().parent().show();
         els.num[0].parent().parent().show();
         els.num[0].val('').focus();
+        g_v_dd_di_open_sc_lst.show();
     }
     
 });
@@ -1009,6 +1142,14 @@ in_els.customer[0].autocomplete({
         }
     }
 }).data("ui-autocomplete")._renderItem = custsearch_render_item;
+
+in_els.btn_view[0].button().click(function() {
+    var els = g_v_dlg_data_input.data('in_els');
+    var num = parseInt(els.num[0].val());
+    if(!num) return;
+    
+    open_wnd_receipt_by_num(num);
+});
 
 in_els = g_v_dlg_payment.data('in_els');
 in_els.payment_remove[0].click(click__payment_remove);
@@ -1110,6 +1251,7 @@ load_delivery_record("${d_id or ''}");
 .receipt_tbl_row > div:nth-child(10) {width:110px;cursor:pointer}
 .receipt_tbl_row > div:nth-child(11) {width:80px;cursor:pointer}
 .receipt_tbl_row > div:nth-child(12) {width:110px;cursor:pointer}
+.receipt_tbl_row > div:nth-child(13) {width:80px;cursor:pointer}
 .receipt_tbl .receipt_tbl_row:nth-child(even) {background-color:#f9f9f9}
 .receipt_tbl_header,.receipt_tbl_footer {position:absolute;top:0;left:0;right:0;background-color:#f1f1f1;font-weight:bold;}
 .receipt_tbl_header {top:50px}
@@ -1160,7 +1302,8 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:510px;color:#004C99;}
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
 
-
+#dlg_schedule_list > div {white-space:pre-wrap;border:1px solid #ccc;height:80px;margin-bottom:10px;padding:10px 6px;cursor:pointer;background-color:#f7f7f7}
+#dlg_schedule_list > div.selected {background-color:#9bd581}
 
 </style>
 
@@ -1212,6 +1355,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div title="Payment Received">款项回收</div>
 <div title="Problem">有问题</div>
 <div title="Special Instruction">收钱</div>
+<div title="Schedule ID">Schedule</div>
 </div>
 <div class="receipt_tbl_row receipt_tbl_row_tmpl" style="display:none">
 <div class="rec_tools">
@@ -1230,6 +1374,7 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 <div class="rec_payment_received"${not read_only and ' onclick="return open_dlg_payment.call(this)"' or ''}></div>
 <div class="rec_problem"${not read_only and ' onclick="return open_dlg_problem.call(this)"' or ''}></div>
 <div class="rec_instruction"${not read_only and ' onclick="return open_dlg_instruction.call(this)"' or ''}></div>
+<div class="rec_sc_id" onclick="return open_schedule.call(this)"></div>
 </div>
 <div class="receipt_tbl"></div>
 <div class="receipt_tbl_row receipt_tbl_footer"><div></div><div></div></div>
@@ -1243,10 +1388,11 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 %endfor
 </select></div></div>
 <div class="xlabel"><div>Type:</div><div><select name="rec_type"><option value="0">Receipt</option><option value="1">Payment Collection</option></select></div></div>
-<div class="xlabel"><div>Receipt #:</div><div><input type="text" name="rec_num" /></div></div>
+<div class="xlabel"><div>Receipt #:</div><div><input type="text" name="rec_num" /> <input type="button" value="View" name="rec_btn_view" /></div></div>
 <div class="xlabel"><div>Note:</div><div><input type="text" name="rec_note" /></div></div>
 <div class="xlabel"><div>Company:</div><div><input type="text" name="rec_customer" /></div></div>
 <div class="xlabel"><div>Amount:</div><div><input type="text" name="rec_amount" /></div></div>
+<input type="hidden" name="rec_sc_id" />
 <input type="hidden" name="rec_cid" />
 <input type="hidden" name="rec_terms" />
 </div>
@@ -1287,6 +1433,9 @@ div.xlabel > div:nth-child(2) {left:110px;right:0;}
 </select></div></div>
 <div class="xlabel"><div>Note:</div><div><input type="text" name="rec_problem_note" /></div></div>
 </div>
+
+
+<div id="dlg_schedule_list" title="select the proper schedule" class="dlg_cls"></div>
 
 </body>
 </html>
