@@ -75,9 +75,9 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
                 if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+r.num+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
+                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
                 else
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt('+d[2]+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
+                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
             }
             var sflag = '';
             if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';

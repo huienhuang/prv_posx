@@ -309,7 +309,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             if r['rev'] != rev: self.req.exitjs({'err': 'Revision Not Matched (%d, %d)' % (r['rev'], rev)})
             for n in json.loads(r['js']):
                 if n['type'] == 0:
-                    orig_nums_lku[ n['num'] ] = [False]
+                    orig_nums_lku[ n['num'] ] = [False, n]
         
         nums_lku = {}
         if nums:
@@ -347,10 +347,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             if not rec['driver_id']:
                 err.append('row#%d no driver assigned' % (i + 1,))
                 continue
-
-            if not r_type and not rec['sc_id']:
-                err.append('row#%d no schedule assigned' % (i + 1,))
-                continue
             
             usr_inst = rec['js'].get('inst') or {}
             
@@ -379,30 +375,34 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 }
             
             if r_type == 0:
-                is_new = not orig_nums_lku.has_key(rec['num'])
-                if date_chg or rec['changed'] or is_new:
+                n_rec_js = orig_nums_lku.get(rec['num'])
+                is_new = is_new_sc_id = False
+                if not n_rec_js:
+                    is_new = is_new_sc_id = True
+                else:
+                    is_new_sc_id = n_rec_js[1].get('sc_id', 0) != rec['sc_id']
+
+                if date_chg or rec['changed'] or is_new or is_new_sc_id:
                     r = nums_lku.get(rec['num'])
                     if not r:
                         err.append('row#%d receipt#%d not exists' % (i + 1, rec['num']))
                         continue
-                    else:
-                        if (date_chg or is_new):
-                            if not r[3] or rec['sc_id'] not in r[3]:
-                                err.append('row#%d receipt#%d not in schedule %02d/%02d' % (i + 1, rec['num'], d_dt.month, d_dt.day))
+
+                    if date_chg or is_new_sc_id:
+                        if not r[3] or rec['sc_id'] not in r[3]:
+                            err.append('row#%d receipt#%d - schedule(#%d) not in %02d/%02d' % (i + 1, rec['num'], rec['sc_id'], d_dt.month, d_dt.day))
+                            continue
+
+                        if not r[4]:
+                            cur.execute('select sc_flag from schedule where sc_id=%s', (rec['sc_id'],))
+                            rows = cur.fetchall()
+                            if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
+                                err.append('row#%d receipt#%d - No Redelivery Is Allowed %s' % (i + 1, rec['num'], rows))
                                 continue
-                            if not r[4]:
-                                cur.execute('select sc_flag from schedule where sc_date=%s and doc_type=1 and doc_sid=%s', (
-                                    d_dt_i, r[0]
-                                    )
-                                )
-                                rows = cur.fetchall()
-                                if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
-                                    err.append('row#%d receipt#%d - No Redelivery Is Allowed' % (i + 1, rec['num']))
-                                    continue
                     
-                        recs_db.append( (rec, r, is_new) )
+                    recs_db.append( (rec, r, is_new) )
                 
-                recs_js.append( {'type': 0, 'num': rec['num']} )
+                recs_js.append( {'type': 0, 'num': rec['num'], 'sc_id': rec['sc_id']} )
                 orig_nums_lku.get(rec['num'], [False])[0] = True
                 
                 if rec['delivered'] and not pbs: completed_count += 1

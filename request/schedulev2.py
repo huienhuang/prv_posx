@@ -60,7 +60,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_date = d_date.year * 10000 + d_date.month * 100 + d_date.day
         sc_id = self.req.psv_int('sc_id')
         
-        cur = self.cur();
+        cur = self.cur()
+
+        cur.execute('select count(*) from deliveryv2_receipt where sc_id=%s', (sc_id, ))
+        if cur.fetchall()[0][0]: self.req.exitjs({'err': -12, 'err_s': "It's In Use! Aborted"})
+
         cur.execute('select * from schedule where sc_id=%s and sc_date>=%s', (sc_id, d_date))
         rows = cur.fetchall()
         if not rows: return
@@ -74,13 +78,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         d_note = None
         if r['sc_flag'] & REC_FLAG_ACCEPTED:
-            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0 and (select count(*) from deliveryv2_receipt where sc_id=schedule.sc_id)=0', (
                 REC_FLAG_CANCELLING, sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
             d_note = 'Schedule[%d] (%02d/%02d/%02d) - Deleting, Waiting For Confirmation' % (r['sc_id'], m, d, y)
         else:
-            cur.execute('delete from schedule where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
+            cur.execute('delete from schedule where sc_id=%s and sc_rev=%s and sc_flag&%s=0 and (select count(*) from deliveryv2_receipt where sc_id=schedule.sc_id)=0', (
                 sc_id, r['sc_rev'], REC_FLAG_ACCEPTED
                 )
             )
@@ -102,7 +106,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
-            cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0', (
+            cur.execute('delete from schedule where sc_id=%s and sc_flag&%s!=0 and (select count(*) from deliveryv2_receipt where sc_id=schedule.sc_id)=0', (
                 r['sc_id'], REC_FLAG_CANCELLING
             ))
             if cur.rowcount > 0:
@@ -132,7 +136,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
-            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
+            cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s and (select count(*) from deliveryv2_receipt where sc_id=schedule.sc_id)=0', (
                 REC_FLAG_RESCHEDULED, REC_FLAG_R_RESCHEDULED, 
                 r['sc_new_date'],
                 r['sc_id'], r['sc_rev'],
@@ -812,7 +816,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             ws = ' where ' + ' and '.join(ws)
         else:
             ws = ''
-        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,sc_note,(sc_flag&1) as is_accepted,(select count(*) from schedule sb where sb.doc_type=sa.doc_type and sb.doc_sid=sa.doc_sid) as doc_dup from schedule sa'+ws+' order by sc_id desc')
+        cur.execute('select sc_id,sc_date,sc_flag,doc_type,doc_sid,doc_crc,sc_note,(sc_flag&1) as is_accepted,(select count(*) from schedule where doc_type=sa.doc_type and doc_sid=sa.doc_sid) as dup_count from schedule sa'+ws+' order by sc_id desc')
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -834,8 +838,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
 
         _sc_lst = sc_lst
-        so_sids = {}
-        rc_nums = set()
+        sc_ids = set()
         sc_lst = []
         for r in _sc_lst:
             if r['doc_type']:
@@ -856,46 +859,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 'cid': str(doc[6])
             }
             
-            if r['doc_type']:
-                rc_nums.add(doc['num'])
-            else:
-                r['nums'] = so_sids.setdefault(r['doc_sid'], [])
-                
             r['doc_sid'] = str(r['doc_sid'])
+            sc_ids.add(r['sc_id'])
             
-        if so_sids:
-            cur.execute('select so_sid,num from sync_receipts sr where sid_type=0 and so_type=0 and so_sid in (%s)' % (','.join(map(str, so_sids.keys())), ))
-            for rr in cur.fetchall():
-                so_sids[ rr[0] ].append(rr[1])
-                rc_nums.add(rr[1])
-        
         d_dr = {}
-        if rc_nums:
-            cur.execute('select dr.num,d.ts,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) where dr.num in (%s)' % (','.join(map(str, rc_nums)),))
+        if sc_ids:
+            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
+                ','.join(map(str, sc_ids)),
+                )
+            )
+            cnz = cur.column_names
             for r in cur.fetchall():
-                r = list(r)
-                r.append(0)
-                tp = time.localtime(r[1])
-                r[1] = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
-                d_dr.setdefault(r[0], []).append(r)
-        
+                r = dict(zip(cnz, r))
+                r['driver_nz'] = d_user.get(r['driver_id']) or 'UNK'
+                d_dr.setdefault(r['sc_id'], []).append(r)
+
         for r in sc_lst:
-            if not r['doc_type']: continue
-            dr = []
-            for d in d_dr.get(r['doc']['num']) or []:
-                if d[1] == r['sc_date']:
-                    d[-1] = 1
-                    dr.append( (d_user.get(d[2]) or 'UNK', d[3]) )
-            r['dr'] = dr
-            
-        for r in sc_lst:
-            if r['doc_type']: continue
-            dr = []
-            for n in r['nums']:
-                for d in d_dr.get(n) or []:
-                    if not d[-1] and d[1] == r['sc_date']:
-                        dr.append( (d_user.get(d[2]) or 'UNK', d[3], n) )
-            r['dr'] = dr
+            dr = r['dr'] = d_dr.get(r['sc_id'], [])
+            r['delivery_count'] = len(dr)
         
         return sc_lst
 
@@ -1036,59 +1017,29 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             elif date.weekday() in ZONES[zone_id][1]:
                 ss = 1
         
-        frm_ts = int(time.mktime(date.timetuple()))
-        to_ts = int(time.mktime((date + datetime.timedelta(1)).timetuple()))
-        
-        rc_nums = set()
-        so_sids = {}
+        sc_ids = set()
         lst = self.get_docs(dt, zone_id, clerk_id, 0, sort_reg, pending_only, 1)
         for r in lst:
-            if r['doc_type']:
-                rc_nums.add(r['num'])
-            else:
-                r['nums'] = so_sids.setdefault(r['doc_sid'], [])
-                
             r['cid'] = r['cid'] != None and str(r['cid']) or ''
             r['doc_sid'] = str(r['doc_sid'])
-            
-        if so_sids:
-            cur.execute('select so_sid,num from sync_receipts sr where sid_type=0 and so_type=0 and so_sid in (%s)' % (','.join(map(str, so_sids.keys())), ))
-            for rr in cur.fetchall():
-                so_sids[ rr[0] ].append(rr[1])
-                rc_nums.add(rr[1])
-        
+            sc_ids.add(r['sc_id'])
+
+        d_user = dict([ (f_u[0], f_u[1]) for f_u in self.getuserlist() ])
         d_dr = {}
-        if rc_nums:
-            cur.execute('select dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id and d.ts>=%s and d.ts<%s) where dr.num in (%s) and d.d_id is not null' % (
-                frm_ts, to_ts, ','.join(map(str, rc_nums))
+        if sc_ids:
+            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
+                ','.join(map(str, sc_ids)),
                 )
             )
+            cnz = cur.column_names
             for r in cur.fetchall():
-                r = list(r)
-                r.append(0)
-                d_dr.setdefault(r[0], []).append(r)
-        
-        d_user = dict([ (f_u[0], f_u[1]) for f_u in self.getuserlist() ])
+                r = dict(zip(cnz, r))
+                r['driver_nz'] = d_user.get(r['driver_id']) or 'UNK'
+                d_dr.setdefault(r['sc_id'], []).append(r)
         
         for r in lst:
-            if not r['doc_type']: continue
-            dr = []
-            for d in d_dr.get(r['num']) or []:
-                d[-1] = 1
-                dr.append( (d_user.get(d[1]) or 'UNK', d[2]) )
-            r['dr'] = dr
+            dr = r['dr'] = d_dr.get(r['sc_id'], [])
             r['delivery_count'] = len(dr)
-            
-        for r in lst:
-            if r['doc_type']: continue
-            dr = []
-            for n in r['nums']:
-                for d in d_dr.get(n) or []:
-                    if not d[-1]:
-                        dr.append( (d_user.get(d[1]) or 'UNK', d[2], n) )
-            r['dr'] = dr
-            r['delivery_count'] = len(dr)
-        
         
         self.req.writejs({
             'state': ss,

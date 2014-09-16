@@ -169,18 +169,18 @@ function load_schedule_delivery()
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
                 if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+r.doc.num+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
+                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt2('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
                 else
-                    vd.push( $('<div class="delivered_'+d[1]+'" onclick="open_wnd_receipt2('+d[2]+')"></div>').text('#' + (j + 1) + ' - ' + (d[1] ? 'Delivered' : 'Out for Delivery')) );
+                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt2('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
             }
             
-            var v = $('<div class="prntbl_row'+(r.doc_dup > 1 ? ' row_srec_dup' : '')+'"></div>')
-            .append( $('<div onclick="open_wnd_schedule_print('+r.sc_id+')"></div>').text( int2date_s(r.sc_date) ) )
+            var v = $('<div class="prntbl_row"></div>')
+            .append( $('<div onclick="open_wnd_schedule_print('+r.sc_id+')"></div>').text( int2date_s(r.sc_date) + ' - #' + r.sc_id ) )
             .append( $('<div onclick="open_wnd_'+(r.doc_type ? 'receipt' : 'salesorder')+'(\''+r.doc_sid+'\')"></div>').text( (r.doc_type ? 'R_' : 'S_') + r.doc.num ) )
             .append( $('<div></div>').text( r.doc.assoc ) )
             .append( $('<div></div>').text( r.doc.amt.toFixed(2) ) )
             .append( $('<div></div>').append(vd) )
-            .append( $('<div></div>').text( (r.doc_dup > 1 ? '*DUP('+r.doc_dup+')* ': '') + r.sc_note ) );
+            .append( $('<div></div>').text((r.dup_count > 1 ? '*D('+r.dup_count+')* ' : '') + r.sc_note) );
             if(vd.length > 1) v.height( 30 * vd.length );
             o_lst.push(v);
         }
@@ -515,12 +515,13 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 #schedule_tbl .prntbl_cnt .row_srec_dup {background-color:#f6f1cb}
 #schedule_tbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe4c7}
-#schedule_tbl .prntbl_row >div:nth-child(1) {width:90px;cursor:pointer;font-weight:bold}
+#schedule_tbl .prntbl_row >div:nth-child(1) {width:150px;cursor:pointer;font-weight:bold}
+#schedule_tbl .prntbl_cnt .prntbl_row >div:nth-child(1) {text-align:left}
 #schedule_tbl .prntbl_row >div:nth-child(2) {width:100px;cursor:pointer;font-weight:bold}
 #schedule_tbl .prntbl_row >div:nth-child(3) {width:90px}
 #schedule_tbl .prntbl_row >div:nth-child(4) {width:80px}
 #schedule_tbl .prntbl_row >div:nth-child(5) {width:160px;cursor:pointer}
-#schedule_tbl .prntbl_row >div:nth-child(6) {width:440px}
+#schedule_tbl .prntbl_row >div:nth-child(6) {width:380px}
 
 .delivered_0 {color:#b43838;font-weight:bold}
 .delivered_1 {color:#33600f;font-weight:bold}
@@ -579,7 +580,7 @@ ${cust_info['address2']|h}
 <div id="item_tab_4_delivery"><div id="datagrid_delivery"></div></div>
 <div id="item_tab_9_schedule_delivery">
 <div class="prntbl" id="schedule_tbl">
-<div class="prntbl_row prntbl_row_hdr"><div>Scheduled</div><div>Num</div><div>Assoc</div><div>Amt</div><div>Tracking</div><div>Note</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>Schedule</div><div>Num</div><div>Assoc</div><div>Amt</div><div>Tracking</div><div>Note</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
