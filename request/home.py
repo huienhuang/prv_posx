@@ -29,17 +29,17 @@ TOOLS_MAP = (
     ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
     ('Item Sale', 'reportitem', PERM_ADMIN),
     ('Customer Sale', 'sreport?fn=cust_by_dept', PERM_ADMIN),
-    ('General Report', 'reportgeneral', PERM_ADMIN),
-    ('Daily Report', 'reportdaily', PERM_ADMIN),
+#    ('General Report', 'reportgeneral', PERM_ADMIN),
+#    ('Daily Report', 'reportdaily', PERM_ADMIN),
     ('Report', 'sreport', PERM_ADMIN),
 )),
 
 ('HR', (
     ('Time MGR', 'clockinv2?fn=mgr', PERM_TIME),
-    ('Payroll', '', PERM_TIME),
-    ('PTO Tracking', '', PERM_TIME),
-    ('Employee File', '', PERM_TIME),
-    ('HR Metrics', '', PERM_TIME),
+#    ('Payroll', '', PERM_TIME),
+#    ('PTO Tracking', '', PERM_TIME),
+#    ('Employee File', '', PERM_TIME),
+#    ('HR Metrics', '', PERM_TIME),
 )),
 
 ('Accounting', (

@@ -27,7 +27,7 @@ g_v_tabs = $('#m_tabs').tabs({
         var nz = ui.newTab.children('a').prop('hash').substr(6);
         var im = ui.newPanel.children('iframe');
         var src = im.attr('src');
-        if(!src) im.attr('src', '?fn=' + nz);
+        if(!src) im.attr('src', nz[0] === '$' ? nz.substr(1) : '?fn=' + nz);
         
     },
     active: 0

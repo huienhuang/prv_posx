@@ -21,6 +21,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'tabs': [
                 ('year_to_year', 'YearToYear'),
                 ('sale_by_month', 'SaleByMonth'),
+                ('$reportgeneral', 'General'),
+                ('$reportdaily', 'Daily'),
             ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
