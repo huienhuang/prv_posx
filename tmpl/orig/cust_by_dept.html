@@ -15,6 +15,15 @@ function refresh_lst()
     g_v_lst.tinygrid('update', -1, true, true, true);
 }
 
+function export_csv()
+{
+    var els = g_v_ctrl.data('in_els')
+    var data = {'frm': els.dt_frm[0].val(), 'to': els.dt_to[0].val()};
+    
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
+    g_v_form_dl.submit();
+}
+
 $(function() {
 
 $('.btn').button();
@@ -42,6 +51,10 @@ var dts = dto.getFullYear() + '-' + str_pad(dto.getMonth() + 1, 2, '0');
 els.dt_frm[0].change(refresh_lst).val(dts);
 els.dt_to[0].change(refresh_lst).val(dts);
 els.quit[0].click(go_home);
+els.export[0].click(export_csv);
+
+g_v_form_dl = $('#form_dl');
+
 
 refresh_lst();
 
@@ -71,6 +84,10 @@ refresh_lst();
 <input type="button" value="Quit" class="btn" name="ctrl_quit" style="float:right;margin-top:9px" />
 </div>
 <div id="lst"></div>
+
+
+<form id="form_dl" target="_blank" action="?fn=export_cust_sales" method="post" style="display:none"><input type="hidden" name="js" /></form>
+
 
 </body>
 </html>
