@@ -91,7 +91,7 @@ g_doc_notice_d2.show();
 .p_doc_addr > div.c_addr {position:relative;margin-top:10px;width:318px;border:1px solid #ccc;padding:10px;}
 .p_doc_addr > div.c_addr > div:first-child {height:20px;line-height:20px;font-weight:bold;position:absolute;padding:0 10px;left:5px;top:-10px;background-color:#FFF;text-align:center}
 .p_doc_addr > div.c_addr > div:nth-child(2) {font-weight:bold;cursor:pointer}
-.p_doc_addr > div.c_addr > div:nth-child(3) {cursor:pointer}
+.p_doc_addr > div.c_addr > div:nth-child(3) {cursor:pointer;font-size:18px}
 .p_doc_addr > .billto {float:left}
 .p_doc_addr > .shipto {float:right}
 
@@ -139,6 +139,7 @@ g_doc_notice_d2.show();
 .prntbl .cls_item_diff_minus {background-color:#ff5252 !important}
 .prntbl .cls_item_diff_add {background-color:#cae4b9 !important}
 .prntbl .cls_cmp_mode_unmatched {background-color:#e3c7e5 !important}
+.prntbl_partial_changed .cls_item_diff_minus, .prntbl_partial_changed .cls_item_diff_add {color:#7723b1}
 
 .prntbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe7d7 !important}
 
@@ -180,7 +181,7 @@ gjs = r['gjs']
 <div class="p_doc_prn_hdr">*** Packing Slip / 执货单 - 打印时间: ${cts_s} ***</div>
 <div class="p_doc_meta"><div>#${r['sc_id']} - Deliver On ${ENG_DAYS[ r['sc_date_wd'] ]} / 星期${CHS_DAYS[ r['sc_date_wd'] ]}送 (${r['sc_date_s']})</div><div>${r['zone_nz']|h}</div><div>${i + 1}/${len(sc_docs)}</div></div>
 
-%if r['sc_flag'] & (REC_FLAG_CANCELLING | REC_FLAG_RESCHEDULED | REC_FLAG_CHANGED):
+%if r['sc_flag'] & (REC_FLAG_PARTIAL_CHANGED | REC_FLAG_CANCELLING | REC_FLAG_RESCHEDULED | REC_FLAG_CHANGED):
 <div class="p_doc_notice">
 %if r['sc_flag'] & REC_FLAG_CANCELLING:
 <div>* Request Cancellation / 要求取消送货 *</div>
@@ -188,12 +189,21 @@ gjs = r['gjs']
 %elif r['sc_flag'] & REC_FLAG_RESCHEDULED:
 <div>* Rescheduling / 正在改期 -&gt; ${ENG_DAYS[ r['rescheduling'][1] ]} / 星期${CHS_DAYS[ r['rescheduling'][1] ]} (${r['rescheduling'][0]}) *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'confirm_rescheduling', '${r["sc_id"]}')" /></div>
-%elif not(r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED) and r['sc_flag'] & REC_FLAG_CHANGED:
+%elif r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
+<div>
+The document has been changed, unreliable! / 文档已经被改变, 不可靠!
+%if r['unmatched']:
+<br />无法匹配! Call ${r['assoc']|h} 确认!
+%endif
+</div>
+<div></div>
+%elif r['sc_flag'] & REC_FLAG_CHANGED:
 <div>* The Document Has Been Changed, Please Check / 货单改动, 请检查 *</div>
 <div><input type="checkbox" /> <input type="button" value="Check &amp; Confirm" onclick="doc_action.call(this, 'clear_cflag', '${r["sc_id"]}')" /></div>
+%endif
 
 %if r['diff_ijs']:
-<div class="prntbl cls_dont_print">
+<div class="prntbl cls_dont_print${r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED and ' prntbl_partial_changed' or ''}">
 <div class="prntbl_row prntbl_row_hdr"><div>NUM</div><div>Name</div><div>UPrice</div><div>ALU</div><div>ChgQty</div></div>
 <div class="prntbl_cnt">
 %for f_v in r['diff_ijs']:
@@ -213,7 +223,6 @@ f_diff,f_pos,t = f_v
 </div>
 %endif
 
-%endif
 </div>
 %endif
 
@@ -303,12 +312,6 @@ cust = gjs['shipping']
 %if r.get('mode'):
 <div class="p_doc_partial_note">
 <div>****** Partial Delivery / 只送以下 ******</div>
-%if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
-<div>The document has been changed, unreliable! / 文档已经被改变, 不可靠!</div>
-%if r['unmatched']:
-<div>无法匹配! Call ${r['assoc']|h} 确认!</div>
-%endif
-%endif
 </div>
 %endif
 

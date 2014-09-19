@@ -251,7 +251,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
                     r['doc_ijs'],r['unmatched'] = self.map_item(ijs, doc_ijs)
                 else:
-                    r['doc_ijs'] = [ {'qty': f_i[3]} for f_i in doc_ijs ]
+                    r['doc_ijs'] = [ {'qty': f_i['r_qty']} for f_i in doc_ijs ]
                     
             recs.append(r)
         
@@ -260,8 +260,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def map_item(self, ijs, doc_ijs):
         d_items = {}
         for r in doc_ijs:
-            if not r[3]: continue
-            v = d_items.setdefault((r[0], r[1]), [0, {}])[1].setdefault(r[2], []).append(r[3])
+            if not r['r_qty']: continue
+            v = d_items.setdefault((r['itemsid'], r['uom']), [0, {}])[1].setdefault(r['qty'], []).append(r['r_qty'])
             
         n_ijs = []
         for r in ijs:
@@ -298,60 +298,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         return (n_ijs, unmatched)
     
-
-    def map_item_v2(self, c_ijs, o_ijs):
-        d_items = {}
-        for r in o_ijs:
-            if not r['qty']: continue
-            v = d_items.setdefault((r['itemsid'], r['uom']), [0, {}])[1].setdefault(r['qty'], []).append(r)
-
-        n_ijs = []
-        for r in c_ijs:
-            v = d_items.get((r['itemsid'], r['uom']))
-            t = {'qty': 0, 'err': -1}
-            n_ijs.append(t)
-            if not r['qty'] or not v: continue
-            
-            v1 = v[1].get(r['qty'])
-            if v1:
-                ro = v1.pop(0)
-                t['qty'] = ro['qty']
-                t['err'] = 0
-            else:
-                t['err'] = 1
-                t['v'] = v
-        
-        unmatched = 0
-        for r in n_ijs:
-            if r['err'] != 1: continue
-            v = r['v']
-            if not v[0]:
-                m = []
-                for f_lst in v[1].values():
-                    for f_ro in f_lst:
-                       m.append(f_ro)
-                v[0] = 1
-                v[1] = m
-            
-            if len(v[1]):
-                unmatched += 1
-                ro = v[1].pop(0)
-                r['qty'] = ro['qty']
-            else:
-                r['err'] = -1
-
-        nil_ijs = []
-        for f_type,f_v in d_items.values():
-            if f_type:
-                nil_ijs.extend(f_v)
-            else:
-                for f_lst in f_v.values():
-                    for f_ro in f_lst:
-                       nil_ijs.append(f_ro)
-
-        return (n_ijs, unmatched, nil_ijs)
-
-
     def diff_items(self, c_ijs, o_ijs):
         d_t = {}
 
@@ -423,17 +369,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if new_doc_crc != r_crc: self.req.exitjs({'err': -11, 'err_s': 'Doc Changed, CRC Error!'})
             
             ijs_note = []
-            n_ijs = []
             for i in range(len(ijs)):
                 r_item = r_ijs[i]
                 item = ijs[i]
                 r_qty = int(r_item[1])
                 if int(r_item[0]) != item['itemsid'] or r_qty * item['qty'] < 0 or abs(r_qty) > abs(item['qty']):
                     self.req.exitjs({'err': -10, 'err_s': 'Item Unmatched!'})
-                n_ijs.append([item['itemsid'], item['uom'], item['qty'], r_qty])
+                item['r_qty'] = r_qty
                 if r_qty: ijs_note.append(u'> %d - %s - %s - %d / %d %s' % (item['itemno'], item['alu'], item['desc1'], r_qty, item['qty'], item['uom']))
             
-            s_ijs = json.dumps(n_ijs, separators=(',',':'))
+            s_ijs = json.dumps(ijs, separators=(',',':'))
             
         if sc_id == 0:
             cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s,%s,null)', (
@@ -473,9 +418,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     if not self.req.psv_int('check_n_confirm'): self.req.exitjs({'err': -12, 'err_s': "Items Changed! Please Check!"})
                     
                 o_r['doc_ijs'] = o_r['doc_ijs'] and json.loads(o_r['doc_ijs']) or []
-                if n_ijs != o_r['doc_ijs']:
+                
+
+                a_l_ijs = [ (f_v['itemsid'], f_v['uom'], f_v['qty'], f_v['r_qty']) for f_v in ijs ]
+                b_l_ijs = [ (f_v['itemsid'], f_v['uom'], f_v['qty'], f_v['r_qty']) for f_v in o_r['doc_ijs'] ]
+                if a_l_ijs != b_l_ijs:
                     chg = True
-                    if [ f_x for f_x in n_ijs if f_x[3] ] != [ f_x for f_x in o_r['doc_ijs'] if f_x[3] ]:
+                    if [ f_x for f_x in a_l_ijs if f_x[3] ] != [ f_x for f_x in b_l_ijs if f_x[3] ]:
                         m_note = False
                         d_notes.append('Schedule[%d] (%s) - Partial Delivery - Updated Packing List\n%s' % (
                             sc_id, o_date.strftime('%m/%d/%y'),
@@ -597,9 +546,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r['doc_ijs_crc'] != items_crc: continue
 
                 doc_ijs = json.loads(r['doc_ijs'])
-                for i in range(len(ijs)):
-                    ijs[i]['qty'] = doc_ijs[i][3]
-                p_ijs = ijs
+                for t in doc_ijs: t['qty'] = t['r_qty']
+                p_ijs = doc_ijs
 
                 cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag&(~%s),doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s!=0', (
                     REC_FLAG_CHANGED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED
@@ -636,9 +584,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r['doc_ijs_crc'] != items_crc: continue
 
                 doc_ijs = json.loads(r['doc_ijs'])
-                for i in range(len(doc_ijs)):
-                    ijs[i]['qty'] = doc_ijs[i][3]
-                p_ijs = ijs
+                for t in doc_ijs: t['qty'] = t['r_qty']
+                p_ijs = doc_ijs
 
                 cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=sc_flag|%s,doc_crc=%s,doc_cur_ijs=%s where sc_id=%s and sc_rev=%s and sc_flag&%s=0', (
                     REC_FLAG_ACCEPTED, crc, json.dumps(p_ijs, separators=(',',':')), r['sc_id'], r['sc_rev'], REC_FLAG_ACCEPTED | REC_FLAG_CANCELLING
@@ -1120,13 +1067,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 r['mode'] = 1
                 doc_ijs = r['doc_ijs'] and json.loads(r['doc_ijs']) or []
                 if r['sc_flag'] & REC_FLAG_PARTIAL_CHANGED:
+                    r['diff_ijs'] = self.diff_items(ijs, doc_ijs)
+
                     doc_ijs,r['unmatched'] = self.map_item(ijs, doc_ijs)
                     for i in range(len(ijs)):
                         ijs[i]['qty'] = doc_ijs[i]['qty']
                         if doc_ijs[i]['err'] == 1: ijs[i]['cmp_mode'] = 2
-
                 else:
-                    for i in range(len(ijs)): ijs[i]['qty'] = doc_ijs[i][3]
+                    for i in range(len(ijs)): ijs[i]['qty'] = doc_ijs[i]['r_qty']
 
                     if r['sc_flag'] & REC_FLAG_CHANGED and r['doc_cur_ijs'] != None:
                         doc_cur_ijs = json.loads(r['doc_cur_ijs'])
