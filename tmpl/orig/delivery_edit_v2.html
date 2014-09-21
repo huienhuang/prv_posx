@@ -953,7 +953,7 @@ function open_dlg_schedule_list()
         for(var i = 0; i < js.length; i++) {
             var sr = js[i];
             lst.push( $('<div'+(sr.sc_id === sc_id ? ' class="selected"' : '')+' onclick="select_schedule('+i+')"></div>').text('#' + sr.sc_id
-                                              + ' - ' + (sr.mode ? 'Partial' : 'Completed')
+                                              + ' - ' + (sr.sc_mode ? 'Partial' : 'Completed')
                                               + ' - ' + (sr.doc_type ? 'Receipt' : 'SalesOrder') + '(' + sr.doc_num + ')'
                                               + (sr.sc_note ? '\n' + sr.sc_note : '')
                 )

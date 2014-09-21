@@ -74,10 +74,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             var vd = [];
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
-                if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
-                else
-                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
+                vd.push( $('<div class="delivered_'+d.delivered+(d.dt_i === r.sc_date ? '' : ' dr_not_in_same_Day')+'" onclick="open_wnd_receipt('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
             }
             var sflag = '';
             if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
@@ -960,6 +957,7 @@ load_overview();
 
 .delivered_0 {color:#b43838}
 .delivered_1 {color:#33600f}
+.dr_not_in_same_Day {color:#236888;font-style:oblique}
 
 </style>
 

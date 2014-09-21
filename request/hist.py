@@ -453,6 +453,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
             dt = datetime.date.fromtimestamp(x['ts'])
             x['dt_s'] = dt.strftime('%m/%d/%Y')
+            x['dt_i'] = dt.year * 10000 + dt.month * 100 + dt.day
             
             if x['problem_flag']:
                 js = x['js'] and json.loads(x['js']) or {}
