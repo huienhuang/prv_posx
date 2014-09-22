@@ -5,49 +5,19 @@
 <title>POSX - Report A Problem</title>
 
 <script type="text/javascript">
-g_item = null;
-
-function select_item(item) {
-    g_item = item;
-    var v_open_case = g_v_ctrl.data('in_els').open_case[0];
-    if(item)
-        v_open_case.val('OpenCase(#'+item[1]+')');
-    else
-        v_open_case.val('OpenCase');
-}
 
 $(function() {
 
-g_v_ctrl = $('.x_ctrl');
-idx_elements(g_v_ctrl, 5);
-var els = g_v_ctrl.data('in_els');
-els.open_case[0].button().click(function() {
-    
-});
-els.clear[0].button().click(function() {
-    select_item(null);
-});
-init_item_ac(els.srch[0], function(event, ui) {
-    select_item(ui.item);
-}, {});
-
-g_v_dlg_problem_form = $('#dlg_problem_form').dialog({
-    autoOpen: false,
-    width:800,
-    height:500,
-    
-});
-
 g_v_tg_lst = $('.x_body').tinygrid({
-len: 0,
+len: 1,
 src: {page:'?fn=get_items'},
-cols: [{name:'Item#', width:100},
-       {name:'Name', width:"50%"},
-       {name:'Issue', width:"50%"},
-       {name:'Date', width:250},
+cols: [{name:'ID', width:80},
+       {name:'Issue', width:220},
+       {name:'Item', width:"50%"},
+       {name:'Date', width:210},
        ],
 click: function(r, c, d) {
-    open_wnd('hist?fn=custhist&cid='+d[3],'posx_customer_hist');
+    open_wnd('hist?fn=itemhist&dg_type=6&ticket_id='+d[0]+'&tid='+d[4],'posx_item_hist', 992, 700);
 }
 });
 
@@ -65,19 +35,8 @@ click: function(r, c, d) {
 <body>
 
 <div class="x_ctrl">
-<input type="text" name="ctrl_srch" placeholder="item search" />
-<input type="button" value="OpenCase" name="ctrl_open_case" />
-<input type="button" value="Clear" name="ctrl_clear" />
 </div>
 <div class="x_body"></div>
-
-
-<div id="dlg_problem_form">
-<div>
-<div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
-</div>
-</div>
-
 
 </body>
 </html>

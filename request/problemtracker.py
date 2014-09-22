@@ -33,10 +33,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writefile('tracker/report_a_problem.html', r)
 
 
+    def fn_get_ticket_types_by_item(self):
+        t_sid = self.req.psv_int('sid')
+
+        d_t = {}
+        cur.execute('select type,count(*) from tracker where sid=%s and state=0 group by type', (t_sid, ))
+        for r in cur.fetchall():
+            d_t[ r[0] ] = r[1]
+
+        for v in TICKET_TYPES.items():
+            pass
+
     def fn_new_ticket(self):
         t_type = self.req.psv_int('type')
         t_msg = self.req.psv_ustr('msg')
         t_sid = self.req.psv_int('sid')
+        if not TICKET_TYPES.has_key(t_type): return
+
         t_js = json.dumps([self.user_id, self.user_name, None, t_msg, int(time.time())], separators=(',',':'))
 
         cur = self.cur()
@@ -75,7 +88,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writejs({'err': int(cur.rowcount <= 0)})
 
 
-
     def fn_del_ticket(self):
         t_id = self.req.psv_int('id')
 
@@ -95,15 +107,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         token = {}
         if not a_token:
-            lst = None
             if goto:
                 cur.execute('select * from tracker where sid=%d and id<=%d order by id desc limit 0,%d' % (
                     sid, goto, rlen,
                     )
                 )
                 lst = cur.fetchall()
-                
-            if not lst:
+
+                if len(lst) < rlen:
+                    cur.execute('select * from tracker where sid=%d and id>%d order by id asc limit 0,%d' % (
+                        sid, goto, rlen - len(lst),
+                        )
+                    )
+                    x_lst = cur.fetchall()
+                    x_lst.reverse()
+                    lst[:0] = x_lst
+
+            else:
                 cur.execute('select * from tracker where sid=%d order by id desc limit 0,%d' % (
                     sid, rlen,
                     )
@@ -154,17 +174,24 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select tid,uid,sid,type,js from tracker where flag=0 order by tid asc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS t.id,t.type,si.name,t.js,t.sid from tracker t left join sync_items si on (t.sid=si.sid) where t.state=0 order by id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
-                
-                apg.append(r[:-1])
+                t_id,t_type,t_name,t_js,t_sid = r
+                t_js = json.loads('[' + t_js + ']')
+                m = t_js[0]
+
+                apg.append( (t_id, TICKET_TYPES.get(t_type, 'UNK'), t_name, time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(m[4])), str(t_sid)) )
+
+            cur.execute('select FOUND_ROWS()')
+
+        else:
         
-        cur.execute('select count(*) from deliveryv2')
+            cur.execute('select count(*) from deliveryv2')
+
         rlen = int(cur.fetchall()[0][0])
-        
         res = ret['res']
         res['len'] = rlen
         res['apg'] = apg

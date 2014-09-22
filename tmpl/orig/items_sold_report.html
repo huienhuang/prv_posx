@@ -98,11 +98,17 @@ function new_row(item)
         sel.val(js.default_uom_idx);
     }
     
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var qtys = js.qty;
+    
     var row = $('<div class="xtbl_row"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
-    .append( $('<div></div>').append(sel) );
+    .append( $('<div></div>').append(sel) )
+    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : '' ) )
+    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : '' ) );
+    
     g_v_xtbl.append(row);
     return row.data('item_data', item);
 }

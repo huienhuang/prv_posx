@@ -19,6 +19,7 @@ REC_FLAG_PARTIAL = 1 << 6
 
 Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
+Tracker = App.load('/request/problemtracker')
 
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -727,6 +728,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'item_status': d_r_status.get(res[6]),
             'item_dept': dept,
             'item_cate': cate,
+
+            'ticket_id': self.qsv_int('ticket_id'),
+            'TICKET_TYPES': sorted(Tracker.TICKET_TYPES.items(), key=lambda f_x: f_x[0])
+
         }
         
         self.req.writefile('hist_item.html', item)

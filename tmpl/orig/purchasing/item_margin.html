@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - Cost &amp; Price Tool</title>
+
+<script type="text/javascript">
+
+function select_item(item)
+{
+    
+}
+
+$(function() {
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+
+init_item_ac(els.srch[0], function(event, ui) {
+    select_item(ui.item);
+});
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<input type="text" name="ctrl_srch" placeholder="item search" />
+</div>
+
+<div class="x_body">
+
+<div class="prntbl tbl_cate">
+<div class="prntbl_row prntbl_row_hdr"><div>Cate</div><div>Sales</div><div>Cost</div><div>Margin</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
+<div class="prntbl tbl_dept">
+<div class="prntbl_row prntbl_row_hdr"><div>Dept</div><div>Sales</div><div>Cost</div><div>Margin</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
+</div>
+
+</body>
+</html>
