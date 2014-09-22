@@ -106,8 +106,8 @@ function new_row(item)
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(sel) )
-    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : '' ) )
-    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : '' ) );
+    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
+    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' ) );
     
     g_v_xtbl.append(row);
     return row.data('item_data', item);
@@ -168,12 +168,14 @@ function load_items_sold_report_cb(js)
         var frm = g_cur_hdr.frm_d;
         var item_js = el.data('item_data')[3];
         var factor = item_js.units.length > 1 ? item_js.units[item_js.default_uom_idx][3] : 1;
-        $(el.children().slice(4)).remove();
-        if(!factor) continue;
+        var cds = el.children();
+        $(cds.slice(6)).remove();
         
         var qtys = item_js.qty;
-        el.append( $('<div></div>').text(factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1) ) );
-        el.append( $('<div></div>').text(factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1) ) );
+        $(cds[4]).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
+        $(cds[5]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
+        
+        if(!factor) continue;
         
         var total = 0;
         var count = 0;
@@ -220,7 +222,7 @@ function load_items_sold_report()
         var d = $(lst[i]).width(g_cur_hdr.width);
         var tid = d.data('item_data')[0];
         g_items[tid].s = null;
-        $(d.children().slice(4)).remove();
+        $(d.children().slice(6)).remove();
         tids.push(tid);
     }
     
