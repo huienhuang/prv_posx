@@ -168,10 +168,7 @@ function load_schedule_delivery()
             var vd = [];
             for(var j = 0; j < r.dr.length; j++) {
                 var d = r.dr[j];
-                if(r.doc_type)
-                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt2('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
-                else
-                    vd.push( $('<div class="delivered_'+d.delivered+'" onclick="open_wnd_receipt2('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
+                vd.push( $('<div class="delivered_'+d.delivered+(d.dt_i === r.sc_date ? '' : ' dr_not_in_same_Day')+'" onclick="open_wnd_receipt2('+d.num+')"></div>').text('#' + (j + 1) + ' - ' + (d.delivered ? 'Delivered' : 'Out for Delivery')) );
             }
             
             var v = $('<div class="prntbl_row"></div>')
@@ -525,6 +522,7 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 .delivered_0 {color:#b43838;font-weight:bold}
 .delivered_1 {color:#33600f;font-weight:bold}
+.dr_not_in_same_Day {color:#236888;font-style:oblique}
 
 </style>
 

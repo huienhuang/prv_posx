@@ -811,7 +811,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
         d_dr = {}
         if sc_ids:
-            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
+            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered,d.ts from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
                 ','.join(map(str, sc_ids)),
                 )
             )
@@ -821,9 +821,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 r['driver_nz'] = d_user.get(r['driver_id']) or 'UNK'
                 d_dr.setdefault(r['sc_id'], []).append(r)
 
+                tp = datetime.date.fromtimestamp(r['ts'])
+                r['dt_i'] = tp.year * 10000 + tp.month * 100 + tp.day
+
         for r in sc_lst:
             dr = r['dr'] = d_dr.get(r['sc_id'], [])
-            r['delivery_count'] = len(dr)
+            dc = 0
+            for d in dr:
+                if d['dt_i'] == r['sc_date']: dc += 1
+            r['delivery_count'] = dc
         
         return sc_lst
 
@@ -974,7 +980,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_user = dict([ (f_u[0], f_u[1]) for f_u in self.getuserlist() ])
         d_dr = {}
         if sc_ids:
-            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
+            cur.execute('select dr.sc_id,dr.num,dr.driver_id,dr.delivered,d.ts from deliveryv2_receipt dr left join deliveryv2 d on dr.d_id=d.d_id where d.d_id is not null and dr.sc_id in (%s) order by d.d_id asc' % (
                 ','.join(map(str, sc_ids)),
                 )
             )
@@ -983,10 +989,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 r = dict(zip(cnz, r))
                 r['driver_nz'] = d_user.get(r['driver_id']) or 'UNK'
                 d_dr.setdefault(r['sc_id'], []).append(r)
+
+                tp = datetime.date.fromtimestamp(r['ts'])
+                r['dt_i'] = tp.year * 10000 + tp.month * 100 + tp.day
         
         for r in lst:
             dr = r['dr'] = d_dr.get(r['sc_id'], [])
-            r['delivery_count'] = len(dr)
+            dc = 0
+            for d in dr:
+                if d['dt_i'] == r['sc_date']: dc += 1
+            r['delivery_count'] = dc
         
         self.req.writejs({
             'state': ss,

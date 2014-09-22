@@ -165,6 +165,7 @@ div.xlabel > div:nth-child(2) {left:90px;right:0;}
 .schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(2) {width:120px;background-color:#fffde2}
 .schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3) {width:120px;background-color:#d0edff;color:#b43838}
 .schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3).dr_delivered {color:#33600f}
+.schedule_lst .prntbl_row >div:nth-child(3) >div >div:nth-child(3).dr_not_in_same_Day {color:#236888;font-style:oblique}
 .schedule_lst .prntbl_row >div:nth-child(3) >div:hover >div {background-color:#ffe7d7 !important}
 .schedule_lst >.prntbl_row_ftr {height:0;border-bottom:none}
 
@@ -279,9 +280,9 @@ tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] a
 <div${dr['problem_flag'] and ' class="dr_problem"' or ''}>#${dr['d_id']} - ${dr['name']|h}</div>
 <div>${users_lku.get(dr['driver_id'], 'UNK')|h}</div>
 %if dr['delivered']:
-<div class="dr_delivered">Delivered</div>
+<div class="dr_delivered${dr['dt_i'] != sc['sc_date'] and ' dr_not_in_same_Day' or ''}">Delivered</div>
 %else:
-<div>Out For Delivery</div>
+<div${dr['dt_i'] != sc['sc_date'] and ' class="dr_not_in_same_Day"' or ''}>Out For Delivery</div>
 %endif
 </div>
 %endfor

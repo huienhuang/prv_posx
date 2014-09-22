@@ -240,13 +240,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur.execute('select count(*),bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
         r['dup'],dup_ok = cur.fetchall()[0]
         if r['dup'] and not dup_ok:
-            cur.execute('select sc_flag from schedule where sc_date=%s and doc_type=1 and doc_sid=%s', (
-                d_dt_i, r['sid']
+            cur.execute('select bit_or(sc_flag) from schedule where sc_date=%s and (doc_type=1 and doc_sid=%s or doc_type=0 and doc_sid=%s)', (
+                d_dt_i, r['sid'], r['so_sid']
                 )
             )
             rows = cur.fetchall()
             if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
-                self.req.exitjs({'err': "Receipt(%s) Duplicated, No Redelivery Is Allowed.\n*** Except it's a partial shipment or previous shipment is marked with problems!" % (num, )})
+                self.req.exitjs({'err': "Receipt(%s) Duplicated, No Redelivery Is Allowed.\n*** Except there is a partial shipment or all previous shipment is marked with problems!" % (num, )})
             
         r['sid'] = str(r['sid'])
         r['cid'] = r['cid'] != None and str(r['cid']) or ''
