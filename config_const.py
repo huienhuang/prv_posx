@@ -37,6 +37,7 @@ USER_PERM_BIT = {
 
 'sales_mgr':24,
 'delivery_mgr':25,
+'purchasing_mgr':26,
 
 'sys': 30,
 'admin': 31,

@@ -6,10 +6,71 @@
 
 <script type="text/javascript">
 
-function select_item(item)
+function click_cate()
 {
+    var js = $(this).data('js');
+    var k = js[2];
     
+    var lst = g_v_tbl_dept.children();
+    for(var i = 0; i < lst.length; i++) {
+        var v_r = $(lst[i])
+        if(v_r.data('js')[2] === k)
+            v_r.show();
+        else
+            v_r.hide();
+    }
 }
+
+function click_dept()
+{
+    var js = $(this).data('js');
+    g_tg_item_data.sid = js[0];
+    
+    g_v_tg_items.tinygrid('update', -1, true, true, true);
+}
+
+function load_sales_cb(js)
+{
+    var lst = [];
+    for(var i = 0; i < js.cates.length; i++) {
+        var c = js.cates[i];
+        lst.push( $('<div class="prntbl_row"></div>').data('js', c).click(click_cate)
+                 .append( $('<div></div').text(c[0] || 'UNK_CATE') )
+                 .append( $('<div></div').text(c[1]) )
+        );
+    }
+    g_v_tbl_cate.append(lst);
+    
+    lst = [];
+    for(var i = 0; i < js.depts.length; i++) {
+        var d = js.depts[i];
+        lst.push( $('<div class="prntbl_row"></div>').data('js', d).click(click_dept)
+                 .append( $('<div></div').text(d[1] || 'UNK_DEPT') )
+                 .append( $('<div></div').text(d[3]) )
+        );
+    }
+    g_v_tbl_dept.append(lst);
+}
+
+function load_sales()
+{
+    g_v_tbl_cate.empty();
+    g_v_tbl_dept.empty();
+    g_v_tg_items.tinygrid('update', 0, true, true, true);
+    
+    var els = g_v_ctrl.data('in_els');
+    var frm = els.frm[0].val();
+    var to = els.to[0].val();
+    
+    g_tg_item_data.frm = frm;
+    g_tg_item_data.to = to;
+    g_tg_item_data.sid = null;
+    
+    if(!frm && !to) return;
+    
+    get_js_ex('?fn=get_dept_margin', {frm:frm, to:to}, load_sales_cb, undefined, undefined, undefined, '__load_sales__');
+}
+
 
 $(function() {
 
@@ -17,9 +78,27 @@ g_v_ctrl = $('.x_ctrl');
 idx_elements(g_v_ctrl, 5);
 var els = g_v_ctrl.data('in_els');
 
-init_item_ac(els.srch[0], function(event, ui) {
-    select_item(ui.item);
+els.frm[0].change(load_sales);
+els.to[0].change(load_sales);
+
+g_v_tbl_cate = $('.tbl_cate >.prntbl_cnt');
+g_v_tbl_dept = $('.tbl_dept >.prntbl_cnt');
+
+
+g_tg_item_data = {};
+g_v_tg_items = $('#tg_items').tinygrid({
+len:0,
+src:{page:'?fn=get_margin_items', data:g_tg_item_data},
+cols: [{name:'Num', width:100},
+       {name:'Name', width:"100%"},
+       {name:'Sales', width:100},
+       {name:'Margin', width:100},
+       ],
+click: function(r, c, d) {
+    open_wnd('hist?fn=itemhist&tid=' + d[4],'posx_item_hist');
+}
 });
+
 
 });
 
@@ -28,28 +107,39 @@ init_item_ac(els.srch[0], function(event, ui) {
 <style type="text/css">
 .ui-widget {font-size:18px;}
 .x_ctrl input, .x_ctrl select {margin-right:10px;}
+
+.prntbl .prntbl_row > div:nth-child(1) {width:200px;cursor:pointer;font-weight:bold}
+.prntbl .prntbl_row > div:nth-child(n+2) {width:80px;font-weight:bold}
+.tbl_cate {top:0;bottom:0;width:310px;left:0}
+.tbl_dept {top:0;bottom:0;width:310px;left:320px}
+#tg_items {top:0;bottom:0;right:0;left:640px}
+
 </style>
 
 </head>
 <body>
 
 <div class="x_ctrl">
-<input type="text" name="ctrl_srch" placeholder="item search" />
+<input type="month" name="ctrl_frm" />
+<input type="month" name="ctrl_to" />
+
 </div>
 
 <div class="x_body">
 
 <div class="prntbl tbl_cate">
-<div class="prntbl_row prntbl_row_hdr"><div>Cate</div><div>Sales</div><div>Cost</div><div>Margin</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>Cate</div><div>Margin</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
 
 <div class="prntbl tbl_dept">
-<div class="prntbl_row prntbl_row_hdr"><div>Dept</div><div>Sales</div><div>Cost</div><div>Margin</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>Dept</div><div>Margin</div></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+
+<div id="tg_items"></div>
 
 </div>
 

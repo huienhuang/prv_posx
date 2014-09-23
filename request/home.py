@@ -14,7 +14,7 @@ PERM_SALES_MGR = 1 << config.USER_PERM_BIT['sales_mgr']
 
 PERM_SALES = 1 << config.USER_PERM_BIT['sales']
 PERM_DELIVERY_MGR = 1 << config.USER_PERM_BIT['delivery_mgr']
-
+PERM_PURCHASING_MGR = 1 << config.USER_PERM_BIT['purchasing_mgr']
 
 TOOLS_MAP = (
 
@@ -53,6 +53,7 @@ TOOLS_MAP = (
     ('Maintenance', 'invsrv', PERM_NORMAL_ACCESS),
 #    ('Cycle Count', '', PERM_NORMAL_ACCESS),
 #    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
+    ('Report', 'purchasing', PERM_PURCHASING_MGR),
 )),
 
 ('Sales', (
