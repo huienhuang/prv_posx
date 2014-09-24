@@ -149,11 +149,30 @@ function delete_ticket(id)
     });
 }
 
-function edit_ticket(id)
+function close_ticket(id)
 {
+    if(!confirm('Are Your Sure To Close Ticket['+id+']?')) return;
     
+    post_js_ex('problemtracker?fn=close_ticket', {id: id}, function() {
+        g_v_pbs.tinylist('refresh', id);
+    });
 }
 
+function open_dlg_new_ticket()
+{
+    g_v_dlg_pbs_new.dialog('open');
+    
+    var sel = g_v_dlg_pbs_new.find('select').empty();
+    get_js_ex('problemtracker?fn=get_ticket_types_by_item&sid=${item_sid}', {}, function(js) {
+        sel.empty();
+        var lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var s = js[i];
+            lst.push( $('<option></option>').val(s[0]).text(s[1] + (s[2] ? ' - * Reported Already *' : '')) );
+        }
+        sel.append(lst);
+    });
+}
 
 $(function() {
 
@@ -424,15 +443,15 @@ g_v_pbs = $('#c_pbs').tinylist({
         var id = ticket[0];
         var msgs = $.parseJSON('[' + ticket[4] + ']');
         var m = msgs[0];
-        var o = $('<div class="tl_node"></div>').data('hint', id)
+        var o = $('<div class="tl_node'+(ticket[1] ? ' tl_node_close' : '')+'"></div>').data('hint', id)
         .append(
             $('<div></div>').click(click_pbs)
             .append( $('<div></div>').text('#' + id) )
-            .append( $('<div></div>').text(ticket[1]) )
+            .append( $('<div></div>').text(ticket[1] ? 'Close' : 'Open') )
             .append( $('<div></div>').text(ticket[2]) )
             .append( $('<div></div>').text('By ' + m[1]) )
             .append( $('<div></div>').text(fmt_time(m[4])) )
-            .append( $('<div><span onclick="event.stopPropagation();delete_ticket('+id+')"></span><span onclick="event.stopPropagation();reply_ticket('+id+')"></span><span onclick="event.stopPropagation();edit_ticket('+id+')"></span></div>') )
+            .append( $('<div><span onclick="event.stopPropagation();delete_ticket('+id+')"></span><span onclick="event.stopPropagation();reply_ticket('+id+')"></span><span onclick="event.stopPropagation();close_ticket('+id+')"></span></div>') )
         );
         
         var lst = [];
@@ -440,12 +459,12 @@ g_v_pbs = $('#c_pbs').tinylist({
             var m = msgs[i];
             if(!m[3]) continue;
             
-            var s = $('<div></div>').append( $('<div class="node_user"></div>').click(reply_pbs).text(m[1] + (m[2] ? '' : ': ')).data('js', {'name':m[1], 'id':id}) );
+            var s = $('<div title="'+fmt_time(m[4])+'"></div>').append( $('<div class="node_user"></div>').click(reply_pbs).text(m[1] + (m[2] ? '' : ': ')).data('js', {'name':m[1], 'id':id}) );
             if(m[2]) s.append( $('<div class="node_user"></div>').click(reply_pbs).text('@' + m[2] + ': ').data('js', {'name':m[2], 'id':id}) );
             lst.push( s.append( $('<div></div>').text(m[3]) ) );
         }
         var is_expand = g_pbs_node_status[id];
-        if(is_expand === undefined) is_expand = g_pbs_node_status[0];
+        if(is_expand === undefined) is_expand = ticket[1] ? 0 : g_pbs_node_status[0];
         o.append( $('<div'+(is_expand ? '' : ' class="cls_pbs_min"')+'></div>').append(lst) );
         
         return o;
@@ -458,13 +477,12 @@ g_v_dlg_pbs_new = $('#dlg_pbs_new').dialog({
     height:300,
     open: function() { g_v_dlg_pbs_new.find('textarea').val(''); },
     buttons: {
-        'New': function() {
+        'Add': function() {
             var type = $.trim(g_v_dlg_pbs_new.find('select').val());
             var val = $.trim(g_v_dlg_pbs_new.find('textarea').val());
-            if(!val) return;
             
             post_js_ex('problemtracker?fn=new_ticket&sid=${item_sid}', {'type': type, 'msg': val}, function(js) {
-                g_v_pbs.tinylist('load', -1);
+                g_v_pbs.tinylist('refresh', js.id);
                 g_v_dlg_pbs_new.dialog('close');
             });
         }
@@ -571,11 +589,11 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 .tl_node >div:nth-child(1) {cursor:pointer;position:relative;height:26px;line-height:26px;overflow:hidden}
 .tl_node >div:nth-child(1) >div {float:left;text-align:center;height:26px}
 .tl_node >div:nth-child(1) >div:nth-child(1) {width:80px;font-weight:bold;color:#1920ab}
-.tl_node >div:nth-child(1) >div:nth-child(2) {width:60px;color:#4c8825}
+.tl_node >div:nth-child(1) >div:nth-child(2) {width:60px;color:#d3c52a}
 .tl_node >div:nth-child(1) >div:nth-child(3) {width:300px;color:#1d6188}
 .tl_node >div:nth-child(1) >div:nth-child(4) {width:150px;color:#88611d}
 .tl_node >div:nth-child(1) >div:nth-child(5) {width:210px;color:#381f77}
-.tl_node >div:nth-child(1) >div:nth-child(6) {float:right;width:90px;background:url('img/tools.png') no-repeat 0px 0px;position:relative}
+.tl_node >div:nth-child(1) >div:nth-child(6) {float:right;width:90px;background:url('img/tools2.png') no-repeat 0px 0px;position:relative}
 .tl_node >div:nth-child(1) >div:nth-child(6) > span {position:absolute;display:block;top:0px;left:0px;width:26px;height:26px;cursor:pointer}
 .tl_node >div:nth-child(1) >div:nth-child(6) > span:nth-child(2) {left:27px}
 .tl_node >div:nth-child(1) >div:nth-child(6) > span:nth-child(3) {left:59px}
@@ -583,6 +601,8 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 .tl_node >div:nth-child(2) >div {padding-bottom:6px}
 .tl_node >div:nth-child(2) >div >div {display:inline-block;vertical-align:top;white-space:pre-wrap}
 .tl_node >div:nth-child(2).cls_pbs_min {display:none}
+.tl_node_close >div:nth-child(1) >div:nth-child(2) {color:#4c8825}
+
 
 .tl_node .node_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
 .tl_node .node_reply {font-size:16px;}
@@ -636,7 +656,7 @@ k += 1
 <li><a href="#tabs_cust">Customers</a></li>
 <li><a href="#tabs_sold">Sold</a></li>
 <li><a href="#tabs_pics">Pictures</a></li>
-<li><a href="#tabs_pbs">Problems <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" onclick="g_v_dlg_pbs_new.dialog('open')"/></a></li>
+<li><a href="#tabs_pbs">Problems <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" onclick="open_dlg_new_ticket()"/></a></li>
 <li><a href="#tabs_notes">Notes</a></li>
 </ul>
 
@@ -691,11 +711,7 @@ k += 1
 <div id="dlg_item_chg_hist" title="Input QTY"></div>
 
 <div id="dlg_pbs_new" title="New Ticket" style="text-align:center">
-<select style="width:460px">
-%for i in TICKET_TYPES:
-<option value="${i[0]}">${i[1]|h}</option>
-%endfor
-</select>
+<select style="width:460px"></select>
 <div class="rel_txt" style="top:50px"><textarea></textarea></div>
 </div>
 <div id="dlg_pbs_reply"><div class="rel_txt"><textarea></textarea></div></div>

@@ -8,19 +8,25 @@
 
 $(function() {
 
+g_tg_lst_data = {};
 g_v_tg_lst = $('.x_body').tinygrid({
-len: 1,
-src: {page:'?fn=get_items'},
+len: 0,
+src: {page:'?fn=get_items', data: g_tg_lst_data},
 cols: [{name:'ID', width:80},
        {name:'Issue', width:220},
-       {name:'Item', width:"50%"},
-       {name:'Date', width:210},
+       {name:'Item', width:400},
+       {name:'LastReply', width:"100%"},
+       {name:'LastModDate', width:210},
        ],
 click: function(r, c, d) {
-    open_wnd('hist?fn=itemhist&dg_type=6&ticket_id='+d[0]+'&tid='+d[4],'posx_item_hist', 992, 700);
+    open_wnd('hist?fn=itemhist&dg_type=6&ticket_id='+d[0]+'&tid='+d[5],'posx_item_hist', 992, 700);
 }
 });
 
+g_v_ticket_type = $('.ticket_type').change(function() {
+    g_tg_lst_data.type = parseInt($(this).val()) || 0;
+    g_v_tg_lst.tinygrid('update', -1, true, true, true);
+}).change();
 
 });
 
@@ -35,6 +41,12 @@ click: function(r, c, d) {
 <body>
 
 <div class="x_ctrl">
+<select class="ticket_type">
+<option value="">- All -</option>
+%for k,v in TICKET_TYPES.items():
+<option value="${k}">${v|h}</option>
+%endfor
+</select>
 </div>
 <div class="x_body"></div>
 

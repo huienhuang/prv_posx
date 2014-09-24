@@ -50,7 +50,8 @@ TOOLS_MAP = (
 ('Purchasing', (
     ('Item Sold', 'itemsold', PERM_ITEM_STAT_ACCESS),
     ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
-    ('Maintenance', 'invsrv', PERM_NORMAL_ACCESS),
+#    ('Maintenance', 'invsrv', PERM_NORMAL_ACCESS),
+    ('Tracker', 'problemtracker', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
 #    ('Cycle Count', '', PERM_NORMAL_ACCESS),
 #    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
     ('Report', 'purchasing', PERM_PURCHASING_MGR),

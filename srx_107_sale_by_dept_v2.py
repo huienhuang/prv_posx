@@ -40,7 +40,7 @@ for r in cur:
     dt_i = tp.tm_year * 100 + tp.tm_mon
 
     for t in items:
-        if t['itemsid'] == 1000000005: continue
+        if t['itemsid'] == 1000000005 or not t['qty']: continue
         ttl_base_qty = t['nunits'] * t['qty']
         ttl_price = t['price'] * t['qty'] * disc
         ttl_cost = t['cost'] * t['qty']

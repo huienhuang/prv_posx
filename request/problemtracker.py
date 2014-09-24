@@ -11,7 +11,7 @@ TICKET_TYPES = {
 
 1: 'Low Stock',
 2: 'Out Of Stock',
-50: 'Wrong Info',
+50: 'Wrong Information',
 
 
 }
@@ -28,7 +28,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writefile('tmpl_multitabs.html', r)
 
     def fn_report_a_problem(self):
-        r = {}
+        r = {
+            'TICKET_TYPES': TICKET_TYPES
+        }
         
         self.req.writefile('tracker/report_a_problem.html', r)
 
@@ -37,12 +39,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         t_sid = self.req.psv_int('sid')
 
         d_t = {}
+        cur = self.cur()
         cur.execute('select type,count(*) from tracker where sid=%s and state=0 group by type', (t_sid, ))
         for r in cur.fetchall():
             d_t[ r[0] ] = r[1]
 
+        tt = []
         for v in TICKET_TYPES.items():
-            pass
+            n = d_t.get(v[0], 0)
+            tt.append( (v[0], v[1], n) )
+
+        self.req.writejs(tt)
+        
 
     def fn_new_ticket(self):
         t_type = self.req.psv_int('type')
@@ -50,38 +58,62 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         t_sid = self.req.psv_int('sid')
         if not TICKET_TYPES.has_key(t_type): return
 
-        t_js = json.dumps([self.user_id, self.user_name, None, t_msg, int(time.time())], separators=(',',':'))
+        cts = int(time.time())
 
         cur = self.cur()
-        cur.execute('insert into tracker values(null,0,%s,%s,%s)', (
-            t_type, t_sid, t_js
-            )
-        )
 
-        self.req.writejs({'id' : cur.lastrowid})
+        cur.execute('select id from tracker where sid=%s and state=0 and type=%s', (t_sid, t_type))
+        rows = cur.fetchall()
+        if rows:
+            t_id = rows[0][0]
+            t_js = json.dumps([self.user_id, self.user_name, None, t_msg or '* Report *', int(time.time())], separators=(',',':'))
+            cur.execute("update tracker set mts=%s,js=concat(js, ',', %s) where id=%s and state=0", (
+                cts, t_js, t_id
+                )
+            )
+        else:
+            t_js = json.dumps([self.user_id, self.user_name, None, t_msg, int(time.time())], separators=(',',':'))
+            cur.execute('insert into tracker values(null,0,%s,%s,%s,%s)', (
+                t_type, t_sid, t_js, cts
+                )
+            )
+            t_id = cur.lastrowid
+
+        self.req.writejs({'id' : t_id})
 
     def fn_close_ticket(self):
         t_id = self.req.psv_int('id')
         cur = self.cur()
         cur.execute("update tracker set state=-1 where id=%s", (
-            t_id
+            t_id,
             )
         )
+        rc = int(cur.rowcount <= 0)
 
-        self.req.writejs({'err': int(cur.rowcount <= 0)})
+        if not rc:
+            cts = int(time.time())
+            t_js = json.dumps([self.user_id, self.user_name, None, '* Closed *', int(time.time())], separators=(',',':'))
+            cur.execute("update tracker set mts=%s,js=concat(js, ',', %s) where id=%s", (
+                cts, t_js, t_id
+                )
+            )
+
+        self.req.writejs({'err': rc})
+
+    fn_close_ticket.PERM = 1 << config.USER_PERM_BIT['purchasing']
 
     def fn_reply_ticket(self):
         t_id = self.req.psv_int('id')
         t_msg = self.req.psv_ustr('msg')
         t_to_user_name = self.req.psv_ustr('to_user_name')
         if t_to_user_name == self.user_name: t_to_user_name = None
+        if not t_msg: return
 
         t_js = json.dumps([self.user_id, self.user_name, t_to_user_name, t_msg, int(time.time())], separators=(',',':'))
-
-
+        cts = int(time.time())
         cur = self.cur()
-        cur.execute("update tracker set js=concat(js, ',', %s) where id=%s", (
-            t_js, t_id
+        cur.execute("update tracker set mts=%s,js=concat(js, ',', %s) where id=%s and state=0", (
+            cts, t_js, t_id
             )
         )
 
@@ -95,6 +127,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('delete from tracker where id=%s', (t_id, ))
         self.req.writejs({'err': int(cur.rowcount <= 0)})
 
+    fn_del_ticket.PERM = 1 << config.USER_PERM_BIT['purchasing']
 
     def fn_get_tickets_by_item(self):
         sid = self.req.qsv_int('sid')
@@ -155,7 +188,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         lst = []
         for r in _lst:
             r = list(r)
-            r[1] = r[1] == 0 and 'Open' or 'Close'
             r[2] = TICKET_TYPES.get(r[2], 'UNK')
             lst.append(r)
 
@@ -170,26 +202,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         eidx = self.qsv_int('eidx')
         if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
         
+        t_type = self.qsv_int('type')
+
         cur = self.cur()
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select SQL_CALC_FOUND_ROWS t.id,t.type,si.name,t.js,t.sid from tracker t left join sync_items si on (t.sid=si.sid) where t.state=0 order by id desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS t.id,t.type,si.name,t.js,t.mts,t.sid from tracker t left join sync_items si on (t.sid=si.sid) where t.state=0'+(t_type and ' and t.type='+str(t_type) or '')+' order by id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
-                t_id,t_type,t_name,t_js,t_sid = r
-                t_js = json.loads('[' + t_js + ']')
-                m = t_js[0]
+                r = list(r)
+                r[1] = TICKET_TYPES.get(r[1], 'UNK')
+                r[4] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[4]))
+                r[5] = str(r[5])
 
-                apg.append( (t_id, TICKET_TYPES.get(t_type, 'UNK'), t_name, time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(m[4])), str(t_sid)) )
+                lr = json.loads('[' + r[3] + ']')[-1]
+                r[3] = lr[3] and '%s: %s' % (lr[1], lr[3]) or ''
+
+                apg.append(r)
 
             cur.execute('select FOUND_ROWS()')
 
         else:
         
-            cur.execute('select count(*) from deliveryv2')
+            cur.execute('select count(*) from tracker where state=0'+(t_type and ' and type='+str(t_type) or ''))
 
         rlen = int(cur.fetchall()[0][0])
         res = ret['res']
