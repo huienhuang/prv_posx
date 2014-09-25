@@ -10,6 +10,9 @@ import sqlanydb
 
 FLAG_ITEM_REQ_CHK = (1 << 3) | (1 << 4) | (1 << 5)
 
+TICKET_TYPE_MAPPING = {1: 24, 2: 25, 50: 26}
+TICKET_TYPE_MAPPING_R = dict([(f_v[1], f_v[0]) for f_v in TICKET_TYPE_MAPPING.items()])
+    
 
 DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -64,12 +67,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             
         self.req.writejs({'imgs':imgs, 'sid':str(sid)})
         
-        
     def fn_set_single_inv_flag(self):
         sid = self.req.psv_int('sid')
         idx = self.req.psv_int('idx')
         on = self.req.psv_int('on')
         if idx < 0 or idx > 31: return
+        
+        if TICKET_TYPE_MAPPING_R.has_key(idx):
+            self.req.psd()['type'] = [ str(TICKET_TYPE_MAPPING_R.get(idx)) ]
+            self.req.redirect_i('problemtracker', 'new_ticket')
         
         cur = self.cur()
         if on:
@@ -86,7 +92,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         rc = cur.rowcount
         self.req.writejs({'err': int(not (rc > 0))})
-        
+    
     def fn_get_inv_flag(self):
         sid = self.req.psv_int('sid')
     
@@ -94,8 +100,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur.execute('select inv_flag from item where sid=%s', (sid,))
         rows = cur.fetchall()
         flag = 0
-        if rows: flag = rows[0][0]
-            
+        if rows: flag = rows[0][0] & 0x00FFFFFF
+
+        cur.execute('select type,count(*) from tracker where sid=%s and state=0 group by type', (sid, ))
+        for r in cur.fetchall():
+            idx = TICKET_TYPE_MAPPING.get(r[0])
+            if idx == None: continue
+            if r[1]: flag |= 1 << idx
+        
         self.req.writejs({'flag': flag})
 
     def fn_get_lst_item_chg_hist(self):

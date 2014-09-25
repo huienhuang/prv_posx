@@ -133,21 +133,25 @@ function show_tools()
     if(!g_item) return;
     g_v_checkboxes.hide();
     g_v_tools_cnt.show();
-        
+    refresh_tools();
+}
+
+
+function refresh_tools()
+{
     var sid = g_item[0];
     get_js('?fn=get_inv_flag', {sid: sid}, function(js) {
         if(!g_item || g_item[0] !== sid) return;
-            
+        g_v_checkboxes.show();
+        
         for(var i = 0; i < g_v_checkboxes.length; i++) {
             var cb = $(g_v_checkboxes[i]);
-            cb.show();
             if(js.flag & (1 << parseInt(cb.attr('id').substr(13))))
                 cb.addClass('tg_checkbox_active');
             else
                 cb.removeClass('tg_checkbox_active');
         }
     });
-    
 }
 
 function update_inv_stat()
@@ -333,17 +337,10 @@ g_v_checkboxes = g_v_tools_cnt.find('.tg_checkbox').click(function() {
     if(!g_item) return;
     
     var o = $(this);
-    var on;
-    if( o.hasClass('tg_checkbox_active') ) {
-        on = 0;
-        o.removeClass('tg_checkbox_active');
-    } else {
-        on = 1;
-        o.addClass('tg_checkbox_active');
-    }
-    
     var idx = o.attr('id').substr(13);
-    post_js_ex('?fn=set_single_inv_flag', {idx:idx, on:on, sid:g_item[0]});
+    post_js_ex('?fn=set_single_inv_flag', {idx:idx, on: o.hasClass('tg_checkbox_active') ? 0 : 1, sid:g_item[0]}, function() {
+        refresh_tools();    
+    });
     
 });
 
@@ -487,9 +484,9 @@ body {margin:0 auto;padding-top:51px}
 <div class="tg_checkbox" id="inv_flag_idx_1">打印大标签</div>
 <div class="tg_checkbox" id="inv_flag_idx_2">打印仓库标签</div>
 
-<div class="tg_checkbox" id="inv_flag_idx_3">检查条形码</div>
-<div class="tg_checkbox" id="inv_flag_idx_4">检查价格</div>
-<div class="tg_checkbox" id="inv_flag_idx_5">详细检查</div>
+<div class="tg_checkbox" id="inv_flag_idx_24">反映 低库存</div>
+<div class="tg_checkbox" id="inv_flag_idx_25">反映 无库存</div>
+<div class="tg_checkbox" id="inv_flag_idx_26">反映 信息错误</div>
 
 </div>
 

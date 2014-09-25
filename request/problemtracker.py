@@ -208,13 +208,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select SQL_CALC_FOUND_ROWS t.id,t.type,si.name,t.js,t.mts,t.sid from tracker t left join sync_items si on (t.sid=si.sid) where t.state=0'+(t_type and ' and t.type='+str(t_type) or '')+' order by id desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS t.id,t.type,si.name,t.js,t.mts,t.sid,si.num from tracker t left join sync_items si on (t.sid=si.sid) where t.state=0'+(t_type and ' and t.type='+str(t_type) or '')+' order by id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
                 r = list(r)
                 r[1] = TICKET_TYPES.get(r[1], 'UNK')
+                r[2] = '%d - %s' % (r[6], r[2])
                 r[4] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(r[4]))
                 r[5] = str(r[5])
 

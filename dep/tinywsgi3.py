@@ -16,6 +16,17 @@ import json
 from mako.lookup import TemplateLookup
 
 
+class TinyFieldStorage(cgi.FieldStorage):
+    def to_dict(self):
+        d = {}
+        for o in self.list:
+            if o.file:
+                d.setdefault(o.name, []).append(o.file)
+            else:
+                d.setdefault(o.name, []).append(o.value)
+
+        return d
+
 class Module:
     def __init__(self, app):
         self.App = app
@@ -136,28 +147,33 @@ class _Application:
         try:
             tdata[0] = req = Request(self, environ, tdata[1])
             
-            #get handler class
-            handler = RequestHandler
+            #get module name
             pi = environ.get('PATH_INFO') or environ.get('SCRIPT_NAME')
             if pi != None and pi[:len(self.web_dir)] == self.web_dir:
                 pi = pi[len(self.web_dir):]
                 if pi[:1] != '/' or len(pi) == 1: pi = '/default'
             else:
                 pi = '/default'
-                
-            nz = os.path.normpath(self.req_dir + pi)
-            if nz[:len(self.req_dir)] == self.req_dir and os.path.isfile(nz + '.py'):
-                handler = self.load(nz[len(self.app_dir):]).RequestHandler
             
             #process request
-            hinst = handler(req)
-            try:
-                hinst.handle()
-            except RequestExitException, ree:
-                pass
-            finally:
-                hinst.cleanup()
-                hinst = None
+            while pi:
+                nz = os.path.normpath(self.req_dir + pi)
+                if nz[:len(self.req_dir)] == self.req_dir and os.path.isfile(nz + '.py'):
+                    handler = self.load(nz[len(self.app_dir):]).RequestHandler
+                else:
+                    handler = RequestHandler
+
+                #process request
+                hinst = handler(req)
+                try:
+                    hinst.handle()
+                except RequestExitException, ree:
+                    pass
+                finally:
+                    hinst.cleanup()
+                    hinst = None
+
+                pi, req._next_req_handler = req._next_req_handler, None
             
             #build response
             status = req.out_status
@@ -256,6 +272,8 @@ class Request:
         
         self.qsd = urlparse.parse_qs(self.environ['QUERY_STRING'], keep_blank_values=True)
         if not self.qsd: self.qsd = {}
+
+        self._next_req_handler = None
         
     def exit(self, status=None, msg=None):
         if status != None: self.out_status = status
@@ -265,6 +283,12 @@ class Request:
     def exitjs(self, js=None):
         self.exit(None, json.dumps(js, separators=(',',':'), encoding=self.app.encoding))
     
+    def redirect_i(self, mod, fn):
+        self.qsd['fn'] = [fn]
+        self._next_req_handler = '/' + mod
+        self.writex('')
+        self.exit()
+
     def redirect(self, url):
         e = self.environ
         full_url = "%s://%s%s" % (e['wsgi.url_scheme'], e['SERVER_NAME'], e['SCRIPT_NAME'])
@@ -305,7 +329,7 @@ class Request:
         return self.qsd.get(k, [dv])[0].decode(self.app.encoding).strip()
 
     def psv_int(self, k, dv=0):
-        v = self.psd().getfirst(k, '').strip()
+        v = self.psd().get(k, [''])[0].strip()
         try:
             v = int(v)
         except:
@@ -313,17 +337,17 @@ class Request:
         return v
 
     def psv_str(self, k, dv=''):
-        return self.psd().getfirst(k, dv).strip()
+        return self.psd().get(k, [dv])[0].strip()
 
     def psv_ustr(self, k, dv=''):
-        return self.psd().getfirst(k, dv).decode(self.app.encoding).strip()
+        return self.psd().get(k, [dv])[0].decode(self.app.encoding).strip()
 
     def psv_js(self, k):
         return json.loads(self.psv_str(k), encoding=self.app.encoding)
 
     def psd(self):
         if not self._psd:
-            self._psd = cgi.FieldStorage(fp=self.environ.get('wsgi.input'), environ=self.environ, keep_blank_values=True)
+            self._psd = TinyFieldStorage(fp=self.environ.get('wsgi.input'), environ=self.environ, keep_blank_values=True).to_dict()
         return self._psd
 
     def escape_html(self, s):
