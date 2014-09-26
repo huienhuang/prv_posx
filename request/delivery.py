@@ -398,10 +398,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                                 err.append('row#%d receipt#%d - need to mark all previous shipments(using schedule#%d) with problems' % (i + 1, rec['num'], rec['sc_id']))
                                 continue
 
-                            cur.execute('select sc_flag from schedule where sc_id=%s', (rec['sc_id'], ))
-                            if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL) and (s_sc_flag_v2 & REC_FLAG_PARTIAL):
-                                err.append('row#%d receipt#%d - Completed Delivery Is Not Allowed' % (i + 1, rec['num']))
-                                continue
+                            if s_sc_flag_v2 & REC_FLAG_PARTIAL:
+                                cur.execute('select sc_flag from schedule where sc_id=%s', (rec['sc_id'], ))
+                                if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL):
+                                    err.append('row#%d receipt#%d - Completed Delivery Is Not Allowed' % (i + 1, rec['num']))
+                                    continue
 
                     
                     recs_db.append( (rec, r, is_new) )
