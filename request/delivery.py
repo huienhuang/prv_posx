@@ -220,11 +220,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         num = self.req.qsv_int('num')
         if not num: self.req.exitjs({'err': 'error Num'})
         d_id = self.req.qsv_int('d_id')
-        d_ts = self.req.qsv_int('d_ts')
-        if d_ts:
-            d_dt = datetime.date.fromtimestamp(d_ts)
-        else:
-            d_dt = datetime.date.today()
+        d_ts = self.get_day_ts( self.req.qsv_int('d_ts') )
+        d_dt = datetime.date.fromtimestamp(d_ts)
         d_dt_i = d_dt.year * 10000 + d_dt.month * 100 + d_dt.day
         
         cur = self.cur()
@@ -237,17 +234,16 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['sc_count'] = len(sc_recs)
         if not r['sc_count']: self.req.exitjs({'err': 'No Schedule Found For Receipt(%s) in %02d/%02d' % (num, d_dt.month, d_dt.day)})
         
-        cur.execute('select count(*),bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=%s and d_id!=%s', (num, d_id))
-        r['dup'],dup_ok = cur.fetchall()[0]
-        if r['dup'] and not dup_ok:
-            cur.execute('select bit_or(sc_flag) from schedule where sc_date=%s and (doc_type=1 and doc_sid=%s or doc_type=0 and doc_sid=%s)', (
-                d_dt_i, r['sid'], r['so_sid']
-                )
+        cur.execute('select count(*),bit_and(dr.problem_flag_s<>0),bit_and(ifnull(s.sc_flag, 0)) from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) left join schedule s on (dr.sc_id=s.sc_id) where dr.num=%s and dr.d_id!=%s and d.ts<=%s', (
+            num, d_id, d_ts
             )
-            rows = cur.fetchall()
-            if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
-                self.req.exitjs({'err': "Receipt(%s) Duplicated, No Redelivery Is Allowed.\n*** Except there is a partial shipment or all previous shipment is marked with problems!" % (num, )})
-            
+        )
+        s_dup,s_pb_flag,s_sc_flag = cur.fetchall()[0]
+        r['data'] = (s_dup,s_pb_flag,s_sc_flag)
+        if s_dup and not(s_sc_flag & REC_FLAG_PARTIAL) and not s_pb_flag:
+            self.req.exitjs({'err': "Receipt(%s) Duplicated, No Redelivery Is Allowed.\n*** Except all previous shipments are marked with problems!" % (num, )})
+        r['dup'] = s_dup
+
         r['sid'] = str(r['sid'])
         r['cid'] = r['cid'] != None and str(r['cid']) or ''
         r['global_js'] = r['global_js'] and json.loads(r['global_js']) or {}
@@ -310,8 +306,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         nums_lku = {}
         if nums:
             qs_sc = '(select group_concat(sc_id) from schedule where sc_date='+str(d_dt_i)+' and (doc_type=1 and doc_sid=sr.sid or sr.so_sid is not null and doc_type=0 and doc_sid=sr.so_sid)) as sc_ids'
-            qs_pb = '(select bit_and(problem_flag_s<>0) from deliveryv2_receipt where num=sr.num and d_id!='+str(d_id)+') as dr_pb'
-            cur.execute('select num,sid,sid_type,'+qs_sc+','+qs_pb+' from sync_receipts sr where num in ('+','.join(map(str,nums))+')')
+            cur.execute('select num,sid,sid_type,'+qs_sc+' from sync_receipts sr where num in ('+','.join(map(str,nums))+')')
             for r in cur.fetchall():
                 r = list(r)
                 if r[3]: r[3] = set(map(int, r[3].split(',')))
@@ -389,12 +384,25 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                             err.append('row#%d receipt#%d - schedule(#%d) not in %02d/%02d' % (i + 1, rec['num'], rec['sc_id'], d_dt.month, d_dt.day))
                             continue
 
-                        if not r[4]:
-                            cur.execute('select sc_flag from schedule where sc_id=%s', (rec['sc_id'],))
-                            rows = cur.fetchall()
-                            if not rows or not(rows[0][0] & REC_FLAG_PARTIAL):
-                                err.append('row#%d receipt#%d - No Redelivery Is Allowed %s' % (i + 1, rec['num'], rows))
+                        cur.execute('select count(*),bit_or((dr.sc_id=%s) & (dr.problem_flag_s=0)),bit_and(dr.problem_flag_s<>0),bit_and(ifnull(s.sc_flag, 0)),bit_or(ifnull(s.sc_flag, 1)) from deliveryv2_receipt dr left join deliveryv2 d on (dr.d_id=d.d_id) left join schedule s on (dr.sc_id=s.sc_id) where dr.num=%s and dr.d_id!=%s and d.ts<=%s', (
+                                rec['sc_id'], rec['num'], d_id, ts
+                            )
+                        )
+                        s_dup,s_sp_pb,s_pb_flag,s_sc_flag,s_sc_flag_v2 = cur.fetchall()[0]
+                        if s_dup:
+                            if not(s_sc_flag & REC_FLAG_PARTIAL) and not s_pb_flag:
+                                err.append('row#%d receipt#%d - need to mark all previous shipments with problems' % (i + 1, rec['num']))
                                 continue
+
+                            if s_sp_pb:
+                                err.append('row#%d receipt#%d - need to mark all previous shipments(using schedule#%d) with problems' % (i + 1, rec['num'], rec['sc_id']))
+                                continue
+
+                            cur.execute('select sc_flag from schedule where sc_id=%s', (rec['sc_id'], ))
+                            if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL) and (s_sc_flag_v2 & REC_FLAG_PARTIAL):
+                                err.append('row#%d receipt#%d - Completed Delivery Is Not Allowed' % (i + 1, rec['num']))
+                                continue
+
                     
                     recs_db.append( (rec, r, is_new) )
                 

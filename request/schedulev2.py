@@ -136,6 +136,19 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         c = 0
         for r in docs:
+            if not(r['sc_flag'] & REC_FLAG_PARTIAL):
+                cur.execute('select bit_or(sc_flag) from schedule where sc_date<=%s and sc_id!=%s and doc_type=%s and doc_sid=%s', (
+                    r['sc_new_date'], r['sc_id'], r['doc_type'], r['doc_sid']
+                    )
+                )
+                if cur.fetchall()[0][0] & REC_FLAG_PARTIAL: continue
+            else:
+                cur.execute('select bit_and(sc_flag) from schedule where sc_date>=%s and sc_id!=%s and doc_type=%s and doc_sid=%s', (
+                    r['sc_new_date'], r['sc_id'], r['doc_type'], r['doc_sid']
+                    )
+                )
+                if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL): continue
+
             cur.execute('update schedule set sc_rev=sc_rev+1,sc_flag=(sc_flag&(~%s))|%s,sc_date=%s,sc_new_date=0 where sc_id=%s and sc_rev=%s and sc_flag&%s=%s', (
                 REC_FLAG_RESCHEDULED, REC_FLAG_R_RESCHEDULED, 
                 r['sc_new_date'],
@@ -379,8 +392,21 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if r_qty: ijs_note.append(u'> %d - %s - %s - %d / %d %s' % (item['itemno'], item['alu'], item['desc1'], r_qty, item['qty'], item['uom']))
             
             s_ijs = json.dumps(ijs, separators=(',',':'))
-            
+
         if sc_id == 0:
+            if not mode:
+                cur.execute('select bit_or(sc_flag) from schedule where sc_date<=%s and doc_type=%s and doc_sid=%s', (
+                    d_date, d_type, d_sid
+                    )
+                )
+                if cur.fetchall()[0][0] & REC_FLAG_PARTIAL: self.req.exitjs({'err': -67, 'err_s': 'Completed Delivery Is Not Allowed!'})
+            else:
+                cur.execute('select bit_and(sc_flag) from schedule where sc_date>=%s and doc_type=%s and doc_sid=%s', (
+                    d_date, d_type, d_sid
+                    )
+                )
+                if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL): self.req.exitjs({'err': -67, 'err_s': 'Partial Delivery Is Not Allowed!'})
+
             cur.execute('insert into schedule values(null,%s,0,1,%s,%s,%s,%s,%s,%s,%s,%s,null)', (
                 d_date, mode and REC_FLAG_PARTIAL or 0, prio, d_type, d_sid, new_doc_crc, note, new_doc_ijs_crc, mode and s_ijs or None
                 )
@@ -397,11 +423,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             o_r = dict(zip(cur.column_names, row[0]))
             new_sc_flag = o_r['sc_flag']
             
-            chg = False
+            chg = chk = False
             if o_r['sc_flag'] & REC_FLAG_CANCELLING: self.req.exitjs({'err': -2, 'err_s': "Cancellation is pending"})
             if o_r['sc_date'] != d_date and o_r['sc_new_date'] != d_date or o_r['sc_prio'] != prio or o_r['sc_note'] != note: chg = True
             if bool(o_r['sc_flag'] & REC_FLAG_PARTIAL) != bool(mode):
-                chg = True
+                chg = chk = True
                 d_notes.append('Schedule[%d] (%s) - Changed Mode From %s To %s%s' % (
                     sc_id, o_date.strftime('%m/%d/%y'),
                     mode and 'Complete' or 'Partial',
@@ -410,7 +436,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     )
                 )
                 if o_r['sc_flag'] & REC_FLAG_ACCEPTED: new_sc_flag |= REC_FLAG_CHANGED
-                
+
             if mode and o_r['sc_flag'] & REC_FLAG_PARTIAL:
                 m_note = False
                 if new_doc_ijs_crc != o_r['doc_ijs_crc']:
@@ -459,6 +485,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 else:
                     d_notes.append('Reschedule[%d] From %s To %s' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), ))
             
+                chk = True
+
+            if chk:
+                if not mode:
+                    cur.execute('select bit_or(sc_flag) from schedule where sc_date<=%s and sc_id!=%s and doc_type=%s and doc_sid=%s', (
+                        d_date, sc_id, d_type, d_sid
+                        )
+                    )
+                    if cur.fetchall()[0][0] & REC_FLAG_PARTIAL: self.req.exitjs({'err': -67, 'err_s': 'Completed Delivery Is Not Allowed!'})
+                else:
+                    cur.execute('select bit_and(sc_flag) from schedule where sc_date>=%s and sc_id!=%s and doc_type=%s and doc_sid=%s', (
+                        d_date, sc_id, d_type, d_sid
+                        )
+                    )
+                    if not(cur.fetchall()[0][0] & REC_FLAG_PARTIAL): self.req.exitjs({'err': -67, 'err_s': 'Partial Delivery Is Not Allowed!'})
+
             if o_r['sc_flag'] & REC_FLAG_ACCEPTED:
                 if o_r['sc_prio'] != prio or o_r['sc_note'] != note: new_sc_flag |= REC_FLAG_CHANGED
                 if mode:
