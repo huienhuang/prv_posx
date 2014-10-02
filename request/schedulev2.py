@@ -875,7 +875,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         return sc_lst
 
-    CUST_LKU_KEYS = ('company', 'name', 'addr1', 'phone')
+    CUST_LKU_KEYS = ('company', 'name', 'addr1', 'city', 'phone')
     def gen_lku(self, cust):
         l = set()
         for k in self.CUST_LKU_KEYS:
