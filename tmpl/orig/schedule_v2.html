@@ -29,6 +29,11 @@ function load_doc(i, auto_print)
     g_v_dd_doc_viewer.attr('src', '?fn=print&view_only=1&sc_ids='+r.sc_id);
 }
 
+function load_doc_lst_c(dt, zidx, reload, auto_print) {
+    g_v_search_filter.val('');
+    load_doc_lst(dt, zidx, reload, auto_print);
+}
+
 function load_doc_lst(dt, zidx, reload, auto_print)
 {
     var o_sc_id = 0;
@@ -80,7 +85,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
             if(r.sc_flag & ${REC_FLAG_PARTIAL}) sflag += r.sc_flag & ${REC_FLAG_ACCEPTED} ? 'p' : 'P';
             if(r.sc_note_len) sflag += 'N';
             if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
-            var v = $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>')
+            var v = $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>').data('js', r)
             .append( $('<div><input type="checkbox" value="'+i+'"'+(reload && pre_sel[r.sc_id] ? ' checked="checked"': '')+' /></div>') )
             .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
             .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="open_wnd_cust(\''+r.cid+'\')"></div>').text(r.cust_nz) )
@@ -97,6 +102,7 @@ function load_doc_lst(dt, zidx, reload, auto_print)
         } else 
             g_v_dd_doc_lst_body.append(lst);
         
+        key_up__search_filter();
         g_v_dd_doc_lst_ftr.text('Total: ' + js.lst.length + ', Fill: ' + dc);
         js.v_cbs = g_v_dd_doc_lst_body.find('input[type="checkbox"]');
         reload && k >= 0 && load_doc(k, auto_print);
@@ -141,7 +147,7 @@ function load_overview_cb(js)
             else if(zfd === -1)
                 s_cls = ' class="dd_close"';
                 
-            var oo = $('<div'+(s_cls || '')+' onclick="load_doc_lst('+dtj[3]+','+(i-1)+')">&nbsp;</div>');
+            var oo = $('<div'+(s_cls || '')+' onclick="load_doc_lst_c('+dtj[3]+','+(i-1)+')">&nbsp;</div>');
             l_oo.push(oo);
             if(z) {
                 if(z[0]) oo.append( $('<div class="ovc_default ovc_pending"></div>').text(z[0]) );
@@ -186,7 +192,7 @@ function get_selected_docs()
     var js = g_v_dlg_documents.data('jsd');
     if(!js) return lst;
     
-    var cbs = js.v_cbs.filter(':checked');
+    var cbs = js.v_cbs.filter(':visible:checked');
     for(var i = 0; i < cbs.length; i++) lst.push( js.lst[ parseInt($(cbs[i]).val()) ] );
     
     if(!lst.length && js.cur_sel !== undefined && js.lst[js.cur_sel]) lst.push(js.lst[js.cur_sel]);
@@ -290,6 +296,68 @@ function load_nd_sc_docs()
     }, undefined, undefined, undefined, '__load_nd_sc_docs__');
 }
 
+
+var __timeout__search_filter = null;
+var g_regx_kw_repl_a = new RegExp('[\\s]+', 'gim');
+var g_regx_kw_repl_b = new RegExp('[^\\w\\s]+', 'gim');
+
+function gen_kws(kw)
+{
+    var d_kw = {};
+    kw = $.trim(kw.replace(g_regx_kw_repl_a, ' ').replace(g_regx_kw_repl_b, '$ ')).split(' ');
+    for(var i = 0; i < kw.length; i++) {
+        var e = kw[i];
+        if(!e.length || e == '$') continue;
+        d_kw[ e.toLowerCase() ] = null;
+    }
+    kw = [];
+    for(var k in d_kw) {
+        if(k[k.length - 1] == '$')
+            kw.push( RegExp('\\b' + k.substr(0, k.length - 1) + '\\b', 'gim') );
+        else
+            kw.push( RegExp('\\b' + k, 'gim') );
+    }
+    return kw;
+}
+
+function key_up__search_filter()
+{
+    if(__timeout__search_filter) {
+        clearTimeout(__timeout__search_filter);
+        __timeout__search_filter = null;
+    }
+    
+    if(!$.trim(g_v_search_filter.val()).length) {
+        g_v_dd_doc_lst_body.children().show();
+        return;
+    }
+    
+    __timeout__search_filter = setTimeout(function() {
+        var cs = g_v_dd_doc_lst_body.children();
+        var kw = gen_kws(g_v_search_filter.val());
+        if(!kw.length) {
+            cs.show();
+            return;
+        }
+        
+        var v;
+        for(var i = 0; i < cs.length; i++) {
+            v = $(cs[i]);
+            var lku = v.data('js').lku;
+            var s = 1;
+            for(var j = 0; j < kw.length; j++) {
+                if(lku.search(kw[j]) < 0) {
+                    s = 0;
+                    break;
+                }
+            }
+            
+            s ? v.show() : v.hide(); 
+        }
+        
+    }, 200);
+}
+
 $(function() {
 
 g_v_dlg_check = $('#dlg_check').dialog({
@@ -330,7 +398,7 @@ g_v_dlg_doc_del = $('#dlg_doc_del').dialog({
 g_v_dlg_documents = $('#dlg_documents').dialog({
     autoOpen: false,
     width:1320,
-    height:650,
+    height:700,
     buttons: [
 %if has_perm_delivery_mgr:
         {
@@ -484,12 +552,13 @@ $('.doc_lst >.prntbl_row_hdr', g_v_dlg_documents).click(function() {
 });
 */
 $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
-    g_v_dd_doc_lst_body.find('input[type="checkbox"]').prop('checked', $(this).prop('checked'));
+    g_v_dd_doc_lst_body.find('input[type="checkbox"]:visible').prop('checked', $(this).prop('checked'));
 });
 g_v_dd_doc_lst_filter = $('.doc_lst_filter', g_v_dlg_documents);
 g_v_dd_doc_lst_body = $('.doc_lst >.prntbl_cnt', g_v_dlg_documents);
 g_v_dd_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div', g_v_dlg_documents);
 g_v_dd_doc_viewer = $('iframe', g_v_dlg_documents);
+g_v_search_filter = $('.search_filter', g_v_dlg_documents).keyup(key_up__search_filter);
 
 g_v_dlg_doc_form = $('#dlg_doc_form').dialog({
     modal: true,
@@ -918,7 +987,8 @@ load_overview();
 #dlg_documents {overflow:hidden}
 #dlg_documents > iframe {border:0;margin:0;padding:0;position:absolute;top:0;right:0;width:740px;height:100%;}
 #dlg_documents > div:first-child {position:absolute;left:0;top:0;bottom:0;right:740px;border-right:1px solid #ccc}
-#dlg_documents > div:first-child > div:first-child {display:none;height:40px;line-height:40px;}
+#dlg_documents > div:first-child > div:nth-child(1) {height:40px;padding-top:4px;}
+#dlg_documents > div:first-child > div:nth-child(2) {position:absolute;left:0;top:40px;bottom:0;right:0}
 
 .doc_lst {top:0px;bottom:0;left:0;right:0;overflow:hidden}
 .doc_lst .prntbl_row {min-width:1000px}
@@ -1010,7 +1080,7 @@ load_overview();
 
 <div id="dlg_documents">
 <div>
-<div><select style="width:180px" class="doc_lst_filter"><option>-- ALL --</option><option>Pending</option><option>Accepted</option><option>Rescheduled</option></select></div>
+<div><input type="text" placeholder="search" style="width:300px;background-color:#fffae5" class="search_filter" /></div>
 <div class="prntbl doc_lst">
 <div class="prntbl_row prntbl_row_hdr"><div><input type="checkbox" /></div><div>Num</div><div>Company</div><div>Amount</div><div>Flag</div><div>Tracking</div></div>
 <div class="prntbl_cnt"></div>

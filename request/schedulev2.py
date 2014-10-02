@@ -875,6 +875,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         return sc_lst
 
+    CUST_LKU_KEYS = ('company', 'name', 'addr1', 'phone')
+    def gen_lku(self, cust):
+        l = set()
+        for k in self.CUST_LKU_KEYS:
+            v = cust.get(k)
+            if v: l.add(v.lower())
+        return l
+
     def get_docs(self, date, zone_id, clerk_id, mode=0, sort_reg=0, pending_only=0, dup_chk=0):
         clerk = None
         if clerk_id:
@@ -980,7 +988,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             crc = gjs.get('crc')
             if r['sc_flag'] & REC_FLAG_ACCEPTED and r['doc_crc'] != crc: r['sc_flag'] |= REC_FLAG_CHANGED
 
-                
+            lku = self.gen_lku(cust)
+            if doc_js['shipping']: lku.update( self.gen_lku(doc_js['shipping']) )
+            lku.add(str(r['num']))
+            r['lku'] = ' ' + ','.join(lku) + ' '
+
             r['doc_js'] = r['doc_data'] = r['doc_loc_dc'] = None
             #r['doc_sid'] = str(r['doc_sid'])
             
