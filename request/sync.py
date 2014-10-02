@@ -300,7 +300,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         r['non_sc_l'] = non_sc_l = []
         if r['r_ref_receipts']:
-            cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num in (%s) order by r.d_id desc', (
+            cur.execute('select r.*,d.name,d.ts from deliveryv2_receipt r left join deliveryv2 d on (r.d_id=d.d_id) where r.num in (%s) order by r.d_id desc' % (
                 ','.join([ str(f_v['num']) for f_v in r['r_ref_receipts'] ]),
                 )
             )
