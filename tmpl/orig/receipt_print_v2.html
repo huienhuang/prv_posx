@@ -277,7 +277,7 @@ tender_str = ', '.join([ '%s%s: %0.2f' % (tender_types[x['type']], x['numlst'] a
 <div>
 %for dr in sc['drs']:
 <div title="${dr.get('problem_s') or ''|h}" onclick="open_wnd_delivery(${dr['d_id']})">
-<div${dr['problem_flag'] and ' class="dr_problem"' or ''}>#${dr['d_id']} - ${dr['name']|h}${dr['dt_i'] != sc['sc_date'] and dr['dt_s'] or ''}</div>
+<div${dr['problem_flag'] and ' class="dr_problem"' or ''}>#${dr['d_id']} - ${dr['name']|h}${dr['dt_i'] != sc['sc_date'] and ' - ' + dr['dt_s'] or ''}</div>
 <div>${users_lku.get(dr['driver_id'], 'UNK')|h}</div>
 %if dr['delivered']:
 <div class="dr_delivered${dr['dt_i'] != sc['sc_date'] and ' dr_not_in_same_Day' or ''}">Delivered</div>
