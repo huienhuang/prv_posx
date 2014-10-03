@@ -11,64 +11,64 @@ g_map = null;
 g_ctrl_down = false;
 
 function locate(i, dont_center) {
-    if(!g_doc_js) return;
-    if(g_doc_js.fi !== undefined && g_doc_js.lst[g_doc_js.fi]) {
+    if(g_doc_js.fi !== undefined) {
         var r = g_doc_js.lst[g_doc_js.fi];
-        var marker = r.marker;
-        if(marker) {
-            marker.setAnimation(null);
-            if(r.selected)
-                marker.setIcon('img/marker/blue_'+(g_doc_js.fi+1)+'.png');
-            else
-                marker.setIcon('img/marker/orange_'+(g_doc_js.fi+1)+'.png');
+        if(r.visible && r.marker) {
+            r.marker.setAnimation(null);
+            r.marker.setMap(r.selected ? g_map : null);
         }
     }
     g_doc_js.fi = i;
     
-    if(!g_doc_js.lst[i]) return;
     var r = g_doc_js.lst[i];
-    if(!r.marker) return;
+    if(!r.visible || !r.marker) return;
+    if(!r.selected) r.marker.setMap(g_map);
     
     dont_center || g_map.setCenter(r.marker.getPosition());
-    r.marker.setIcon('img/marker/green_'+(i+1)+'.png');
     r.marker.setAnimation(google.maps.Animation.BOUNCE);
 }
 
 function load_doc(i)
 {
     g_v_doc_wnd.attr('src', 'about:blank');
-    if(!g_doc_js) return;
-    if(!g_doc_js.lst[i]) return;
     var r = g_doc_js.lst[i];
     
     g_v_dlg_view_doc.dialog('open');
     g_v_doc_wnd.attr('src', '?fn=print&view_only=1&sc_ids=' + r.sc_id);
 }
 
-function chg_doc_cb()
+function update_stat()
 {
-    if(!g_doc_js) return;
-    var o = $(this);
-    var i = parseInt(o.val());
-    if(!g_doc_js.lst[i]) return;
-    
-    var r = g_doc_js.lst[i];
-    var sel = o.prop('checked');
-    if (sel === r.selected) return;
-    r.selected = sel;
-    
     var lst = g_doc_js.lst;
     var sc = 0;
-    for(var j = 0; j < lst.length; j++) lst[j].selected && ++sc;
+    for(var j = 0; j < lst.length; j++) {
+        var l = lst[j];
+        l.selected && l.visible && ++sc;
+    }
     $(g_v_doc_lst_ftr[1]).text('Selected: ' + sc);
+}
+
+function chg_doc_cb()
+{
+    var o = $(this);
+    var i = parseInt(o.val());
     
-    if(g_doc_js.fi === i) return;
-    var marker = r.marker;
-    if(!marker) return;
+    var r = g_doc_js.lst[i];
+    if(!r.visible) return;
+    
+    var sel = o.prop('checked') ? 1 : 0;
+    if(sel === r.selected) return;
+    r.selected = sel;
+    
+    update_stat();
+    
+    if(!r.marker) return;
     if(r.selected)
-        marker.setIcon('img/marker/blue_'+(i+1)+'.png');
-    else
-        marker.setIcon('img/marker/orange_'+(i+1)+'.png');
+        r.marker.setMap(g_map);
+    else {
+        if(g_doc_js.fi === i) r.marker.setAnimation(null);
+        r.marker.setMap(null);
+    }
 }
 
 function int2date_s(i) {
@@ -114,16 +114,18 @@ function load_doc_lst(dt, zidx, clerk_id)
             if(r.sc_note_len) sflag += 'N';
             if(r.doc_dup > 1) sflag += 'D' + r.doc_dup;
             
+            r.v_row_num = $('<div></div>');
             lst.push(
-                $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>')
+                $('<div class="prntbl_row'+cls+'"'+(r.sc_flag & ${REC_FLAG_ACCEPTED} ? ' title="Accepted"' : '')+'></div>').data('js', r)
                 .append( $('<div><input type="checkbox" value="'+i+'" checked="checked" /></div>') )
-                .append( $('<div>'+(i+1)+'</div>') )
+                .append( r.v_row_num )
                 .append( $('<div onclick="load_doc('+i+')"></div>').text(r.num + (r.sc_flag & ${REC_FLAG_R_RESCHEDULED} ? '*' : '')) )
                 .append( $('<div'+(r.delivery_count ? ' class="doc_in_delivery_log"' : '')+' onclick="locate('+i+')"></div>').text(r.cust_nz) )
                 .append( $('<div></div>').text(r.doc_amt.toFixed(2)) )
                 .append( $('<div></div>').text(sflag) )
             );
             r.selected = 1;
+            r.visible = 1;
             
             r.marker = null;
             if(r['doc_geo']) {
@@ -148,6 +150,7 @@ function load_doc_lst(dt, zidx, clerk_id)
         }
         
         g_v_doc_lst.append(lst);
+        key_up__search_filter();
         js.v_cbs = g_v_doc_lst.find('input[type="checkbox"]').change(chg_doc_cb);
         $(g_v_doc_lst_ftr[0]).text('Date: ' + int2date_s(js.date) + ', Total: ' + js.lst.length + ', Fill: ' + dc);
         $(g_v_doc_lst_ftr[1]).text('Selected: ' + js.lst.length);
@@ -161,7 +164,7 @@ function get_selected_docs() {
     if(!g_doc_js) return lst;
     for(var i = 0; i < g_doc_js.lst.length; i++) {
         var r = g_doc_js.lst[i];
-        r.selected && lst.push(r);
+        r.selected && r.visible && lst.push(r);
     }
     return lst;
 }
@@ -210,6 +213,85 @@ function doc_accept_print() {
     
 }
 
+
+var __timeout__search_filter = null;
+var g_regx_kw_repl_a = new RegExp('[\\s]+', 'gim');
+var g_regx_kw_repl_b = new RegExp('[^\\w\\s]+', 'gim');
+
+function gen_kws(kw)
+{
+    var d_kw = {};
+    kw = $.trim(kw.replace(g_regx_kw_repl_a, ' ').replace(g_regx_kw_repl_b, '$ ')).split(' ');
+    for(var i = 0; i < kw.length; i++) {
+        var e = kw[i];
+        if(!e.length || e == '$') continue;
+        d_kw[ e.toLowerCase() ] = null;
+    }
+    kw = [];
+    for(var k in d_kw) {
+        if(k[k.length - 1] == '$')
+            kw.push( RegExp('\\b' + k.substr(0, k.length - 1) + '\\b', 'gim') );
+        else
+            kw.push( RegExp('\\b' + k, 'gim') );
+    }
+    return kw;
+}
+
+function update_doc_lst()
+{
+    var cs = g_v_doc_lst.children();
+    var kw = gen_kws(g_v_search_filter.val());
+    var c1 = parseInt(g_v_search_filter_c1.val()) || 0;
+
+    var row_num = 1;
+    for(var i = 0; i < cs.length; i++) {
+        var v = $(cs[i]);
+        var r = v.data('js');
+        var lku = r.lku;
+        var s = 1;
+        if(c1 === 1 && r.delivery_count <= 0) s = 0;
+        if(c1 === 2 && r.delivery_count > 0) s = 0;
+        if(s) {
+            for(var j = 0; j < kw.length; j++) {
+                if(lku.search(kw[j]) < 0) {
+                    s = 0;
+                    break;
+                }
+            }
+        }
+        if(s) {
+            r.v_row_num.text(row_num);
+            v.show();
+            r.visible = 1;
+            
+            r.marker.setIcon('img/marker/blue_'+row_num+'.png');
+            if(r.selected) r.marker.setMap(g_map);
+            
+            row_num++;
+        } else {
+            v.hide();
+            r.visible = 0;
+            
+            if(g_doc_js.fi === i) r.marker.setAnimation(null);
+            r.marker.setMap(null);
+        }
+    }
+    
+    update_stat();
+
+}
+
+function key_up__search_filter()
+{
+    if(__timeout__search_filter) {
+        clearTimeout(__timeout__search_filter);
+        __timeout__search_filter = null;
+    }
+    
+    __timeout__search_filter = setTimeout(update_doc_lst, 200);
+}
+
+
 $(function() {
 
 $('#doc_ctrl >select.ctrl_action').change(function() {
@@ -226,6 +308,8 @@ $('#doc_ctrl >select.ctrl_action').change(function() {
 });
 
 g_v_doc_filter = $('#doc_ctrl >select.ctrl_filter').change(function() { load_doc_lst(${dt}, -1, 0); });
+g_v_search_filter = $('#doc_ctrl >.search_filter').keyup(key_up__search_filter);
+g_v_search_filter_c1 = $('#doc_ctrl >.search_filter_c1').change(key_up__search_filter);
 
 g_v_dlg_view_doc = $('#dlg_view_doc').dialog({
     autoOpen: false,
@@ -290,9 +374,11 @@ load_doc_lst(${dt}, -1, 0);
 </head>
 <body>
 <div id="doc_ctrl">
-<select class="ctrl_filter" style="width:140px"><option value="">All Docs</option><option value="1">Pending Only</option></select>
+<input type="text" placeholder="search / 搜索" style="width:240px;background-color:#fffae5" class="search_filter" />
+<select class="search_filter_c1" style="width:180px"><option value="">ALL</option><option value="1">Out for Delivery</option><option value="2">Pending</option></select>
+<select class="ctrl_filter" style="width:140px;display:none"><option value="">All Docs</option><option value="1">Pending Only</option></select>
 %if has_perm_delivery_mgr:
-<select class="ctrl_action" style="width:120px"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
+<select class="ctrl_action" style="width:120px;display:none"><option value="">- Action -</option><option value="1">打印</option><option value="2">接受</option><option value="3">接受 & 打印</option></select>
 %endif
 </div>
 <div id="doc_lst">
