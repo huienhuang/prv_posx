@@ -321,7 +321,7 @@ g_v_doc_wnd = g_v_dlg_view_doc.children('iframe');
 g_v_doc_lst = $('.doc_lst >.prntbl_cnt');
 $('.doc_lst >.prntbl_row_hdr input[type="checkbox"]').change(function() {
     if(!g_doc_js) return;
-    g_doc_js.v_cbs.prop('checked', $(this).prop('checked')).change();
+    g_doc_js.v_cbs.filter(':visible').prop('checked', $(this).prop('checked')).change();
 });
 g_v_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div');
 
