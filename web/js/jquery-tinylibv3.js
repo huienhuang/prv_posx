@@ -351,7 +351,9 @@ function pop_rows(ctx)
         var cc = [];
         for(var j = 0; j < cols_len; j++) {
             var co = $(ce[j]).data('tinygrid_col', {r:i, c:j, ctx:ctx});
-            var ct = cols[j].ctrlname;
+            var cd = cols[j];
+            if(cd.hover) co.hover(col_hover_in, col_hover_out);
+            var ct = cd.ctrlname;
             var cf = ct && gctrl[ct] ? gctrl[ct] : null;
             var ch = null;
             if(cf) {
@@ -798,6 +800,39 @@ function select(ridx)
         hl[0] = -1;
     }
     
+}
+
+
+function col_hover_in()
+{
+    var c = $(this).data('tinygrid_col');
+    var ridx = c.r;
+    var cidx = c.c;
+    var ctx = c.ctx;
+    var data = ctx.data;
+    var view = ctx.view;
+    var row = data.rows[ridx];
+    if(row[1] < 0 || row[2] < 0) return false;
+    var cd = ctx.cols[cidx];
+    if(cd.hover[0]) cd.hover[0].apply(ctx, [ridx, cidx, row[4]]);
+    
+    return false;
+}
+
+function col_hover_out()
+{
+    var c = $(this).data('tinygrid_col');
+    var ridx = c.r;
+    var cidx = c.c;
+    var ctx = c.ctx;
+    var data = ctx.data;
+    var view = ctx.view;
+    var row = data.rows[ridx];
+    if(row[1] < 0 || row[2] < 0) return false;
+    var cd = ctx.cols[cidx];
+    if(cd.hover[1]) cd.hover[1].apply(ctx, [ridx, cidx, row[4]]);
+    
+    return false;
 }
 
 function col_click()

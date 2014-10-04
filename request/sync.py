@@ -362,3 +362,20 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         self.req.writefile('vo_print_v2.html', r)
 
+
+    def fn_get_doc_item_list_min(self):
+        doc_type = self.qsv_int('doc_type')
+        doc_sid = self.qsv_int('doc_sid')
+
+        cur = self.cur()
+        if doc_type:
+            cur.execute('select items_js from sync_salesorders where sid=%s', (doc_sid, ))
+        else:
+            cur.execute('select items_js from sync_receipts where sid_type=0 and sid=%s', (doc_sid, ))
+        
+        items = []
+        for t in json.loads(cur.fetchall()[0][0]):
+            items.append((t['itemno'], t['alu'], t['desc1'], t['qty'], t['uom'], '$%0.2f' % t['price']))
+
+        self.req.writejs(items)
+

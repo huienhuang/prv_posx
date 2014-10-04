@@ -186,12 +186,66 @@ function load_schedule_delivery()
     }, undefined, undefined, undefined, '__load_schedule_delivery__');
 }
 
+var __timeout_on_hover__doc = null;
+function on_hover_in__doc(r, c, d)
+{
+    if(__timeout_on_hover__doc) {
+        clearTimeout(__timeout_on_hover__doc);
+        __timeout_on_hover__doc = null;
+    }
+    
+    var doc_sid, doc_type;
+    var nz = this.name;
+    if(nz === 'rc') {
+        doc_type = 0;
+        doc_sid = d[6];
+        if(d[7]) return;
+        
+    } else if(nz === 'so') {
+        doc_sid = d[7];
+        doc_type = 1;
+    }
+    
+    __timeout_on_hover__doc = setTimeout(function() {
+        
+        get_js_ex('sync?fn=get_doc_item_list_min', {doc_type: doc_type, doc_sid:doc_sid}, function(js) {
+            if(!js.length) { g_v_cnt_doc_detail.hide(); return }
+            
+            var lst = [];
+            for(var i = 0; i < js.length; i++) {
+                var t = js[i];
+                lst.push($('<div></div>')
+                           .append( $('<div></div>').text(t[0]) )
+                           .append( $('<div></div>').text(t[1]) )
+                           .append( $('<div></div>').text(t[3] + t[4]) )
+                           .append( $('<div></div>').text(t[5]) )
+                           .append( $('<div></div>').text(t[2]) )
+                );
+            }
+            g_v_cnt_doc_detail.empty().show().append(lst);
+            
+        }, undefined, undefined, undefined, '__get_doc_item_list_min__');
+        
+    }, 300);
+}
+
+function on_hover_out__doc()
+{
+    if(__timeout_on_hover__doc) {
+        clearTimeout(__timeout_on_hover__doc);
+        __timeout_on_hover__doc = null;
+    }
+    g_v_cnt_doc_detail.hide();
+}
+
+
 $(function() {
 
 g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
+name: 'rc',
 len:0,
 src:{page:'?fn=getpagecust', data:{'cid': '${cust_sid}'}},
-cols: [{name:'Num', width:100},
+cols: [{name:'Num', width:100, hover: [on_hover_in__doc, on_hover_out__doc]},
        {name:'Type', width:150},
        {name:'SO#', width:100},
        {name:'Assoc', width:'100%'},
@@ -213,9 +267,10 @@ click: function(r, c, d) {
 });
 
 g_v_datagrid[1] = $('#datagrid_so').tinygrid({
+name: 'so',
 len:0,
 src:{page:'sync?fn=getcustorders', data:{'cid': '${cust_sid}'}},
-cols: [{name:'#', width:100},
+cols: [{name:'#', width:100, hover: [on_hover_in__doc, on_hover_out__doc]},
        {name:'Clerk', width:120},
        {name:'Qty', width:70},
        {name:'Sent', width:70},
@@ -451,6 +506,8 @@ $('.cust_add_note').click(function() {
 
 $('#cust_addr').tooltip();
 
+g_v_cnt_doc_detail = $('#cnt_doc_detail');
+
 g_v_item_tabs.tabs({active: ${dg_type + 1}});
 
 });
@@ -523,6 +580,18 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 .delivered_0 {color:#b43838;font-weight:bold}
 .delivered_1 {color:#33600f;font-weight:bold}
 .dr_not_in_same_Day {color:#236888;font-style:oblique}
+
+.doc_detail {display:none;overflow:hidden;background-color:#fffef3;position:absolute;top:90px;right:20px;left:260px;bottom:40px;}
+.doc_detail >div {height:36px;width:706px}
+.doc_detail >div:nth-child(odd) {background-color:#e5eeff}
+.doc_detail >div:nth-child(even) {background-color:#fff2e5}
+.doc_detail >div >div {float:left;width:100px;height:36px;line-height:36px;overflow:hidden;margin-right:6px;text-align:center}
+.doc_detail >div >div:last-child {margin-right:0px;text-align:left}
+.doc_detail >div >div:nth-child(1) {width:60px}
+.doc_detail >div >div:nth-child(2) {width:200px}
+.doc_detail >div >div:nth-child(3) {width:60px}
+.doc_detail >div >div:nth-child(4) {width:100px}
+.doc_detail >div >div:nth-child(5) {width:260px}
 
 </style>
 
@@ -611,6 +680,9 @@ ${cust_info['address2']|h}
 </div>
 </div>
 %endif
+
+<div id="cnt_doc_detail" class="doc_detail"></div>
+
 </div>
 
 <div id="dlg_comment">
