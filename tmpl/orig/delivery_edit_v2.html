@@ -563,6 +563,7 @@ function load_delivery_record(d_id)
     if(!d_id) {
 %if not read_only:
         g_v_delivery_id.val('NEW');
+        g_v_delivery_name.val((new Date()).getHours() < 12 ? 'AM' : 'PM');
         new_ex__data_input();
 %endif
         return;
