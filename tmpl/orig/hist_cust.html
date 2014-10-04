@@ -187,8 +187,11 @@ function load_schedule_delivery()
 }
 
 var __timeout_on_hover__doc = null;
+var __show_doc_detail;
 function on_hover_in__doc(r, c, d)
 {
+    __show_doc_detail = true;
+    
     if(__timeout_on_hover__doc) {
         clearTimeout(__timeout_on_hover__doc);
         __timeout_on_hover__doc = null;
@@ -209,7 +212,7 @@ function on_hover_in__doc(r, c, d)
     __timeout_on_hover__doc = setTimeout(function() {
         
         get_js_ex('sync?fn=get_doc_item_list_min', {doc_type: doc_type, doc_sid:doc_sid}, function(js) {
-            if(!js.length) { g_v_cnt_doc_detail.hide(); return }
+            if(!__show_doc_detail || !js.length) { g_v_cnt_doc_detail.hide(); return; }
             
             var lst = [];
             for(var i = 0; i < js.length; i++) {
@@ -231,6 +234,8 @@ function on_hover_in__doc(r, c, d)
 
 function on_hover_out__doc()
 {
+    __show_doc_detail = false;
+    
     if(__timeout_on_hover__doc) {
         clearTimeout(__timeout_on_hover__doc);
         __timeout_on_hover__doc = null;
