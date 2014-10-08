@@ -4,7 +4,7 @@
 <%include file="header_inc_v4.html" />
 <title>POSX - Schedule Map</title>
 
-<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgOdCwrMp6iW9YdoC8bCVmFVwuHghE0ug"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=drawing&key=AIzaSyAgOdCwrMp6iW9YdoC8bCVmFVwuHghE0ug"></script>
 <script type="text/javascript">
 g_doc_js = null;
 g_map = null;
@@ -264,16 +264,20 @@ function update_doc_lst()
             v.show();
             r.visible = 1;
             
-            r.marker.setIcon('img/marker/blue_'+row_num+'.png');
-            if(r.selected) r.marker.setMap(g_map);
+            if(r.marker) {
+                r.marker.setIcon('img/marker/blue_'+row_num+'.png');
+                if(r.selected) r.marker.setMap(g_map);
+            }
             
             row_num++;
         } else {
             v.hide();
             r.visible = 0;
             
-            if(g_doc_js.fi === i) r.marker.setAnimation(null);
-            r.marker.setMap(null);
+            if(r.marker) {
+                if(g_doc_js.fi === i) r.marker.setAnimation(null);
+                r.marker.setMap(null);
+            }
         }
     }
     
@@ -328,6 +332,23 @@ g_v_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div');
 g_map = new google.maps.Map(document.getElementById("map_canvas"),
                             {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
         );
+g_map_draw_mgr = new google.maps.drawing.DrawingManager({
+    drawingMode: google.maps.drawing.OverlayType.MARKER,
+    drawingControl: true,
+    drawingControlOptions: {
+        position: google.maps.ControlPosition.TOP_CENTER,
+        drawingModes: [
+                       google.maps.drawing.OverlayType.POLYGON,
+        ]
+    },
+    polygonOptions: {
+        clickable: true,
+        draggable: true,
+        editable: true,
+    }
+});
+g_map_draw_mgr.setMap(g_map);
+
 
 $(document).keydown(function(e){ g_ctrl_down = e.ctrlKey; }).keyup(function(e){ g_ctrl_down = e.ctrlKey; });
 
