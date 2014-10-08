@@ -474,6 +474,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             else:
                 new_sc_flag &= (~REC_FLAG_PARTIAL)
             
+            new_d_date = o_r['sc_new_date']
             if o_r['sc_date'] != d_date and o_r['sc_new_date'] != d_date:
                 m,d = divmod(o_r['sc_date'], 100)
                 y,m = divmod(m, 100)
@@ -486,6 +487,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     d_notes.append('Reschedule[%d] From %s To %s' % (sc_id, o_old_date.strftime('%m/%d/%y'), o_date.strftime('%m/%d/%y'), ))
             
                 chk = True
+                new_d_date = d_date
 
             if chk:
                 if not mode:
@@ -505,12 +507,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 if o_r['sc_prio'] != prio or o_r['sc_note'] != note: new_sc_flag |= REC_FLAG_CHANGED
                 if mode:
                     cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_ijs_crc=%s,doc_ijs=%s where sc_id=%s and sc_rev=%s", (
-                        new_sc_flag, d_date, prio, note, new_doc_ijs_crc, s_ijs, sc_id, rev
+                        new_sc_flag, new_d_date, prio, note, new_doc_ijs_crc, s_ijs, sc_id, rev
                         )
                     )
                 else:
                     cur.execute("update schedule set sc_rev=sc_rev+1,sc_flag=%s,sc_new_date=%s,sc_prio=%s,sc_note=%s,doc_ijs=null where sc_id=%s and sc_rev=%s", (
-                        new_sc_flag, d_date, prio, note, sc_id, rev
+                        new_sc_flag, new_d_date, prio, note, sc_id, rev
                         )
                     )
             else:

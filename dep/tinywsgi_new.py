@@ -14,6 +14,11 @@ import gzip
 import json
 
 from mako.lookup import TemplateLookup
+import mysql.connector
+
+
+#database connections cache, (default, alt)
+g_l_dbrefs = ([], [])
 
 
 class TinyFieldStorage(cgi.FieldStorage):
@@ -108,8 +113,8 @@ class _Application:
         'expires': 'Thu, 01 Jan 1970 00:00:00 GMT'
     }
     
-    def __init__(self, debug=False, app_dir=None, tmpl_conf={}, encoding='utf-8', gzip=False, web_dir=None, als={}):
-        self.ref = 0
+    def __init__(self, debug=False, app_dir=None, tmpl_conf={}, encoding='utf-8', gzip=False, web_dir=None, cfg=Object):
+        self.cfg = cfg
         self.aid = id(self)
         
         self.encoding = encoding
@@ -124,7 +129,6 @@ class _Application:
         self.tmpl = TemplateLookup(orig_dir, exec_dir, debug, input_encoding=encoding, output_encoding=encoding)
     
         self.als = {}
-        self.als.update(als)
     
         self.__modrefs = {}
         self.__threads = {}
@@ -209,7 +213,7 @@ class _Application:
         
         finally:
             if tdata[0]:
-                tdata[0].rls.clear()
+                tdata[0].cleanup()
                 tdata[0] = None
             if self.debug:
                 tdata[1].clear()
@@ -274,7 +278,14 @@ class Request:
         if not self.qsd: self.qsd = {}
 
         self._next_req_handler = None
-        
+
+        self._l_dbref = [None, None]
+
+    def cleanup(self):
+        self.rls.clear()
+        self._put_dbref(0)
+        self._put_dbref(1)
+
     def exit(self, status=None, msg=None):
         if status != None: self.out_status = status
         if msg != None: self.writex(msg)
@@ -360,6 +371,42 @@ class Request:
             s = dv
         return s
 
+    def dbref(self, idx=0):
+        dbref = self._l_dbref[idx]
+        if dbref: return dbref
+        
+        dbrefs = g_l_dbrefs[idx]
+        try:
+            dbref = dbrefs.pop()
+            try:
+                cur = dbref.cur()
+                cur.execute('select 1')
+                cur.fetchall()
+            except:
+                dbref = None
+
+        except IndexError, e:
+            dbref = None
+            
+        if not dbref:
+            dbc = mysql.connector.connect(**self.app.sql[idx])
+            dbref = DBRef(dbc)
+            
+        self._l_dbref[idx] = dbref
+        return dbref
+
+    def _put_dbref(self, idx=0):
+        dbref = self._l_dbref[idx]
+        if dbref:
+            self._l_dbref[idx] = None
+            try:
+                dbref.dbc.rollback()
+            except:
+                pass
+            dbref.close_curs()
+            g_l_dbrefs[idx].append(dbref)
+
+
 class RequestHandler:
     def __init__(self, req):
         self.req = req
@@ -393,3 +440,40 @@ class RequestHandler:
     
     def fn_default(self):
         self.req.write('fn_default -> hello')
+
+
+class DBRef:
+    def __init__(self, dbc):
+        self.dbc = dbc
+        self.curs = []
+    
+    def commit(self):
+        self.dbc.commit()
+        
+    def cur(self, new=False):
+        if len(self.curs) <= 0 or new:
+            cur = self.dbc.cursor()
+            self.curs.append(cur)
+            return cur
+        else:
+            return self.curs[0]
+    
+    def close_curs(self):
+        for cur in self.curs:
+            try:
+                cur.close()
+            except:
+                pass
+        self.curs = []
+    
+    def close_dbc(self):
+        self.close_curs()
+        if self.dbc:
+            try:
+                self.dbc.close()
+            except:
+                pass
+            self.dbc = None
+    
+    def __del__(self):
+        self.close_dbc()
