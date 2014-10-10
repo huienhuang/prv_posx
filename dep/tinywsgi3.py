@@ -61,7 +61,7 @@ class Application:
         
         app = self.appref.app
         if not app.debug:
-            self.rev_file = os.path.join(app.app_dir, '.git', 'ORIG_HEAD')
+            self.rev_file = os.path.join(app.app_dir, '.git/refs/heads/master')
             thread.start_new_thread(self.monitor, ())
     
     def create_new_instance(self):
