@@ -16,6 +16,9 @@ PERM_SALES = 1 << config.USER_PERM_BIT['sales']
 PERM_DELIVERY_MGR = 1 << config.USER_PERM_BIT['delivery_mgr']
 PERM_PURCHASING_MGR = 1 << config.USER_PERM_BIT['purchasing_mgr']
 
+PERM_PURCHASING = 1 << config.USER_PERM_BIT['purchasing']
+
+
 TOOLS_MAP = (
 
 ('Admin', (
@@ -64,7 +67,7 @@ TOOLS_MAP = (
 )),
 
 ('Warehouse', (
-    ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR),
+    ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR | PERM_PURCHASING),
 #    ('Pallet Map', '', PERM_NORMAL_ACCESS),
 #    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
 )),

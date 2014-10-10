@@ -11,6 +11,7 @@ WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
 DELIVERY_MGR_PERM = 1 << config.USER_PERM_BIT['delivery_mgr']
+PURCHASING_PERM = 1 << config.USER_PERM_BIT['purchasing']
 
 
 REC_FLAG_ACCEPTED = 1 << 0
@@ -28,7 +29,7 @@ CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 ORD_TYPE=('Sales', 'Return', 'Deposit', 'Refund', 'Payout', 'Payin')
 
 
-DEFAULT_PERM = SALES_PERM | DELIVERY_MGR_PERM
+DEFAULT_PERM = SALES_PERM | DELIVERY_MGR_PERM | PURCHASING_PERM
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
