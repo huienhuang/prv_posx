@@ -66,7 +66,7 @@ class Application:
         
         app = self.appref.app
         if not app.debug:
-            self.rev_file = os.path.join(app.app_dir, '.git', 'ORIG_HEAD')
+            self.rev_file = os.path.join(app.app_dir, '.git/refs/heads/master')
             thread.start_new_thread(self.monitor, ())
     
     def create_new_instance(self):
@@ -113,7 +113,7 @@ class _Application:
         'expires': 'Thu, 01 Jan 1970 00:00:00 GMT'
     }
     
-    def __init__(self, debug=False, app_dir=None, tmpl_conf={}, encoding='utf-8', gzip=False, web_dir=None, cfg=Object):
+    def __init__(self, debug=False, app_dir=None, tmpl_conf={}, encoding='utf-8', gzip=False, web_dir=None, cfg=object()):
         self.cfg = cfg
         self.aid = id(self)
         
@@ -389,7 +389,7 @@ class Request:
             dbref = None
             
         if not dbref:
-            dbc = mysql.connector.connect(**self.app.sql[idx])
+            dbc = mysql.connector.connect(**self.app.cfg.sql[idx])
             dbref = DBRef(dbc)
             
         self._l_dbref[idx] = dbref

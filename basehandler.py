@@ -3,9 +3,8 @@ import time
 import winlib
 import bisect
 import struct
-import tinywsgi3 as tinywsgi
+import tinywsgi4 as tinywsgi
 import config
-import dbref
 import urllib
 import urlparse
 import json
@@ -27,22 +26,15 @@ class RequestHandler(tinywsgi.RequestHandler):
         self.user_name = None
         self.user_lvl = 0
         self.user_msg_id = 0
-        self.__db = None
         
         self.user_triggered = True
-        
         self.is_ajax = bool(self.qsv_int('ajax'))
     
     def cleanup(self):
         tinywsgi.RequestHandler.cleanup(self)
-        
-        if self.__db != None: dbref.put(self.req)
-        self.__db = None
-        
+
     def db(self):
-        if self.__db != None: return self.__db
-        self.__db = dbref.get(self.req)
-        return self.__db
+        return self.req.dbref()
     
     def cur(self):
         return self.db().cur()
