@@ -317,12 +317,13 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         for i in range(len(c_ijs)):
             t = c_ijs[i]
-            d_t.setdefault((t['itemsid'], t['uom']), [0, i, t])[0] += t['qty']
-
+            ct = d_t.setdefault((t['itemsid'], t['uom']), [0, i, t])
+            if t['qty'] > 0: ct[0] += t['qty']
+            
         for i in range(len(o_ijs)):
             t = o_ijs[i]
             ct = d_t.setdefault((t['itemsid'], t['uom']), [0, i, t])
-            ct[0] -= t['qty']
+            if t['qty'] > 0: ct[0] -= t['qty']
 
         ts = []
         for v in d_t.values():

@@ -6,8 +6,22 @@
 
 <script type="text/javascript">
 
+function open_wnd(nz, url)
+{
+    var w = g_wnds[nz];
+    g_v_tabs.tabs({active: w.idx + 2});
+    if(url) w.wnd.attr('src', url);
+}
+
 $(function() {
 $('.btn').button();
+
+var v_lst = $('#m_tabs > div');
+g_wnds = {};
+for(var i = 0; i < v_lst.length; i++) {
+    var o = $(v_lst[i]);
+    g_wnds[ o.attr('id').substr(5) ] = { wnd: o.children('iframe'), idx: i };
+}
 
 g_v_tabs = $('#m_tabs').tabs({
     'heightStyle': 'fill',
@@ -61,7 +75,7 @@ body {-webkit-user-select:none;}
 </ul>
 
 %for nz in tabs:
-<div id="tabs_${nz[0]}"><iframe></iframe></div>
+<div id="tabs_${nz[0]}"><iframe${len(nz)>2 and nz[2] and ' src="about:blank"' or ''}></iframe></div>
 %endfor
 
 </div>

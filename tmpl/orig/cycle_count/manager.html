@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - Cost &amp; Price Tool</title>
+
+<script type="text/javascript">
+
+
+function load_record()
+{
+    var r_id = g_v_dlg_record.dialog('option', 'title', 'New Record').data('r_id');
+    var v_enable = g_v_dlg_record.find('[name="r_enable"]').val('1');
+    var v_desc = g_v_dlg_record.find('[name="r_desc"]').val('');
+    var v_user = g_v_dlg_record.find('[name="r_user"]').prop('checked', false);
+
+    if(!r_id) return;
+    g_v_dlg_record.dialog('option', 'title', 'Record #' + r_id);
+    
+    get_js_ex('?fn=load_record', {'r_id': r_id}, function(js) {
+        v_enable.val(js.r_enable + '');
+        v_desc.val(js.r_desc);
+        
+        for(var i = 0; i < v_user.length; i++) {
+            var v_o = $(v_user[i]);
+            js.r_users[ parseInt( v_o.val() ) ] !== undefined && v_o.prop('checked', true);
+        }
+    }, undefined, undefined, undefined, '__load_record__');
+}
+
+function save_record()
+{
+    var r_id = g_v_dlg_record.data('r_id');
+    var r_desc = g_v_dlg_record.find('[name="r_desc"]').val();
+    var r_enable = g_v_dlg_record.find('[name="r_enable"]').val();
+    var v_lst = g_v_dlg_record.find('[name="r_user"]:checked');
+    var r_users = [];
+    for(var i = 0; i < v_lst.length; i++) r_users.push( $(v_lst[i]).val() );
+    
+    post_js_ex('?fn=save_record', {'r_id': r_id, 'r_enable': r_enable, 'r_desc': r_desc, 'r_users': r_users.join('|')}, function(js) {
+        g_v_dlg_record.data('r_id', js.r_id);
+        load_record();
+        
+        g_v_tg_lst.tinygrid('update', -1, true, true, true);
+        
+    }, undefined, undefined, undefined, '__save_record__');
+}
+
+$(function() {
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+
+els.create[0].button().click(function() {
+    g_v_dlg_record.data('r_id', null).dialog('open');
+    load_record();
+});
+
+
+g_tg_tg_lst = {};
+g_v_tg_lst = $('#tg_lst').tinygrid({
+len:1,
+src:{page:'?fn=get_records', data:g_tg_tg_lst},
+cols: [{name:'ID', width:80},
+       {name:'Enable', width:70},
+       {name:'Desc', width:"70%"},
+       {name:'User', width:"30%"},
+       {name:'Date', width:120},
+       ],
+click: function(r, c, d) {
+    if (c !== 3) {
+        g_v_dlg_record.data('r_id', d[0]).dialog('open');
+        load_record();
+    } else {
+        window.parent.open_wnd && window.parent.open_wnd('record', '?fn=record&r_id=' + d[0]);
+    }
+}
+});
+
+g_v_dlg_record = $('#dlg_record').dialog({
+    modal: false,
+    autoOpen: false,
+    width:400,
+    height:500,
+    buttons: {
+        
+        'DELETE': function() {
+            var r_id = g_v_dlg_record.data('r_id');
+            if(!confirm('Are You Sure?') || !r_id) return;
+            
+            post_js_ex('?fn=del_record', {'r_id': r_id}, function(js) {
+                g_v_dlg_record.dialog('close');
+                g_v_tg_lst.tinygrid('update', -1, true, true, true);
+                
+            }, undefined, undefined, undefined, '__del_record__');
+        },
+        
+        'OK': save_record,
+    }
+});
+
+
+
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+
+#tg_lst {top:0;bottom:0;right:0;left:0}
+
+#dlg_record >div {margin-bottom:8px}
+#dlg_record >div:nth-child(1) textarea {width:358px;height:70px;}
+#dlg_record >div:nth-child(2) select {width:364px}
+#dlg_record >div:nth-child(3) {height:200px;overflow-y:scroll;border:1px solid #ccc;background-color:#f0f0f0;padding:4px;}
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+
+<input type="button" value="New" name="ctrl_create" />
+
+</div>
+
+<div class="x_body">
+
+<div id="tg_lst"></div>
+
+
+</div>
+
+
+<div id="dlg_record">
+<div><textarea placeholder="Desc" name="r_desc" ></textarea></div>
+<div><select name="r_enable"><option value="1">Enable</option><option value="0">Disable</option></select></div>
+<div>
+%for u in users:
+<input type="checkbox" name="r_user" value="${u[0]}" /> ${u[1]|h}<br />
+%endfor
+</div>
+
+</div>
+
+
+
+</body>
+</html>
+
+

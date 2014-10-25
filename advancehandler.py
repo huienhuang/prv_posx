@@ -2,6 +2,7 @@ import os
 import config
 import cPickle
 import re
+import json
 
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
@@ -39,6 +40,16 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def get_item(self, item_no):
         cur = self.cur()
         cur.execute('select sid,num,name,detail from sync_items where num=%s', (item_no,))
+        rows = cur.fetchall()
+        if not rows: return
+        row = list(rows[0])
+        row[0] = str(row[0])
+        row[3] = json.loads(row[3])
+        return row
+
+    def get_item_by_sid(self, item_sid):
+        cur = self.cur()
+        cur.execute('select sid,num,name,detail from sync_items where sid=%s', (item_sid,))
         rows = cur.fetchall()
         if not rows: return
         row = list(rows[0])
