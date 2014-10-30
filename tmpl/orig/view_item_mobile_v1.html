@@ -249,11 +249,6 @@ $('input[name="ctrl_clear_search"]', g_v_m_top).button().click(function() {
     g_v_itemsearch.val('');
 });
 
-$('input[name="ctrl_set_dev_mode"]', g_v_m_top).button().click(function() {
-    window.Android && window.Android.setDevMode();
-});
-
-
 g_v_itemsearch = $('[name="ctrl_search"]', g_v_m_top);
 
 init_item_ac(
@@ -474,7 +469,6 @@ body {margin:0 auto;padding-top:51px}
 <input type="button" value="清空" name="ctrl_clear_search" />
 <input type="button" value="扫描" name="ctrl_scan_barcode" />
 <input type="button" value="照片" name="ctrl_add_img" />
-<input type="button" value="测试" name="ctrl_set_dev_mode" />
 </div>
 
 <div class="m_pic_cnt m_dlg_cnt"><img alt="" border="0" /></div>
