@@ -332,6 +332,7 @@ g_v_doc_lst_ftr = $('.doc_lst >.prntbl_row_ftr >div');
 g_map = new google.maps.Map(document.getElementById("map_canvas"),
                             {center: new google.maps.LatLng(37.751807, -122.438883), zoom:13}
         );
+/*
 g_map_draw_mgr = new google.maps.drawing.DrawingManager({
     drawingMode: google.maps.drawing.OverlayType.MARKER,
     drawingControl: true,
@@ -348,7 +349,7 @@ g_map_draw_mgr = new google.maps.drawing.DrawingManager({
     }
 });
 g_map_draw_mgr.setMap(g_map);
-
+*/
 
 $(document).keydown(function(e){ g_ctrl_down = e.ctrlKey; }).keyup(function(e){ g_ctrl_down = e.ctrlKey; });
 
