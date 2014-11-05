@@ -12,6 +12,7 @@ function load_record()
     var r_id = g_v_dlg_record.dialog('option', 'title', 'New Record').data('r_id');
     var v_enable = g_v_dlg_record.find('[name="r_enable"]').val('1');
     var v_desc = g_v_dlg_record.find('[name="r_desc"]').val('');
+    var v_loc = g_v_dlg_record.find('[name="r_loc"]').val('');
     var v_user = g_v_dlg_record.find('[name="r_user"]').prop('checked', false);
 
     if(!r_id) return;
@@ -20,7 +21,8 @@ function load_record()
     get_js_ex('?fn=load_record', {'r_id': r_id}, function(js) {
         v_enable.val(js.r_enable + '');
         v_desc.val(js.r_desc);
-        
+        v_loc.val(js.r_loc);
+
         for(var i = 0; i < v_user.length; i++) {
             var v_o = $(v_user[i]);
             js.r_users[ parseInt( v_o.val() ) ] !== undefined && v_o.prop('checked', true);
@@ -32,12 +34,13 @@ function save_record()
 {
     var r_id = g_v_dlg_record.data('r_id');
     var r_desc = g_v_dlg_record.find('[name="r_desc"]').val();
+    var r_loc = g_v_dlg_record.find('[name="r_loc"]').val();
     var r_enable = g_v_dlg_record.find('[name="r_enable"]').val();
     var v_lst = g_v_dlg_record.find('[name="r_user"]:checked');
     var r_users = [];
     for(var i = 0; i < v_lst.length; i++) r_users.push( $(v_lst[i]).val() );
     
-    post_js_ex('?fn=save_record', {'r_id': r_id, 'r_enable': r_enable, 'r_desc': r_desc, 'r_users': r_users.join('|')}, function(js) {
+    post_js_ex('?fn=save_record', {'r_id': r_id, 'r_enable': r_enable, 'r_desc': r_desc, 'r_loc': r_loc, 'r_users': r_users.join('|')}, function(js) {
         g_v_dlg_record.data('r_id', js.r_id);
         load_record();
         
@@ -82,7 +85,7 @@ g_v_dlg_record = $('#dlg_record').dialog({
     modal: false,
     autoOpen: false,
     width:400,
-    height:500,
+    height:560,
     buttons: {
         
         'DELETE': function() {
@@ -115,8 +118,9 @@ g_v_dlg_record = $('#dlg_record').dialog({
 
 #dlg_record >div {margin-bottom:8px}
 #dlg_record >div:nth-child(1) textarea {width:358px;height:70px;}
-#dlg_record >div:nth-child(2) select {width:364px}
-#dlg_record >div:nth-child(3) {height:200px;overflow-y:scroll;border:1px solid #ccc;background-color:#f0f0f0;padding:4px;}
+#dlg_record >div:nth-child(2) textarea {width:358px;height:50px;}
+#dlg_record >div:nth-child(3) select {width:364px}
+#dlg_record >div:nth-child(4) {height:200px;overflow-y:scroll;border:1px solid #ccc;background-color:#f0f0f0;padding:4px;}
 
 </style>
 
@@ -138,7 +142,8 @@ g_v_dlg_record = $('#dlg_record').dialog({
 
 
 <div id="dlg_record">
-<div><textarea placeholder="Desc" name="r_desc" ></textarea></div>
+<div><textarea placeholder="Description" name="r_desc" ></textarea></div>
+<div><textarea placeholder="Location" name="r_loc" ></textarea></div>
 <div><select name="r_enable"><option value="1">Enable</option><option value="0">Disable</option></select></div>
 <div>
 %for u in users:

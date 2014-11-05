@@ -48,9 +48,16 @@ function show_inv()
     g_v_inv_cnt.show();
 }
 
-function onsel_cycle_count(r_id)
+function onsel_cycle_count(idx)
 {
-    g_cfg.r_id = r_id;
+    var r = g_cc_lst[idx];
+    g_cfg.r_id = r['r_id'];
+
+    var v_lst = [];
+    var locs = r['r_loc'].split(',');
+    for(var i = 0; i < locs.length; i++) v_lst.push( $('<option></option>').text(locs[i]) );
+    g_v_m_top.data('in_els').loc[0].append(v_lst);
+
     $('#cycle_count_sel').hide();
     g_v_itemsearch.focus();
 }
@@ -58,15 +65,17 @@ function onsel_cycle_count(r_id)
 function load_cycle_count_sel()
 {
     get_js_ex('?fn=load_cycle_count_list', {}, function(js) {
+        g_cc_lst = js;
+
         if(js.length === 1) {
-            onsel_cycle_count(js[0]['r_id']);
+            onsel_cycle_count(0);
             return;
         }
         
         var v_lst = [];
         for(var i = 0; i < js.length; i++) {
             var r = js[i];
-            v_lst.push( $('<div onclick="onsel_cycle_count('+r['r_id']+')"></div>').text(r['r_dt'] + ' ' + r['r_desc']) );
+            v_lst.push( $('<div onclick="onsel_cycle_count('+i+')"></div>').text(r['r_dt'] + ' ' + r['r_desc']) );
         }
         $('#cycle_count_sel').append(v_lst);
     });
@@ -275,13 +284,13 @@ len:0,
 src:{page:'?fn=load_record_detail_by_user', data:g_tg_tg_lst},
 cols: [{name:'Num', width:80},
        {name:'Desc', width:"70%"},
-       {name:'QtyChg', width:100},
+       {name:'Qty+', width:100},
        {name:'Loc', width:120},
        {name:'DateTime', width:0},
        ],
 click: function(r, c, d) {
     g_v_tools_cnt.hide();
-    get_js_ex('mobile?fn=get_item', {sid: d[5]}, function(js) {
+    get_js_ex('mobile?fn=get_item', {sid: d[7]}, function(js) {
         set_item(js.item);
     }, undefined, undefined, undefined, '__get_item_s__');
 }
@@ -421,7 +430,7 @@ body {margin:0 auto;padding-top:51px}
 <div class="m_top">
 <input type="button" value="" name="ctrl_scan_barcode" />
 <input type="text" name="ctrl_search" style="width:200px" />
-<select name="ctrl_loc"><option>L1</option><option>L2</option></select>
+<select name="ctrl_loc"></select>
 <input type="button" value="" name="ctrl_save" />
 <input type="button" value="" name="ctrl_home" />
 </div>
