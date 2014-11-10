@@ -7,7 +7,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
         r = {
-            'tab_cur_idx' : 3,
+            'tab_cur_idx' : 2,
             'title': 'Purchasing',
             'tabs': [ ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup') ]
         }
