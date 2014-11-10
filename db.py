@@ -1,7 +1,11 @@
 import config
-import _mysql
 import sqlanydb
 import mysql.connector
+
+try:
+    import _mysql
+except:
+    pass
 
 def db_default():
     c = config.mysql

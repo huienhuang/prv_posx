@@ -7,10 +7,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
         r = {
-            'tab_cur_idx' : 2,
+            'tab_cur_idx' : 3,
             'title': 'Purchasing',
-            'tabs': [ ('item_margin', 'Item Margin'), ]
-
+            'tabs': [ ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup') ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
         
@@ -159,5 +158,66 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         res['len'] = rlen
         res['apg'] = apg
         self.req.writejs(ret)
+
+
+
+    def fn_item_markup(self):
+        self.req.writefile('purchasing/item_markup.html')
+
+
+    def fn_get_item_markup(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+
+        js = self.get_data_file_cached('items_markup', 'items_markup.txt')
+        if not js: self.req.exitjs(ret)
+
+        mu_t = self.req.qsv_int('mu_t')
+        mu_v = self.req.qsv_int('mu_v')
+
+        pgsz = self.qsv_int('pagesize')
+        sidx = self.qsv_int('sidx')
+        eidx = self.qsv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+
+        l_t = []
+        for t in js:
+            if mu_t:
+                p = t[2][mu_t - 1]
+                if p != None and p <= mu_v: l_t.append( (t[0], p) )
+
+            else:
+                pl = t[2]
+                for i in range(5):
+                    p = pl[i]
+                    if p != None and p <= mu_v:
+                        l_t.append( (t[0], p) )
+                        break
+        rlen = len(l_t)
+
+        cur = self.cur()
+        apg = []
+        if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            l_t = l_t[sidx * pgsz : sidx * pgsz + (eidx - sidx) * pgsz]
+            if l_t:
+                item_d = {}
+                cur.execute('select sid,name,num from sync_items where sid in (%s)' % ( ','.join([str(f_x[0]) for f_x in l_t]) ))
+                for r in cur.fetchall(): item_d[ r[0] ] = r
+
+            for sid,s in l_t:
+                sid,name,num = item_d.get(sid)
+
+                r = (
+                    num,
+                    name,
+                    '%d%%' % (s, ),
+                    str(sid)
+                )
+                apg.append(r)
+
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)
+
 
 
