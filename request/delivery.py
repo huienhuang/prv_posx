@@ -687,7 +687,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             users = self.getuserlist()
             users_lku = dict([x[:2] for x in users])
         
-            cur.execute('select SQL_CALC_FOUND_ROWS r.num,sr.global_js,d.user_id,r.d_id,r.driver_id,d.name,sr.order_date,d.ts,r.js,sr.sid,sr.sid_type from deliveryv2_receipt r left join sync_receipts sr on (sr.num=r.num) left join deliveryv2 d on (r.d_id=d.d_id) where d.d_id is not null and sr.num is not null and r.problem_flag!=0 order by r.num desc, r.d_id desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS r.num,sr.global_js,d.user_id,r.d_id,r.driver_id,d.name,sr.order_date,d.ts,r.js,sr.sid,sr.sid_type,sr.cid from deliveryv2_receipt r left join sync_receipts sr on (sr.num=r.num) left join deliveryv2 d on (r.d_id=d.d_id) where d.d_id is not null and sr.num is not null and r.problem_flag!=0 order by r.num desc, r.d_id desc limit %d,%d' % (
                 sidx * pgsz, (eidx - sidx) * pgsz
                 )
             )
@@ -704,6 +704,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 r[7] = time.strftime("%m/%d/%y", time.localtime(r[7]))
                 r[8] = ', '.join([ PROBLEMS[int(f_i)] + (f_v[1] and ': ' + f_v[1] or '') for f_i,f_v in ((r[8] and json.loads(r[8]) or {}).get('problems') or {}).items() ])
                 r[9] = str(r[9])
+                r[11] = str(r[11])
                 
                 apg.append(r)
         

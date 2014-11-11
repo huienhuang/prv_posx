@@ -108,6 +108,8 @@ cols: [{name:'#', width:100},
 click: function(r, c, d) {
     if (c === 3) {
         window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[3],'posx_delivery_record','location=0,width=1150,height=800');
+    } else if (c === 1) {
+        open_wnd('hist?fn=custhist&cid='+d[11],'posx_customer_hist');
     } else {
         if (d[10])
             window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
