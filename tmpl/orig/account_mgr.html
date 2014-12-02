@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+<title>POSX - Account MGR</title>
+
+<script type="text/javascript">
+
+function load_cust()
+{
+    var o = $(this);
+    g_v_cust_wnd.attr('src', 'hist?fn=custhist&cid=' + o.data('cid'));
+}
+
+$(function() {
+
+$('input[value="Quit"]').button().click(go_home);
+
+g_v_cust_wnd = $('.customer_wnd > iframe');
+
+g_v_custs_tbl = $('.custs_tbl');
+g_v_custs_tbl_cnt = g_v_custs_tbl.children('.prntbl_cnt');
+
+$('#srch_cust').keyup(function() {
+    if(window.g_srch_cust_to) {
+        clearTimeout(window.g_srch_cust_to);
+        window.g_srch_cust_to = null;
+    }
+    
+    var o = g_v_custs_tbl_cnt;
+    var term = $.trim( $(this).val() );
+    if(!term) { o.empty(); return; }
+    
+    window.g_srch_cust_to = setTimeout(function() {
+        get_js_ex('sync?fn=adv_cust_srch', {term: term}, function(js) {
+            var lst = [];
+            for(var i = 0; i < js.length; i++) {
+                var c = js[i];
+                lst.push(
+                       $('<div class="prntbl_row"></div>').append(
+                            $('<div></div>').text(c[1]).data('cid', c[0]).click(load_cust)
+                        )
+                );
+            }
+            o.empty().append(lst);
+            
+        }, function() {
+            o.empty();
+            
+        }, undefined, undefined, '_srch_cust_');
+        
+    }, 250);
+    
+});
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+.custs_tbl {top:0;bottom:0;width:300px;left:0;z-index:0;overflow:hidden}
+.custs_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
+.custs_tbl .prntbl_cnt > .prntbl_row > div:nth-child(1) {text-align:center}
+.custs_tbl .prntbl_row > div {width:280px}
+
+.customer_wnd {top:0;bottom:0;right:0;left:300px;z-index:0;overflow:hidden;position:absolute}
+.customer_wnd > iframe {width:100%;height:100%;border:none;margin:0;padding:0}
+
+</style>
+
+</head>
+<body>
+    
+<div class="x_ctrl">
+<input type="text" placeholder="find customers" id="srch_cust" />
+<input type="button" value="Quit" class="btn" style="float:right;margin-top:9px" />
+</div>
+
+<div class="x_body">
+    
+<div class="prntbl custs_tbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Customer</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+
+<div class="customer_wnd"><iframe></iframe></div>
+
+</div>
+
+
+</body>
+</html>
+
+

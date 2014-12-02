@@ -69,6 +69,7 @@ TOOLS_MAP = (
 
 ('Warehouse', (
     ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR | PERM_PURCHASING),
+    ('Account MGR', 'account_mgr', PERM_NORMAL_ACCESS),
 #    ('Pallet Map', '', PERM_NORMAL_ACCESS),
 #    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
 )),

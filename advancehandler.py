@@ -58,7 +58,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         return row
     
     regx_kw = re.compile(u'[^ 0-9a-z,]+', re.I|re.M|re.S)
-    def search_item(self, kw, mode, num_row=10):
+    def search_item(self, kw, mode, num_row=16):
         kws = set(self.regx_kw.sub(u' ', kw).strip().lower().replace(u',', u' ').strip().split(u' '))
         kws.discard(u'')
         if not kws: return
@@ -89,7 +89,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             
         return items
     
-    def search_cust(self, kw, mode, num_row=10):
+    def search_cust(self, kw, mode, num_row=16):
         kws = set(self.regx_kw.sub(u' ', kw).strip().lower().replace(u',', u' ').strip().split(u' '))
         kws.discard(u'')
         if not kws: return
