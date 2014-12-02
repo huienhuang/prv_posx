@@ -59,7 +59,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not kw: return
         mode = self.qsv_int('mode')
         self.req.writejs( self.search_cust(kw, mode, 100) )
-    fn_adv_cust_srch.PERM = 1 << config.USER_PERM_BIT['admin']
+    #fn_adv_cust_srch.PERM = 1 << config.USER_PERM_BIT['admin']
 
     def fn_sync(self):
         uts = self.getconfig(config.cid__sync_last_update)
