@@ -269,3 +269,46 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if s: cur.executemany('insert into phycount_user_hist values(null,%s,%s,%s,%s,%s,%s,%s,%s)', s)
 
         self.req.writejs({'err': int(not len(s))})
+
+
+    def fn_cmp(self):
+        r_id = self.req.qsv_int('r_id')
+
+        d_user = {}
+        cur = self.cur()
+        cur.execute('select u_uid,(select user_name from user where user_id=u_uid limit 1) from phycount_user where r_id=%s order by u_uid asc', (r_id,))
+        k = 0
+        for r in cur.fetchall():
+            d_user[ r[0] ] = (r[1], k, [])
+            k += 1
+
+        d_item = {}
+        cur.execute('select sid,num,name,detail from sync_items where sid in (select h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+        for r in cur.fetchall():
+            sid,num,name,detail = r
+            gjs = json.loads(detail)
+            gjs['d_units'] = dict([ (u[2].lower(), u[3]) for u in gjs['units'] ])
+            d_item.setdefault(sid, (num, name, gjs, [0], []))
+
+        cur.execute('select * from phycount_user_hist where r_id=%s', (r_id,))
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+
+            t = d_item.get( r['h_sid'] )
+            if t == None: continue
+
+            u = d_user.get('u_id')
+            if u == None: continue
+
+            d_units = t[2]['d_units']
+            fc = d_units.get(r['h_uom'])
+
+            t[3] += r['h_qty'] * fc
+            t[4].append(r)
+
+
+
+            
+
+

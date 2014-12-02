@@ -38,6 +38,10 @@ idx_elements(g_v_ctrl, 5);
 var els = g_v_ctrl.data('in_els');
 els.user[0].change(load_record_detail_by_user);
 
+els.btn_cmp[0].button().change(function() {
+    
+});
+
 g_tg_tg_lst = {};
 g_v_tg_lst = $('#tg_lst').tinygrid({
 len:0,
@@ -77,8 +81,8 @@ load_record(${r_id});
 <body>
 
 <div class="x_ctrl">
-
 <select name="ctrl_user" style="width:200px"></select>
+<input type="button" name="ctrl_btn_cmp" value="Compare" />
 
 </div>
 

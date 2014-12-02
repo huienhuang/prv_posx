@@ -64,6 +64,7 @@ TOOLS_MAP = (
     ('History', 'hist', PERM_NORMAL_ACCESS),
     ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
     ('Sales Report', 'salesreport', PERM_SALES_MGR),
+    ('Customer Sales', 'custsales', PERM_ADMIN),
 )),
 
 ('Warehouse', (
