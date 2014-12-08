@@ -725,7 +725,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'delivery_completed': self.get_report__delivery_completed()
         }
         self.req.writefile('delivery_v2_report.html', r)
-    fn_report.PERM = 1 << config.USER_PERM_BIT['admin']
+    fn_report.PERM = 1 << config.USER_PERM_BIT['delivery_mgr_adv']
     
     def get_report__mons_total(self):
         js = self.get_data_file_cached('delivery_report', 'delivery_report.txt')
