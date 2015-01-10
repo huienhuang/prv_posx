@@ -135,9 +135,9 @@ function load_wnd_cust_by_histid(sid, sid_type)
     }, null, true);
 }
 
-function reply_ticket(id)
+function reply_ticket()
 {
-    g_v_dlg_pbs_reply.data('js', {id: id}).dialog('open');
+    g_v_dlg_pbs_reply.data('js', $(this).data('js')).dialog('close').dialog('open');
 }
 
 function delete_ticket(id)
@@ -173,6 +173,73 @@ function open_dlg_new_ticket()
         sel.append(lst);
     });
 }
+
+function load_pbs_hist(type)
+{
+    var o = $(g_v_pbs.children()[1]).empty();
+    
+    get_js_ex('problemtracker?fn=get_ticket_hist&sid=${item_sid}', {'type': type}, function(js) {
+        
+        var lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            
+            var lst_i = [];
+            for(var j = 0; j < r.js.length; j++) {
+                var m = r.js[j];
+                
+                var a;
+                if(m[2]) {
+                    a = $('<span></span>').text(m[1] + '@' + m[2] + ': ');
+                } else {
+                    a = $('<span></span>').text(m[1] + ': ');
+                }
+                
+                if(i == 0 && !(r.state & (1 << 2))) a.data('js', [r, m]).click(reply_ticket);
+                
+                lst_i.push( $('<div></div>')
+                           .append( a )
+                           .append( $('<span></span>').text(m[3]) ).attr('title', 'By ' + fmt_time(m[4]))
+                );
+                
+            }
+            
+            var a = $('<div></div>')
+                .append( $('<div></div>').text(r.state_s) )
+                .append( $('<div></div>').text(r.js[0][1]) )
+                .append( $('<div></div>').text(fmt_time(r.mts)) );
+                
+            lst.push( $('<div></div>').append(a).append( $('<div></div>').append(lst_i) ) );
+            
+            if(i == 0 && !(r.state & (1 << 2))) {
+                a.append( $('<div></div>')
+                         .append('<select><option>-- Action --</option><option>Approve</option><option>Solve/Close</option></select>')
+                );
+            }
+            
+        }
+        
+        o.append(lst);
+    });
+    
+}
+
+function load_item_pbs()
+{
+    var o = $(g_v_pbs.children()[0]).empty();
+    
+    get_js_ex('problemtracker?fn=get_ticket_types_by_item&sid=${item_sid}', {}, function(js) {
+        
+        var lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            lst.push( $('<div onclick="load_pbs_hist('+r[0]+')"></div>').text(r[1]) );
+        }
+        
+        o.append(lst);
+    });
+}
+
 
 $(function() {
 
@@ -419,57 +486,6 @@ function reply_pbs()
     g_v_dlg_pbs_reply.data('js', $(this).data('js')).dialog('open');
 }
 
-%if ticket_id:
-g_pbs_node_status = {0: 0, ${ticket_id}: 1};
-%else:
-g_pbs_node_status = {0: 1};
-%endif
-function click_pbs()
-{
-    var o = $(this).next();
-    var id = o.parent().data('hint');
-    if(o.hasClass('cls_pbs_min')) {
-        g_pbs_node_status[id] = 1;
-        o.removeClass('cls_pbs_min');
-    } else {
-        g_pbs_node_status[id] = 0;
-        o.addClass('cls_pbs_min');
-    }
-}
-
-g_v_pbs = $('#c_pbs').tinylist({
-    src: {url:'problemtracker?fn=get_tickets_by_item&len=10&sid=${item_sid}'${ticket_id and ',args:{hint:%d}' % ticket_id or ''}},
-    render: function(ticket) {
-        var id = ticket[0];
-        var msgs = $.parseJSON('[' + ticket[4] + ']');
-        var m = msgs[0];
-        var o = $('<div class="tl_node'+(ticket[1] ? ' tl_node_close' : '')+'"></div>').data('hint', id)
-        .append(
-            $('<div></div>').click(click_pbs)
-            .append( $('<div></div>').text('#' + id) )
-            .append( $('<div></div>').text(ticket[1] ? 'Close' : 'Open') )
-            .append( $('<div></div>').text(ticket[2]) )
-            .append( $('<div></div>').text('By ' + m[1]) )
-            .append( $('<div></div>').text(fmt_time(m[4])) )
-            .append( $('<div><span onclick="event.stopPropagation();delete_ticket('+id+')"></span><span onclick="event.stopPropagation();reply_ticket('+id+')"></span><span onclick="event.stopPropagation();close_ticket('+id+')"></span></div>') )
-        );
-        
-        var lst = [];
-        for(var i = 0; i < msgs.length; i++) {
-            var m = msgs[i];
-            if(!m[3]) continue;
-            
-            var s = $('<div title="'+fmt_time(m[4])+'"></div>').append( $('<div class="node_user"></div>').click(reply_pbs).text(m[1] + (m[2] ? '' : ': ')).data('js', {'name':m[1], 'id':id}) );
-            if(m[2]) s.append( $('<div class="node_user"></div>').click(reply_pbs).text('@' + m[2] + ': ').data('js', {'name':m[2], 'id':id}) );
-            lst.push( s.append( $('<div></div>').text(m[3]) ) );
-        }
-        var is_expand = g_pbs_node_status[id];
-        if(is_expand === undefined) is_expand = ticket[1] ? 0 : g_pbs_node_status[0];
-        o.append( $('<div'+(is_expand ? '' : ' class="cls_pbs_min"')+'></div>').append(lst) );
-        
-        return o;
-    }
-});
 
 g_v_dlg_pbs_new = $('#dlg_pbs_new').dialog({
     autoOpen: false,
@@ -489,6 +505,8 @@ g_v_dlg_pbs_new = $('#dlg_pbs_new').dialog({
     }
 });
 
+g_v_pbs = $('#tabs_pbs');
+
 g_v_dlg_pbs_reply = $('#dlg_pbs_reply').dialog({
     autoOpen: false,
     width:500,
@@ -497,7 +515,8 @@ g_v_dlg_pbs_reply = $('#dlg_pbs_reply').dialog({
         g_v_dlg_pbs_reply.find('textarea').val('');
         
         var js = g_v_dlg_pbs_reply.data('js');
-        g_v_dlg_pbs_reply.dialog('option', 'title', 'Reply['+js.id+']' + (js.name ? ' @' + js.name : ''));
+        console.log(js);
+        g_v_dlg_pbs_reply.dialog('option', 'title', 'Reply['+js[0].id+']' + ' @' + js[1][1]);
     },
     buttons: {
         'Reply': function() {
@@ -506,8 +525,7 @@ g_v_dlg_pbs_reply = $('#dlg_pbs_reply').dialog({
             
             var js = g_v_dlg_pbs_reply.data('js');
             
-            post_js_ex('problemtracker?fn=reply_ticket', {'to_user_name': js.name, 'msg': val, 'id': js.id}, function(js) {
-                g_v_pbs.tinylist('refresh', js.id);
+            post_js_ex('problemtracker?fn=reply_ticket', {'to_user_name': js[1][1], 'msg': val, 'id': js[0].id}, function(js) {
                 g_v_dlg_pbs_reply.dialog('close');
             });
         }
@@ -534,7 +552,7 @@ g_v_item_tabs = $('.item_tabs').tabs({
             load_item_sold_report();
             
         } else if(nz === 'pbs') {
-            g_v_pbs.tinylist('refresh');
+            load_item_pbs();
             
         } else {
             var tg = g_tgs[nz];
@@ -584,31 +602,25 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 #tabs_pics .img_lst > li > span {display:block;color:red;font-size:18px;font-weight:bold;height:24px;line-height:24px;width:24px;text-align:center;position:absolute;right:0;top:0;cursor:pointer;background-color:#ffe4c5;}
 
 
-#c_pbs {position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:scroll}
-.tl_node {border-radius:8px;border:1px solid #ccc;margin:15px 5px;padding:5px 5px;background-color:#f8f8f8}
-.tl_node >div:nth-child(1) {cursor:pointer;position:relative;height:26px;line-height:26px;overflow:hidden}
-.tl_node >div:nth-child(1) >div {float:left;text-align:center;height:26px}
-.tl_node >div:nth-child(1) >div:nth-child(1) {width:80px;font-weight:bold;color:#1920ab}
-.tl_node >div:nth-child(1) >div:nth-child(2) {width:60px;color:#d3c52a}
-.tl_node >div:nth-child(1) >div:nth-child(3) {width:300px;color:#1d6188}
-.tl_node >div:nth-child(1) >div:nth-child(4) {width:150px;color:#88611d}
-.tl_node >div:nth-child(1) >div:nth-child(5) {width:210px;color:#381f77}
-.tl_node >div:nth-child(1) >div:nth-child(6) {float:right;width:90px;background:url('img/tools2.png') no-repeat 0px 0px;position:relative}
-.tl_node >div:nth-child(1) >div:nth-child(6) > span {position:absolute;display:block;top:0px;left:0px;width:26px;height:26px;cursor:pointer}
-.tl_node >div:nth-child(1) >div:nth-child(6) > span:nth-child(2) {left:27px}
-.tl_node >div:nth-child(1) >div:nth-child(6) > span:nth-child(3) {left:59px}
-.tl_node >div:nth-child(2) {padding-top:6px;border-top:1px solid #ccc;}
-.tl_node >div:nth-child(2) >div {padding-bottom:6px}
-.tl_node >div:nth-child(2) >div >div {display:inline-block;vertical-align:top;white-space:pre-wrap}
-.tl_node >div:nth-child(2).cls_pbs_min {display:none}
-.tl_node_close >div:nth-child(1) >div:nth-child(2) {color:#4c8825}
-
-
-.tl_node .node_user {cursor:pointer;font-weight:bold;color:#cc933a;font-size:16px;}
-.tl_node .node_reply {font-size:16px;}
-
 .cls_icon_add {vertical-align:middle;cursor:pointer}
 
+
+
+#tabs_pbs >div:nth-child(1) {position:absolute;top:0;left:0;bottom:0;width:200px;background-color:#f0f0f0;}
+#tabs_pbs >div:nth-child(1) > div {height:30px;line-height:30px;margin:10px 10px;padding:4px;border:1px solid #ccc;text-align:center;cursor:pointer;background-color:#fcfcfc;}
+
+#pbs_hist {position:absolute;top:0;left:200px;bottom:0;right:0}
+#pbs_hist > div {background-color:#f5f5f5;margin:6px;}
+#pbs_hist > div > div:nth-child(1) {height:36px;background-color:#d2d2d2;font-weight:bold;line-height:36px;color:#5d7f1b;cursor:pointer}
+#pbs_hist > div > div:nth-child(1) > div {float:left;text-align:center}
+#pbs_hist > div > div:nth-child(1) > div:nth-child(1) {width:120px}
+#pbs_hist > div > div:nth-child(1) > div:nth-child(2) {width:160px}
+#pbs_hist > div > div:nth-child(1) > div:nth-child(3) {width:220px}
+#pbs_hist > div > div:nth-child(1) > div:nth-child(4) {width:200px}
+#pbs_hist > div > div:nth-child(2) {padding:8px;}
+#pbs_hist > div > div:nth-child(2) > div {line-height:26px;}
+#pbs_hist > div > div:nth-child(2) > div > span:nth-child(1) {font-weight:bold;color:#2265a9;cursor:pointer}
+#pbs_hist > div > div:nth-child(2) > div > span:nth-child(1) {white-space:pre-wrap}
 </style>
 
 </head>
@@ -656,7 +668,7 @@ k += 1
 <li><a href="#tabs_cust">Customers</a></li>
 <li><a href="#tabs_sold">Sold</a></li>
 <li><a href="#tabs_pics">Pictures</a></li>
-<li><a href="#tabs_pbs">Problems <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" onclick="open_dlg_new_ticket()"/></a></li>
+<li><a href="#tabs_pbs">Tracker <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" onclick="open_dlg_new_ticket()"/></a></li>
 <li><a href="#tabs_notes">Notes</a></li>
 </ul>
 
@@ -691,7 +703,11 @@ k += 1
 </div>
 <!-- --item_tab_5_pics -->
 
-<div id="tabs_pbs"><div id="c_pbs"></div></div>
+<div id="tabs_pbs">
+<div></div>
+<div id="pbs_hist"></div>
+</div>
+
 <div id="tabs_notes"><div id="c_notes"></div></div>
 
 </div>

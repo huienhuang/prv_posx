@@ -126,10 +126,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             sid,name,detail = cust_d.get(cid)
             gjs = json.loads(detail)
             addr = []
-            addr.append(gjs['addr1'] + (gjs['addr2'] and ' ' + gjs['addr2'] or ''))
+
+            addr1 = gjs.get('addr1') or gjs.get('address1') or ''
+            addr2 = gjs.get('addr2') or gjs.get('address2') or ''
+            addr.append(addr1 + (addr2 and ' ' + addr2 or ''))
+
             addr.append(gjs['city'])
             addr.append(gjs['state'] + (gjs['zip'] and ' ' + gjs['zip'] or ''))
-            phone = gjs['phone']
+            phone = gjs.get('phone') or gjs.get('phone1') or ''
 
             r = (
                 name,
@@ -171,10 +175,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 sid,name,detail = cust_d.get(cid)
                 gjs = json.loads(detail)
                 addr = []
-                addr.append(gjs['addr1'] + (gjs['addr2'] and ' ' + gjs['addr2'] or ''))
+
+                addr1 = gjs.get('addr1') or gjs.get('address1') or ''
+                addr2 = gjs.get('addr2') or gjs.get('address2') or ''
+                addr.append(addr1 + (addr2 and ' ' + addr2 or ''))
+
                 addr.append(gjs['city'])
                 addr.append(gjs['state'] + (gjs['zip'] and ' ' + gjs['zip'] or ''))
-                phone = gjs['phone']
+                phone = gjs.get('phone') or gjs.get('phone1') or ''
 
                 r = (
                     name,

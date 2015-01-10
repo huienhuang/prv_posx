@@ -23,6 +23,8 @@ TEMPLATES = (
 ('5960200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 30x', None),
 ('5163200', u"\u5305\u88C5\u76D2\u6807\u7B7E" + ' 10x', None),
 ('5960201', u"NowPak Logo" + ' 30x', None),
+('5960204', u"Forest Logo" + ' 30x', None),
+('5960203', u"Forest ADDR" + ' 30x', None),
 )
 
 TEMPLATES_D = dict([(f_v[0], f_v[1:])for f_v in TEMPLATES])

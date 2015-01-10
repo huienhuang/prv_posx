@@ -8,13 +8,15 @@ import re
 
 TICKET_TYPES = {
 
-
 1: 'Low Stock',
 2: 'Out Of Stock',
 50: 'Wrong Information',
 
-
 }
+
+T_FLAG_APPROVED = 1 << 1
+T_FLAG_CLOSED = 1 << 2
+
 
 DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/basehandler').RequestHandler):
@@ -35,23 +37,46 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writefile('tracker/report_a_problem.html', r)
 
 
+    def fn_get_ticket_hist(self):
+        t_sid = self.req.psv_int('sid')
+        t_id = self.req.psv_int('type')
+
+        cur = self.cur()
+        cur.execute('select * from tracker where sid=%s and type=%s order by id desc limit 6', (t_sid, t_id))
+        ret = []
+        nzs = cur.column_names
+        for r in cur.fetchall():
+            r = dict(zip(nzs, r))
+            r['js'] = json.loads('[' + r['js'] + ']')
+
+            if r['state'] & T_FLAG_APPROVED:
+                r['state_s'] = 'Approved'
+            elif r['state'] & T_FLAG_CLOSED:
+                r['state_s'] = 'Closed'
+            else:
+                r['state_s'] = 'Pending'
+
+            ret.append(r)
+
+        self.req.writejs(ret)
+
+
     def fn_get_ticket_types_by_item(self):
         t_sid = self.req.psv_int('sid')
 
-        d_t = {}
         cur = self.cur()
-        cur.execute('select type,count(*) from tracker where sid=%s and state=0 group by type', (t_sid, ))
-        for r in cur.fetchall():
-            d_t[ r[0] ] = r[1]
 
-        tt = []
-        for v in TICKET_TYPES.items():
-            n = d_t.get(v[0], 0)
-            tt.append( (v[0], v[1], n) )
+        ret = []
+        for tid,tnz in TICKET_TYPES.items():
+            cur.execute('select state from tracker where sid=%s and type=%s order by id desc limit 1', (t_sid, tid))
+            rows = cur.fetchall()
+            if rows:
+                ret.append( (tid, tnz, rows[0][0]) )
+            else:
+                ret.append( (tid, tnz, None) )
 
-        self.req.writejs(tt)
+        self.req.writejs(ret)
         
-
     def fn_new_ticket(self):
         t_type = self.req.psv_int('type')
         t_msg = self.req.psv_ustr('msg')
