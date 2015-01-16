@@ -58,6 +58,7 @@ TOOLS_MAP = (
     ('Cycle Count', 'cycle_count', PERM_NORMAL_ACCESS),
 #    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
     ('Report', 'purchasing', PERM_PURCHASING_MGR),
+    ('PO', 'po_request', PERM_PURCHASING_MGR),
 )),
 
 ('Sales', (

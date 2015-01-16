@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<title>POSX - POREQUEST</title>
+
+<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+
+<script>
+$(function(){
+    $("body >[data-role='panel']").panel().find("[data-role='listview']").listview();
+    $("body >[data-role='header']").toolbar();
+    
+});
+</script>
+
+
+</head>
+
+<body>
+
+<!-- +NAV PANEL -->
+<div data-role="panel" id="usr_panel_nav" data-position-fixed="true" data-display="overlay" data-theme="a">
+<ul data-role="listview"></ul>
+</div>
+<!-- -NAV PANEL -->
+
+<!-- +HEADER -->
+<div id="m_header" data-role="header" data-position="fixed" data-tap-toggle="false" data-theme="a">
+<a href="#usr_panel_nav" class="ui-btn ui-btn-icon-notext ui-corner-all ui-icon-bars ui-nodisc-icon ui-alt-icon ui-btn-left">Menu</a>
+<h1>PO REQUEST</h1>
+</div>
+<!-- -HEADER -->
+
+
+<!-- +PAGE HOME -->
+<div data-role="page" id="u_page_home">
+    
+<div data-role="main" class="ui-content">
+
+    
+
+</div>
+
+</div>
+<!-- -PAGE HOME -->
+
+</body>
+</html>
