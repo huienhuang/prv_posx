@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - PO</title>
+
+<script type="text/javascript">
+
+
+function chg()
+{
+    var els = g_v_ctrl.data('in_els');
+    
+    g_tg_item_data.mu_t = parseInt(els.price_type[0].val());
+    g_tg_item_data.mu_v = parseInt(els.markup[0].val());
+    
+    g_v_tg_items.tinygrid('update', -1, true, true, true);
+}
+
+
+$(function() {
+
+$('.btn').button();
+
+g_v_ctrl = $('.x_ctrl');
+//idx_elements(g_v_ctrl, 5);
+//var els = g_v_ctrl.data('in_els');
+
+
+g_tg_item_data = {};
+g_v_tg_items = $('#tg_items').tinygrid({
+len:0,
+src:{page:'?fn=get_item_markup', data:g_tg_item_data},
+cols: [{name:'#', width:100},
+       {name:'Store', width:150},
+       {name:'Desc', width:"100%"},
+       {name:'Status', width:150},
+       ],
+click: function(r, c, d) {
+    open_wnd('hist?fn=itemhist&tid=' + d[3],'posx_item_hist');
+}
+});
+
+//chg();
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+
+#tg_items {top:0;bottom:0;right:0;left:0}
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<select name="ctrl_store_id" style="width:160px" >
+<option value="0"> - Store - </option>
+<option value="2">SSF Delivery</option>
+<option value="3">SF Retail</option>
+</select>
+<select name="ctrl_status" style="width:160px" >
+<option value="0"> - Status - </option>
+<option value="1">Pending</option>
+<option value="2">Processing</option>
+<option value="3">Close</option>
+</select>
+<input class="btn" type="button" value="New PO" />
+</div>
+
+<div class="x_body">
+
+<div id="tg_items"></div>
+
+</div>
+
+</body>
+</html>
