@@ -5,6 +5,7 @@
 <title>POSX - PO</title>
 
 <script type="text/javascript">
+var g_pid = 0;
 var g_price_level = 0;
 var g_items = {};
 
@@ -123,49 +124,10 @@ function ac_item_search_response(event, ui) {
     }
 }
 
-function load_items_sold_report()
-{
-    var frm_date = g_v_frm_date.datepicker('getDate');
-    var to_date = g_v_to_date.datepicker('getDate');
-    var interval = parseInt(g_v_interval.val());
-    if(!frm_date || !to_date) return;
-    mk_hdr(frm_date, to_date, interval);
-    
-    var lst = g_v_xtbl.children();
-    var tids = [];
-    for(var i = 0; i < lst.length; i++) {
-        var d = $(lst[i]).width(g_cur_hdr.width);
-        var tid = d.data('item_data')[0];
-        g_items[tid].s = null;
-        $(d.children().slice(6)).remove();
-        tids.push(tid);
-    }
-    
-    __load_items_sold_report(tids);
-}
 
-function __load_items_sold_report(tids)
-{
-    if(!tids || !tids.length) return;
-    
-    $.ajax({
-        async: true,
-        type: 'post',
-        url: '?fn=get_items_sold_report',
-        data: {
-            'tids': tids.join(','),
-            'frm_ts': parseInt(frm_date.getTime() / 1000),
-            'to_ts': parseInt(to_date.getTime() / 1000),
-            'interval': interval
-        },
-        success: load_items_sold_report_cb,
-        dataType: 'json',
-        error: function(xhr, status, error) {}
-    });
-    
-}
 
-function delete_profile()
+
+function _delete()
 {
     var pid = parseInt(g_v_profile.val());
     if(!pid || !confirm('Delete this Profile?')) return;
@@ -176,63 +138,16 @@ function delete_profile()
     
 }
 
-function load_profile()
-{
-    var pid = parseInt(g_v_profile.val());
-    g_items = {};
-    g_v_xtbl.empty();
-    if(!pid) return;
-    
-    $.get('?fn=load_profile', {pid: pid}, function(js) {
-        if( !js || !js.pid || js.pid !== parseInt(g_v_profile.val()) ) return;
-        
-        var frm_date = new Date();
-        frm_date.setTime(js.frm_ts * 1000);
-        g_v_frm_date.datepicker('setDate', frm_date);
-        
-        var to_date = new Date();
-        to_date.setTime(js.to_ts * 1000);
-        g_v_to_date.datepicker('setDate', to_date);
-        
-        g_v_interval.val(js.interval).change();
-        
-        for(var i = 0; i < js.items.length; i++) {
-            var t = js.items[i];
-            var item = t[0];
-            if(t[1] < item[3].units.length && t[1] >= 0) item[3].default_uom_idx = t[1];
-            g_items[ item[0] ]= {'v': new_row(item)};
-        }
-        load_items_sold_report();
-        
-    }, 'json');
-}
 
-function save_profile()
-{
-    var pid = parseInt(g_v_profile.val());
-    var lst = g_v_xtbl.children();
-    if(!pid && !lst.length || !g_cur_hdr) return;
-    
-    if (!pid) {
-        g_v_dlg_profile_name.find('input[name="nz"]').val('');
-        g_v_dlg_profile_name.dialog('open');
-    } else {
-        __save_profile();
-    }
-}
 
-function __save_profile()
+function _save()
 {
-    var pid = parseInt(g_v_profile.val());
+    var pid = g_pid;
+    
     var lst = g_v_xtbl.children();
-    if(!pid && !lst.length || !g_cur_hdr) return;
+    if(!pid && !lst.length) return;
     
-    var frm_ts = g_cur_hdr.frm_ts;
-    var to_ts = g_cur_hdr.to_ts;
-    var interval = g_cur_hdr.interval;
-    
-    var nz = '';
-    if(!pid) nz = g_v_dlg_profile_name.find('input[name="nz"]').val();
+    nz = g_v_tp_ctrl.find('input[name="nz"]').val();
     
     var items = []
     for(var i = 0; i < lst.length; i++) {
@@ -241,24 +156,17 @@ function __save_profile()
     }
     var data = {
         'pid': pid,
-        'nz': nz,
-        'frm_ts': parseInt(frm_ts / 1000),
-        'to_ts': parseInt(to_ts / 1000),
-        'interval': interval,
+        'desc': nz,
         'items': items
     }
     
     $.ajax({
         async: false,
         type: 'post',
-        url: '?fn=save_profile',
+        url: '?fn=save',
         data: {'js': JSON.stringify(data)},
         success: function(d) {
             if(!d || !d.pid) return;
-            if(!data.pid) {
-                g_v_profile.append( $('<option></option>').text(data.nz).val(d.pid) );
-                g_v_profile.val(d.pid);
-            }
         },
         dataType: 'json',
         error: function(xhr, status, error) {}
@@ -296,19 +204,8 @@ g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
 
 g_v_tp_ctrl = $('.tp_ctrl');
 
-g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
-g_v_tp_ctrl.children('input[value="delete"]').click(delete_profile);
-
-g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
-    autoOpen: false,
-    modal: true,
-    width:400,
-    height:200,
-    buttons: {
-        'save': function() {__save_profile(); g_v_dlg_profile_name.dialog('close');},
-    } 
-});
-
+g_v_tp_ctrl.children('input[value="save"]').click(_save);
+g_v_tp_ctrl.children('input[value="delete"]').click(_delete);
 
 }); //ready
 
@@ -352,6 +249,8 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 
 #dlg_profile_name {text-align:center}
 
+input[type="text"]:focus {background-color:#fffceb}
+
 </style>
 
 </head>
@@ -359,12 +258,9 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 
 <div class="tp_ctrl">
 <input type="text" style="width:180px" id="srch_item" placeholder="search item.." />
+<input type="text" name="desc" style="margin-left:16px;width:360px" placeholder="Description" />
 <input type="button" value="Save" class="btn" />
 <input type="button" value="Delete" class="btn"/>
-
-<input type="text" style="margin-left:16px;width:360px" disabled="disabled" />
-<input type="button" value="Edit" class="btn" />
-
 </div>
 
 <div class="xtbl_header"><div class="xtbl_row"><div></div><div>#</div><div>ALU</div><div>Name</div><div>UOM</div><div>OH_QTY</div><div>PO_QTY</div><div>RQ_QTY</div></div></div>

@@ -12,6 +12,7 @@ import time
 import Cookie
 import gzip
 import json
+import cStringIO
 
 from mako.lookup import TemplateLookup
 import mysql.connector
@@ -197,6 +198,7 @@ class _Application:
                 gzf.write(output)
                 gzf.close()
                 output = gfp.getvalue()
+                is_gzip = 1
             
             headers['content-length'] = len(output)
             headers = [ (string.capwords(k, '-'), str(v)) for k,v in headers.items() ]

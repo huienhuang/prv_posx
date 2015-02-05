@@ -31,10 +31,9 @@ g_tg_item_data = {};
 g_v_tg_items = $('#tg_items').tinygrid({
 len:0,
 src:{page:'?fn=get_item_markup', data:g_tg_item_data},
-cols: [{name:'#', width:100},
-       {name:'Store', width:150},
+cols: [{name:'#', width:120},
+       {name:'PO#', width:120},
        {name:'Desc', width:"100%"},
-       {name:'Status', width:150},
        ],
 click: function(r, c, d) {
     open_wnd('hist?fn=itemhist&tid=' + d[3],'posx_item_hist');
@@ -53,22 +52,17 @@ click: function(r, c, d) {
 
 #tg_items {top:0;bottom:0;right:0;left:0}
 
+
 </style>
 
 </head>
 <body>
 
 <div class="x_ctrl">
-<select name="ctrl_store_id" style="width:160px" >
-<option value="0"> - Store - </option>
-<option value="2">SSF Delivery</option>
-<option value="3">SF Retail</option>
-</select>
 <select name="ctrl_status" style="width:160px" >
-<option value="0"> - Status - </option>
+<option value="">ALL</option>
 <option value="1">Pending</option>
-<option value="2">Processing</option>
-<option value="3">Close</option>
+<option value="2">Transfered</option>
 </select>
 <input class="btn" type="button" value="New PO" />
 </div>
