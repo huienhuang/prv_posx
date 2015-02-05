@@ -68,7 +68,7 @@ def sync_items(cj_data, mode=0):
         jsd = {
             'default_uom_idx': sbu_idx,
             'qty': (rf2(r['companyohqty']), rf2(r['custordqty']), rf2(r['availqty']), rf2(r['toto_o'])),
-            'sqty': (rf2(r['qtystore1']), rf2(r['qtystore2']))
+            'sqty': (rf2(r['qtystore1']), rf2(r['qtystore2'])),
             'units': units,
             'vends': vends,
             'desc1': r['desc1'].strip() or '',
