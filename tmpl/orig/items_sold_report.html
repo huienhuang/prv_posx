@@ -30,9 +30,9 @@ function mk_hdr(frm_date, to_date, interval)
     if(g_cur_hdr && g_cur_hdr.frm_d === frm_d && g_cur_hdr.to_d === to_d && g_cur_hdr.interval === interval) return;
     g_cur_hdr = {frm_d:frm_d, frm_ts:frm_date.getTime(), to_d:to_d, to_ts:to_date.getTime(), interval:interval};
     
-    g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>OH</div><div>PC</div>');
+    g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 80 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 250 + 50 + 80 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -106,6 +106,7 @@ function new_row(item)
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(sel) )
+    .append( $('<div><input type="text" /></div>') )
     .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
     .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' ) );
     
@@ -169,11 +170,11 @@ function load_items_sold_report_cb(js)
         var item_js = el.data('item_data')[3];
         var factor = item_js.units.length > 1 ? item_js.units[item_js.default_uom_idx][3] : 1;
         var cds = el.children();
-        $(cds.slice(6)).remove();
+        $(cds.slice(7)).remove();
         
         var qtys = item_js.qty;
-        $(cds[4]).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
-        $(cds[5]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
+        $(cds[5]).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
+        $(cds[6]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
         
         if(!factor) continue;
         
@@ -222,7 +223,7 @@ function load_items_sold_report()
         var d = $(lst[i]).width(g_cur_hdr.width);
         var tid = d.data('item_data')[0];
         g_items[tid].s = null;
-        $(d.children().slice(6)).remove();
+        $(d.children().slice(7)).remove();
         tids.push(tid);
     }
     
@@ -379,6 +380,31 @@ function export_csv()
     g_v_form_dl.submit();
 }
 
+function make_po()
+{
+    var lst = g_v_xtbl.children();
+    if(!lst.length || !g_cur_hdr) return;
+    
+    var vs = [];
+    var l = [];
+    for(var i = 0; i < lst.length; i++) {
+        var o = $(lst[i]);
+        var t = o.data('item_data');
+        var v = o.find('input');
+        vs.append(v);
+        
+        var order_qty = parseInt(v.val());
+        if(order_qty <= 0) continue;
+        
+        l.push([ t[0], t[1], t[3].default_uom_idx ]);
+    }
+    
+    var js = JSON.stringify({'lst': l, 'ref': parseInt(g_v_profile.val()) || 0});
+    post_js('?fn=make_po', {js: js}, function() {
+        $(vs).val('');
+    });
+}
+
 $(function() {
 
 $('.btn').button();
@@ -419,6 +445,8 @@ g_v_tp_ctrl.children('input[value="delete"]').click(delete_profile);
 
 g_v_tp_ctrl.children('input[value="export"]').click(export_csv);
 
+g_v_tp_ctrl.children('input[value="Make PO"]').click(make_po);
+
 g_v_tp_ctrl.children('input[value="quit"]').click(go_home);
 
 g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
@@ -447,11 +475,13 @@ g_v_interval.change();
 
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:70px;position:relative}
-.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%}
+.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
+.xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:43px}
 .xtbl_row > div:nth-child(1) {width:26px}
 .xtbl_row > div:nth-child(2) {width:70px;cursor:pointer}
 .xtbl_row > div:nth-child(3) {width:250px}
 .xtbl_row > div:nth-child(4) {width:80px}
+.xtbl_row > div:nth-child(5) {width:50px}
 
 .xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
@@ -497,6 +527,7 @@ g_v_interval.change();
 <input style="width:100px" type="text" title="To Date" name="to_date" />
 <input type="button" value="apply" class="btn" />
 <input style="margin-left:20px" type="button" value="export" class="btn" />
+<input style="margin-left:20px" type="button" value="Make PO" class="btn" />
 <input style="margin-left:20px" type="button" value="quit" class="btn" />
 
 </div>

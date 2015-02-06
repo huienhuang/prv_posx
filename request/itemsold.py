@@ -211,3 +211,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
         self.req.write( fp.getvalue() )
         
+
+    def fn_make_po(self):
+        js = self.req.psv_js('js')
+
+        
