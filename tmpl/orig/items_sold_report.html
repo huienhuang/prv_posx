@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - Item &gt; Sold Report</title>
 
 <script type="text/javascript">
@@ -391,12 +391,12 @@ function make_po()
         var o = $(lst[i]);
         var t = o.data('item_data');
         var v = o.find('input');
-        vs.append(v);
         
-        var order_qty = parseInt(v.val());
+        var order_qty = parseInt(v.val()) || 0;
         if(order_qty <= 0) continue;
         
-        l.push([ t[0], t[1], t[3].default_uom_idx ]);
+        vs.push(v[0]);
+        l.push([ t[0], t[1], t[3].default_uom_idx, order_qty ]);
     }
     
     var js = JSON.stringify({'lst': l, 'ref': parseInt(g_v_profile.val()) || 0});

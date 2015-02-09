@@ -214,5 +214,21 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_make_po(self):
         js = self.req.psv_js('js')
+        ref = int(js['ref'])
+        lst = [ map(int, f_x[:4]) for f_x in js['items'] if int(f_x[3]) > 0 ]
+        if not lst: return
 
-        
+        cur = self.cur()
+
+        nz = ''
+        cur.execute('select nz from report where type=1 and id=%s', (ref,))
+        rows = cur.fetchall()
+        if rows: nz = rows[0][0]
+
+        cur.execute('insert into po values(null,1,0,%s,0,%s,%s,%s,%s)', (
+            ref, int(time.time()), self.user_id, 
+            nz, json.dumps(lst, separators=(',',':'))
+            )
+        )
+
+        self.req.writejs( {'pid': cur.lastrowid} )

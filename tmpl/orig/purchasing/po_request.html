@@ -6,6 +6,7 @@
 
 <script type="text/javascript">
 var g_pid = 0;
+var g_rev = 0;
 var g_price_level = 0;
 var g_items = {};
 
@@ -64,15 +65,16 @@ function new_row(item)
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
     var qtys = js.qty;
     
-    var inp = $('<input type="text" />');
+    var inp = $('<input type="text" />').val(js.req_qty || '');
+    js.v_req_qty = inp;
     var row = $('<div class="xtbl_row"></div>').data('item_data', item)
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(js.units[0][1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]) )
     .append( $('<div></div>').append(sel) )
-    .append( $('<div></div>') )
-    .append( $('<div></div>') )
+    .append( $('<div></div>').text(js.qty[0].toFixed(1)) )
+    .append( $('<div></div>').text(js.qty[3].toFixed(1)) )
     .append( $('<div></div>').append(inp) );
     if(js.units.length > 1) sel.change();
     
@@ -129,51 +131,90 @@ function ac_item_search_response(event, ui) {
 
 function _delete()
 {
-    var pid = parseInt(g_v_profile.val());
-    if(!pid || !confirm('Delete this Profile?')) return;
+    if(!g_pid || !confirm('Delete this PO?')) return;
     
-    $.post('?fn=delete_profile', {pid: pid}, function() {
-        window.location = '?'
+    post_js_ex('?fn=delete_po', {pid: g_pid}, function() {
+        load_po(0);
+        reload_lst();
     }, 'json');
     
 }
 
-
-
 function _save()
 {
-    var pid = g_pid;
-    
     var lst = g_v_xtbl.children();
-    if(!pid && !lst.length) return;
-    
-    nz = g_v_tp_ctrl.find('input[name="nz"]').val();
+    if(!g_pid && !lst.length) return;
     
     var items = []
     for(var i = 0; i < lst.length; i++) {
         var t = $(lst[i]).data('item_data');
-        items.push( [t[0], t[3].default_uom_idx] );
-    }
-    var data = {
-        'pid': pid,
-        'desc': nz,
-        'items': items
+        items.push( [t[0], t[1], t[3].default_uom_idx, parseInt(t[3].v_req_qty.val()) || 0] );
     }
     
-    $.ajax({
-        async: false,
-        type: 'post',
-        url: '?fn=save',
-        data: {'js': JSON.stringify(data)},
-        success: function(d) {
-            if(!d || !d.pid) return;
-        },
-        dataType: 'json',
-        error: function(xhr, status, error) {}
+    var desc = g_v_desc.val();
+    var _js = JSON.stringify({pid:g_pid, rev:g_rev, items:items, desc:desc});
+    post_js_ex('?fn=save_po', {js:_js}, function(js) {
+        load_po(js.pid);
+        reload_lst();
     });
     
 }
 
+
+function load_po(pid)
+{
+    g_pid = 0;
+    g_rev = 0;
+    g_items = {};
+    g_v_desc.val('');
+    g_v_po_id.val('');
+    g_v_xtbl.empty();
+    
+    var els = g_v_tp_ctrl.data('in_els');
+    els.btn_save[0].prop('disabled', false);
+    
+    if(!pid) return;
+    
+    get_js('?fn=get_po', {pid:pid}, function(t) {
+        g_pid = t.pid;
+        g_rev = t.rev;
+        g_v_po_id.val(g_pid);
+        g_v_desc.val(t.pdesc);
+        
+        if(t.flg&2) els.btn_save[0].prop('disabled', true);
+        
+        var err_msg = [];
+        for(var i = 0; i < t.pjs.length; i++) {
+            var r = t.pjs[i];
+            var s = r[4];
+            if(s === null) {
+                err_msg.push(r[1] + ' Not Found');
+                continue;
+            }
+            
+            if(r[2] >= s[3].units.length) {
+                err_msg.push(r[1] + ' UOM Error');
+                continue;
+            }
+            
+            s[3].default_uom_idx = r[2];
+            s[3].req_qty = r[3];
+            
+            g_items[s[0]]= {'v': new_row(s)};
+        }
+        
+        if(err_msg.length) MsgBox('Error', err_msg.join('\n'));
+        
+    });
+}
+
+
+function reload_lst()
+{
+    if(window.parent.g_wnds.PO) {
+        window.parent.g_wnds.PO.wnd[0].contentWindow._chg();
+    }
+}
 
 $(function() {
 
@@ -203,9 +244,14 @@ g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
 
 
 g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+var els = g_v_tp_ctrl.data('in_els');
 
-g_v_tp_ctrl.children('input[value="save"]').click(_save);
-g_v_tp_ctrl.children('input[value="delete"]').click(_delete);
+g_v_desc = els.desc[0];
+g_v_po_id = els.pid[0];
+
+els.btn_save[0].click(_save);
+els.btn_delete[0].click(_delete);
 
 }); //ready
 
@@ -257,10 +303,11 @@ input[type="text"]:focus {background-color:#fffceb}
 <body>
 
 <div class="tp_ctrl">
-<input type="text" style="width:180px" id="srch_item" placeholder="search item.." />
-<input type="text" name="desc" style="margin-left:16px;width:360px" placeholder="Description" />
-<input type="button" value="Save" class="btn" />
-<input type="button" value="Delete" class="btn"/>
+<input type="text" style="width:50px" id="po_id" name="ctrl_pid" placeholder="NEW" disabled="disabled" />
+<input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
+<input type="text" name="ctrl_desc" style="margin-left:16px;width:360px" placeholder="Description" />
+<input type="button" name="ctrl_btn_save" value="Save" class="btn" />
+<input type="button" name="ctrl_btn_delete" value="Delete" class="btn"/>
 </div>
 
 <div class="xtbl_header"><div class="xtbl_row"><div></div><div>#</div><div>ALU</div><div>Name</div><div>UOM</div><div>OH_QTY</div><div>PO_QTY</div><div>RQ_QTY</div></div></div>
