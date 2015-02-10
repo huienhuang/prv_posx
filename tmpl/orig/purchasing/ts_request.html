@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - PO</title>
+
+<script type="text/javascript">
+var g_pid = 0;
+var g_rev = 0;
+var g_price_level = 0;
+var g_items = {};
+
+function change_uom()
+{
+    var sel = $(this);
+    var row = sel.closest('.xtbl_row');
+    var item = row.data('item_data');
+    var tid = item[0];
+    item[3].default_uom_idx = parseInt(sel.val());
+    
+    var js = item[3];
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var qtys = js.qty;
+    
+    var vc = row.children();
+    $(vc[5]).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
+    $(vc[6]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
+    
+}
+
+function delete_row()
+{
+    var row = $(this).closest('.xtbl_row');
+    var tid = row.data('item_data')[0];
+    
+    if(g_items[tid]) delete g_items[tid];
+    row.remove();
+}
+
+function click_item_hist()
+{
+    var row = $(this).closest('.xtbl_row');
+    var tid = row.data('item_data')[0];
+    window.open('hist?fn=itemhist&tid=' + tid,'posx_item_hist','location=0,width=992,height=700');
+}
+
+function inp_chg()
+{
+    g_v_ac_item_search.focus();
+}
+
+function new_row(item)
+{
+    var js = item[3];
+    var sel = '';
+    if(js.units.length > 1) {
+        sel = $('<select></select>').change(change_uom);
+        for(var i = 0; i < js.units.length; i++) {
+            var unit = js.units[i];
+            sel.append( $('<option></option>').text(unit[2] + (unit[3]!=1?'*' + unit[3]:'')).val(i) );
+        }
+        sel.val(js.default_uom_idx);
+    }
+    
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var qtys = js.qty;
+    
+    var inp = $('<input type="text" />').val(js.req_qty || '');
+    js.v_req_qty = inp;
+    var row = $('<div class="xtbl_row"></div>').data('item_data', item)
+    .append( $('<div></div>').click(delete_row) )
+    .append( $('<div></div>').text(item[1]).click(click_item_hist) )
+    .append( $('<div></div>').text(js.units[0][1]).click(click_item_hist) )
+    .append( $('<div></div>').text(item[2]) )
+    .append( $('<div></div>').append(sel) )
+    .append( $('<div></div>').text(js.qty[0].toFixed(1)) )
+    .append( $('<div></div>').text(js.qty[3].toFixed(1)) )
+    .append( $('<div></div>').append(inp) );
+    if(js.units.length > 1) sel.change();
+    
+    g_v_xtbl.append(row);
+    inp.change(inp_chg).focus();
+    
+    return row;
+}
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text( '$' + unit[0][g_price_level] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function ac_item_search_response(event, ui) {
+    var ct = ui.content;
+    var term = $.trim( $(this).data("ui-autocomplete").term.toLowerCase() );
+        
+    for(var i = 0; i < ct.length; i++) {
+        var c = ct[i];
+        var item = c[3] = $.parseJSON(c[3]);
+        var units = item.units;
+            
+        if (c[4] !== null) {
+            var upc_uom_idx = parseInt(c[4]);
+            if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
+                
+        } else if(term) {
+            for(var u = 0; u < units.length; u++) {
+                var alu = units[u][1];
+                if(alu && alu.toLowerCase() === term) {
+                    item.default_uom_idx = u;
+                    break;
+                }
+            }
+        }
+            
+    }
+}
+
+
+
+
+function _delete()
+{
+    if(!g_pid || !confirm('Delete this Transfer Slip?')) return;
+    
+    post_js_ex('?fn=delete_transfer_Slip', {pid: g_pid}, function() {
+        load_po(0);
+        reload_lst();
+    }, 'json');
+    
+}
+
+function _save()
+{
+    var lst = g_v_xtbl.children();
+    if(!g_pid && !lst.length) return;
+    
+    var items = []
+    for(var i = 0; i < lst.length; i++) {
+        var t = $(lst[i]).data('item_data');
+        items.push( [t[0], t[1], t[3].default_uom_idx, parseInt(t[3].v_req_qty.val()) || 0] );
+    }
+    
+    var desc = g_v_desc.val();
+    var _js = JSON.stringify({pid:g_pid, rev:g_rev, items:items, desc:desc});
+    post_js_ex('?fn=save_transfer_Slip', {js:_js}, function(js) {
+        load_po(js.pid);
+        reload_lst();
+    });
+    
+}
+
+
+function load_po(pid)
+{
+    g_pid = 0;
+    g_rev = 0;
+    g_items = {};
+    g_v_desc.val('');
+    g_v_po_id.val('');
+    g_v_xtbl.empty();
+    
+    var els = g_v_tp_ctrl.data('in_els');
+    els.btn_save[0].prop('disabled', false);
+    
+    if(!pid) return;
+    
+    get_js('?fn=get_transfer_slip', {pid:pid}, function(t) {
+        g_pid = t.pid;
+        g_rev = t.rev;
+        g_v_po_id.val(g_pid);
+        g_v_desc.val(t.pdesc);
+        
+        if(t.flg&2) els.btn_save[0].prop('disabled', true);
+        
+        var err_msg = [];
+        for(var i = 0; i < t.pjs.length; i++) {
+            var r = t.pjs[i];
+            var s = r[4];
+            if(s === null) {
+                err_msg.push(r[1] + ' Not Found');
+                continue;
+            }
+            
+            if(r[2] >= s[3].units.length) {
+                err_msg.push(r[1] + ' UOM Error');
+                continue;
+            }
+            
+            s[3].default_uom_idx = r[2];
+            s[3].req_qty = r[3];
+            
+            g_items[s[0]]= {'v': new_row(s)};
+        }
+        
+        if(err_msg.length) MsgBox('Error', err_msg.join('\n'));
+        
+    });
+}
+
+
+function reload_lst()
+{
+    if(window.parent.g_wnds.Transfer) {
+        window.parent.g_wnds.Transfer.wnd[0].contentWindow._chg();
+    }
+}
+
+$(function() {
+
+$('.btn').button();
+
+g_v_xtbl_hdr_cnt = $('.xtbl_header');
+g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
+
+g_v_xtbl = $('.xtbl').sortable({
+    items: '> div',
+}).disableSelection().scroll(function() {
+    g_v_xtbl_hdr_cnt.scrollLeft( g_v_xtbl.scrollLeft() );
+});
+
+g_v_ac_item_search = $('#srch_item').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=itemsearch",
+    minLength: 1,
+    select: function(event, ui) {
+        var tid = ui.item[0];
+        if(g_items[tid] !== undefined) return;
+        g_items[tid]= {'v': new_row(ui.item)};
+    },
+    response: ac_item_search_response
+});
+g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
+
+
+g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+var els = g_v_tp_ctrl.data('in_els');
+
+g_v_desc = els.desc[0];
+g_v_po_id = els.pid[0];
+
+els.btn_save[0].click(_save);
+els.btn_delete[0].click(_delete);
+
+els.btn_print[0].click(function() {
+    if(g_pid) open_wnd('?fn=print&pid=' + g_pid,'posx_print_wnd');
+});
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
+.xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:90px;position:relative}
+.xtbl_row > div > select, .xtbl_row > div > input {position:absolute;top:2px;left:0;width:100%}
+.xtbl_row > div:nth-child(1) {width:26px}
+.xtbl_row > div:nth-child(2) {cursor:pointer}
+.xtbl_row > div:nth-child(3) {width:100px}
+.xtbl_row > div:nth-child(4) {width:280px}
+.xtbl_row > div:nth-child(7) {width:0px}
+.xtbl_row > div:nth-child(8) input {width:84px}
+
+.xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
+.xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
+.xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
+.xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
+.xtbl_header {top:50px}
+.xtbl_footer {bottom:0;top:auto}
+.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
+
+.xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0}
+
+#dlg_profile_name {text-align:center}
+
+input[type="text"]:focus {background-color:#fffceb}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<input type="text" style="width:50px" id="po_id" name="ctrl_pid" placeholder="NEW" disabled="disabled" />
+<input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
+<input type="text" name="ctrl_desc" style="margin-left:16px;width:360px" placeholder="Description" />
+<input type="button" name="ctrl_btn_save" value="Save" class="btn" />
+<input type="button" name="ctrl_btn_delete" value="Delete" class="btn"/>
+<input type="button" name="ctrl_btn_print" value="Print" class="btn"/>
+</div>
+
+<div class="xtbl_header"><div class="xtbl_row"><div></div><div>#</div><div>ALU</div><div>Name</div><div>UOM</div><div>OH_QTY</div><div>PO_QTY</div><div>RQ_QTY</div></div></div>
+<div class="xtbl"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>Transfer Slip - ${ts['pid']}</title>
+
+<style type="text/css">
+.ui-widget {font-size:16px;} 
+body {min-width:952px;overflow-y:scroll;font-size:16px}
+
+.maincnt {width:952px;margin:0 auto;}
+
+.ctrlcnt {margin-bottom:10px;height:32px;padding:6px 0;border-bottom:1px solid #ccc;position:relative}
+.ctrlcnt > input {margin-right:6px;}
+
+.recmemo {border-bottom:1px solid #ccc;margin-top:5px;padding:5px 10px;font-size:20px;font-weight:bold}
+
+.vtable {margin-top:10px;}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:101px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:1px;width:100px;font-weight:bold}
+
+.cls_redcolor {color:red}
+
+.p_cur {cursor:pointer}
+
+.srec {white-space:pre-wrap;margin-bottom:3px;cursor:pointer}
+.srec >span {font-weight:bold;color:#315b8a}
+
+@media print {
+.maincnt {margin:0 auto;}
+.custinfo > div, .recmemo, .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000;}
+.memocnt {display:none}
+.cls_redcolor {color:#000}
+.ctrlcnt {display:none}
+}
+@page {
+margin:60px 50px;
+}
+
+
+</style>
+
+</head>
+
+<body onload="window.print();window.close();">
+
+<div class="maincnt">
+
+<div class="recmemo">#${ts['pid']} - ${ts['ts_s']} - ${ts['pdesc']|h}</div>
+
+<div class="vtable">
+    
+<div>
+<div><div>ID</div><div>ALU</div><div>Name</div><div>RequestQty</div></div>
+<%
+import math
+%>
+%for item in ts['pjs']:
+<%
+ijs = item[4]
+uom = ijs[3]['units'][ item[2] ][2]
+%>
+<div><div>${item[1] or ''}</div><div>${ijs[3]['units'][0][1]|h}</div><div>${ijs[2]|h}</div><div>${item[3]}${uom|h}</div></div>
+%endfor
+</div>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

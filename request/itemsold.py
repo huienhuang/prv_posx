@@ -215,7 +215,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_make_po(self):
         js = self.req.psv_js('js')
         ref = int(js['ref'])
-        lst = [ map(int, f_x[:4]) for f_x in js['items'] if int(f_x[3]) > 0 ]
+        lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]
         if not lst: return
 
         cur = self.cur()

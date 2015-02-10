@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - PO</title>
+
+<script type="text/javascript">
+
+
+function _chg()
+{
+    var els = g_v_ctrl.data('in_els');
+    g_tg_item_data.flg = parseInt(els.flg[0].val()) || 0;
+    g_v_tg_items.tinygrid('update', -1, true, true, true);
+}
+
+function load_po(pid)
+{
+    if(window.parent.g_wnds.View) {
+        window.parent.open_wnd('View');
+        window.parent.g_wnds.View.wnd[0].contentWindow.load_po(pid);
+    }
+}
+
+$(function() {
+
+$('.btn').button();
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+els.flg[0].change(_chg);
+
+els.new_po[0].click(function() {
+    load_po(0);
+});
+
+g_tg_item_data = {};
+g_v_tg_items = $('#tg_items').tinygrid({
+len:1,
+src:{page:'?fn=get_lst', data:g_tg_item_data},
+cols: [{name:'#', width:80},
+       {name:'Status', width:100},
+       {name:'TransferID', width:120},
+       {name:'Assoc', width:100},
+       {name:'Desc', width:"100%"},
+       {name:'Datetime', width:210},
+       ],
+click: function(r, c, d) {
+    load_po(d[0]);
+}
+});
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+
+#tg_items {top:0;bottom:0;right:0;left:0}
+
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<select name="ctrl_flg" style="width:160px" >
+<option value="0">ALL</option>
+<option value="1">Pending</option>
+<option value="2">Transfered</option>
+</select>
+<input class="btn" name="ctrl_new_po" type="button" value="New Transfer Slip" />
+</div>
+
+<div class="x_body">
+
+<div id="tg_items"></div>
+
+</div>
+
+</body>
+</html>
