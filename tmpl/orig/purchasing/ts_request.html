@@ -2,7 +2,7 @@
 <html>
 <head>
 <%include file="../header_inc_v4.html" />
-<title>POSX - PO</title>
+<title>POSX - Request</title>
 
 <script type="text/javascript">
 var g_pid = 0;
@@ -131,12 +131,12 @@ function ac_item_search_response(event, ui) {
 
 function _delete()
 {
-    if(!g_pid || !confirm('Delete this Transfer Slip?')) return;
+    if(!g_pid || !confirm('Delete?')) return;
     
-    post_js_ex('?fn=delete_transfer_Slip', {pid: g_pid}, function() {
-        load_po(0);
+    post_js_ex('?fn=delete_request', {pid: g_pid}, function() {
+        load_request(0);
         reload_lst();
-    }, 'json');
+    });
     
 }
 
@@ -152,22 +152,23 @@ function _save()
     }
     
     var desc = g_v_desc.val();
-    var _js = JSON.stringify({pid:g_pid, rev:g_rev, items:items, desc:desc});
-    post_js_ex('?fn=save_transfer_Slip', {js:_js}, function(js) {
-        load_po(js.pid);
+    var _js = JSON.stringify({pid:g_pid, dtype: g_v_type.val(), rev:g_rev, items:items, desc:desc});
+    post_js_ex('?fn=save_request', {js:_js}, function(js) {
+        load_request(js.pid);
         reload_lst();
     });
     
 }
 
 
-function load_po(pid)
+function load_request(pid, dtype)
 {
     g_pid = 0;
     g_rev = 0;
     g_items = {};
     g_v_desc.val('');
     g_v_po_id.val('');
+    g_v_type.val(parseInt(dtype) || '');
     g_v_xtbl.empty();
     
     var els = g_v_tp_ctrl.data('in_els');
@@ -175,11 +176,12 @@ function load_po(pid)
     
     if(!pid) return;
     
-    get_js('?fn=get_transfer_slip', {pid:pid}, function(t) {
+    get_js_ex('?fn=get_request', {pid:pid}, function(t) {
         g_pid = t.pid;
         g_rev = t.rev;
         g_v_po_id.val(g_pid);
         g_v_desc.val(t.pdesc);
+        g_v_type.val(t.dtype);
         
         if(t.flg&2) els.btn_save[0].prop('disabled', true);
         
@@ -203,6 +205,13 @@ function load_po(pid)
             g_items[s[0]]= {'v': new_row(s)};
         }
         
+        var msg = [];
+        if(t.state !== 0) {
+            if(t.doc_num) msg.push('Num: ' + t.doc_num);
+            if(t.qjs) msg.push(t.qjs.msg);
+        }
+        g_v_xtbl_ftr.text(msg.join(', '));
+        
         if(err_msg.length) MsgBox('Error', err_msg.join('\n'));
         
     });
@@ -211,8 +220,8 @@ function load_po(pid)
 
 function reload_lst()
 {
-    if(window.parent.g_wnds.Transfer) {
-        window.parent.g_wnds.Transfer.wnd[0].contentWindow._chg();
+    if(window.parent.g_wnds.Request) {
+        window.parent.g_wnds.Request.wnd[0].contentWindow._chg();
     }
 }
 
@@ -222,6 +231,7 @@ $('.btn').button();
 
 g_v_xtbl_hdr_cnt = $('.xtbl_header');
 g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
+g_v_xtbl_ftr = $('.xtbl_footer .xtbl_row');
 
 g_v_xtbl = $('.xtbl').sortable({
     items: '> div',
@@ -249,12 +259,23 @@ var els = g_v_tp_ctrl.data('in_els');
 
 g_v_desc = els.desc[0];
 g_v_po_id = els.pid[0];
+g_v_type = els.type[0];
 
 els.btn_save[0].click(_save);
 els.btn_delete[0].click(_delete);
 
 els.btn_print[0].click(function() {
     if(g_pid) open_wnd('?fn=print&pid=' + g_pid,'posx_print_wnd');
+});
+
+els.btn_send[0].click(function() {
+    if(!g_pid) return;
+    
+    post_js_ex('?fn=send', {pid:g_pid}, function(js) {
+        load_request(js.pid);
+        reload_lst();
+    });
+    
 });
 
 }); //ready
@@ -282,7 +303,7 @@ els.btn_print[0].click(function() {
 .xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
 .xtbl_header {top:50px}
 .xtbl_footer {bottom:0;top:auto}
-.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd;color:#c94242;text-align:center}
 .xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
 
 .xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
@@ -308,12 +329,14 @@ input[type="text"]:focus {background-color:#fffceb}
 <body>
 
 <div class="tp_ctrl">
+<select name="ctrl_type" disabled="disabled" style="width:130px"><option value="">Invalid</option><option value="1">TransferSlip</option><option value="2">PO</option></select>
 <input type="text" style="width:50px" id="po_id" name="ctrl_pid" placeholder="NEW" disabled="disabled" />
 <input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
 <input type="text" name="ctrl_desc" style="margin-left:16px;width:360px" placeholder="Description" />
 <input type="button" name="ctrl_btn_save" value="Save" class="btn" />
 <input type="button" name="ctrl_btn_delete" value="Delete" class="btn"/>
 <input type="button" name="ctrl_btn_print" value="Print" class="btn"/>
+<input type="button" name="ctrl_btn_send" value="Send" class="btn"/>
 </div>
 
 <div class="xtbl_header"><div class="xtbl_row"><div></div><div>#</div><div>ALU</div><div>Name</div><div>UOM</div><div>OH_QTY</div><div>PO_QTY</div><div>RQ_QTY</div></div></div>

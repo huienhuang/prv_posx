@@ -16,7 +16,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('select id,nz from report where type=1 order by id desc')
         profiles = cur.fetchall()
         r = {
-            'profiles': profiles
+            'profiles': sorted(profiles, key=lambda f_x:f_x[1].lower())
         }
         self.req.writefile('items_sold_report.html', r)
 

@@ -14,11 +14,11 @@ function _chg()
     g_v_tg_items.tinygrid('update', -1, true, true, true);
 }
 
-function load_po(pid)
+function load_request(pid, dtype)
 {
     if(window.parent.g_wnds.View) {
         window.parent.open_wnd('View');
-        window.parent.g_wnds.View.wnd[0].contentWindow.load_po(pid);
+        window.parent.g_wnds.View.wnd[0].contentWindow.load_request(pid, dtype);
     }
 }
 
@@ -31,8 +31,12 @@ idx_elements(g_v_ctrl, 5);
 var els = g_v_ctrl.data('in_els');
 els.flg[0].change(_chg);
 
+els.new_ts[0].click(function() {
+    load_request(0, 1);
+});
+
 els.new_po[0].click(function() {
-    load_po(0);
+    load_request(0, 2);
 });
 
 g_tg_item_data = {};
@@ -40,14 +44,15 @@ g_v_tg_items = $('#tg_items').tinygrid({
 len:1,
 src:{page:'?fn=get_lst', data:g_tg_item_data},
 cols: [{name:'#', width:80},
+       {name:'Type', width:100},
        {name:'Status', width:100},
-       {name:'TransferID', width:120},
+       {name:'Num', width:120},
        {name:'Assoc', width:100},
        {name:'Desc', width:"100%"},
        {name:'Datetime', width:210},
        ],
 click: function(r, c, d) {
-    load_po(d[0]);
+    load_request(d[0]);
 }
 });
 
@@ -73,7 +78,8 @@ click: function(r, c, d) {
 <option value="1">Pending</option>
 <option value="2">Transfered</option>
 </select>
-<input class="btn" name="ctrl_new_po" type="button" value="New Transfer Slip" />
+<input class="btn" name="ctrl_new_po" type="button" value="New PO" />
+<input class="btn" name="ctrl_new_ts" type="button" value="New Transfer Slip" />
 </div>
 
 <div class="x_body">
