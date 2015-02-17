@@ -65,7 +65,7 @@ elif ts['dtype'] == 2:
 else:
     dtype_s = 'Invalid'
 %>
-<div class="recmemo">${dtype_s}#${ts['pid']} - ${ts['ts_s']} - ${ts['pdesc']|h}</div>
+<div class="recmemo">${dtype_s}#${ts['pid']} - To ${ts['dst'] and 'HQ' or 'SF'} - ${ts['ts_s']} - ${ts['pdesc']|h}</div>
 
 <div class="vtable">
     
