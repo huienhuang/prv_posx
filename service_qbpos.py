@@ -3,11 +3,10 @@ import QBPOS
 import xml.etree.ElementTree as ET
 import json
 import time
+import config
 
-g_cfg = {
-"computer" : "devhq",
-"company" : "forest_hq"
-}
+
+g_cfg = config.qbpos_cfg
 
 
 __g_pos_conn = None
