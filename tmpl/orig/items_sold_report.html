@@ -85,6 +85,20 @@ function click_item_hist()
     window.open('hist?fn=itemhist&tid=' + tid,'posx_item_hist','location=0,width=992,height=700');
 }
 
+
+function get_item_qty_lst()
+{
+    var item = $(this).closest('.xtbl_row').data('item_data');
+    var js = item[3];
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var sqty = js.sqty;
+    if(!sqty) return null;
+    
+    var HQ_QTY = factor ? (factor == 1 ? sqty[0].toFixed(1) : (sqty[0] / factor).toFixed(1)) : 'E';
+    var SF_QTY = factor ? (factor == 1 ? sqty[1].toFixed(1) : (sqty[1] / factor).toFixed(1)) : 'E';
+    return $('<div></div>').text('HQ: ' + HQ_QTY + ', SF: ' + SF_QTY);
+}
+
 function new_row(item)
 {
     var js = item[3];
@@ -107,7 +121,10 @@ function new_row(item)
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(sel) )
     .append( $('<div><input type="text" /></div>') )
-    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
+    .append( $('<div class="item_qty_lst"></div>').tooltip({
+       items: '.item_qty_lst',
+       content: get_item_qty_lst
+    }).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
     .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' ) );
     
     g_v_xtbl.append(row);
@@ -173,7 +190,7 @@ function load_items_sold_report_cb(js)
         $(cds.slice(7)).remove();
         
         var qtys = item_js.qty;
-        $(cds[5]).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
+        $(cds[5]).attr('title', '123').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
         $(cds[6]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
         
         if(!factor) continue;
