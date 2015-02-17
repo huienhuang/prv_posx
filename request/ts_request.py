@@ -43,7 +43,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select SQL_CALC_FOUND_ROWS t.*,q.state,q.doc_num from inv_request t left join qbpos q on (t.qbpos_id=q.id) %s order by pid desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS t.*,q.state,q.errno,q.doc_num from inv_request t left join qbpos q on (t.qbpos_id=q.id) %s order by pid desc limit %d,%d' % (
                         ws, sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
@@ -55,12 +55,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 if r['flg'] & 1:
                     sts = 'Transfering'
                     if r['state'] == 2:
-                        sts = 'Transfered'
-                    elif r['state'] < 0:
-                        sts = 'Error'
+                        if not r['errno']:
+                            sts = 'Transfered'
+                        else:
+                            sts = 'Error'
 
                 if r['dtype'] == 1:
-                    dtype = 'TransfeSlip'
+                    dtype = 'TransferSlip'
                 elif r['dtype'] == 2:
                     dtype = 'PO'
                 else:
@@ -170,7 +171,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not pjs: self.req.exitjs({'err': -1, 'err_s': 'Empty Item List'})
 
         if not qbpos_id:
-            cur.execute("insert into qbpos values(null,1,0,0,%s,%s,null,0,null)", (dtype,pid,))
+            cur.execute("insert into qbpos values(null,1,2,-99,%s,%s,null,0,null)", (dtype,pid,))
             last_qbpos_id = cur.lastrowid
             cur.execute("update inv_request set rev=rev+1,qbpos_id=%s,flg=flg|1 where pid=%s and rev=%s and (flg&1)=0", (
                 last_qbpos_id, pid, rev
@@ -179,7 +180,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(1)"})
             qbpos_id = last_qbpos_id
 
-        cur.execute("update qbpos set rev=rev+1,state=1,errno=0,js=null where id=%s and state<=0", (qbpos_id,))
+        cur.execute("update qbpos set rev=rev+1,state=1,errno=0,js=null where id=%s and state=2 and errno!=0", (qbpos_id,))
         if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(2)"})
 
         self.req.writejs({'pid': pid})

@@ -42,7 +42,7 @@ g_v_tabs = $('#m_tabs').tabs({
         var im = ui.newPanel.children('iframe');
         var src = im.attr('src');
         if(!src) im.attr('src', nz[0] === '$' ? nz.substr(1) : '?fn=' + nz);
-        
+        else im[0].contentWindow && im[0].contentWindow.on_wnd_active && im[0].contentWindow.on_wnd_active();
     },
     active: 0
 });

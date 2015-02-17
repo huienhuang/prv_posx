@@ -220,9 +220,9 @@ function load_request(pid, dtype)
 
 function reload_lst()
 {
-    if(window.parent.g_wnds.Request) {
-        window.parent.g_wnds.Request.wnd[0].contentWindow._chg();
-    }
+    //if(window.parent.g_wnds.Request) {
+    //    window.parent.g_wnds.Request.wnd[0].contentWindow._chg();
+    //}
 }
 
 $(function() {
@@ -284,12 +284,14 @@ els.btn_send[0].click(function() {
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
-.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl {height:86px;line-height:40px;padding-left:10px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:10px;}
 
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:90px;position:relative}
-.xtbl_row > div > select, .xtbl_row > div > input {position:absolute;top:2px;left:0;width:100%}
+.xtbl_row > div > select, .xtbl_row > div > input {position:absolute;top:2px;left:0;width:100%;background-color:#e0f7d9}
+.xtbl_row > div > input {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
+
 .xtbl_row > div:nth-child(1) {width:26px}
 .xtbl_row > div:nth-child(2) {cursor:pointer}
 .xtbl_row > div:nth-child(3) {width:100px}
@@ -301,10 +303,10 @@ els.btn_send[0].click(function() {
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
 .xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
 .xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
-.xtbl_header {top:50px}
+.xtbl_header {top:86px}
 .xtbl_footer {bottom:0;top:auto}
 .xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd;color:#c94242;text-align:center}
-.xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
+.xtbl {position:absolute;top:123px;bottom:37px;right:0;left:0;overflow:auto;}
 
 .xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
 
@@ -329,10 +331,11 @@ input[type="text"]:focus {background-color:#fffceb}
 <body>
 
 <div class="tp_ctrl">
-<select name="ctrl_type" disabled="disabled" style="width:130px"><option value="">Invalid</option><option value="1">TransferSlip</option><option value="2">PO</option></select>
+<select name="ctrl_type" disabled="disabled" style="width:150px"><option value="">Invalid</option><option value="1">TransferSlip</option><option value="2">PO</option></select>
 <input type="text" style="width:50px" id="po_id" name="ctrl_pid" placeholder="NEW" disabled="disabled" />
+<input type="text" name="ctrl_desc" style="margin-left:16px;width:460px" placeholder="Description" />
+<br/>
 <input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
-<input type="text" name="ctrl_desc" style="margin-left:16px;width:360px" placeholder="Description" />
 <input type="button" name="ctrl_btn_save" value="Save" class="btn" />
 <input type="button" name="ctrl_btn_delete" value="Delete" class="btn"/>
 <input type="button" name="ctrl_btn_print" value="Print" class="btn"/>
