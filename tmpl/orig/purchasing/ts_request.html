@@ -152,7 +152,7 @@ function _save()
     }
     
     var desc = g_v_desc.val();
-    var _js = JSON.stringify({pid:g_pid, dtype: g_v_type.val(), rev:g_rev, items:items, desc:desc});
+    var _js = JSON.stringify({pid:g_pid, dst:g_v_dst.val(), dtype:g_v_type.val(), rev:g_rev, items:items, desc:desc});
     post_js_ex('?fn=save_request', {js:_js}, function(js) {
         load_request(js.pid);
         reload_lst();
@@ -169,7 +169,9 @@ function load_request(pid, dtype)
     g_v_desc.val('');
     g_v_po_id.val('');
     g_v_type.val(parseInt(dtype) || '');
+    g_v_dst.val('0');
     g_v_xtbl.empty();
+    g_v_xtbl_ftr.text('');
     
     var els = g_v_tp_ctrl.data('in_els');
     els.btn_save[0].prop('disabled', false);
@@ -182,6 +184,7 @@ function load_request(pid, dtype)
         g_v_po_id.val(g_pid);
         g_v_desc.val(t.pdesc);
         g_v_type.val(t.dtype);
+        g_v_dst.val(t.dst)
         
         if(t.flg&2) els.btn_save[0].prop('disabled', true);
         
@@ -260,6 +263,7 @@ var els = g_v_tp_ctrl.data('in_els');
 g_v_desc = els.desc[0];
 g_v_po_id = els.pid[0];
 g_v_type = els.type[0];
+g_v_dst = els.dst[0];
 
 els.btn_save[0].click(_save);
 els.btn_delete[0].click(_delete);
@@ -333,7 +337,8 @@ input[type="text"]:focus {background-color:#fffceb}
 <div class="tp_ctrl">
 <select name="ctrl_type" disabled="disabled" style="width:150px"><option value="">Invalid</option><option value="1">TransferSlip</option><option value="2">PO</option></select>
 <input type="text" style="width:50px" id="po_id" name="ctrl_pid" placeholder="NEW" disabled="disabled" />
-<input type="text" name="ctrl_desc" style="margin-left:16px;width:460px" placeholder="Description" />
+<select name="ctrl_dst" style="width:100px"><option value="0">TO SF</option><option value="1">TO HQ</option></select>
+<input type="text" name="ctrl_desc" style="margin-left:16px;width:400px" placeholder="Description" />
 <br/>
 <input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
 <input type="button" name="ctrl_btn_save" value="Save" class="btn" />

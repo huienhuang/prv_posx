@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 		
 		printf("Error:invalid argv");
 
-	} else if(argc == 3) {
+	} else if(argc >= 3) {
 		char buf[MAX_PATH];
 		strcpy(buf, argv[1]);
 		char *mnz = strrchr(buf, '\\');
@@ -219,15 +219,21 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		SERVICE_TABLE_ENTRY srv_tbl[] = {
-			{"", srv_main},
-			{0, 0}
-		};
-		StartServiceCtrlDispatcher(srv_tbl);
+		if (argc >= 4 && !strcmp(argv[3], "nosrv")) {
+			srv_main(0, 0);
+			if (g_pythread_handle) WaitForSingleObject(g_pythread_handle, INFINITE);
 
-		if(g_pythread_handle) {
-			g_stop_pending = 1;
-			WaitForSingleObject(g_pythread_handle, INFINITE);
+		} else {
+			SERVICE_TABLE_ENTRY srv_tbl[] = {
+					{ "", srv_main },
+					{ 0, 0 }
+			};
+			StartServiceCtrlDispatcher(srv_tbl);
+
+			if(g_pythread_handle) {
+				g_stop_pending = 1;
+				WaitForSingleObject(g_pythread_handle, INFINITE);
+			}
 		}
 
 		Py_DECREF(g_py_main);

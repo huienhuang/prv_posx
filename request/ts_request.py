@@ -69,6 +69,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
                 apg.append((
                     r['pid'],
+                    r['dst'] and 'HQ' or 'SF',
                     dtype,
                     sts,
                     r['doc_num'] or '',
@@ -104,6 +105,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         pid = int(js['pid'])
         dtype = int(js['dtype'])
+        dst = int(js['dst'])
         if dtype not in (1, 2): self.req.exitjs({'err': -1, 'pid':pid, 'errs': 'Invalid Type'})
 
         lst = [ map(int, f_x[:4]) for f_x in js['items'] if int(f_x[3]) > 0 ]
@@ -113,14 +115,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         rev = 0
         if pid:
-            cur.execute('update inv_request set rev=rev+1,pdesc=%s,pjs=%s where pid=%s and rev=%s and flg&1=0', (
-                desc, js_lst, pid, js['rev']
+            cur.execute('update inv_request set rev=rev+1,dst=%s,pdesc=%s,pjs=%s where pid=%s and rev=%s and flg&1=0', (
+                dst, desc, js_lst, pid, js['rev']
                 )
             )
         else:
             if not lst: self.req.exitjs({'err': -1, 'err_s': 'Empty Item List'})
-            cur.execute('insert into inv_request values(null,1,%s,0,0,0,%s,%s,%s,%s)', (
-                dtype, int(time.time()), int(self.user_id), desc, js_lst
+            cur.execute('insert into inv_request values(null,1,%s,%s,0,0,0,%s,%s,%s,%s)', (
+                dst, dtype, int(time.time()), int(self.user_id), desc, js_lst
                 )
             )
             pid = cur.lastrowid

@@ -225,9 +225,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rows = cur.fetchall()
         if rows: nz = rows[0][0]
 
-        cur.execute('insert into po values(null,1,0,%s,0,%s,%s,%s,%s)', (
-            ref, int(time.time()), self.user_id, 
-            nz, json.dumps(lst, separators=(',',':'))
+        cur.execute('insert into inv_request values(null,1,0,2,0,%s,0,%s,%s,%s,%s)', (
+            ref, int(time.time()), int(self.user_id), nz, json.dumps(lst, separators=(',',':'))
             )
         )
 

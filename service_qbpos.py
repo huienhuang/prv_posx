@@ -46,13 +46,22 @@ def insert_transfer_slip(cur, r):
 	T_ELEM.text = "AutoGen From POSX TS#%d - %s" % (r['doc_id'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()))
 	T_TransferSlipAdd.append(T_ELEM)
 
-	T_ELEM = ET.Element('FromStoreNumber')
-	T_ELEM.text = "1"
-	T_TransferSlipAdd.append(T_ELEM)
+	if rr['dst']:
+		T_ELEM = ET.Element('FromStoreNumber')
+		T_ELEM.text = "2"
+		T_TransferSlipAdd.append(T_ELEM)
 
-	T_ELEM = ET.Element('ToStoreNumber')
-	T_ELEM.text = "2"
-	T_TransferSlipAdd.append(T_ELEM)
+		T_ELEM = ET.Element('ToStoreNumber')
+		T_ELEM.text = "1"
+		T_TransferSlipAdd.append(T_ELEM)
+	else:
+		T_ELEM = ET.Element('FromStoreNumber')
+		T_ELEM.text = "1"
+		T_TransferSlipAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('ToStoreNumber')
+		T_ELEM.text = "2"
+		T_TransferSlipAdd.append(T_ELEM)
 
 	T_ELEM = ET.Element('TxnState')
 	T_ELEM.text = "Normal"
@@ -126,6 +135,18 @@ def insert_po(cur, r):
 	T_ELEM.text = "AutoGen From POSX PO#%d - %s" % (r['doc_id'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()))
 	T_PurchaseOrderAdd.append(T_ELEM)
 
+	T_ELEM = ET.Element('StoreNumber')
+	T_ELEM.text = '1'
+	T_PurchaseOrderAdd.append(T_ELEM)
+
+	if rr['dst']:
+		T_ELEM = ET.Element('ShipToStoreNumber')
+		T_ELEM.text = '1'
+		T_PurchaseOrderAdd.append(T_ELEM)
+	else:
+		T_ELEM = ET.Element('ShipToStoreNumber')
+		T_ELEM.text = '2'
+		T_PurchaseOrderAdd.append(T_ELEM)
 
 	for a in lst:
 		item = items.get(a[0])
@@ -210,6 +231,7 @@ def worker(cur):
 		print '->%0.3fs' % (secs,)
 
 def main():
+	#get_pos_conn()
 	srv_main( ((worker, 600),) )
 
 if __name__ == '__main__':
