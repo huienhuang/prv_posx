@@ -187,5 +187,5 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         self.req.writejs({'pid': pid})
 
-    fn_send.PERM = 1 << config.USER_PERM_BIT['purchasing_mgr']
+    fn_send.PERM = 1 << config.USER_PERM_BIT['purchasing']
 

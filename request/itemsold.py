@@ -9,6 +9,7 @@ import csv
 import cStringIO
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['item stat access']
+ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BIT['item stat access'])
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
@@ -84,6 +85,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs( {'pid': pid} )
 
+    fn_save_profile.PERM = ADV_PERM
+
     def fn_delete_profile(self):
         pid = self.req.psv_int('pid')
         if not pid: return
@@ -92,6 +95,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('delete from report where id=%s and type=1', (pid,))
         self.req.writejs({'ret': int(bool(cur.rowcount > 0))})
         
+    fn_delete_profile.PERM = ADV_PERM
+
     def fn_load_profile(self):
         pid = self.req.qsv_int('pid')
         if not pid: return
@@ -211,6 +216,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
         self.req.write( fp.getvalue() )
         
+
+    fn_export_csv.PERM = ADV_PERM
 
     def fn_make_po(self):
         js = self.req.psv_js('js')
