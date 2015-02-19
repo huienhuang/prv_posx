@@ -7,6 +7,7 @@ import json
 import db as mydb
 import datetime
 import cgi
+import config
 
 
 def errprint(fmt, *arg):
@@ -32,8 +33,8 @@ if month < 1:
 from_date = "%04d-%02d-01" % (year, month)
 inv_date = year * 100 + month
 
-data_file = os.path.join(os.getcwd(), 'data', from_date + '_cr.txt')
-lerr_file = os.path.join(os.getcwd(), 'data', from_date + '_er.txt')
+data_file = os.path.join(config.DATA_DIR, 'data', from_date + '_cr.txt')
+lerr_file = os.path.join(config.DATA_DIR, 'data', from_date + '_er.txt')
 
 print "start comm %s %s" % (from_date, to_date)
 

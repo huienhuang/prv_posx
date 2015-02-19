@@ -15,7 +15,7 @@ if tp.tm_mon == 12:
 else:
     to_ts = int(time.mktime(datetime.date(tp.tm_year, tp.tm_mon + 1, 1).timetuple()))
 
-datafile = os.path.join(os.getcwd(), 'data', "%04d-%02d-%02d_comm.txt" % (tp.tm_year, tp.tm_mon, 1))
+datafile = os.path.join(config.APP_DIR, 'data', "%04d-%02d-%02d_comm.txt" % (tp.tm_year, tp.tm_mon, 1))
 
 mdb = mydb.db_mdb()
 cur = mdb.cursor()

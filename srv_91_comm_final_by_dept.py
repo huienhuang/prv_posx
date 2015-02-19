@@ -50,8 +50,8 @@ g_to_date = '%04d-%02d-01' % (to_year, to_month)
 
 print 'calc comm - %s <= receipts < %s' % (g_from_date, g_to_date)
 if datetime.date.today().day < 3: sys.exit()
-datafile = os.path.join(os.getcwd(), 'data', g_from_date + '_comm_clerks.txt')
-datafile_a = os.path.join(os.getcwd(), 'data', g_from_date + '_comm_receipts.txt')
+datafile = os.path.join(config.APP_DIR, 'data', g_from_date + '_comm_clerks.txt')
+datafile_a = os.path.join(config.APP_DIR, 'data', g_from_date + '_comm_receipts.txt')
 if os.path.exists(datafile):
     print 'datafile exists'
     sys.exit()

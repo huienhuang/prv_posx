@@ -1,8 +1,9 @@
 import db as mydb
 import os
 import json
+import config
 
-cur_dir = os.getcwd()
+cur_dir = config.APP_DIR
 
 db = mydb.db_pos()
 cur = db.cursor()

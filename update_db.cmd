@@ -1,8 +1,4 @@
 @echo off
 
-set log_date=%date%
-set log_date=%log_date:/=%
-set log_date=%log_date: =%
-
-cd C:\srv\data
-c:\python27\python.exe update_db.py
+cd C:\pysrv
+c:\python27\python.exe C:\www\posx\update_db_local.py
