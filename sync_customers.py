@@ -83,6 +83,7 @@ def sync_customers(cj_data, mode=0):
     mdb = sys_db()
     
     lrs = []
+    feed = []
     
     if mode:
         mdb.query('delete from sync_customers')
@@ -108,7 +109,7 @@ def sync_customers(cj_data, mode=0):
             continue
 
         lr = []
-        for f_k in SNAPSHOT_CFNS: lrs.append(r[f_k])
+        for f_k in SNAPSHOT_CFNS: lr.append(r[f_k.lower()])
         
         for f_k in CFNS_FLOAT: r[f_k] = rf2(r[f_k])
         for f_k in CFNS_STR: r[f_k] = r[f_k] or ''
