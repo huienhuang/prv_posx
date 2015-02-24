@@ -64,13 +64,13 @@ def create_snapshots(mdb, lrs, mode):
     while reps:
         qjs = []
         for r in reps[:1000]: qjs.append( "(%d,%d,'%s')" % (r[0], r[1], mdb.escape_string(cPickle.dumps(r[2], 1))) )
-        mdb.query("insert into sync_customer_snapshots values " + ','.join(qjs))
+        mdb.query("replace into sync_customer_snapshots values " + ','.join(qjs))
         reps = reps[1000:]
 
     while difs:
         qjs = []
-        for r in difs[:1000]: qjs.append( "(%d,%d,'%s')" % (r[0], r[1], mdb.escape_string(cPickle.dumps(r[2], 1))) )
-        mdb.query("insert into sync_customer_chg values " + ','.join(qjs))
+        for r in difs[:1000]: qjs.append( "(null,%d,%d,'%s')" % (r[0], r[1], mdb.escape_string(cPickle.dumps(r[2], 1))) )
+        mdb.query("replace into sync_customer_chg values " + ','.join(qjs))
         difs = difs[1000:]
 
 
