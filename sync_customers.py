@@ -38,8 +38,8 @@ def create_snapshots(mdb, lrs, mode):
             reps = reps[1000:]
         return
 
-    mdb.query('select * from sync_customer_snapshots where sid in (%s)' % ( ','.join(str(f_x[0]) for f_x in lrs) ))
-    res = mdb.use_result()
+    mdb.query('select * from sync_customer_snapshots where sid in (%s)' % ( ','.join([str(f_x[0]) for f_x in lrs]) ))
+    res = mdb.store_result()
     rs = {}
     for r in res.fetch_row(maxrow=0): rs[ r[0] ] = cPickle.loads(r[2])
 
@@ -158,7 +158,7 @@ def sync_customers(cj_data, mode=0):
         mdb.query(sql)
         sql = ''
     
-    create_snapshots(mdb, lrs, mode)
+    if lrs: create_snapshots(mdb, lrs, mode)
 
     while feed:
         qjs = mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) )
