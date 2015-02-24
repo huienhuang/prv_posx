@@ -38,11 +38,10 @@ def create_snapshots(mdb, lrs, mode):
             reps = reps[1000:]
         return
 
-
     mdb.query('select * from sync_customer_snapshots where sid in (%s)' % ( ','.join(str(f_x[0]) for f_x in lrs) ))
-    mdb.use_result()
+    res = mdb.use_result()
     rs = {}
-    for r in mdb.fetch_row(maxrow=0): rs[ r[0] ] = cPickle.loads(r[2])
+    for r in res.fetch_row(maxrow=0): rs[ r[0] ] = cPickle.loads(r[2])
 
     reps = []
     difs = []
