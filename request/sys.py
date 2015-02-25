@@ -18,7 +18,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d = {}
         lts = 0
 
-        rows = reversed(cur.fetchall())
+        rows = list(reversed(cur.fetchall()))
         for r in rows:
             sid,ts,js = r[1:]
             js = cPickle.loads(js)

@@ -10,6 +10,8 @@ import base64
 import hashlib
 import gzip
 import cStringIO
+import mysql.connector as MySQL
+import sqlanydb
 
 
 SNAPSHOT_CFNS = [u'Type', u'Title', u'FName', u'LName', u'Company', u'Address1', u'Address2', u'City', u'State', u'ZIP', u'Country', u'ShipAddrName', u'ShipCompany', u'ShipFullName', u'ShipAddress', u'ShipAddress2', u'ShipCity', u'ShipState', u'ShipZIP', u'ShipCountry', u'Phone1', u'Phone2', u'Phone3', u'Phone4', u'Email', u'Comments', u'UDF1', u'UDF2', u'UDF3', u'UDF4', u'UDF5', u'UDF6', u'UDF7', u'TaxArea', u'PriceLevel', u'DiscType', u'TrackRewards', u'CustomerID', u'WebNumber', u'WebFullNumber', u'EmailNotify', u'AR', u'UseAccCharge', u'AcceptChecks', u'DefaultShipTo', u'NoShipToBill', u'CreditLimit', u'DiscAllowed']
@@ -29,6 +31,7 @@ def get_remote_customer_chgs(seq):
 	req.add_header('Accept-Encoding', 'gzip, deflate, sdch')
 	req.add_header('Cookie', '__auth__="%s"' % (gen_auth(),))
 	r = urllib2.urlopen(req)
+	print r.read()
 	s = cStringIO.StringIO(r.read())
 	r.close()
 
@@ -38,8 +41,8 @@ def get_remote_customer_chgs(seq):
 
 	return js
 
-def get_remote_customer_inst_sync_last_id():
-	cur.execute('select cval from config where cid=%s', (cid__inst_sync_customer_last_id, ))
+def get_remote_customer_inst_sync_last_id(cur, dv=0):
+	cur.execute('select cval from config where cid=%s', (config.cid__inst_sync_customer_last_id, ))
 	rs = cur.fetchall()
 	if rs:
 		return int(rs[0][0])
@@ -47,9 +50,12 @@ def get_remote_customer_inst_sync_last_id():
 		return dv
 
 def inst_sync_customer(cur):
-	last_id = get_remote_customer_inst_sync_last_id()
-	chg,lts,cur_last_id = get_remote_customer_chgs(last_id, 100)
+	last_id = get_remote_customer_inst_sync_last_id(cur[0])
+	chg,lts,cur_last_id = get_remote_customer_chgs(last_id)
 
+	print chg
+
+	if not chg: return
 
 	s_sids = ',',join([str(f_k) for f_k in chg.keys()])
 
@@ -95,11 +101,7 @@ def main():
 	srv_main( ((inst_sync_customer, 600),) )
 
 if __name__ == '__main__':
-
-	cur = [
-
-
-	]
-
-    inst_sync_customer()
+	dbc0 = MySQL.connect(**config.mysql)
+	dbc1 = sqlanydb.connect(**config.sqlany_pos_server)
+	inst_sync_customer([dbc0.cursor(), dbc1.cursor()])
 
