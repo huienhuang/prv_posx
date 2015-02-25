@@ -17,12 +17,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute("select * from sync_customer_chg where id>%s order by id asc limit 100", (last_id,))
         d = {}
         lts = 0
-        
+
+        rows = list(reversed(cur.fetchall()))
         if rows:
             last_id = rows[0][0]
             lts = rows[0][2]
 
-        rows = list(reversed(cur.fetchall()))
         for r in rows:
             sid,ts,js = r[1:]
             js = cPickle.loads(js)
