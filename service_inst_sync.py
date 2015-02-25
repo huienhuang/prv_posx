@@ -122,7 +122,7 @@ def _inst_sync_customer(cur, chg, lts):
 
 
 def main():
-	srv_main( ((inst_sync_customer, 600),) )
+	srv_main( ((inst_sync_customer, 1000),) )
 
 if __name__ == '__main__':
 	main()
