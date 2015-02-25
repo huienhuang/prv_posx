@@ -31,7 +31,6 @@ def get_remote_customer_chgs(seq):
 	req.add_header('Accept-Encoding', 'gzip, deflate, sdch')
 	req.add_header('Cookie', '__auth__="%s"' % (gen_auth(),))
 	r = urllib2.urlopen(req)
-	print r.read()
 	s = cStringIO.StringIO(r.read())
 	r.close()
 
@@ -53,14 +52,13 @@ def inst_sync_customer(cur):
 	last_id = get_remote_customer_inst_sync_last_id(cur[0])
 	chg,lts,cur_last_id = get_remote_customer_chgs(last_id)
 
-	print chg
-
 	if not chg: return
+	print lts, cur_last_id
 
-	s_sids = ',',join([str(f_k) for f_k in chg.keys()])
+	s_sids = ','.join([str(f_k) for f_k in chg.keys()])
 
 	d_last_chg = {}
-	cur[0].execute("select * from sync_customer_chg from ts>=%s and sid in (%s) order by id desc" % (lts, s_sids))
+	cur[0].execute("select * from sync_customer_chg where ts>=%s and sid in (%s) order by id desc" % (lts, s_sids))
 	for r in cur[0].fetchall():
 		d = d_last_chg.setdefault(r[1], {})
 		for k,v in cPickle.loads(r[3]):

@@ -17,6 +17,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute("select * from sync_customer_chg where id>%s order by id asc limit 100", (last_id,))
         d = {}
         lts = 0
+        
+        if rows:
+            last_id = rows[0][0]
+            lts = rows[0][2]
 
         rows = list(reversed(cur.fetchall()))
         for r in rows:
@@ -29,8 +33,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 l[i] = (ts, v)
                 if ts < lts: lts = ts
 
-
-        last_id = rows and rows[0][0] or last_id
         self.req.out_headers['content-type'] = 'application/octet-stream'
         self.req.write(cPickle.dumps((d, lts, last_id), 1))
 
