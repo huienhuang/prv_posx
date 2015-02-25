@@ -1,6 +1,4 @@
 from service_base_v2 import srv_main
-#import QBPOS
-#import xml.etree.ElementTree as ET
 import json
 import time
 import config
@@ -10,13 +8,10 @@ import base64
 import hashlib
 import gzip
 import cStringIO
-import mysql.connector as MySQL
-import sqlanydb
+import datetime
 
 
 SNAPSHOT_CFNS = [u'Type', u'Title', u'FName', u'LName', u'Company', u'Address1', u'Address2', u'City', u'State', u'ZIP', u'Country', u'ShipAddrName', u'ShipCompany', u'ShipFullName', u'ShipAddress', u'ShipAddress2', u'ShipCity', u'ShipState', u'ShipZIP', u'ShipCountry', u'Phone1', u'Phone2', u'Phone3', u'Phone4', u'Email', u'Comments', u'UDF1', u'UDF2', u'UDF3', u'UDF4', u'UDF5', u'UDF6', u'UDF7', u'TaxArea', u'PriceLevel', u'DiscType', u'TrackRewards', u'CustomerID', u'WebNumber', u'WebFullNumber', u'EmailNotify', u'AR', u'UseAccCharge', u'AcceptChecks', u'DefaultShipTo', u'NoShipToBill', u'CreditLimit', u'DiscAllowed']
-
-
 
 def gen_auth():
 	ts_idx = int(int(time.time()) / 3600)
@@ -40,21 +35,36 @@ def get_remote_customer_chgs(seq):
 
 	return js
 
-def get_remote_customer_inst_sync_last_id(cur, dv=0):
-	cur.execute('select cval from config where cid=%s', (config.cid__inst_sync_customer_last_id, ))
-	rs = cur.fetchall()
-	if rs:
-		return int(rs[0][0])
-	else:
-		return dv
+def get_remote_customer_inst_sync_last_id(cur):
+	global g_sc_last_id
+	if g_sc_last_id == None:
+		cur.execute('select cval from config where cid=%s', (config.cid__inst_sync_customer_last_id, ))
+		rs = cur.fetchall()
+		if rs:
+			g_sc_last_id = int(rs[0][0])
+		else:
+			g_sc_last_id = 0
 
+	return g_sc_last_id
+
+def set_remote_customer_inst_sync_last_id(cur, last_id):
+	global g_sc_last_id
+	if g_sc_last_id >= last_id: return
+	g_sc_last_id = last_id
+	cur.execute('update config set cval=%s where cid=%s', (g_sc_last_id, config.cid__inst_sync_customer_last_id))
+
+g_sc_last_id = None
 def inst_sync_customer(cur):
+	cts = time.time()
 	last_id = get_remote_customer_inst_sync_last_id(cur[0])
 	chg,lts,cur_last_id = get_remote_customer_chgs(last_id)
+	n = None
+	if chg: n = _inst_sync_customer(cur, chg, lts)
+	set_remote_customer_inst_sync_last_id(cur[0], cur_last_id)
+	if n == None: return
+	print "DT: %s, LEN: %d, SECS: %0.3f" % (str(datetime.datetime.now()), n, time.time() - cts)
 
-	if not chg: return
-	print lts, cur_last_id
-
+def _inst_sync_customer(cur, chg, lts):
 	s_sids = ','.join([str(f_k) for f_k in chg.keys()])
 
 	d_last_chg = {}
@@ -78,28 +88,42 @@ def inst_sync_customer(cur):
 		l = []
 		for k,v in fchg.items():
 			#default flavor if == ?
-			if c[k][1] == v[1] or f.has_key(k) and f[k] >= v[0]:
+			if c[1][k] == v[1] or f.has_key(k) and f[k] >= v[0]:
 				continue
 			else:
 				l.append( (k, v[1]) )
 		if l: lst.append( (sid, l) )
 
-	for sid,flst in lst:
-		qs = []
-		qv = []
-		for v in flst:
-			qs.append('%s=?' % (SNAPSHOT_CFNS[v[0]],))
-			qv.append(v[1])
+	if not lst: return
 
-		qv.append(sid)
-		cur[1].execute('update customer set %s where sid=?' % (','.join(qs),), qv)
+	try:
+		for sid,flst in lst:
+			#print sid, flst
+			qs = []
+			qv = []
+			c = cs.get(sid)[1]
+			for v in flst:
+				qs.append('%s=?' % (SNAPSHOT_CFNS[v[0]],))
+				qv.append(v[1])
+				c[v[0]] = v[1]
+
+			qv.append(sid)
+			cur[0].execute('update sync_customer_snapshots set js=%s where sid=%s', (cPickle.dumps(c, 1), sid))
+			cur[1].execute('update customer set %s where sid=? and datastate=0' % (','.join(qs),), qv)
+			cur[1].execute("insert into changejournal values(default,'Customer',?,1,now(),'POSX', '-1')", (sid,))
+
+		cur[1].execute('commit')
+
+	except:
+		cur[1].execute('rollback')
+		raise
+
+	return len(lst)
 
 
 def main():
 	srv_main( ((inst_sync_customer, 600),) )
 
 if __name__ == '__main__':
-	dbc0 = MySQL.connect(**config.mysql)
-	dbc1 = sqlanydb.connect(**config.sqlany_pos_server)
-	inst_sync_customer([dbc0.cursor(), dbc1.cursor()])
+	main()
 
