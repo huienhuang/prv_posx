@@ -6,10 +6,28 @@ import re
 import datetime
 import winlib
 import struct
+import cPickle
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
+    def fn_get_cust_chg(self):
+        last_id = self.qsv_int('last_id')
+        cur = self.cur()
+        cur.execute("select * from sync_customer_chg where id>%s order by id asc limit 100", (last_id,))
+        d = {}
+        for r in reversed(cur.fetchall()):
+            sid,ts,js = r[1:]
+            js = cPickle.loads(js)
+
+            l = d.setdefault(sid, {})
+            for i,v in js:
+                if l.has_key(i): continue
+                l[i] = (ts, v)
+
+        self.req.out_headers['content-type'] = 'application/octet-stream'
+        self.req.write(cPickle.dumps(d, 1))
+
     def fn_mac(self):
         s = {}
         v = self.getconfigv2('allowed_mac_addrs', '')

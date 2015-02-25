@@ -189,8 +189,7 @@ class _Application:
             headers.update(req.out_headers)
             
             #gzip
-            if self.gzip and output and headers['content-type'][:5] == 'text/' \
-            and not headers.has_key('content-encoding') \
+            if self.gzip and output and not headers.has_key('content-encoding') \
             and environ.get('HTTP_ACCEPT_ENCODING', '').lower().find('gzip') >= 0:
                 headers['content-encoding'] = 'gzip'
                 gfp = cStringIO.StringIO()

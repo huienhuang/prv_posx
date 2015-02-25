@@ -11,6 +11,9 @@ cid__sync_last_cj_id = 50002
 cid__sync_last_fs_id = 50003
 
 
+cid__inst_sync_customer_last_id = 30010
+
+
 PRICE_LEVELS = ['Regular Price', 'Wholesale 1', 'Wholesale 2', 'special', 'Dealer Price']
 
 
