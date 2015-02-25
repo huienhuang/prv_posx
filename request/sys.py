@@ -16,7 +16,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur = self.cur()
         cur.execute("select * from sync_customer_chg where id>%s order by id asc limit 100", (last_id,))
         d = {}
-        for r in reversed(cur.fetchall()):
+        lts = 0
+
+        rows = reversed(cur.fetchall())
+        for r in rows:
             sid,ts,js = r[1:]
             js = cPickle.loads(js)
 
@@ -24,9 +27,12 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             for i,v in js:
                 if l.has_key(i): continue
                 l[i] = (ts, v)
+                if ts < lts: lts = ts
 
+
+        last_id = rows and rows[0][0] or last_id
         self.req.out_headers['content-type'] = 'application/octet-stream'
-        self.req.write(cPickle.dumps(d, 1))
+        self.req.write(cPickle.dumps((d, lts, last_id), 1))
 
     def fn_mac(self):
         s = {}

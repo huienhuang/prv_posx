@@ -11,6 +11,11 @@ import hashlib
 import gzip
 import cStringIO
 
+
+SNAPSHOT_CFNS = [u'Type', u'Title', u'FName', u'LName', u'Company', u'Address1', u'Address2', u'City', u'State', u'ZIP', u'Country', u'ShipAddrName', u'ShipCompany', u'ShipFullName', u'ShipAddress', u'ShipAddress2', u'ShipCity', u'ShipState', u'ShipZIP', u'ShipCountry', u'Phone1', u'Phone2', u'Phone3', u'Phone4', u'Email', u'Comments', u'UDF1', u'UDF2', u'UDF3', u'UDF4', u'UDF5', u'UDF6', u'UDF7', u'TaxArea', u'PriceLevel', u'DiscType', u'TrackRewards', u'CustomerID', u'WebNumber', u'WebFullNumber', u'EmailNotify', u'AR', u'UseAccCharge', u'AcceptChecks', u'DefaultShipTo', u'NoShipToBill', u'CreditLimit', u'DiscAllowed']
+
+
+
 def gen_auth():
 	ts_idx = int(int(time.time()) / 3600)
 
@@ -20,7 +25,7 @@ def gen_auth():
 	return '%s:%s' % (config.inst_sync_auth[0], auth)
 
 def get_remote_customer_chgs(seq):
-	req = urllib2.Request('http://10.0.0.70/posx/sys?fn=get_cust_chg&last_id=%d' % (seq,))
+	req = urllib2.Request('http://%s/posx/sys?fn=get_cust_chg&last_id=%d' % (config.inst_sync_auth[3], seq,))
 	req.add_header('Accept-Encoding', 'gzip, deflate, sdch')
 	req.add_header('Cookie', '__auth__="%s"' % (gen_auth(),))
 	r = urllib2.urlopen(req)
@@ -43,44 +48,58 @@ def get_remote_customer_inst_sync_last_id():
 
 def inst_sync_customer(cur):
 	last_id = get_remote_customer_inst_sync_last_id()
-	chgs = get_remote_customer_chgs(last_id, 100)
-
-	sids = set()
-	mts = 0
-	fts = {}
-	for r in chgs:
-		sids.add( str(r['sid']) )
-		f = fts.setdefault(r['sid'], {})
-		for i,v in r['js']:
-			if f.has_key(i): continue
-			f[i] = (v, r['ts'])
-
-			if r['ts'] < mts: mts = r['ts']
+	chg,lts,cur_last_id = get_remote_customer_chgs(last_id, 100)
 
 
-	cur[0].execute("select * from sync_customer_chg from ts>=%s and ts<%s order by id desc", ())
+	s_sids = ',',join([str(f_k) for f_k in chg.keys()])
 
+	d_last_chg = {}
+	cur[0].execute("select * from sync_customer_chg from ts>=%s and sid in (%s) order by id desc" % (lts, s_sids))
+	for r in cur[0].fetchall():
+		d = d_last_chg.setdefault(r[1], {})
+		for k,v in cPickle.loads(r[3]):
+			if d.has_key(k): continue
+			d[k] = r[2]
 
 	cs = {}
-	cur[0].execute("select * from sync_customer_snapshots where sid in (%s)" % (','.join(sids), ))
+	cur[0].execute("select * from sync_customer_snapshots where sid in (%s)" % (s_sids, ))
 	for r in cur[0].fetchall(): cs[ r[0] ] = (r[1], cPickle.loads(r[2]))
 
-	upd_lst = []
-	for sid,cts in sorted(fts.items(), key=lambda f_x:f_x[0]):
-		s = cs.get(sid)
-		if s == None: continue
+	lst = []
+	for sid,fchg in sorted(chg.items(), key=lambda f_x:f_x[0]):
+		f = d_last_chg.get(sid, {})
+		c = cs.get(sid)
+		if not c: continue
 
-		for k,v in cts.items():
-			if v[1] > s[1]:
-				pass
+		l = []
+		for k,v in fchg.items():
+			#default flavor if == ?
+			if c[k][1] == v[1] or f.has_key(k) and f[k] >= v[0]:
+				continue
 			else:
-				pass
+				l.append( (k, v[1]) )
+		if l: lst.append( (sid, l) )
 
+	for sid,flst in lst:
+		qs = []
+		qv = []
+		for v in flst:
+			qs.append('%s=?' % (SNAPSHOT_CFNS[v[0]],))
+			qv.append(v[1])
+
+		qv.append(sid)
+		cur[1].execute('update customer set %s where sid=?' % (','.join(qs),), qv)
 
 
 def main():
 	srv_main( ((inst_sync_customer, 600),) )
 
 if __name__ == '__main__':
-    get_remote_customer_chgs(0)
+
+	cur = [
+
+
+	]
+
+    inst_sync_customer()
 
