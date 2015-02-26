@@ -30,7 +30,12 @@ def get_remote_customer_chgs(seq):
 	r.close()
 
 	z = gzip.GzipFile(fileobj=s)
-	js = cPickle.loads(z.read())
+	dd = z.read()
+	try:
+		js = cPickle.loads(dd)
+	except:
+		print dd
+		raise
 	z.close()
 
 	return js
