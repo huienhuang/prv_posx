@@ -24,7 +24,7 @@ def gen_auth():
 def get_remote_customer_chgs(seq):
 	req = urllib2.Request('http://%s/posx/sys?fn=get_cust_chg&last_id=%d' % (config.inst_sync_auth[3], seq,))
 	req.add_header('Accept-Encoding', 'gzip, deflate, sdch')
-	req.add_header('Cookie', '__auth__="%s"' % (gen_auth(),))
+	req.add_header('Cookie', '__AUTHX__="%s"' % (hashlib.md5(str(config.secret_code_v1)).hexdigest(),))
 	r = urllib2.urlopen(req)
 	s = cStringIO.StringIO(r.read())
 	r.close()
@@ -65,7 +65,7 @@ def inst_sync_customer(cur):
 	chg,lts,cur_last_id = get_remote_customer_chgs(last_id)
 	n = None
 	if chg:
-		print ">CHG: ", len(chg),
+		print ">CHG:", len(chg),
 		n = _inst_sync_customer(cur, chg, lts)
 		print "Done"
 	set_remote_customer_inst_sync_last_id(cur[0], cur_last_id)
@@ -122,7 +122,7 @@ def _inst_sync_customer(cur, chg, lts):
 
 		print "Committing ... ", 
 		cur[1].execute('commit')
-		print "Done"
+		print "OK",
 
 	except:
 		cur[1].execute('rollback')

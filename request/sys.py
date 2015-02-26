@@ -7,11 +7,14 @@ import datetime
 import winlib
 import struct
 import cPickle
+import hashlib
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_get_cust_chg(self):
+        if self.cookie.get('__AUTHX__') != hashlib.md5(str(config.secret_code_v1)).hexdigest(): return
+
         last_id = self.qsv_int('last_id')
         cur = self.cur()
         cur.execute("select * from sync_customer_chg where id>%s order by id asc limit 100", (last_id,))
@@ -35,6 +38,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         self.req.out_headers['content-type'] = 'application/octet-stream'
         self.req.write(cPickle.dumps((d, lts, last_id), 1))
+
+    fn_get_cust_chg.PERM = 0
 
     def fn_mac(self):
         s = {}
