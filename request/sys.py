@@ -13,7 +13,7 @@ DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_get_cust_chg(self):
-        if self.cookie.get('__AUTHX__')[0] != hashlib.md5(str(config.secret_code_v1)).hexdigest(): return
+        if self.cookie.get('__AUTHX__')[0].value != hashlib.md5(str(config.secret_code_v1)).hexdigest(): return
 
         last_id = self.qsv_int('last_id')
         cur = self.cur()
