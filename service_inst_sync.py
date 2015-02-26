@@ -120,7 +120,9 @@ def _inst_sync_customer(cur, chg, lts):
 			cur[1].execute('update customer set %s where sid=? and datastate=0' % (','.join(qs),), qv)
 			cur[1].execute("insert into changejournal values(default,'Customer',?,1,now(),'POSX', '-1')", (sid,))
 
+		print "Committing ... ", 
 		cur[1].execute('commit')
+		print "Done"
 
 	except:
 		cur[1].execute('rollback')
