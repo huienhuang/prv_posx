@@ -28,7 +28,7 @@ def get_remote_customer_chgs(seq):
 	r = urllib2.urlopen(req)
 	s = cStringIO.StringIO(r.read())
 	r.close()
-
+	
 	z = gzip.GzipFile(fileobj=s)
 	dd = z.read()
 	try:
