@@ -64,7 +64,10 @@ def inst_sync_customer(cur):
 	last_id = get_remote_customer_inst_sync_last_id(cur[0])
 	chg,lts,cur_last_id = get_remote_customer_chgs(last_id)
 	n = None
-	if chg: n = _inst_sync_customer(cur, chg, lts)
+	if chg:
+		print ">CHG: ", len(chg),
+		n = _inst_sync_customer(cur, chg, lts)
+		print "Done"
 	set_remote_customer_inst_sync_last_id(cur[0], cur_last_id)
 	if n == None: return
 	print "DT: %s, LEN: %d, SECS: %0.3f" % (str(datetime.datetime.now()), n, time.time() - cts)
