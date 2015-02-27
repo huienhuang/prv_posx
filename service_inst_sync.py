@@ -75,6 +75,13 @@ def inst_sync_customer(cur):
 def _inst_sync_customer(cur, chg, lts):
 	s_sids = ','.join([str(f_k) for f_k in chg.keys()])
 
+	#test connection
+	cur[1].execute('select 1')
+	UNK = cur[1].fetchall()
+	cur[0].execute('select 1')
+	UNK = cur[0].fetchall()
+	#
+
 	d_last_chg = {}
 	cur[0].execute("select * from sync_customer_chg where ts>=%s and sid in (%s) order by id desc" % (lts, s_sids))
 	for r in cur[0].fetchall():
