@@ -17,7 +17,7 @@ def sync_items(cj_data, mode=0):
         if not sids: return 0
         where_sql = 'i.itemsid in (%s)' % (','.join(sids),)
     
-    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.vendsid,i.vendname,i.alu,i.upc,i.companyohqty,i.qtystore1,i.qtystore2,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
+    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.orderbyunit,i.vendsid,i.vendname,i.alu,i.upc,i.companyohqty,i.qtystore1,i.qtystore2,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
     
     item_upcs = {}
     rep_seq = del_seq = 0
@@ -37,13 +37,15 @@ def sync_items(cj_data, mode=0):
         
         sur.execute('select price1,price2,price3,price4,price5,price6,alu,unitofmeasure,unitfactor,upc from InventoryUnits where itemsid=?', (itemsid,))
         units = []
-        sbu_idx = k = 0
+        obu_idx = sbu_idx = k = 0
         sell_by_unit = r['sellbyunit'] and r['sellbyunit'].lower() or None
+        order_by_unit = r['orderbyunit'] and r['orderbyunit'].lower() or None
         for x in sur.fetchall():
             uom = x[7] or ''
             units.append( (map(rf2,x[:6]), x[6] or '', uom, rf2(x[8]), x[9] and str(x[9]) or '') )
             k += 1
             if sell_by_unit and sell_by_unit == uom.lower(): sbu_idx = k
+            if order_by_unit and order_by_unit == uom.lower(): obu_idx = k
             if x[9]: upc_lku[ x[9] ] = k
             
         units.insert(0, (
@@ -67,6 +69,7 @@ def sync_items(cj_data, mode=0):
         
         jsd = {
             'default_uom_idx': sbu_idx,
+            'order_uom_idx': obu_idx,
             'qty': (rf2(r['companyohqty']), rf2(r['custordqty']), rf2(r['availqty']), rf2(r['toto_o'])),
             'sqty': (rf2(r['qtystore1']), rf2(r['qtystore2'])),
             'units': units,

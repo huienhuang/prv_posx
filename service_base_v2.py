@@ -12,12 +12,17 @@ def open_db(dbs, nz):
     db = dbs.get(nz)
     if db == None:
         if nz == 'mysql':
+            print "MYSQL",
             dbc = MySQL.connect(**config.mysql)
             cur = dbc.cursor()
+            print 'Connected'
+            
         elif nz == 'sqlany':
+            print "SQLANY"
             dbc = sqlanydb.connect(**config.sqlany_pos_server)
             cur = dbc.cursor()
             cur.execute("SET TEMPORARY OPTION CONNECTION_AUTHENTICATION='Company=Intuit Inc.;Application=QuickBooks Point of Sale;Signature=000fa55157edb8e14d818eb4fe3db41447146f1571g7262d341128bbd2768e586a0b43d5568a6bb52cc'")
+            print 'Connected'
 
         db = dbs[nz] = (dbc, cur)
 

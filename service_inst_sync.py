@@ -9,6 +9,9 @@ import hashlib
 import gzip
 import cStringIO
 import datetime
+import socket
+
+socket.setdefaulttimeout(10)
 
 
 SNAPSHOT_CFNS = [u'Type', u'Title', u'FName', u'LName', u'Company', u'Address1', u'Address2', u'City', u'State', u'ZIP', u'Country', u'ShipAddrName', u'ShipCompany', u'ShipFullName', u'ShipAddress', u'ShipAddress2', u'ShipCity', u'ShipState', u'ShipZIP', u'ShipCountry', u'Phone1', u'Phone2', u'Phone3', u'Phone4', u'Email', u'Comments', u'UDF1', u'UDF2', u'UDF3', u'UDF4', u'UDF5', u'UDF6', u'UDF7', u'TaxArea', u'PriceLevel', u'DiscType', u'TrackRewards', u'CustomerID', u'WebNumber', u'WebFullNumber', u'EmailNotify', u'AR', u'UseAccCharge', u'AcceptChecks', u'DefaultShipTo', u'NoShipToBill', u'CreditLimit', u'DiscAllowed']

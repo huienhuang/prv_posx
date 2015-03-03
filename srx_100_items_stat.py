@@ -75,14 +75,21 @@ for r in cur:
         stat[2] += total_cost
 
 
+g_vendors = {}
+g_item_nos = {}
+
 cur.execute('select * from sync_items')
 nzs = cur.column_names
 for r in cur:
     r = dict(zip(nzs, r))
-    
+    js = json.loads(r['detail'])
+
+    g_item_nos[ r['sid'] ] = r['num']
+    for v in js['vends']: g_vendors.setdefault(v[3], [v[0], set()])[1].add(r['sid'])
+
     item = g_items.get(r['sid'])
     if not item: continue
-    l_qty = json.loads(r['detail'])['qty']
+    l_qty = js['qty']
     item[3] = {
         'num': r['num'],
         'name': r['name'],
@@ -96,9 +103,15 @@ for item in g_items.values():
     item[1] = tuple(item[1])
     d_status = item[2]
     item[2] = [ [f_k] + f_v for f_k,f_v in sorted(d_status.items(), key=lambda f_x:f_x[0]) ]
-    
-fnz = os.path.join(config.DATA_DIR, 'items_stat.txt')
-cPickle.dump(g_items, open(fnz, 'wb'), 1)
+
+
+for v in g_vendors.values(): v[1] = sorted(v[1], key=lambda f_x: g_item_nos[f_x])
+
+
+cPickle.dump(g_items, open(os.path.join(config.DATA_DIR, 'items_stat.txt'), 'wb'), 1)
+cPickle.dump(g_vendors, open(os.path.join(config.DATA_DIR, 'items_vendors.txt'), 'wb'), 1)
+
+
 
 print "Done"
 
