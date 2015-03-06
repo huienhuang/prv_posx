@@ -8,6 +8,7 @@
 var g_price_level = 0;
 var g_cur_hdr = null;
 var g_items = {};
+var g_cur_id = 0;
 
 function get_date_lower(year, month, interval) {
     var mons = parseInt((year * 12 + month - 1) / interval) * interval;
@@ -30,9 +31,10 @@ function mk_hdr(frm_date, to_date, interval)
     if(g_cur_hdr && g_cur_hdr.frm_d === frm_d && g_cur_hdr.to_d === to_d && g_cur_hdr.interval === interval) return;
     g_cur_hdr = {frm_d:frm_d, frm_ts:frm_date.getTime(), to_d:to_d, to_ts:to_date.getTime(), interval:interval};
     
-    g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>OH</div><div>OP</div>');
+    //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div><input type="checkbox" />Order</div><div>OH</div><div>OP</div>');
+    $(g_v_xtbl_hdr.children().slice(7)).remove();
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 50 + 80 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 250 + 60 + 80 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -61,7 +63,7 @@ function change_uom()
     var item = row.data('item_data');
     var tid = item[0];
     item[3].default_uom_idx = parseInt(sel.val());
-    var s = g_items[tid].s;
+    var s = g_items[tid].s || {};
     if(s) {
         var js = {'stat': {}};
         js.stat[tid] = s;
@@ -76,6 +78,27 @@ function delete_row()
     
     if(g_items[tid]) delete g_items[tid];
     row.remove();
+}
+
+function clear_tbl()
+{
+    g_items = {};
+    g_v_xtbl.empty();
+}
+
+function filter_items()
+{
+    var chk = $(this).prop('checked');
+    
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var o = $(lst[i]);
+    
+        if(chk)
+            parseInt( o.find('input[type="text"]').val() ) ? o.show() : o.hide();
+        else
+            o.show();
+    }
 }
 
 function click_item_hist()
@@ -326,27 +349,26 @@ function save_profile()
         g_v_dlg_profile_name.find('input[name="nz"]').val('');
         g_v_dlg_profile_name.dialog('open');
     } else {
-        __save_profile();
+        //__save_profile();
     }
 }
 
-function __save_profile()
+function __save_po(keep_existing_data)
 {
-    var pid = parseInt(g_v_profile.val());
-    var lst = g_v_xtbl.children();
-    if(!pid && !lst.length || !g_cur_hdr) return;
+    var pid = g_v_profile.val();
     
     var frm_ts = g_cur_hdr.frm_ts;
     var to_ts = g_cur_hdr.to_ts;
     var interval = g_cur_hdr.interval;
     
-    var nz = '';
-    if(!pid) nz = g_v_dlg_profile_name.find('input[name="nz"]').val();
+    var nz = g_v_dlg_profile_name.find('input[name="nz"]').val();
     
-    var items = []
-    for(var i = 0; i < lst.length; i++) {
-        var t = $(lst[i]).data('item_data');
-        items.push( [t[0], t[3].default_uom_idx] );
+    var items = [];
+    if(keep_existing_data) {
+        for(var i = 0; i < lst.length; i++) {
+            var t = $(lst[i]).data('item_data');
+            items.push( [t[0], t[3].default_uom_idx] );
+        }
     }
     var data = {
         'pid': pid,
@@ -357,21 +379,9 @@ function __save_profile()
         'items': items
     }
     
-    $.ajax({
-        async: false,
-        type: 'post',
-        url: '?fn=save_profile',
-        data: {'js': JSON.stringify(data)},
-        success: function(d) {
-            if(!d || !d.pid) return;
-            if(!data.pid) {
-                g_v_profile.append( $('<option></option>').text(data.nz).val(d.pid) );
-                g_v_profile.val(d.pid);
-            }
-        },
-        dataType: 'json',
-        error: function(xhr, status, error) {}
-    });
+    post_js_ex('?fn=save_profile', {'js': JSON.stringify(data)}, function() {
+        
+    }, undefined, true);
     
 }
 
@@ -424,6 +434,19 @@ function make_po()
     });
 }
 
+function load_po_list()
+{
+    var v = parseInt(g_v_po_list.val()) || 0;
+    
+    if(v == -1) {
+        g_v_dlg_profile_name.dialog('open');
+        g_v_po_list.val('0');
+    }
+    
+    
+}
+
+
 $(function() {
 
 $('.btn').button();
@@ -443,7 +466,13 @@ g_v_ac_item_search = $('#srch_item').autocomplete({
     minLength: 1,
     select: function(event, ui) {
         var tid = ui.item[0];
-        if(g_items[tid] !== undefined) return;
+        if(g_items[tid] !== undefined) {
+            var v = g_items[tid].v;
+            !v.is(':visible') && v.show();
+            g_v_xtbl.scrollTop(g_v_xtbl.scrollTop() + v.position().top);
+            v.effect("shake", {duration: 1000, times: 4});
+            return;
+        }
         g_items[tid]= {'v': new_row(ui.item).width(g_cur_hdr.width)};
         __load_items_sold_report([tid]);
     },
@@ -454,6 +483,7 @@ g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
 
 g_v_tp_ctrl = $('.tp_ctrl');
 g_v_profile = g_v_tp_ctrl.children('select[name="profile"]').change(load_profile);
+g_v_po_list = g_v_tp_ctrl.children('select[name="po_list"]').change(load_po_list);
 g_v_frm_date = g_v_tp_ctrl.children('input[name="frm_date"]').datepicker().datepicker("setDate", '-6m').change(load_items_sold_report);
 g_v_to_date = g_v_tp_ctrl.children('input[name="to_date"]').datepicker().datepicker("setDate", '-1m').change(load_items_sold_report);
 g_v_interval = g_v_tp_ctrl.children('select[name="interval"]').change(load_items_sold_report);
@@ -469,10 +499,11 @@ g_v_tp_ctrl.children('input[value="Make PO"]').click(make_po);
 g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
     autoOpen: false,
     modal: true,
-    width:400,
+    width:500,
     height:200,
     buttons: {
-        'save': function() {__save_profile(); g_v_dlg_profile_name.dialog('close');},
+        'Copy Current PO': function() {__save_po(1); g_v_dlg_profile_name.dialog('close');},
+        'New Blank PO': function() {__save_po(0); g_v_dlg_profile_name.dialog('close');},
     } 
 });
 
@@ -492,16 +523,16 @@ g_v_interval.change();
 
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:70px;position:relative}
-.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
-.xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:43px}
+.xtbl .xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
+.xtbl .xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:53px}
 .xtbl_row > div:nth-child(1) {width:26px}
 .xtbl_row > div:nth-child(2) {width:70px;cursor:pointer;font-weight:bold}
-.xtbl_row > div:nth-child(3) {width:250px}
+.xtbl_row > div:nth-child(3) {width:250px;color:#242424}
 .xtbl_row > div:nth-child(4) {width:80px}
-.xtbl_row > div:nth-child(5) {width:50px}
+.xtbl_row > div:nth-child(5) {width:60px}
 .xtbl_row > div:nth-child(6) {cursor:pointer}
 
-.xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
+.xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
 .xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
 .xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
@@ -532,19 +563,20 @@ g_v_interval.change();
 
 <div class="tp_ctrl">
 
-<select style="width:200px" name="profile"><option value="0">-- Vendor --</option>
+<select style="width:200px;background-color:#e8f2ff" name="profile"><option value="0">-- Vendor --</option>
 %for profile in profiles:
 %if profile[0] != None:
 <option value="${profile[0]}">${'%s (%d)' % (profile[1][0], len(profile[1][1]))|h}</option>
 %endif
 %endfor
 </select>
-<select style="width:150px" name="_profile"><option value="0">-- Vendor --</option>
-
-<option value=""></option>
-
+<select style="width:180px;background-color:#ffe2d0" name="po_list"><option value="0">-- PO List --</option>
+<option value="-1">** NEW **</option>
+%for po in po_lst:
+<option value="${'%s_%s' % (po[0], po[1])}">${po[2] or str(po[0])|h}</option>
+%endfor
 </select>
-<input type="text" style="width:150px" id="srch_item" />
+<input type="text" style="width:150px;background-color:#f6ffea" id="srch_item" />
 <input style="display:none" type="button" value="save" class="btn" />
 <input style="display:none" type="button" value="delete" class="btn"/>
 <select style="width:100px;margin-left:20px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
@@ -554,13 +586,15 @@ g_v_interval.change();
 <input style="margin-left:20px;display:none" type="button" value="export" class="btn" />
 <input style="margin-left:20px;display:none" type="button" value="Make PO" class="btn" />
 
+<input style="margin-left:20px;" type="button" value="Delete" class="btn" />
+
 </div>
 
-<div class="xtbl_header"><div class="xtbl_row"></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div onclick="clear_tbl()"></div><div>Item#</div><div>Name</div><div>Unit</div><div><input type="checkbox" onchange="filter_items.call(this)"/>Order</div><div>OH</div><div>OP</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 
-<div id="dlg_profile_name" title="Profile Name">Name: <input name="nz" type="text"/></div>
+<div id="dlg_profile_name" title="NEW PO">Name: <input name="nz" type="text"/></div>
 
 <form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
 

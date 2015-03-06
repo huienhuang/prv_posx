@@ -22,6 +22,13 @@ def del_pos_conn():
 	__g_pos_conn = None
 
 
+def pos_process_request(c, s):
+	try:
+		return QBPOS.ProcessRequest(c, s)
+	except:
+		del_pos_conn()
+		raise
+
 def insert_transfer_slip(cur, r):
 	cur.execute("select t.*,u.user_name from inv_request t left join user u on (t.uid=u.user_id) where pid=%s and qbpos_id=%s", (r['doc_id'], r["id"]))
 	rr = cur.fetchall()
@@ -92,7 +99,7 @@ def insert_transfer_slip(cur, r):
 
 	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
 	pos_conn = get_pos_conn()
-	xml = QBPOS.ProcessRequest(pos_conn, xml.decode('utf8'))
+	xml = pos_process_request(pos_conn, xml.decode('utf8'))
 	if not xml: return (-111, None, 'QBPOS Runtime Error')
 	tree = ET.fromstring(xml)
 
@@ -173,7 +180,7 @@ def insert_po(cur, r):
 
 	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
 	pos_conn = get_pos_conn()
-	xml = QBPOS.ProcessRequest(pos_conn, xml.decode('utf8'))
+	xml = pos_process_request(pos_conn, xml.decode('utf8'))
 	if not xml: return (-111, None, 'QBPOS Runtime Error')
 	tree = ET.fromstring(xml)
 

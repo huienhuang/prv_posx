@@ -7,6 +7,7 @@ import datetime
 import tools
 import csv
 import cStringIO
+import bisect
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['item stat access']
 ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BIT['item stat access'])
@@ -16,8 +17,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         js = self.get_data_file_cached('items_vendors', 'items_vendors.txt')
         if not js: return
 
+        cur = self.cur()
+        cur.execute("select pid,ref,pdesc from inv_request order by pid desc limit 30")
+        po_lst = cur.fetchall()
+
         r = {
-            'profiles': sorted(js.items(), key=lambda f_x:f_x[1][0].lower())
+            'profiles': sorted(js.items(), key=lambda f_x:f_x[1][0].lower()),
+            'po_lst': po_lst
         }
         self.req.writefile('pohelper.html', r)
 
@@ -28,32 +34,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         frm_mon = dt.tm_year * 100 + dt.tm_mon
         dt = time.localtime(to_ts)
         to_mon = dt.tm_year * 100 + dt.tm_mon
-        
-        year,month = tools.get_date_lower(lt.tm_year, lt.tm_mon, imm)
 
-        for sid in tids:
-            stat = items.get(sid, (None, None, []))[2]
-            mon_lst = [ f_x[0] for f_x in stat ]
-            for i in range( bisect.bisect_left(mon_lst, frm_mon),  bisect.bisect_left(mon_lst, to_mon) ):
-                pass
-
-
-
-
-    def _get_items_sold_report(self, tids, frm_ts, to_ts, imm):
-        cur = self.cur()
-        cur.execute('select h.itemsid,r.order_date,h.qtydiff from sync_items_hist h left join sync_receipts r on (h.docsid=r.sid and h.sid_type=r.sid_type) where h.itemsid in (%s) and r.order_date>=%d and r.order_date<%d and (h.flag>>8)<=1' % (
-            ','.join(map(str, tids)), frm_ts, to_ts
-            )
-        )
         stat = {}
-        for r in cur.fetchall():
-            lt = time.localtime(int(r[1]))
-            year,month = tools.get_date_lower(lt.tm_year, lt.tm_mon, imm)
+        for sid in tids:
+            item = items.get(sid, (None, None, []))[2]
+            mon_lst = [ f_x[0] for f_x in item ]
+            for i in range( bisect.bisect_left(mon_lst, frm_mon),  bisect.bisect_left(mon_lst, to_mon) ):
+                r = item[i]
+                year,month = divmod(r[0], 100)
+                year,month = tools.get_date_lower(year, month, imm)
             
-            k = '%04d-%02d' % (year, month)
-            stat.setdefault(r[0], {}).setdefault(k, [0])[0] += -r[2]
-            
+                k = '%04d-%02d' % (year, month)
+                stat.setdefault(sid, {}).setdefault(k, [0])[0] += r[1]
+
         return stat
 
     def fn_get_items_sold_report(self):
@@ -258,3 +251,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         )
 
         self.req.writejs( {'pid': cur.lastrowid} )
+
+
+    def fn_save_po(self):
+        js = self.req.psv_js('js')
+        ref = int(js['ref'])
+        lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]
+        if not lst: return
+
+        cur = self.cur()
+        cur.execute('insert into inv_request values(null,1,0,2,0,%s,0,%s,%s,%s,%s)', (
+            ref, int(time.time()), int(self.user_id), nz, json.dumps(lst, separators=(',',':'))
+            )
+        )
+
+        self.req.writejs( {'pid': cur.lastrowid} )
+
