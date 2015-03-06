@@ -61,7 +61,7 @@ function change_uom()
     var item = row.data('item_data');
     var tid = item[0];
     item[3].default_uom_idx = parseInt(sel.val());
-    var s = g_items[tid].s;
+    var s = g_items[tid].s || {};
     if(s) {
         var js = {'stat': {}};
         js.stat[tid] = s;
