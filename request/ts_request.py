@@ -8,7 +8,11 @@ DEFAULT_PERM = 1
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
-        tabs = [{'id': 'Request', 'name': 'Request'}, {'id': 'View', 'name': 'View', 'src': '?fn=View'}]
+        tabs = [
+        {'id': 'Request', 'name': 'Request'},
+        {'id': 'View', 'name': 'View', 'src': '?fn=View'},
+        {'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'}
+        ]
         r = {
             'tab_cur_idx' : 2,
             'title': 'Request',
@@ -27,12 +31,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_get_lst(self):
         ret = {'res':{'len':0, 'apg':[]}}
         
-        ws = ''
+        r_flg = 2
+
+        ws = ['t.flg&2!=0']
         flg = self.qsv_int('flg')
         if flg == 1:
-            ws = ' where t.flg&1=0'
+            ws.append('t.flg&1=0')
         elif flg == 2:
-            ws = ' where t.flg&1=1'
+            ws.append('t.flg&1!=0')
+        ws = ' and '.join(ws)
 
         pgsz = self.qsv_int('pagesize')
         sidx = self.qsv_int('sidx')
@@ -43,7 +50,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select SQL_CALC_FOUND_ROWS t.*,q.state,q.errno,q.doc_num from inv_request t left join qbpos q on (t.qbpos_id=q.id) %s order by pid desc limit %d,%d' % (
+            cur.execute('select SQL_CALC_FOUND_ROWS t.*,q.state,q.errno,q.doc_num from inv_request t left join qbpos q on (t.qbpos_id=q.id) where %s order by pid desc limit %d,%d' % (
                         ws, sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
@@ -81,7 +88,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             cur.execute('select FOUND_ROWS()')
             
         else:
-            cur.execute('select count(*) from inv_request'+ws)
+            cur.execute('select count(*) from inv_request t where '+ws)
             
         rlen = int(cur.fetchall()[0][0])
         res = ret['res']
@@ -110,19 +117,23 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         lst = [ map(int, f_x[:4]) for f_x in js['items'] if int(f_x[3]) > 0 ]
 
-        js_lst = json.dumps(lst, separators=(',',':'))
         desc = js['desc'].strip()
-
-        rev = 0
         if pid:
+            cur.execute('select pjs from inv_request where pid=%s', (pid,))
+            pjs = json.loads(cur.fetchall()[0][0])
+            pjs['items'] = lst
+            pjs = json.dumps(pjs, separators=(',',':'))
+
             cur.execute('update inv_request set rev=rev+1,dst=%s,pdesc=%s,pjs=%s where pid=%s and rev=%s and flg&1=0', (
-                dst, desc, js_lst, pid, js['rev']
+                dst, desc, pjs, pid, js['rev']
                 )
             )
         else:
             if not lst: self.req.exitjs({'err': -1, 'err_s': 'Empty Item List'})
+            pjs = {'items': lst}
+            pjs = json.dumps(pjs, separators=(',',':'))
             cur.execute('insert into inv_request values(null,1,%s,%s,0,0,0,%s,%s,%s,%s)', (
-                dst, dtype, int(time.time()), int(self.user_id), desc, js_lst
+                dst, dtype, int(time.time()), int(self.user_id), desc, pjs
                 )
             )
             pid = cur.lastrowid
@@ -134,7 +145,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         cur.execute('select t.*,q.state,q.doc_num,q.js as qjs from inv_request t left join qbpos q on (t.qbpos_id=q.id) where pid=%s', (pid,))
         t = dict(zip(cur.column_names, cur.fetchall()[0]))
-        js = json.loads(t['pjs'])
+        js = json.loads(t['pjs'])['items']
         t['qjs'] = t['qjs'] and json.loads(t['qjs'])or {}
         t['pjs'] = js
         t['ts_s'] = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(t['ts']))
@@ -169,7 +180,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         cur.execute("select rev,dtype,qbpos_id,pjs from inv_request where pid=%s", (pid, ))
         rev,dtype,qbpos_id,pjs = cur.fetchall()[0]
-        pjs = json.loads(pjs)
+        pjs = json.loads(pjs)['items']
         if not pjs: self.req.exitjs({'err': -1, 'err_s': 'Empty Item List'})
 
         if not qbpos_id:

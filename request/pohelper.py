@@ -14,11 +14,13 @@ ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BI
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
-        js = self.get_data_file_cached('items_vendors', 'items_vendors.txt')
-        if not js: return
+        js = self.get_data_file_cached('items_vendors', 'items_vendors.txt') or {}
 
         cur = self.cur()
-        cur.execute("select pid,ref,pdesc from inv_request order by pid desc limit 30")
+        cur.execute("select pid,pdesc,flg from inv_request where dtype=2 and (uid=%s or (flg&2)!=0) order by pid desc limit 30", (
+            self.user_id,
+            )
+        )
         po_lst = cur.fetchall()
 
         r = {
@@ -61,36 +63,53 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         stat = self.get_items_sold_report(tids, frm_ts, to_ts, imm)
         self.req.writejs({'stat':stat})
     
+    def fn_publish(self):
+        pid = self.req.qsv_int('pid')
+        if not pid: return
+
+        cur = self.cur()
+        cur.execute('update inv_request set rev=rev+1,flg=flg|2 where dtype=2 and pid=%s and uid=%s and (flg&3)=0', (
+            pid, self.user_id, 
+            )
+        )
+        self.req.writejs({'err': int(cur.rowcount<=0)})
+
     def fn_save_profile(self):
         js = self.req.psv_js('js')
         
         items = []
         tids = set()
         for item in js['items']:
-            tid, uom_idx = map(int, item)
-            items.append( [tid, uom_idx] )
+            tid,num,uom_idx,req_qty = map(int, item)
+            items.append( [tid,num,uom_idx,req_qty] )
             tids.add(tid)
         if len(tids) != len(items): return
         
         pid = int(js['pid'])
         nz = js['nz'][:128].strip()
+        if js['ref']:
+            ref = str(int(js['ref']))
+        else:
+            ref = None
+        dst = int(js['dst'])
         js = {
             'frm_ts': int(js['frm_ts']),
             'to_ts': int(js['to_ts']),
             'interval': int(js['interval']),
             'items': items,
+            'store_id': int(js['store_id'])
         }
         
         cur = self.cur()
         js_s = json.dumps(js, separators=(',',':'))
         if pid:
-            cur.execute('update report set js=%s where id=%s and type=1', (
-                js_s, pid
+            cur.execute('update inv_request set rev=rev+1,dst=%s,pjs=%s where pid=%s and (uid=%s or (flg&2)!=0) and dtype=2 and (flg&1)=0', (
+                dst, js_s, pid, self.user_id,
                 )
             )
         else:
-            cur.execute('insert into report values (null,1,%s,%s)', (
-                nz, js_s
+            cur.execute('insert into inv_request values (null,1,%s,2,0,'+(ref == None and 'null' or ref)+',0,%s,%s,%s,%s)', (
+                dst, int(time.time()), self.user_id, nz, js_s
                 )
             )
             pid = cur.lastrowid
@@ -104,7 +123,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not pid: return
         
         cur = self.cur()
-        cur.execute('delete from report where id=%s and type=1', (pid,))
+        cur.execute('delete from inv_request where pid=%s and (uid=%s or (flg&2)!=0) and dtype=2 and (flg&1)=0', (pid, self.user_id))
         self.req.writejs({'ret': int(bool(cur.rowcount > 0))})
         
     fn_delete_profile.PERM = ADV_PERM
@@ -112,158 +131,70 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_load_profile(self):
         pid = self.req.qsv_int('pid')
         if not pid: return
+        pid_type = self.req.qsv_str('pid_type')
 
-        vjs = self.get_data_file_cached('items_vendors', 'items_vendors.txt')
-        if not vjs: return
-        
-        vendor = vjs[pid]
-        
+        mixed = False
+
         js = {}
+        cur = self.cur()
+        if pid_type == 'V':
+            fjs = self.get_data_file_cached('items_vendors', 'items_vendors.txt')
+            if not fjs: return
+            vjs = [ [f_x, 0, 0, 0] for f_x in fjs[pid][1] ]
+            pid_type = 0
+
+        elif pid_type == 'P':
+            cur.execute('select dst,ref,pjs from inv_request where pid=%s and dtype=2', (pid,))
+            dst,ref,pjs = cur.fetchall()[0]
+            js = json.loads(pjs)
+            js['dst'] = dst
+            vjs = js['items']
+            if ref != None:
+                lku = set([f_x[0] for f_x in vjs])
+                for sid in self.get_data_file_cached('items_vendors', 'items_vendors.txt').get(ref, (None, []))[1]:
+                    if sid in lku: continue
+                    vjs.append( [sid, None, None, 0] )
+                    mixed = True
+            pid_type = 1
+
+        else:
+            return
+
         js['pid'] = str(pid)
         
         items = []
-        o_items = vendor[1]
-        if o_items:
+        msgs = []
+        if vjs:
             lku = {}
             cur = self.cur()
-            cur.execute('select sid,num,name,detail from sync_items where sid in (%s)' % ','.join([str(x) for x in o_items]))
+            cur.execute('select sid,num,name,detail from sync_items where sid in (%s)' % ','.join([str(f_x[0]) for f_x in vjs]))
             for r in cur.fetchall(): lku[ r[0] ] = r
             
-            for tid in o_items:
-                r = lku.get(tid)
+            for t in vjs:
+                r = lku.get(t[0])
                 if not r: continue
                 r = list(r)
                 r[0] = str(r[0])
-                r[3] = json.loads(r[3])
-                items.append( (r, r[3]['order_uom_idx']) )
+                ijs = r[3] = json.loads(r[3])
+
+                if pid_type == 0:
+                    ijs['default_uom_idx'] = ijs['order_uom_idx']
+                    ijs['req_qty'] = 0
+                else:
+                    if mixed and t[2] == None: t[2] = ijs['order_uom_idx']
+
+                    if t[2] < len(ijs['units']):
+                        ijs['default_uom_idx'] = t[2]
+                        ijs['req_qty'] = t[3]
+                    else:
+                        msgs.append('%d - UOM OUT OF RANGE' % (r[1],))
+                items.append(r)
             
+            if mixed: items.sort(key=lambda f_x:f_x[1])
+
         js['items'] = items
+        js['msgs'] = msgs
         
         self.req.writejs(js)
         
-    def fn_export_csv(self):
-        js = self.req.psv_js('js')
-        
-        items = []
-        tids = set()
-        for item in js['items']:
-            tid, uom_idx = map(int, item)
-            items.append( [tid, uom_idx] )
-            tids.add(tid)
-        if not tids or len(tids) != len(items): return
-        
-        frm_ts = int(js['frm_ts'])
-        to_ts = int(js['to_ts'])
-        imm = int(js['interval'])
-        if not frm_ts or not to_ts or imm < 1: return
-        
-        stat = self.get_items_sold_report(tids, frm_ts, to_ts, imm)
-        frm_tp = time.localtime(frm_ts)
-        to_tp = time.localtime(to_ts)
-        
-        s = frm_tp.tm_year * 12 + frm_tp.tm_mon - 1
-        e = to_tp.tm_year * 12 + to_tp.tm_mon - 1
-        
-        data = []
-        hdr = ['#', 'ALU', 'Name', 'OH', 'PC']
-        i = s
-        while(i < e):
-            yr, mon = divmod(i, 12)
-            mon += 1
-            i += imm
-            hdr.append('%04d-%02d' % (yr, mon))
-        hdr.append('AVG')
-        hdr.append('Total')
-        data.append(hdr)
-        
-        cur = self.cur()
-        for tid,uom_idx in items:
-            cur.execute('select num,name,detail from sync_items where sid=%s', (tid,))
-            rows = cur.fetchall()
-            if not rows: continue
-            
-            num,name,detail = rows[0]
-            detail = json.loads(detail)
-            units = detail['units']
-            qtys = detail['qty']
-            uom = units[uom_idx]
-            mul = uom[3]
-            if not mul: continue
-            
-            OH = qtys[0] / mul
-            PC = qtys[3] / mul
-            row = [
-                str(num),
-                (units[0][1] or '').encode('utf8'),
-                (name or '').encode('utf8'),
-                '%0.1f' % (OH,),
-                '%0.1f' % (PC,)
-            ]
-            
-            a = stat.get(tid, {})
-            total = 0
-            count = 0
-            i = s
-            while(i < e):
-                yr, mon = divmod(i, 12)
-                mon += 1
-                i += imm
-                
-                count += 1
-                t = a.get('%04d-%02d' % (yr, mon))
-                if t:
-                    t[0] /= mul
-                    total += t[0]
-                row.append( t and '%0.1f' % (t[0],) or '' )
-            
-            row.append( count and '%0.1f' % (total / count,) or '' )
-            row.append( '%0.1f' % (total,) )
-            data.append(row)
-            
-        fp = cStringIO.StringIO()
-        wt = csv.writer(fp)
-        for r in data: wt.writerow(r)
-        
-        
-        self.req.out_headers['content-type'] = 'application/octet-stream'
-        self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
-        self.req.write( fp.getvalue() )
-        
-
-    fn_export_csv.PERM = ADV_PERM
-
-    def fn_make_po(self):
-        js = self.req.psv_js('js')
-        ref = int(js['ref'])
-        lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]
-        if not lst: return
-
-        cur = self.cur()
-
-        nz = ''
-        cur.execute('select nz from report where type=1 and id=%s', (ref,))
-        rows = cur.fetchall()
-        if rows: nz = rows[0][0]
-
-        cur.execute('insert into inv_request values(null,1,0,2,0,%s,0,%s,%s,%s,%s)', (
-            ref, int(time.time()), int(self.user_id), nz, json.dumps(lst, separators=(',',':'))
-            )
-        )
-
-        self.req.writejs( {'pid': cur.lastrowid} )
-
-
-    def fn_save_po(self):
-        js = self.req.psv_js('js')
-        ref = int(js['ref'])
-        lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]
-        if not lst: return
-
-        cur = self.cur()
-        cur.execute('insert into inv_request values(null,1,0,2,0,%s,0,%s,%s,%s,%s)', (
-            ref, int(time.time()), int(self.user_id), nz, json.dumps(lst, separators=(',',':'))
-            )
-        )
-
-        self.req.writejs( {'pid': cur.lastrowid} )
 

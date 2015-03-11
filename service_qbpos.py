@@ -35,7 +35,7 @@ def insert_transfer_slip(cur, r):
 	if not rr: return (-1, None, 'Transfer Slip Not Found')
 	rr = dict(zip(cur.column_names, rr[0]))
 
-	lst = json.loads(rr['pjs'])
+	lst = json.loads(rr['pjs'])['items']
 	if not lst: return (-1, None, 'No Items')
 	cur.execute("select sid,detail from sync_items where sid in (%s)" % ','.join([str(f_x[0]) for f_x in lst]))
 	items = {}
@@ -120,7 +120,7 @@ def insert_po(cur, r):
 	if not rr: return (-1, None, 'PO Not Found')
 	rr = dict(zip(cur.column_names, rr[0]))
 
-	lst = json.loads(rr['pjs'])
+	lst = json.loads(rr['pjs'])['items']
 	if not lst: return (-1, None, 'No Items')
 	cur.execute("select sid,detail from sync_items where sid in (%s)" % ','.join([str(f_x[0]) for f_x in lst]))
 	items = {}

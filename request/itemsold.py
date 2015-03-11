@@ -220,6 +220,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     fn_export_csv.PERM = ADV_PERM
 
     def fn_make_po(self):
+        return 
+        
         js = self.req.psv_js('js')
         ref = int(js['ref'])
         lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]

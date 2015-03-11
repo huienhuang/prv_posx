@@ -17,7 +17,7 @@ def sync_items(cj_data, mode=0):
         if not sids: return 0
         where_sql = 'i.itemsid in (%s)' % (','.join(sids),)
     
-    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.orderbyunit,i.vendsid,i.vendname,i.alu,i.upc,i.companyohqty,i.qtystore1,i.qtystore2,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6 from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
+    cur.execute("select i.itemsid,i.datastate,i.itemno,i.deptsid,i.udf1,i.udf2,i.udf5,i.unitofmeasure,i.sellbyunit,i.orderbyunit,i.vendsid,i.vendname,i.alu,i.upc,i.companyohqty,i.qtystore1,i.qtystore2,i.custordqty,i.availqty,i.toto_o,i.cost,i.lastcost,i.desc1,ifnull(l.desc2,i.desc2,l.desc2) as desc2,i.price1,i.price2,i.price3,i.price4,i.price5,i.price6,i.cmpmin,i.reordernotnull from inventory i left join InventoryLongDesc l on i.itemsid=l.itemsid where " + where_sql)
     
     item_upcs = {}
     rep_seq = del_seq = 0
@@ -67,6 +67,22 @@ def sync_items(cj_data, mode=0):
         if r['upc']: upc_lku[ r['upc'] ] = 0
         item_upcs[itemsid] = upc_lku
         
+        r_cmpmin = None
+        if r['reordernotnull']: r_cmpmin = rf2(r['cmpmin'])
+        
+        stores = [
+            [rf2(r['companyohqty']), rf2(r['toto_o']), rf2(r['custordqty']), r_cmpmin],
+            [rf2(r['qtystore1']), 0, 0, None],
+            [rf2(r['qtystore2']), 0, 0, None]
+        ]
+        sur.execute('select store,orderedqty,custordqty,reorderpoint,reordernotnull from inventorystore where itemsid=?', (itemsid, ))
+        for x in sur.fetchall():
+            if x[0] < 1 or x[0] > 2: continue
+            s = stores[ x[0] ]
+            s[1] = rf2(x[1] or 0)
+            s[2] = rf2(x[2] or 0)
+            if x[4]: s[3] = rf2(x[3] or 0)
+
         jsd = {
             'default_uom_idx': sbu_idx,
             'order_uom_idx': obu_idx,
@@ -75,6 +91,7 @@ def sync_items(cj_data, mode=0):
             'units': units,
             'vends': vends,
             'desc1': r['desc1'].strip() or '',
+            'stores': stores,
         }
         jsp = {
             'cost': rf(r['cost'], 5),

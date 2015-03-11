@@ -9,6 +9,46 @@ var g_price_level = 0;
 var g_cur_hdr = null;
 var g_items = {};
 var g_cur_id = 0;
+var g_store_id = 0;
+
+function upd_qtys(cds, js)
+{
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var s_qtys = js.stores[g_store_id];
+    $(cds[5]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
+    $(cds[6]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
+}
+
+var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+function upd_store(store_id)
+{
+    g_store_id = store_id;
+    g_v_v_change_store.text('OH(' + CONST_STORE_NAMES[g_store_id] + ')');
+}
+
+function set_store(store_id) {
+    upd_store(store_id);
+    
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var row = $(lst[i]);
+        var js = row.data('item_data')[3];
+        var cds = row.children();
+        var s_qtys = js.stores[g_store_id];
+        
+        if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3])
+            row.addClass('below_reorder_point');
+        else
+            row.removeClass('below_reorder_point');
+        
+        upd_qtys(cds, js);
+    }
+}
+
+function change_store()
+{
+    set_store((g_store_id + 1) % 3);
+}
 
 function get_date_lower(year, month, interval) {
     var mons = parseInt((year * 12 + month - 1) / interval) * interval;
@@ -71,6 +111,17 @@ function change_uom()
     }
 }
 
+function change_req_qty()
+{
+    var sel = $(this);
+    var row = sel.closest('.xtbl_row');
+    var item = row.data('item_data');
+    var tid = item[0];
+    
+    item[3].req_qty = parseInt(sel.val());
+    
+}
+
 function delete_row()
 {
     var row = $(this).closest('.xtbl_row');
@@ -114,12 +165,17 @@ function get_item_qty_lst()
     var item = $(this).closest('.xtbl_row').data('item_data');
     var js = item[3];
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
-    var sqty = js.sqty;
-    if(!sqty) return null;
+    var s_qtys = js.stores;
     
-    var HQ_QTY = factor ? (factor == 1 ? sqty[0].toFixed(1) : (sqty[0] / factor).toFixed(1)) : 'E';
-    var SF_QTY = factor ? (factor == 1 ? sqty[1].toFixed(1) : (sqty[1] / factor).toFixed(1)) : 'E';
-    return $('<div></div>').text('HQ: ' + HQ_QTY + ', SF: ' + SF_QTY);
+    var q = [];
+    for(var i = 0; i < CONST_STORE_NAMES.length; i++) {
+        var s0 = factor ? (factor == 1 ? s_qtys[i][0].toFixed(1) : (s_qtys[i][0] / factor).toFixed(1)) : 'E';
+        var s1 = s_qtys[i][3] == null ? 'N' : (factor ? (factor == 1 ? s_qtys[i][3].toFixed(1) : (s_qtys[i][3] / factor).toFixed(1)) : 'E');
+        
+        q.push(CONST_STORE_NAMES[i] + ': ' + s0 + '(' + s1 + ')');
+    }
+    
+    return $('<div></div>').text(q.join(', '));
 }
 
 function new_row(item)
@@ -137,18 +193,23 @@ function new_row(item)
     
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
     var qtys = js.qty;
+    var s_qtys = js.stores[g_store_id];
     
-    var row = $('<div class="xtbl_row"></div>')
+    var cls = '';
+    if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3]) cls = ' below_reorder_point';
+    
+    var row = $('<div class="xtbl_row'+cls+'"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(sel) )
-    .append( $('<div><input type="text" /></div>') )
+    .append( $('<div></div>').append( $('<input type="text" />').change(change_req_qty).val(js.req_qty || '') ) )
     .append( $('<div class="item_qty_lst"></div>').tooltip({
        items: '.item_qty_lst',
        content: get_item_qty_lst
-    }).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
-    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' ) );
+    }) ).append( $('<div></div>') );
+    
+    upd_qtys(row.children(), js);
     
     g_v_xtbl.append(row);
     return row.data('item_data', item);
@@ -213,8 +274,7 @@ function load_items_sold_report_cb(js)
         $(cds.slice(7)).remove();
         
         var qtys = item_js.qty;
-        $(cds[5]).attr('title', '123').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
-        $(cds[6]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
+        upd_qtys(cds, item_js);
         
         if(!factor) continue;
         
@@ -297,12 +357,23 @@ function __load_items_sold_report(tids)
 
 function delete_profile()
 {
-    var pid = parseInt(g_v_profile.val());
-    if(!pid || !confirm('Delete this Profile?')) return;
+    var pid = g_v_profile.val();
+    if(!pid.length || pid[0] == 'V' || !confirm('Delete this Profile?')) return;
     
-    $.post('?fn=delete_profile', {pid: pid}, function() {
+    $.post('?fn=delete_profile', {pid: pid.substr(1)}, function() {
         window.location = '?'
     }, 'json');
+    
+}
+
+function publish_profile()
+{
+    var pid = g_v_profile.val();
+    if(!pid.length || pid[0] == 'V') return;
+    
+    get_js_ex('?fn=publish', {pid: pid.substr(1)}, function() {
+        
+    });
     
 }
 
@@ -311,29 +382,41 @@ function load_profile()
     var pid = g_v_profile.val();
     g_items = {};
     g_v_xtbl.empty();
-    if(!pid) return;
+    g_v_filter_items.prop('checked', false);
+    if(!pid.length) { window.location = '?'; return; }
     
-    $.get('?fn=load_profile', {pid: pid}, function(js) {
-        if( !js || !js.pid || js.pid !== g_v_profile.val() ) return;
+    var pid_type = pid[0];
+    pid = pid.substr(1);
+    
+    get_js_ex('?fn=load_profile', {pid: pid, pid_type: pid_type}, function(js) {
+        if( !js || !js.pid || js.pid !== g_v_profile.val().substr(1) ) return;
+        if(js.msgs.length) MsgBox('MSG', js.msgs.join('\n'));
         
-        /*
-        var frm_date = new Date();
-        frm_date.setTime(js.frm_ts * 1000);
-        g_v_frm_date.datepicker('setDate', frm_date);
+        if(js.dst !== undefined) g_v_dst.val(js.dst);
         
-        var to_date = new Date();
-        to_date.setTime(js.to_ts * 1000);
-        g_v_to_date.datepicker('setDate', to_date);
-        */
+        if(js.frm_ts) {
+            var frm_date = new Date();
+            frm_date.setTime(js.frm_ts * 1000);
+            g_v_frm_date.datepicker('setDate', frm_date);
+        }
+        
+        if(js.frm_ts) {
+            var to_date = new Date();
+            to_date.setTime(js.to_ts * 1000);
+            g_v_to_date.datepicker('setDate', to_date);
+        }
+        
+        if(js.interval) g_v_interval.val(js.interval);
+        
+        if(js.store_id !== undefined) upd_store(js.store_id);
         
         g_v_interval.change();
         
         for(var i = 0; i < js.items.length; i++) {
-            var t = js.items[i];
-            var item = t[0];
-            if(t[1] < item[3].units.length && t[1] >= 0) item[3].default_uom_idx = t[1];
+            var item = js.items[i];
             g_items[ item[0] ]= {'v': new_row(item)};
         }
+        if(pid_type === 'P') g_v_filter_items.prop('checked', true).change();
         load_items_sold_report();
         
     }, 'json');
@@ -341,111 +424,72 @@ function load_profile()
 
 function save_profile()
 {
-    var pid = parseInt(g_v_profile.val());
-    var lst = g_v_xtbl.children();
-    if(!pid && !lst.length || !g_cur_hdr) return;
+    var pid = g_v_profile.val();
     
-    if (!pid) {
-        g_v_dlg_profile_name.find('input[name="nz"]').val('');
-        g_v_dlg_profile_name.dialog('open');
+    if(!pid.length || pid[0] == 'V') {
+        g_v_dlg_profile_name.data('is_copy', false).dialog('open').find('input[name="nz"]').val('');
+        
     } else {
-        //__save_profile();
+        __save_profile(false);
+        
     }
 }
 
-function __save_po(keep_existing_data)
+function copy_profile()
 {
-    var pid = g_v_profile.val();
+    g_v_dlg_profile_name.data('is_copy', true).dialog('open').find('input[name="nz"]').val('');
+    
+}
+
+function __save_profile(is_copy)
+{
+    if(is_copy === undefined) is_copy = g_v_dlg_profile_name.data('is_copy');
+    
+    var pid = 0;
+    var ref = '';
+    if(!is_copy) {
+        pid = g_v_profile.val();
+        if(!pid.length || pid[0] == 'V') {
+            ref = pid.substr(1);
+            pid = 0;
+        } else
+            pid = parseInt(pid.substr(1)) || 0;
+    }
     
     var frm_ts = g_cur_hdr.frm_ts;
     var to_ts = g_cur_hdr.to_ts;
     var interval = g_cur_hdr.interval;
-    
     var nz = g_v_dlg_profile_name.find('input[name="nz"]').val();
     
     var items = [];
-    if(keep_existing_data) {
-        for(var i = 0; i < lst.length; i++) {
-            var t = $(lst[i]).data('item_data');
-            items.push( [t[0], t[3].default_uom_idx] );
-        }
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var t = $(lst[i]).data('item_data');
+        var qty = t[3].req_qty || 0;
+        if(qty) items.push( [t[0], t[1], t[3].default_uom_idx, qty] );
     }
+    
+    
     var data = {
         'pid': pid,
         'nz': nz,
         'frm_ts': parseInt(frm_ts / 1000),
         'to_ts': parseInt(to_ts / 1000),
         'interval': interval,
-        'items': items
+        'items': items,
+        'ref': ref,
+        'store_id': g_store_id,
+        'dst': g_v_dst.val(),
     }
     
-    post_js_ex('?fn=save_profile', {'js': JSON.stringify(data)}, function() {
-        
+    post_js_ex('?fn=save_profile', {'js': JSON.stringify(data)}, function(js) {
+        if(!pid && js.pid) {
+            $(g_v_profile.children()[0]).after( $('<option></option>').text(nz).val('P' + js.pid) );
+            g_v_profile.val('P' + js.pid);
+        }
     }, undefined, true);
     
 }
-
-function export_csv()
-{
-    var lst = g_v_xtbl.children();
-    if(!lst.length || !g_cur_hdr) return;
-    
-    var frm_date = new Date(g_cur_hdr.frm_d >> 8, (g_cur_hdr.frm_d & 0xFF) - 1, 1);
-    var to_date = new Date(g_cur_hdr.to_d >> 8, (g_cur_hdr.to_d & 0xFF) - 1, 1);
-    
-    var items = []
-    for(var i = 0; i < lst.length; i++) {
-        var t = $(lst[i]).data('item_data');
-        items.push( [t[0], t[3].default_uom_idx] );
-    }
-    var data = {
-        'frm_ts': parseInt(frm_date.getTime() / 1000),
-        'to_ts': parseInt(to_date.getTime() / 1000),
-        'interval': g_cur_hdr.interval,
-        'items': items
-    }
-
-    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
-    g_v_form_dl.submit();
-}
-
-function make_po()
-{
-    var lst = g_v_xtbl.children();
-    if(!lst.length || !g_cur_hdr) return;
-    
-    var vs = [];
-    var l = [];
-    for(var i = 0; i < lst.length; i++) {
-        var o = $(lst[i]);
-        var t = o.data('item_data');
-        var v = o.find('input');
-        
-        var order_qty = parseInt(v.val()) || 0;
-        if(order_qty <= 0) continue;
-        
-        vs.push(v[0]);
-        l.push([ t[0], t[1], t[3].default_uom_idx, order_qty ]);
-    }
-    
-    var js = JSON.stringify({'lst': l, 'ref': parseInt(g_v_profile.val()) || 0});
-    post_js('?fn=make_po', {js: js}, function() {
-        $(vs).val('');
-    });
-}
-
-function load_po_list()
-{
-    var v = parseInt(g_v_po_list.val()) || 0;
-    
-    if(v == -1) {
-        g_v_dlg_profile_name.dialog('open');
-        g_v_po_list.val('0');
-    }
-    
-    
-}
-
 
 $(function() {
 
@@ -483,33 +527,34 @@ g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
 
 g_v_tp_ctrl = $('.tp_ctrl');
 g_v_profile = g_v_tp_ctrl.children('select[name="profile"]').change(load_profile);
-g_v_po_list = g_v_tp_ctrl.children('select[name="po_list"]').change(load_po_list);
 g_v_frm_date = g_v_tp_ctrl.children('input[name="frm_date"]').datepicker().datepicker("setDate", '-6m').change(load_items_sold_report);
 g_v_to_date = g_v_tp_ctrl.children('input[name="to_date"]').datepicker().datepicker("setDate", '-1m').change(load_items_sold_report);
 g_v_interval = g_v_tp_ctrl.children('select[name="interval"]').change(load_items_sold_report);
-g_v_tp_ctrl.children('input[value="apply"]').click(load_items_sold_report);
+g_v_dst = g_v_tp_ctrl.children('select[name="dst"]').change(function() {
+    set_store( parseInt(g_v_dst.val()) ? 1 : 2 )
+});
 
-g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
-g_v_tp_ctrl.children('input[value="delete"]').click(delete_profile);
-
-g_v_tp_ctrl.children('input[value="export"]').click(export_csv);
-
-g_v_tp_ctrl.children('input[value="Make PO"]').click(make_po);
+g_v_tp_ctrl.children('input[value="Save"]').click(save_profile);
+g_v_tp_ctrl.children('input[value="Copy"]').click(copy_profile);
+g_v_tp_ctrl.children('input[value="Delete"]').click(delete_profile);
+g_v_tp_ctrl.children('input[value="Publish"]').click(publish_profile);
 
 g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
     autoOpen: false,
     modal: true,
-    width:500,
-    height:200,
+    width:360,
+    height:180,
     buttons: {
-        'Copy Current PO': function() {__save_po(1); g_v_dlg_profile_name.dialog('close');},
-        'New Blank PO': function() {__save_po(0); g_v_dlg_profile_name.dialog('close');},
-    } 
+        'Save': function() {__save_profile(); g_v_dlg_profile_name.dialog('close');},
+    }
 });
+
+g_v_filter_items = $('#filter_items').change(filter_items);
+g_v_v_change_store = $('#v_change_store').click(change_store);
 
 g_v_form_dl = $('#form_dl');
 
-
+g_v_dst.change();
 g_v_interval.change();
 
 }); //ready
@@ -518,8 +563,8 @@ g_v_interval.change();
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
-.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
-.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:6px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:6px;}
 
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:70px;position:relative}
@@ -530,7 +575,7 @@ g_v_interval.change();
 .xtbl_row > div:nth-child(3) {width:250px;color:#242424}
 .xtbl_row > div:nth-child(4) {width:80px}
 .xtbl_row > div:nth-child(5) {width:60px}
-.xtbl_row > div:nth-child(6) {cursor:pointer}
+.xtbl_row > div:nth-child(6) {cursor:pointer;color:#395794}
 
 .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
@@ -556,6 +601,20 @@ g_v_interval.change();
 
 #dlg_profile_name {text-align:center}
 
+.cls_vendor {background-color:#eeffe6}
+.cls_po {background-color:#fff1e6}
+.below_reorder_point {background-color:#fac4c4}
+.cls_po_pub {background-color:#decef3}
+
+.noselect {
+-webkit-touch-callout:none;
+-webkit-user-select:none;
+-khtml-user-select:none;
+-moz-user-select:none;
+-ms-user-select:none;
+user-select:none;
+}
+
 </style>
 
 </head>
@@ -563,34 +622,32 @@ g_v_interval.change();
 
 <div class="tp_ctrl">
 
-<select style="width:200px;background-color:#e8f2ff" name="profile"><option value="0">-- Vendor --</option>
+<select style="width:250px;background-color:#e8f2ff" name="profile"><option value="">--- PO List (Reload) ---</option>
+%for po in po_lst:
+<option value="P${po[0]}" class="cls_po${po[2]&2 and ' cls_po_pub' or ''}">${po[1] or str(po[0])|h}</option>
+%endfor
 %for profile in profiles:
 %if profile[0] != None:
-<option value="${profile[0]}">${'%s (%d)' % (profile[1][0], len(profile[1][1]))|h}</option>
+<option value="V${profile[0]}" class="cls_vendor">${'%s (%d)' % (profile[1][0], len(profile[1][1]))|h}</option>
 %endif
-%endfor
-</select>
-<select style="width:180px;background-color:#ffe2d0" name="po_list"><option value="0">-- PO List --</option>
-<option value="-1">** NEW **</option>
-%for po in po_lst:
-<option value="${'%s_%s' % (po[0], po[1])}">${po[2] or str(po[0])|h}</option>
 %endfor
 </select>
 <input type="text" style="width:150px;background-color:#f6ffea" id="srch_item" />
 <input style="display:none" type="button" value="save" class="btn" />
 <input style="display:none" type="button" value="delete" class="btn"/>
-<select style="width:100px;margin-left:20px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
+<select style="width:60px" name="dst"><option value="0">SF</option><option value="1">HQ</option></select>
+<select style="width:100px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
 <input style="width:100px" type="text" title="From Date" name="frm_date" />
 <input style="width:100px" type="text" title="To Date" name="to_date" />
-<input style="display:none" type="button" value="apply" class="btn" />
-<input style="margin-left:20px;display:none" type="button" value="export" class="btn" />
-<input style="margin-left:20px;display:none" type="button" value="Make PO" class="btn" />
 
-<input style="margin-left:20px;" type="button" value="Delete" class="btn" />
+<input type="button" value="Save" class="btn" />
+<input type="button" value="Copy" class="btn" />
+<input type="button" value="Delete" class="btn" />
+<input type="button" value="Publish" class="btn" />
 
 </div>
 
-<div class="xtbl_header"><div class="xtbl_row"><div onclick="clear_tbl()"></div><div>Item#</div><div>Name</div><div>Unit</div><div><input type="checkbox" onchange="filter_items.call(this)"/>Order</div><div>OH</div><div>OP</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row noselect"><div onclick="clear_tbl()"></div><div>Item#</div><div>Name</div><div>Unit</div><div><input type="checkbox" id="filter_items"/>Order</div><div id="v_change_store">OH(AL)</div><div>OP</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 
