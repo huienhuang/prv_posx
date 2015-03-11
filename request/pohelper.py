@@ -16,8 +16,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_default(self):
         js = self.get_data_file_cached('items_vendors', 'items_vendors.txt') or {}
 
+        users = self.getuserlist()
+        users_lku = dict([x[:2] for x in users])
+
         cur = self.cur()
-        cur.execute("select pid,pdesc,flg from inv_request where dtype=2 and (uid=%s or (flg&2)!=0) order by pid desc limit 30", (
+        cur.execute("select pid,pdesc,flg,uid from inv_request where dtype=2 and (uid=%s or (flg&2)!=0) order by pid desc limit 30", (
             self.user_id,
             )
         )
@@ -25,7 +28,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         r = {
             'profiles': sorted(js.items(), key=lambda f_x:f_x[1][0].lower()),
-            'po_lst': po_lst
+            'po_lst': po_lst,
+            'users_lku': users_lku
         }
         self.req.writefile('pohelper.html', r)
 

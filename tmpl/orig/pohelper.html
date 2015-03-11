@@ -626,7 +626,7 @@ user-select:none;
 
 <select style="width:250px;background-color:#e8f2ff" name="profile"><option value="">--- PO List (Reload) ---</option>
 %for po in po_lst:
-<option value="P${po[0]}" class="cls_po${po[2]&2 and ' cls_po_pub' or ''}">${po[1] or str(po[0])|h}</option>
+<option value="P${po[0]}" class="cls_po${po[2]&2 and ' cls_po_pub' or ''}">${po[1] or str(po[0])|h} - ${users_lku.get(po[3], 'UNK')|h}</option>
 %endfor
 %for profile in profiles:
 %if profile[0] != None:
