@@ -8,6 +8,46 @@
 var g_price_level = 0;
 var g_cur_hdr = null;
 var g_items = {};
+var g_store_id = 0;
+
+function upd_qtys(cds, js)
+{
+    var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
+    var s_qtys = js.stores[g_store_id];
+    $(cds[5]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
+    $(cds[6]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
+}
+
+var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+function upd_store(store_id)
+{
+    g_store_id = store_id;
+    g_v_v_change_store.text('OH(' + CONST_STORE_NAMES[g_store_id] + ')');
+}
+
+function set_store(store_id) {
+    upd_store(store_id);
+    
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var row = $(lst[i]);
+        var js = row.data('item_data')[3];
+        var cds = row.children();
+        var s_qtys = js.stores[g_store_id];
+        
+        if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3])
+            row.addClass('below_reorder_point');
+        else
+            row.removeClass('below_reorder_point');
+        
+        upd_qtys(cds, js);
+    }
+}
+
+function change_store()
+{
+    set_store((g_store_id + 1) % 3);
+}
 
 function get_date_lower(year, month, interval) {
     var mons = parseInt((year * 12 + month - 1) / interval) * interval;
@@ -30,9 +70,10 @@ function mk_hdr(frm_date, to_date, interval)
     if(g_cur_hdr && g_cur_hdr.frm_d === frm_d && g_cur_hdr.to_d === to_d && g_cur_hdr.interval === interval) return;
     g_cur_hdr = {frm_d:frm_d, frm_ts:frm_date.getTime(), to_d:to_d, to_ts:to_date.getTime(), interval:interval};
     
-    g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
+    //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
+    $(g_v_xtbl_hdr.children().slice(7)).remove();
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 50 + 80 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 250 + 80 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -91,12 +132,17 @@ function get_item_qty_lst()
     var item = $(this).closest('.xtbl_row').data('item_data');
     var js = item[3];
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
-    var sqty = js.sqty;
-    if(!sqty) return null;
+    var s_qtys = js.stores;
     
-    var HQ_QTY = factor ? (factor == 1 ? sqty[0].toFixed(1) : (sqty[0] / factor).toFixed(1)) : 'E';
-    var SF_QTY = factor ? (factor == 1 ? sqty[1].toFixed(1) : (sqty[1] / factor).toFixed(1)) : 'E';
-    return $('<div></div>').text('HQ: ' + HQ_QTY + ', SF: ' + SF_QTY);
+    var q = [];
+    for(var i = 0; i < CONST_STORE_NAMES.length; i++) {
+        var s0 = factor ? (factor == 1 ? s_qtys[i][0].toFixed(1) : (s_qtys[i][0] / factor).toFixed(1)) : 'E';
+        var s1 = s_qtys[i][3] == null ? 'N' : (factor ? (factor == 1 ? s_qtys[i][3].toFixed(1) : (s_qtys[i][3] / factor).toFixed(1)) : 'E');
+        
+        q.push(CONST_STORE_NAMES[i] + ': ' + s0 + '(' + s1 + ')');
+    }
+    
+    return $('<div></div>').text(q.join(', '));
 }
 
 function new_row(item)
@@ -114,8 +160,13 @@ function new_row(item)
     
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
     var qtys = js.qty;
+    var s_qtys = js.stores[g_store_id];
     
-    var row = $('<div class="xtbl_row"></div>')
+    var cls = '';
+    if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3]) cls = ' below_reorder_point';
+    
+    
+    var row = $('<div class="xtbl_row'+cls+'"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
@@ -124,8 +175,9 @@ function new_row(item)
     .append( $('<div class="item_qty_lst"></div>').tooltip({
        items: '.item_qty_lst',
        content: get_item_qty_lst
-    }).text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' ) )
-    .append( $('<div></div>').text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' ) );
+    }) ).append( $('<div></div>') );
+    
+    upd_qtys(row.children(), js);
     
     g_v_xtbl.append(row);
     return row.data('item_data', item);
@@ -190,8 +242,7 @@ function load_items_sold_report_cb(js)
         $(cds.slice(7)).remove();
         
         var qtys = item_js.qty;
-        $(cds[5]).attr('title', '123').text(factor ? (factor == 1 ? qtys[0].toFixed(1) : (qtys[0] / factor).toFixed(1)) : 'E' );
-        $(cds[6]).text(factor ? (factor == 1 ? qtys[3].toFixed(1) : (qtys[3] / factor).toFixed(1)) : 'E' );
+        upd_qtys(cds, item_js);
         
         if(!factor) continue;
         
@@ -397,30 +448,7 @@ function export_csv()
     g_v_form_dl.submit();
 }
 
-function make_po()
-{
-    var lst = g_v_xtbl.children();
-    if(!lst.length || !g_cur_hdr) return;
-    
-    var vs = [];
-    var l = [];
-    for(var i = 0; i < lst.length; i++) {
-        var o = $(lst[i]);
-        var t = o.data('item_data');
-        var v = o.find('input');
-        
-        var order_qty = parseInt(v.val()) || 0;
-        if(order_qty <= 0) continue;
-        
-        vs.push(v[0]);
-        l.push([ t[0], t[1], t[3].default_uom_idx, order_qty ]);
-    }
-    
-    var js = JSON.stringify({'lst': l, 'ref': parseInt(g_v_profile.val()) || 0});
-    post_js('?fn=make_po', {js: js}, function() {
-        $(vs).val('');
-    });
-}
+
 
 $(function() {
 
@@ -478,6 +506,7 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 
 g_v_form_dl = $('#form_dl');
 
+g_v_v_change_store = $('#v_change_store').click(change_store);
 
 g_v_interval.change();
 
@@ -498,7 +527,7 @@ g_v_interval.change();
 .xtbl_row > div:nth-child(2) {width:70px;cursor:pointer}
 .xtbl_row > div:nth-child(3) {width:250px}
 .xtbl_row > div:nth-child(4) {width:80px}
-.xtbl_row > div:nth-child(5) {width:50px}
+.xtbl_row > div:nth-child(5) {width:0px}
 .xtbl_row > div:nth-child(6) {cursor:pointer}
 
 .xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
@@ -512,6 +541,9 @@ g_v_interval.change();
 
 .xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
 
+.xtbl .xtbl_row:hover {background-color:#fffade}
+
+
 .ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
 .ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
 .ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
@@ -524,6 +556,8 @@ g_v_interval.change();
 .ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0}
 
 #dlg_profile_name {text-align:center}
+
+.below_reorder_point {background-color:#fac4c4}
 
 </style>
 
@@ -549,7 +583,7 @@ g_v_interval.change();
 
 </div>
 
-<div class="xtbl_header"><div class="xtbl_row"></div></div>
+<div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>Name</div><div>Unit</div><div></div><div id="v_change_store">OH(AL)</div><div>OP</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 

@@ -74,7 +74,7 @@ function mk_hdr(frm_date, to_date, interval)
     //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div><input type="checkbox" />Order</div><div>OH</div><div>OP</div>');
     $(g_v_xtbl_hdr.children().slice(7)).remove();
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 60 + 80 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 250 + 80 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -587,6 +587,8 @@ g_v_interval.change();
 .xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
 
 .xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
+
+.xtbl .xtbl_row:hover {background-color:#fffade}
 
 .ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
 .ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
