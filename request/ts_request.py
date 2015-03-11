@@ -130,10 +130,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             )
         else:
             if not lst: self.req.exitjs({'err': -1, 'err_s': 'Empty Item List'})
+            flg = 2
             pjs = {'items': lst}
             pjs = json.dumps(pjs, separators=(',',':'))
-            cur.execute('insert into inv_request values(null,1,%s,%s,0,0,0,%s,%s,%s,%s)', (
-                dst, dtype, int(time.time()), int(self.user_id), desc, pjs
+            cur.execute('insert into inv_request values(null,1,%s,%s,%s,0,0,%s,%s,%s,%s)', (
+                dst, dtype, flg, int(time.time()), int(self.user_id), desc, pjs
                 )
             )
             pid = cur.lastrowid

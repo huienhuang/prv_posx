@@ -143,6 +143,7 @@ function _delete()
 function _save()
 {
     var lst = g_v_xtbl.children();
+    console.log(g_pid);
     if(!g_pid && !lst.length) return;
     
     var items = []
@@ -186,7 +187,7 @@ function load_request(pid, dtype)
         g_v_type.val(t.dtype);
         g_v_dst.val(t.dst)
         
-        if(t.flg&2) els.btn_save[0].prop('disabled', true);
+        if(t.flg&1) els.btn_save[0].prop('disabled', true);
         
         var err_msg = [];
         for(var i = 0; i < t.pjs.length; i++) {
