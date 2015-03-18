@@ -43,7 +43,7 @@ function change_cost()
 
 function update_ui_price(row, r)
 {
-    var u = r.js.d_units[ r.uom.toLowerCase() ];
+    var u = r.cur_unit;
     
     r.v_new_cost.val(r.new_cost !== r.cost ? r.new_cost.toFixed(2) : '');
     
@@ -55,7 +55,10 @@ function update_ui_price(row, r)
         r.v_diff_pct.css('color', '#000');
     }
     
-    r.v_new_price.text(r.new_diff ? ( u[0][0] * (100.0 + r.new_diff) / 100.0 ).toFixed(2) : '');
+    if(u === undefined)
+        r.v_new_price.text('E');
+    else
+        r.v_new_price.text(r.new_diff ? ( u[0][0] * (100.0 + r.new_diff) / 100.0 ).toFixed(2) : '');
 }
 
 
@@ -89,6 +92,11 @@ function get_item_price_tt()
     return $('<table class="item_price_tt"></table>').append(ts);
 }
 
+function get_ukey(factor, uom)
+{
+    return factor.toFixed(2) + '-' + uom.toLowerCase();
+}
+
 function load_po_cb(js)
 {
     g_po = js;
@@ -100,9 +108,10 @@ function load_po_cb(js)
         var units = r.js.units;
         for(var u = 0; u < units.length; u++) {
             var unit = units[u];
-            d_units[ unit[2].toLowerCase() ] = unit;
+            d_units[ get_ukey(unit[3], unit[2]) ] = unit;
         }
-        var u = d_units[ r.uom.toLowerCase() ];
+        if(r.nunits === 1 && !r.uom.length) r.uom = units[0][2];
+        var u = r.cur_unit = d_units[ get_ukey(r.nunits, r.uom) ];
         
         r.v_new_cost = $('<input type="text" />').change(change_cost);
         r.v_diff_pct = $('<input type="text" />').change(change_diff);
@@ -223,7 +232,7 @@ function apply()
     
     post_js_ex('?fn=adjust_po', {'js': JSON.stringify({ijs:lst, sid: g_po.sid})}, function(js) {
         reset_po();
-        open_history_wnd();
+        //open_history_wnd();
     });
 }
 

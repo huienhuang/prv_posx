@@ -236,7 +236,7 @@ def validate(cur, r, req, ijs):
 			errs.append('#%d - Cost Not Matched' % (i + 1, ))
 			continue
 		if r['units'] != units.get(r['sid']):
-			errs.append('#%d - Price Or Unit Not Matched' % (i + 1, ))
+			errs.append('#%d - Price Or Unit Not Matched, %s, %s' % (i + 1, r['units'], units.get(r['sid'])))
 			continue
 
 	if errs: return (-3, None, '\n'.join(errs))
