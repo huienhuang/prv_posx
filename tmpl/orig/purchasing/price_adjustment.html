@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - Price Adjustment Tool</title>
+
+<script type="text/javascript">
+var g_po = null;
+
+
+function round2(f)
+{
+    return Math.round(f * 100) / 100.0;
+}
+
+function change_diff()
+{
+    var row = $(this).closest('.xtbl_row');
+    var r = row.data('ijs');
+    
+    r.new_diff = round2( (r.new_cost - r.cost) * 100.0 / r.cost );
+    
+    var n = parseFloat(r.v_diff_pct.val());
+    if(!isNaN(n)) r.new_diff = round2(n);
+    
+    update_ui_price(row, r);
+}
+
+function change_cost()
+{
+    var row = $(this).closest('.xtbl_row');
+    var r = row.data('ijs');
+    
+    r.new_cost = r.cost;
+    
+    var n = parseFloat(r.v_new_cost.val());
+    if(!isNaN(n)) r.new_cost = round2(n);
+    
+    r.new_diff = round2( (r.new_cost - r.cost) * 100.0 / r.cost );
+    
+    update_ui_price(row, r);
+}
+
+function update_ui_price(row, r)
+{
+    var u = r.js.d_units[ r.uom.toLowerCase() ];
+    
+    r.v_new_cost.val(r.new_cost !== r.cost ? r.new_cost.toFixed(2) : '');
+    
+    if(r.new_diff) {
+        r.v_diff_pct.val(r.new_diff.toFixed(2));
+        r.v_diff_pct.css('color', r.new_diff >= 0 ? '#5fb761' : '#b7655f');
+    } else {
+        r.v_diff_pct.val('');
+        r.v_diff_pct.css('color', '#000');
+    }
+    
+    r.v_new_price.text(r.new_diff ? ( u[0][0] * (100.0 + r.new_diff) / 100.0 ).toFixed(2) : '');
+}
+
+
+
+var PRICE_LVLS = ['R0', 'W1', 'W2', 'S3', 'D4'];
+function get_item_price_tt()
+{
+    var r = $(this).closest('.xtbl_row').data('ijs');
+    var vs = [];
+    var units = r.js.units;
+    for(var i = 0; i < units.length; i++) {
+        var u = units[i];
+        vs.push( $('<th colspan="2"></th>').text(u[2] + '(' + u[3] + ')') );
+    }
+    var ts = [ $('<tr><th></th></tr>').append(vs) ];
+    for(var i = 0; i < PRICE_LVLS.length; i++) {
+        var p = [];
+        for(var j = 0; j < units.length; j++) {
+            var u = units[j];
+            p.push( $('<td></td>').text(u[0][i].toFixed(2)) );
+            if(r.new_diff) {
+                var np = round2(u[0][i] * (100.0 + r.new_diff) / 100.0);
+                p.push( $('<td class="'+(r.new_diff >= 0 ? 'p_val_inc' : 'p_val_dec')+'"></td>').text(np.toFixed(2)) );
+            }
+            else
+                p.push( $('<td></td>') );
+        }
+        ts.push( $('<tr></tr>').append( $('<td></td>').text(PRICE_LVLS[i]) ).append(p) );
+    }
+    
+    return $('<table class="item_price_tt"></table>').append(ts);
+}
+
+function load_po_cb(js)
+{
+    g_po = js;
+    
+    var lst = [];
+    for(var i = 0; i < js.ijs.length; i++) {
+        var r = js.ijs[i];
+        var d_units = r.js.d_units = {};
+        var units = r.js.units;
+        for(var u = 0; u < units.length; u++) {
+            var unit = units[u];
+            d_units[ unit[2].toLowerCase() ] = unit;
+        }
+        var u = d_units[ r.uom.toLowerCase() ];
+        
+        r.v_new_cost = $('<input type="text" />').change(change_cost);
+        r.v_diff_pct = $('<input type="text" />').change(change_diff);
+        r.v_new_price = $('<div class="item_price_tt"></div>').tooltip({items: '.item_price_tt', content: get_item_price_tt});
+        r.cost = round2(r.cost);
+        r.new_cost = r.cost;
+        r.new_diff = 0;
+        
+        var row = $('<div class="xtbl_row"></div>').data('ijs', r)
+        .append( $('<div></div>').text(r.itemno) )
+        .append( $('<div></div>').text(r.desc1) )
+        .append( $('<div></div>').text(r.qty + r.uom) )
+        .append( $('<div></div>').text(u === undefined ? 'E' : (r.nunits * r.js2.cost).toFixed(2)) )
+        .append( $('<div></div>').text(r.cost) )
+        .append( $('<div></div>').append(r.v_new_cost) )
+        .append( $('<div></div>').append(r.v_diff_pct) )
+        .append( $('<div></div>').text(u === undefined ? 'E' : u[0][0].toFixed(2)) )
+        .append( r.v_new_price )
+        lst.push(row);
+    }
+    
+    g_v_xtbl.append(lst);
+}
+
+function load_po()
+{
+    g_po = null;
+    g_v_xtbl.empty();
+    
+    var po_val = g_v_tp_ctrl.data('in_els').po_val[0];
+    var po_id = po_val.val();
+    po_val.val('');
+    if(!po_id.length) return;
+    
+    get_js_ex('?fn=load_po', {po_id: po_id}, load_po_cb);
+    
+}
+
+function load_history_cb(lst)
+{
+    var v_lst = [];
+    
+    for(var i = 0; i < lst.length; i++) {
+        var r = lst[i];
+        v_lst.push( $('<h3></h3>').text(fmt_time(r.ts) + ' - PO#' + r.ponum + ' - ' + r.sts) );
+        v_lst.push( $('<div class="x_wrap"></div>').text(r.js.msg) );
+    }
+    
+    g_v_dlg_history_body.append(v_lst).accordion("refresh").accordion("option", "active", 0);
+    
+}
+
+function load_history()
+{
+    g_v_dlg_history_body.empty();
+    get_js_ex('?fn=load_history', g_v_dlg_history_inp.data('js'), load_history_cb, undefined, undefined, undefined, 'load_history');
+}
+
+function chg_load_history_inp()
+{
+    var ponum = g_v_dlg_history_inp.val();
+    g_v_dlg_history_inp.data('js', null);
+    g_v_dlg_history_body.empty();
+    
+    get_js_ex('?fn=get_po_sid_by_num', {num: ponum}, function(js) {
+        if(js.sid) {
+            g_v_dlg_history_inp.data('js', {'sid': js.sid, 'num': ponum});
+            load_history();
+        }
+        
+    }, undefined, undefined, undefined, 'chg_load_history_inp');
+}
+
+function open_history_wnd()
+{
+    if(g_po !== null)
+        g_v_dlg_history_inp.data('js', {'sid': g_po.sid, 'num': g_po.ponum}).val(g_po.ponum);
+    else
+        g_v_dlg_history_inp.data('js', null);
+    
+    load_history();
+    g_v_dlg_history.dialog('open');
+}
+
+function reset_po()
+{
+    if(g_po === null) return;
+    var ijs = g_po.ijs;
+    for(var i = 0; i < ijs.length; i++) {
+        var r = ijs[i];
+        r.v_new_cost.val('').change();
+    }
+}
+
+function apply()
+{
+    if(g_po === null) return;
+    
+    var lst = [];
+    var ijs = g_po.ijs;
+    var k = 0;
+    for(var i = 0; i < ijs.length; i++) {
+        var r = ijs[i];
+        
+        var ius = [];
+        for(var j = 0; j < r.js.units.length; j++) {
+            var u = r.js.units[j];
+            var p = u[0].slice(0);
+            p.push(u[3]);
+            p.push(u[2].toLowerCase());
+            p.push(j);
+            ius.push(p);
+        }
+        lst.push({'sid': r.itemsid, 'units': ius, 'cost': r.cost, 'new_cost': r.new_cost, 'new_diff': r.new_diff});
+        if(r.new_cost != r.cost || r.new_diff) k++;
+    }
+    if(!k) return;
+    
+    post_js_ex('?fn=adjust_po', {'js': JSON.stringify({ijs:lst, sid: g_po.sid})}, function(js) {
+        reset_po();
+        open_history_wnd();
+    });
+}
+
+
+$(function() {
+
+g_v_dlg_history = $('#dlg_history').dialog({
+    autoOpen: false,
+    modal: true,
+    width:700,
+    height:600,
+    close:function() {
+        
+    },
+});
+g_v_dlg_history_inp = g_v_dlg_history.find('input').change(chg_load_history_inp);
+g_v_dlg_history_body = $(g_v_dlg_history.children()[1]).accordion();
+
+$('.btn').button();
+
+g_v_xtbl_hdr_cnt = $('.xtbl_header');
+g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
+
+g_v_xtbl = $('.xtbl').sortable({
+    items: '> div',
+}).disableSelection().scroll(function() {
+    g_v_xtbl_hdr_cnt.scrollLeft( g_v_xtbl.scrollLeft() );
+});
+
+
+g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+var els = g_v_tp_ctrl.data('in_els');
+
+els.po_val[0].change(load_po);
+els.btn_apply[0].click(apply);
+els.btn_history[0].click(open_history_wnd);
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:6px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:6px;}
+
+.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
+.xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:80px;position:relative}
+.xtbl .xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
+.xtbl .xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#fffcee;width:72px}
+.xtbl_row > div:nth-child(1) {width:70px;cursor:pointer;font-weight:bold}
+.xtbl_row > div:nth-child(2) {width:250px;color:#242424}
+.xtbl_row > div:nth-child(3) {width:80px}
+.xtbl_row > div:nth-child(4) {width:60px}
+.xtbl_row > div:nth-child(5) {cursor:pointer}
+.xtbl_row > div:nth-child(9) {cursor:pointer}
+
+
+.xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
+.xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
+.xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
+.xtbl_header {top:50px}
+.xtbl_footer {bottom:0;top:auto}
+.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
+
+.xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
+
+.xtbl .xtbl_row:hover {background-color:#fffade}
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0}
+
+#dlg_profile_name {text-align:center}
+
+.cls_vendor {background-color:#eeffe6}
+.cls_po {background-color:#fff1e6}
+.below_reorder_point {background-color:#fac4c4}
+.cls_po_pub {background-color:#decef3}
+
+.noselect {
+-webkit-touch-callout:none;
+-webkit-user-select:none;
+-khtml-user-select:none;
+-moz-user-select:none;
+-ms-user-select:none;
+user-select:none;
+}
+
+.item_price_tt td  {padding:3px}
+.item_price_tt tr:nth-child(even) {background-color:#f3f3f3}
+.item_price_tt th:nth-child(1) {width:60px}
+.item_price_tt th {background-color:#ccc}
+
+.p_val_inc {color:#77b582}
+.p_val_dec {color:#cf4b4b}
+
+.x_wrap {white-space:pre-wrap}
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+
+<input type="text" style="width:150px;background-color:#f6ffea" name="ctrl_po_val" />
+<input type="button" value="Apply" class="btn" name="ctrl_btn_apply" />
+<input type="button" value="History" class="btn" name="ctrl_btn_history" />
+
+
+</div>
+
+<div class="xtbl_header"><div class="xtbl_row noselect"><div>Item#</div><div>Name</div><div>Qty</div><div>AvgCost</div><div>POCost</div><div>NewCost</div><div>Diff%</div><div>Price</div><div>NewPrice</div></div></div>
+<div class="xtbl"></div>
+<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+
+
+<div id="dlg_history" title="History" class="dlg_cls">
+<div><input type="text" placeholder="PO Number" /></div>
+<div></div>
+</div>
+
+
+</body>
+</html>

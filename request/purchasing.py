@@ -1,6 +1,9 @@
 import config
 import hashlib
 import bisect
+import json
+import time
+
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['purchasing_mgr']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -9,7 +12,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = {
             'tab_cur_idx' : 2,
             'title': 'Purchasing',
-            'tabs': [ ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup') ]
+            'tabs': [ ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup'), ('price_adjustment', 'Price Adjustment') ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
         
@@ -19,6 +22,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_item_margin(self):
     	self.req.writefile('purchasing/item_margin.html')
+
+    def fn_price_adjustment(self):
+        self.req.writefile('purchasing/price_adjustment.html')
 
     
     def fn_get_dept_margin(self):
@@ -218,6 +224,109 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         res['len'] = rlen
         res['apg'] = apg
         self.req.writejs(ret)
+
+
+    def fn_load_history(self):
+        sid = self.qsv_str('sid')
+        
+        ws = ''
+        if sid: ws = ' and t.ref=%d' % (int(sid), )
+
+        cur= self.cur()
+        cur.execute("select t.*,q.state,q.errno,q.js,p.ponum,p.global_js from inv_request t left join sync_purchaseorders p on (t.ref=p.sid) left join qbpos q on (t.qbpos_id=q.id) where t.dtype=3 "+ws+" order by t.pid desc limit 10")
+        cnz = cur.column_names
+        lst = []
+        for r in cur.fetchall():
+            r = dict(zip(cnz, r))
+
+            r['pjs'] = r['pjs'] and json.loads(r['pjs']) or {}
+            r['js'] = r['js'] and json.loads(r['js']) or {}
+            r['gjs'] = r['global_js'] and json.loads(r['global_js']) or {}
+            r['ref'] = str(r['ref'])
+            del r['global_js']
+
+            sts = 'Pending'
+            if r['flg'] & 1:
+                sts = 'Transfering'
+                if r['state'] == 2:
+                    if not r['errno']:
+                        sts = 'Transfered'
+                    else:
+                        sts = 'Error'
+            r['sts'] = sts
+
+            lst.append(r)
+
+        self.req.writejs(lst)
+
+    def fn_load_po(self):
+        po_id = self.qsv_str('po_id')
+
+        cur = self.cur()
+        cur.execute("select * from sync_purchaseorders where ponum=%s", (po_id,))
+        rows = cur.fetchall()
+        if not rows: return
+        r = dict(zip(cur.column_names, rows[0]))
+
+        ijs = r['ijs'] =  json.loads(r['items_js'])
+        r['gjs'] =  json.loads(r['global_js'])
+        r['items_js'] = r['global_js'] =  None
+        r['sid'] = str(r['sid'])
+
+        sids = [ str(f_x['itemsid']) for f_x in ijs ]
+        if sids:
+            items = {}
+            cur.execute("select sid,detail,detail2 from sync_items where sid in (%s)" % (','.join(sids),))
+            for rr in cur.fetchall(): items[ rr[0] ] = rr
+
+            for rr in ijs:
+                item = items[ rr['itemsid'] ]
+                rr['itemsid'] = str(rr['itemsid'])
+                js = rr['js'] = json.loads(item[1])
+                #js['units'] = dict([(f_x[2].lower(), f_x) for f_x in js['units']])
+                rr['js2'] = json.loads(item[2])
+
+        self.req.writejs(r)
+
+
+    def fn_adjust_po(self):
+        po = self.req.psv_js('js')
+        
+        for r in po['ijs']:
+            r['units'] = [ list(map(lambda f_x: round(f_x, 2), f_u[:-2])) + [f_u[-2], int(f_u[-1])] for f_u in r['units'] ]
+            r['cost'] = round(r['cost'], 2)
+            r['new_cost'] = round(r['new_cost'], 2)
+            r['new_diff'] = round(r['new_diff'], 2)
+            r['sid'] = int(r['sid'])
+
+        js = {
+            'ijs': po['ijs'],
+        }
+        
+        cur = self.cur()
+        js_s = json.dumps(js, separators=(',',':'))
+        cur.execute('insert into inv_request values (null,1,0,3,1,%s,0,%s,%s,%s,%s)', (
+            int(po['sid']), int(time.time()), self.user_id, '', js_s
+            )
+        )
+        pid = cur.lastrowid
+        cur.execute("insert into qbpos values(null,1,0,-99,3,%s,null,0,null)", (pid,))
+        qbpos_id = cur.lastrowid
+        cur.execute("update inv_request set rev=rev+1,qbpos_id=%s where pid=%s", (qbpos_id, pid))
+        cur.execute("update qbpos set rev=rev+1,state=1 where id=%s", (qbpos_id,))
+
+        self.req.writejs( {'pid': pid} )
+
+
+    def fn_get_po_sid_by_num(self):
+        num = self.req.qsv_int('num')
+
+        cur = self.cur()
+        cur.execute("select sid from sync_purchaseorders where ponum=%s order by sid asc", (num, ))
+        rows = cur.fetchall()
+        sid = rows and str(rows[0][0]) or ''
+
+        self.req.writejs({'sid': sid})
 
 
 
