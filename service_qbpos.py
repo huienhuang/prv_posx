@@ -16,7 +16,9 @@ __g_pos_conn = None
 def get_pos_conn():
 	global __g_pos_conn
 	if __g_pos_conn == None:
+		print "Get QBPOS Connection..", 
 		__g_pos_conn = QBPOS.OpenConnection(g_cfg["computer"], g_cfg["company"], "8")
+		print "OK",
 
 	return __g_pos_conn
 

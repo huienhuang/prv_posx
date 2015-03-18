@@ -83,25 +83,33 @@ def parse_receipt(r):
     
     items = []
     total_price_tax = 0.0
-    sur_pos.execute('select i.itemsid,i.Clerk,i.Price,i.PriceTax,i.Qty,d.deptsid from ReceiptItem i left join ReceiptItemDesc d on(i.sid=d.sid and i.itempos=d.itempos) where i.SID = ? and i.ItemSID != 1000000005', (r['sid'],))
+    sur_pos.execute('select i.itemsid,i.Clerk,i.Price,i.PriceTax,i.Qty,d.deptsid,i.cost from ReceiptItem i left join ReceiptItemDesc d on(i.sid=d.sid and i.itempos=d.itempos) where i.SID = ? and i.ItemSID != 1000000005', (r['sid'],))
     for s in sur_pos.fetchall():
-        itemsid,clerk,price,price_tax,qty,deptsid = s
+        itemsid,clerk,price,price_tax,qty,deptsid,cost = s
         
         qty = float(qty)
         price = float(price)
         price_tax = float(price_tax)
+        cost = float(cost)
         if r['receipttype'] > 0:
             price = -price
             price_tax = -price_tax
+            cost = -cost
         
         price = round(price * qty * rate, 5)
         price_tax = round(price_tax * qty * rate, 5)
         total_price_tax += price_tax
+
+        #fallback
+        if cost:
+            cost = round(cost * qty, 5)
+        else:
+            cost = price
         
         cate = (g_depts.get(deptsid) or [None, None])[1]
         if cate == None: cate = (g_item_depts.get(itemsid) or [None, None])[1]
         
-        items.append( (itemsid, clerk.lower(), price, qty, cate) )
+        items.append( (itemsid, clerk.lower(), price, qty, cate, cost) )
     
     r['is_invoice'] = bool(not is_local_reversed and round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
