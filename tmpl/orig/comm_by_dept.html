@@ -71,8 +71,8 @@ function render(months, cates, sales_only)
                 cate_total = cates_total[ cates[i] || null ];
                 if(cate_total === undefined) continue;
                 total[0] += cate_total[s_base + 0] || 0;
-                total[1] += cate_total[s + 1] || 0;
-                total[2] += cate_total[s + 2] || 0;
+                total[1] += cate_total[s_base + 1] || 0;
+                total[2] += cate_total[s_base + 2] || 0;
             }
         }
         
