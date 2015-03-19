@@ -55,6 +55,9 @@ function apply(dont_load)
 
 function render(months, cates, sales_only)
 {
+    var report_type = parseInt(g_v_ctrl_type.val());
+    var s_base = report_type * 3;
+    
     var clerks_total = {};
     for(var m = 0; m < months.length; m++) {
         var clerks = g_data[ months[m] ];
@@ -67,9 +70,9 @@ function render(months, cates, sales_only)
             for(var i = 0; i < cates.length; i++) {
                 cate_total = cates_total[ cates[i] || null ];
                 if(cate_total === undefined) continue;
-                total[0] += cate_total[0];
-                total[1] += cate_total[1];
-                total[2] += cate_total[2];
+                total[0] += cate_total[s_base + 0] || 0;
+                total[1] += cate_total[s + 1] || 0;
+                total[2] += cate_total[s + 2] || 0;
             }
         }
         
@@ -114,6 +117,9 @@ function render(months, cates, sales_only)
 
 function open_dlg_clerk(cnz)
 {
+    var report_type = parseInt(g_v_ctrl_type.val());
+    var s_base = report_type * 3;
+    
     g_v_clerk_xtbl_footer.empty();
     g_v_clerk_xtbl.empty();
     
@@ -136,9 +142,9 @@ function open_dlg_clerk(cnz)
             if(cate_total === undefined) continue;
             
             var total = s[1];
-            total[0] += cate_total[0];
-            total[1] += cate_total[1];
-            total[2] += cate_total[2];
+            total[0] += cate_total[s_base + 0] || 0;
+            total[1] += cate_total[s_base + 1] || 0;
+            total[2] += cate_total[s_base + 2] || 0;
         }
     }
     
@@ -189,6 +195,7 @@ $('.xtbl_header').tooltip();
 
 g_v_tp_ctrl = $('.tp_ctrl');
 g_v_ctrl_clerk = $('select[name="ctrl_clerk"]', g_v_tp_ctrl).change(evt_apply);
+g_v_ctrl_type = $('select[name="ctrl_type"]', g_v_tp_ctrl).change(evt_apply);
 g_v_main_xtbl = $('.main_tbl .xtbl');
 g_v_main_xtbl_footer = $('.main_tbl .xtbl_footer .xtbl_row');
 
@@ -300,13 +307,15 @@ $('.filter').hover(null, function() {
 </div>
 
 <select name="ctrl_clerk" style="width:130px"><option value="0">All Clerks</option><option value="1">Sales Only</option></select>
+<select name="ctrl_type" style="width:130px"><option value="1">Profit Only</option><option value="0">Total Sales</option></select>
+
 <input style="margin-left:10px" type="button" value="export" class="btn" />
 <input style="margin-left:10px" type="button" value="quit" class="btn" />
 
 </div>
 
 <div class="main_tbl">
-<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="NotRcved + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div title="1% of Estimated">*Commission*</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Sales</div><div title="NotRcved + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>*Commission*</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>

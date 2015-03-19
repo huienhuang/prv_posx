@@ -197,17 +197,21 @@ for num,r in g_receipts.items():
         g_numrec.setdefault(USER_MAP.get(r_clerk, r_clerk), [0])[0] += (r['receipttype'] and -1 or 1)
     
     qb = r.get('qb')
-    for itemsid, clerk, price, qty, cate in r['items']:
+    for itemsid, clerk, price, qty, cate, cost in r['items']:
         clerk = USER_MAP.get(clerk, clerk)
-        p = g_clerks.setdefault(clerk, {}).setdefault(cate, [0, 0, 0])
+        p = g_clerks.setdefault(clerk, {}).setdefault(cate, [0, 0, 0,  0, 0, 0])
         
+        profit = price - cost
         if included:
             if not is_invoice or qb:
                 p[1] += price
+                p[3 + 1] += profit
             else:
                 p[0] += price
+                p[3 + 0] += profit
         else:
             p[2] += price
+            p[3 + 2] += profit
 
 
 cPickle.dump( g_receipts, open(datafile_a, 'wb'), 1 )

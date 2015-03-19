@@ -62,14 +62,21 @@ for r in cur:
     for t in items:
         if t['itemsid'] == 1000000005: continue
         extprice = t['price'] * t['qty'] * disc
-        if rtype > 0: extprice = -extprice
+        extcost = t['cost'] * t['qty']
+        if rtype > 0:
+            extprice = -extprice
+            extcost = -extcost
+
+        if not extcost: extcost = extprice
         
         cate = (DEPTS.get(t['deptsid']) or [None, None])[1]
         if cate == None: cate = (ITEM_DEPTS.get(t['itemsid']) or [None, None])[1]
         
         clerk = (t['clerk'] or '').lower()
         clerk = USER_MAP.get(clerk, clerk)
-        g_s.setdefault(clerk, {}).setdefault(cate, [0, 0, 0])[0] += extprice
+        v_s = g_s.setdefault(clerk, {}).setdefault(cate, [0, 0, 0,  0, 0, 0])
+        v_s[0] += extprice
+        v_s[3 + 0] += extprice - extcost
         
 
 cPickle.dump( (g_s, [], g_n), open(datafile, 'wb'), 1 )
