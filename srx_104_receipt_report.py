@@ -22,7 +22,9 @@ for r in cur:
     glbs = json.loads(r['global_js'])
     
     rtype = (r['type'] >> 8) & 0xFF
-    disc = (100 - glbs['discprc']) / 100
+    
+    disc = 1
+    if glbs['subtotal']: disc = 1 - glbs['discamt'] / glbs['subtotal']
     
     total_price = 0
     total_cost = 0
