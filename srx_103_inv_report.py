@@ -65,7 +65,11 @@ for r in cur:
     
     rtype = (r['type'] >> 8) & 0xFF
     rstatus = r['type'] & 0xFF
-    disc = (100 - glbs['discprc']) / 100
+    
+
+    disc = 1
+    if glbs['subtotal']: disc = 1 - glbs['discamt'] / glbs['subtotal']
+    
     
     for t in items:
         if t['itemsid'] == 1000000005: continue

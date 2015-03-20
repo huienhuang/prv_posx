@@ -34,7 +34,9 @@ for r in cur:
     gjs = json.loads(r['global_js'])
     
     rtype = (r['type'] >> 8) & 0xFF
-    disc = (100 - gjs['discprc']) / 100
+    
+    disc = 1
+    if glbs['subtotal']: disc = 1 - glbs['discamt'] / glbs['subtotal']
     
     tp = time.localtime(r['order_date'])
     dt_i = tp.tm_year * 100 + tp.tm_mon

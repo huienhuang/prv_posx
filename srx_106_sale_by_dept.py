@@ -54,7 +54,9 @@ for r in cur:
     glbs = json.loads(r['global_js'])
     
     rtype = (r['type'] >> 8) & 0xFF
-    disc = (100 - glbs['discprc']) / 100
+    
+    disc = 1
+    if glbs['subtotal']: disc = 1 - glbs['discamt'] / glbs['subtotal']
     
     r_clerk = r['assoc'].lower()
     g_n.setdefault(USER_MAP.get(r_clerk, r_clerk), [0])[0] += (rtype and -1 or 1)
