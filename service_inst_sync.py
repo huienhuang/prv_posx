@@ -14,7 +14,7 @@ import Queue
 import thread
 import db
 import traceback
-import QBPOS
+#import QBPOS
 import zlib
 import mysql.connector as MySQL
 import sqlanydb
