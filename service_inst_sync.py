@@ -25,7 +25,7 @@ class QBClient(TinyServer.TinyAsyncMsgClient):
 		TinyServer.TinyAsyncMsgClient.__init__(self, config.inst_sync_cfg['remote'])
 
 	def call_fn(self, fn, arg):
-		p = cPickle.dumps({'fn': fn, 'arg': arg, 'auth': hashlib.md5(str(config.secret_code_v1)).hexdigest()}, 1)
+		p = cPickle.dumps({'fn': fn, 'arg': arg, 'auth': config.inst_sync_cfg['auth']}, 1)
 		self.send_packet(zlib.compress(p, 9))
 
 		p = zlib.decompress( self.recv_packet() )
@@ -72,7 +72,7 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 			err_s = None
 			try:
 				p = cPickle.loads(p)
-				if p['auth'] == hashlib.md5(str(config.secret_code_v1)).hexdigest():
+				if p['auth'] == config.inst_sync_cfg['auth']:
 					try:
 						if p['fn'] == 'get_cust_chg':
 							ret = self.fn_get_cust_chg(p['arg'])
