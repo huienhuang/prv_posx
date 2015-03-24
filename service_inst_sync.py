@@ -71,28 +71,32 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 			err = -1
 			err_s = None
 			try:
-				p = cPickle.loads(p)
-				if p['auth'] == config.inst_sync_cfg['auth']:
-					try:
-						if p['fn'] == 'get_cust_chg':
-							ret = self.fn_get_cust_chg(p['arg'])
-						elif p['fn'] == 'get_remote_customer':
-							ret = self.fn_get_remote_customer(p['arg'])
-						elif p['fn'] == 'get_customer':
-							ret = self.fn_get_customer(p['arg'])
+				raddr = s.getpeername()
+				if raddr[0] == config.inst_sync_cfg['remote'][0]
+					p = cPickle.loads(p)
+					if p['auth'] == config.inst_sync_cfg['auth']:
+						try:
+							if p['fn'] == 'get_cust_chg':
+								ret = self.fn_get_cust_chg(p['arg'])
+							elif p['fn'] == 'get_remote_customer':
+								ret = self.fn_get_remote_customer(p['arg'])
+							elif p['fn'] == 'get_customer':
+								ret = self.fn_get_customer(p['arg'])
 
-					except MySQL.errors.Error, e:
-						self.dbc = None
-						raise
-					except sqlanydb.Error, e:
-						self.pdb = None
-						raise
-					except QBPOS.Error, e:
-						self.qbc = None
-						raise
-					err = 0
+						except MySQL.errors.Error, e:
+							self.dbc = None
+							raise
+						except sqlanydb.Error, e:
+							self.pdb = None
+							raise
+						except QBPOS.Error, e:
+							self.qbc = None
+							raise
+						err = 0
+					else:
+						err_s = 'AUTH ERROR'
 				else:
-					err_s = 'AUTH ERROR'
+					err_s = 'ADDR ERROR'
 
 			except Exception, e:
 				es = traceback.format_exc()
