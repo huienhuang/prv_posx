@@ -72,7 +72,7 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 			err_s = None
 			try:
 				raddr = s.getpeername()
-				if raddr[0] == config.inst_sync_cfg['remote'][0]
+				if raddr[0] == config.inst_sync_cfg['remote'][0]:
 					p = cPickle.loads(p)
 					if p['auth'] == config.inst_sync_cfg['auth']:
 						try:
