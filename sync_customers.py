@@ -49,6 +49,7 @@ def create_snapshots(mdb, lrs, mode):
         o = rs.get(sid)
         if o == None:
             reps.append( (sid, lts, n) )
+            difs.append( (sid, lts, []) )
             continue
         else:
             dif = []

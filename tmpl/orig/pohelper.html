@@ -240,6 +240,7 @@ function ac_item_search_response(event, ui) {
         var item = c[3] = $.parseJSON(c[3]);
         var units = item.units;
             
+        /*
         if (c[4] !== null) {
             var upc_uom_idx = parseInt(c[4]);
             if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
@@ -253,7 +254,9 @@ function ac_item_search_response(event, ui) {
                 }
             }
         }
-            
+        */
+        
+        item.default_uom_idx = item.order_uom_idx;
     }
 }
 
