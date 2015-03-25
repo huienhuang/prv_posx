@@ -121,7 +121,7 @@ function load_po_cb(js)
         r.new_diff = 0;
         
         var row = $('<div class="xtbl_row"></div>').data('ijs', r)
-        .append( $('<div></div>').text(r.itemno) )
+        .append( $('<div onclick="return click_item_hist.call(this)"></div>').text(r.itemno) )
         .append( $('<div></div>').text(r.desc1) )
         .append( $('<div></div>').text(r.qty + r.uom) )
         .append( $('<div></div>').text(u === undefined ? 'E' : (r.nunits * r.js2.cost).toFixed(2)) )
@@ -236,6 +236,12 @@ function apply()
     });
 }
 
+function click_item_hist()
+{
+    var row = $(this).closest('.xtbl_row');
+    var tid = row.data('ijs').itemsid;
+    window.open('hist?fn=itemhist&tid=' + tid,'posx_item_hist','location=0,width=992,height=700');
+}
 
 $(function() {
 
