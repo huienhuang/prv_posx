@@ -12,27 +12,17 @@ g_cfg = config.qbpos_cfg
 def rf(s, n=0): return config.round_ex(float(s), n)
 def rf2(s): return rf(s, 2)
 
-__g_pos_conn = None
-def get_pos_conn():
-	global __g_pos_conn
-	if __g_pos_conn == None:
-		print "Get QBPOS Connection..", 
-		__g_pos_conn = QBPOS.OpenConnection(g_cfg["computer"], g_cfg["company"], "8")
-		print "OK",
 
-	return __g_pos_conn
-
-def del_pos_conn():
-	global __g_pos_conn
-	__g_pos_conn = None
-
-
-def pos_process_request(c, s):
+def pos_process_request(s):
+	c = None
 	try:
-		return QBPOS.ProcessRequest(c, s)
-	except:
-		del_pos_conn()
-		raise
+		c = QBPOS.OpenConnection(g_cfg["computer"], g_cfg["company"], "8")
+		r = QBPOS.ProcessRequest(c, s)
+	finally:
+		c = None
+
+	return r
+
 
 def insert_transfer_slip(cur, r):
 	cur[0].execute("select t.*,u.user_name from inv_request t left join user u on (t.uid=u.user_id) where pid=%s and qbpos_id=%s", (r['doc_id'], r["id"]))
@@ -103,8 +93,7 @@ def insert_transfer_slip(cur, r):
 		T_TransferSlipAdd.append(TransferSlipItemAdd)
 
 	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
-	pos_conn = get_pos_conn()
-	xml = pos_process_request(pos_conn, xml.decode('utf8'))
+	xml = pos_process_request(xml.decode('utf8'))
 	if not xml: return (-111, None, 'QBPOS Runtime Error')
 	tree = ET.fromstring(xml)
 
@@ -184,9 +173,9 @@ def insert_po(cur, r):
 		T_PurchaseOrderAdd.append(T_PurchaseOrderItemAdd)
 
 	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
-	pos_conn = get_pos_conn()
-	xml = pos_process_request(pos_conn, xml.decode('utf8'))
+	xml = pos_process_request(xml.decode('utf8'))
 	if not xml: return (-111, None, 'QBPOS Runtime Error')
+	
 	tree = ET.fromstring(xml)
 
 	rs = tree.find("QBPOSXMLMsgsRs/PurchaseOrderAddRs")
@@ -309,8 +298,7 @@ def adjust_po(cur, r):
 				T_GROUP.append(T_ELEM)
 
 		xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
-		pos_conn = get_pos_conn()
-		xml = pos_process_request(pos_conn, xml.decode('utf8'))
+		xml = pos_process_request(xml.decode('utf8'))
 		if not xml: return (-111, None, 'QBPOS Runtime Error')
 		tree = ET.fromstring(xml)
 
@@ -321,45 +309,48 @@ def adjust_po(cur, r):
 
 	errc = 0
 	if any(p_it_flg):
+		chg_lst = []
 		for i in range(len(new_ijs)):
 			r = new_ijs[i]
 			if not p_it_flg[i]:
 				msgs.append('#' + str(i + 1) + ' - SKIP')
 				continue
+			r['line'] = i + 1
+			chg_lst.append(r)
 
-			tree = ET.fromstring('<QBPOSXML><QBPOSXMLMsgsRq onError="stopOnError"><ItemInventoryModRq><ItemInventoryMod></ItemInventoryMod></ItemInventoryModRq></QBPOSXMLMsgsRq></QBPOSXML>')
-			T_ROOT = tree.find('QBPOSXMLMsgsRq/ItemInventoryModRq/ItemInventoryMod')
+		chg_lst.sort(key=lambda f_v: f_v['sid'])
+		try:
+			for r in chg_lst:
+				n = 0
 
-			T_ELEM = ET.Element('ListID')
-			T_ELEM.text = str(r['sid'])
-			T_ROOT.append(T_ELEM)
+				u = r['units'][0]
+				cur[1].execute('update inventory set pricechanged=1,price1=?,price2=?,price3=?,price4=?,price5=?,price6=? where itemsid=?',
+					u[:6] + [r['sid'],]
+				)
+				if cur[1].rowcount > 0: n += 1
 
-			u = r['units'][0]
-			for j in range(5):
-				T_ELEM = ET.Element('Price' + str(j + 1))
-				T_ELEM.text = '%0.2f' % (u[j], )
-				T_ROOT.append(T_ELEM)
+				for u in r['units'][1:]:
+					cur[1].execute('update inventoryunits set price1=?,price2=?,price3=?,price4=?,price5=?,price6=? where itemsid=? and uompos=?',
+						u[:6] + [r['sid'], u[-1] - 1]
+					)
+					if cur[1].rowcount > 0: n += 1
 
-			k = 1
-			for u in r['units'][k:]:
-				T_GROUP = ET.Element('UnitOfMeasure' + str(k))
-				T_ROOT.append(T_GROUP)
-				for j in range(5):
-					T_ELEM = ET.Element('Price' + str(j + 1))
-					T_ELEM.text = '%0.2f' % (u[j], )
-					T_GROUP.append(T_ELEM)
+				cur[1].execute("insert into changejournal values(default,'Inventory',?,1,now(),'POSX', '-1')", (r['sid'],))
 
-			xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
-			pos_conn = get_pos_conn()
-			xml = pos_process_request(pos_conn, xml.decode('utf8'))
-			if not xml: return (-111, None, 'QBPOS Runtime Error')
-			tree = ET.fromstring(xml)
+				if n != len(r['units']):
+					errc += 1
+					msgs.append('#' + str(r['line']) + ' - NOT ALL UPDATED')
+				else:
+					msgs.append('#' + str(r['line']) + ' - OK')
 
-			rs = tree.find("QBPOSXMLMsgsRs/ItemInventoryModRs")
-			msg = ('#' + str(i + 1) + ' - ' + rs.get('statusSeverity') + ' ' + rs.get('statusMessage', '')).strip()
-
-			if int(rs.get('statusCode')) != 0: errc += 1
-			msgs.append(msg)
+			print 'ADJUST ITEMS COMMITING...', 
+			cur[1].execute('commit')
+			print 'OK'
+		except:
+			cur[1].execute('rollback')
+			print 'ADJUST ITEMS EXCEPTION',
+			errc += 1
+			msgs.append('ADJUST ITEMS EXCEPTION')
 
 	ret = validate(cur, posr, req, new_ijs)
 	if ret[0]:

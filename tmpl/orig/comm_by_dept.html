@@ -68,6 +68,9 @@ function render(months, cates, sales_only)
     var report_type = parseInt(g_v_ctrl_type.val());
     var s_base = report_type * 3;
     
+    var f_cates = {};
+    for(var i = 0; i < cates.length; i++) f_cates[ cates[i].toLowerCase() || null ] = true;
+    
     var clerks_total = {};
     for(var m = 0; m < months.length; m++) {
         var clerks = g_data[ months[m] ];
@@ -77,13 +80,19 @@ function render(months, cates, sales_only)
             var total = clerks_total[cnz];
             if(total === undefined) total = clerks_total[cnz] = [0, 0, 0];
             var cates_total = clerks[cnz];
-            for(var i = 0; i < cates.length; i++) {
-                cate_total = cates_total[ cates[i] || null ];
-                if(cate_total === undefined) continue;
+            
+            for(var cate_nz in cates_total) {
+                var cate_total = cates_total[cate_nz];
+                
+                cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
+                if(g_cates[cate_nz] === undefined) cate_nz = null;
+                if(f_cates[cate_nz] === undefined) continue;
+                
                 total[0] += cate_total[s_base + 0] || 0;
                 total[1] += cate_total[s_base + 1] || 0;
                 total[2] += cate_total[s_base + 2] || 0;
             }
+
         }
         
     }
@@ -140,22 +149,32 @@ function open_dlg_clerk(cnz)
     
     var v_cbs = $('.filter_cate input');
     var cates = [];
-    for(var i = 0; i < v_cbs.length; i++) cates.push( [$(v_cbs[i]).val(), [0, 0, 0]] );
+    var f_cates = {};
+    for(var i = 0; i < v_cbs.length; i++) {
+        var nz = $(v_cbs[i]).val();
+        var s = [0, 0, 0];
+        cates.push([nz, s]);
+        f_cates[ nz.toLowerCase() || null ] = s;
+    }
     
     for(var m = 0; m < months.length; m++) {
         var cates_total = g_data[ months[m] ][cnz];
         if(cates_total === undefined) continue;
         
-        for(var i = 0; i < cates.length; i++) {
-            var s = cates[i];
-            cate_total = cates_total[ s[0] || null ];
-            if(cate_total === undefined) continue;
+        for(var cate_nz in cates_total) {
+            var cate_total = cates_total[cate_nz];
             
-            var total = s[1];
+            cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
+            if(g_cates[cate_nz] === undefined) cate_nz = null;
+            
+            var total = f_cates[cate_nz];
+            if(total === undefined) continue;
+            
             total[0] += cate_total[s_base + 0] || 0;
             total[1] += cate_total[s_base + 1] || 0;
             total[2] += cate_total[s_base + 2] || 0;
         }
+        
     }
     
     var total_all = [0, 0, 0, 0, 0];
@@ -218,6 +237,9 @@ g_v_dlg_clerk = $('#dlg_clerk').dialog({
 g_v_clerk_xtbl = $('.xtbl', g_v_dlg_clerk);
 g_v_clerk_xtbl_footer = $('.xtbl_footer .xtbl_row', g_v_dlg_clerk);
 
+var v_cbs = $('.filter_cate input');
+g_cates = {};
+for(var i = 0; i < v_cbs.length; i++) g_cates[ $(v_cbs[i]).val().toLowerCase() || null ] = true;
 
 g_v_filter_chg = false;
 $('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
@@ -279,7 +301,7 @@ $('.filter').hover(null, function() {
 .tiny_popup:hover >div:nth-child(2) {display:block;}
 
 .tiny_popup >div:nth-child(2) {width:510px;}
-.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap;overflow-x:hidden}
 .tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
