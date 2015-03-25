@@ -340,11 +340,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         d_date = map(int, self.req.psv_ustr('date').split('/'))
         o_date = datetime.date(d_date[2], d_date[0], d_date[1])
         
-        if o_date < datetime.date.today():
-            if self.user_lvl & DELIVERY_MGR_PERM:
-                pass
-            else:
-                self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
+        #if o_date < datetime.date.today():
+        #    if self.user_lvl & DELIVERY_MGR_PERM:
+        #        pass
+        #    else:
+        #        self.req.exitjs({'err': -9, 'err_s': "Invalid Date"})
         d_date = o_date.year * 10000 + o_date.month * 100 + o_date.day
         
         d_type = int(bool(self.req.psv_int('type')))
