@@ -489,7 +489,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dr['auto_print'] = 0
         self.req.writefile('delivery_printing_accounting_report_v2.html', dr)
         
-    fn_delivery_printing_accounting_report.PERM = 1 << config.USER_PERM_BIT['accounting']
+    #fn_delivery_printing_accounting_report.PERM = 1 << config.USER_PERM_BIT['accounting']
 
     def fn_delivery_printing_for_driver(self):
         d_id = self.req.qsv_int('d_id')
@@ -657,7 +657,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         dr['auto_print'] = 0
         self.req.writefile('delivery_printing_accounting_daily_report_v2.html', dr)
         
-    fn_delivery_printing_accounting_daily_report.PERM = 1 << config.USER_PERM_BIT['accounting']
+    #fn_delivery_printing_accounting_daily_report.PERM = 1 << config.USER_PERM_BIT['accounting']
 
 
     def fn_delete(self):
