@@ -279,8 +279,12 @@ def adjust_po(cur, r):
 		T_ELEM.text = str(req['ref'])
 		T_ROOT.append(T_ELEM)
 
+		comments = []
+		if po['comments']: comments.append(po['comments'])
+		comments.append('POSX Adjusted(#%s) - %s' % (req['pid'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime())))
+
 		T_ELEM = ET.Element('Instructions')
-		T_ELEM.text = ', '.join([(po['comments'] or ''), 'POSX Adjusted(#%s) - %s' % (req['pid'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()))])
+		T_ELEM.text = ', '.join(comments)
 		T_ROOT.append(T_ELEM)
 
 		for i in range(len(new_ijs)):
@@ -324,7 +328,7 @@ def adjust_po(cur, r):
 				n = 0
 
 				u = r['units'][0]
-				cur[1].execute('update inventory set pricechanged=1,price1=?,price2=?,price3=?,price4=?,price5=?,price6=? where itemsid=?',
+				cur[1].execute('update inventory set pricechanged=1,lastedit=now(),price1=?,price2=?,price3=?,price4=?,price5=?,price6=? where itemsid=?',
 					u[:6] + [r['sid'],]
 				)
 				if cur[1].rowcount > 0: n += 1
