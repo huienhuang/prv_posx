@@ -5,7 +5,7 @@ import json
 import time
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['purchasing_mgr']
+DEFAULT_PERM = 1 << config.USER_PERM_BIT['purchasing']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):

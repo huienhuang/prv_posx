@@ -317,7 +317,7 @@ def adjust_po(cur, r):
 		for i in range(len(new_ijs)):
 			r = new_ijs[i]
 			if not p_it_flg[i]:
-				msgs.append('#' + str(i + 1) + ' - SKIP')
+				#msgs.append('#' + str(i + 1) + ' - SKIP')
 				continue
 			r['line'] = i + 1
 			chg_lst.append(r)
@@ -343,9 +343,9 @@ def adjust_po(cur, r):
 
 				if n != len(r['units']):
 					errc += 1
-					msgs.append('#' + str(r['line']) + ' - NOT ALL UPDATED')
+					msgs.append('#' + str(r['line']) + ' - NOT ALL UPDATED - ' + str(r['units']))
 				else:
-					msgs.append('#' + str(r['line']) + ' - OK')
+					msgs.append('#' + str(r['line']) + ' - OK - ' + str(r['units']))
 
 			print 'ADJUST ITEMS COMMITING...', 
 			cur[1].execute('commit')

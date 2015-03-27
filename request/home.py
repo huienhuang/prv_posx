@@ -57,7 +57,7 @@ TOOLS_MAP = (
 #    ('Tracker', 'problemtracker', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
 #    ('Cycle Count', 'cycle_count', PERM_NORMAL_ACCESS),
 #    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
-    ('Report', 'purchasing', PERM_PURCHASING_MGR),
+    ('Report', 'purchasing', PERM_PURCHASING),
 #    ('PO', 'po_request', PERM_NORMAL_ACCESS),
     ('Request', 'ts_request', PERM_NORMAL_ACCESS),
 )),

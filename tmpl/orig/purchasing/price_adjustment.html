@@ -255,7 +255,7 @@ g_v_dlg_history = $('#dlg_history').dialog({
     },
 });
 g_v_dlg_history_inp = g_v_dlg_history.find('input').change(chg_load_history_inp);
-g_v_dlg_history_body = $(g_v_dlg_history.children()[1]).accordion();
+g_v_dlg_history_body = $(g_v_dlg_history.children()[1]).accordion({heightStyle: "content"});
 
 $('.btn').button();
 
