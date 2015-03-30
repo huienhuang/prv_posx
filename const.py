@@ -567,6 +567,89 @@ for k,v in ITEM_L_DEPT: ITEM_D_CATE.setdefault(v, []).append(k)
 ITEM_L_CATE = ITEM_D_CATE.items()
 ITEM_L_CATE.sort(key=lambda f_v: f_v[0])
 
+
+
+ITEM_L_CATE2 = (
+('apparel & textile', 'smallware & supply'),
+('asian cooking utensil', 'smallware & supply'),
+('asian cookware', 'smallware & supply'),
+('asianware', 'smallware & supply'),
+('bakery supplies', 'smallware & supply'),
+('bar supplies', 'smallware & supply'),
+('beverage equipments', 'equipment'),
+('beverageware', 'tabletop'),
+('beverageware - glass', 'tabletop'),
+('bussing & warewashing', 'janitorial'),
+('catering supplies', 'smallware & supply'),
+('cleaners', 'janitorial'),
+('cleaning supplies', 'janitorial'),
+('coffee service', 'smallware & supply'),
+('consumables', 'other'),
+('cooking equipment', 'equipment'),
+('cookware', 'smallware & supply'),
+('cups, lids & straws dispensers & organizers', 'smallware & supply'),
+('d -apparels', 'disposable'),
+('d -bags', 'disposable'),
+('d -dinnerwares', 'disposable'),
+('d -drink supplies', 'disposable'),
+('d -drinkwares', 'disposable'),
+('d -food prep & wraps', 'disposable'),
+('d -janitorial', 'disposable'),
+('d -office supplies', 'disposable'),
+('d -tabletops', 'disposable'),
+('d -take out containers', 'disposable'),
+('decorations', 'other'),
+('dinnerware - china', 'tabletop'),
+('dinnerware - glass', 'tabletop'),
+('dinnerware - melamine', 'tabletop'),
+('dinnerware - others', 'tabletop'),
+('dinnerware - serving and display ware', 'tabletop'),
+('fees', 'other'),
+('floor mats', 'janitorial'),
+('food holding and warming equipment', 'equipment'),
+('food prep equipment', 'equipment'),
+('food storage', 'smallware & supply'),
+('forest supplies', 'other'),
+('furniture accessories', 'furniture'),
+('ice machines', 'equipment'),
+('internal use', 'other'),
+('janitorial dispensers', 'janitorial'),
+('kitchen cutlery', 'smallware & supply'),
+('kitchen supplies', 'smallware & supply'),
+('kitchen utensils', 'smallware & supply'),
+('office supplies', 'other'),
+('other furnitures', 'furniture'),
+('pest control', 'janitorial'),
+('pizza supplies', 'smallware & supply'),
+('plumbing', 'janitorial'),
+('racks & carts', 'storage & transport'),
+('refrigeration equipment', 'equipment'),
+('restroom supplies', 'janitorial'),
+('safety supplies', 'janitorial'),
+('seating', 'furniture'),
+('serving utensil', 'smallware & supply'),
+('shelving', 'storage & transport'),
+('signs & crowd control', 'smallware & supply'),
+('silverware & flatware', 'tabletop'),
+('small appliances', 'equipment'),
+('tables', 'furniture'),
+('tabletop accessories', 'tabletop'),
+('tabletop display & decor', 'tabletop'),
+('trash containers & receptacles', 'janitorial'),
+('trays', 'smallware & supply'),
+('warewashing equipment', 'equipment'),
+('work tables & equipment stands', 'equipment'),
+)
+
+ITEM_D_CATE2 = dict(ITEM_L_CATE2)
+
+ITEM_D_TYPE = {}
+for k,v in ITEM_L_CATE2: ITEM_D_TYPE.setdefault(v, []).append(k)
+ITEM_L_TYPE = ITEM_D_TYPE.items()
+ITEM_L_TYPE.sort(key=lambda f_v: f_v[0])
+
+
+
 """
 ZONES = (
     ('*Other*', set([]), ),

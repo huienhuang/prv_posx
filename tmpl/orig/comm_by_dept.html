@@ -5,18 +5,30 @@
 <title>POSX - Comm By Dept</title>
 
 <script type="text/javascript">
-g_data = {};
-g_sales = {'anthony':1, 'ray': 1, 'hilda': 1};
+<%
+import json
 
-g_rates = {
+COMM_RATES = {
 "disposable": 0.01,
 "janitorial": 0.01,
-"shelf & storage": 0.05,
-"smallware": 0.05,
+"storage & transport": 0.05,
+"smallware & supply": 0.05,
 "tabletop": 0.05,
 "furniture": 0.10,
 "equipment": 0.10,
-};
+}
+
+CATE_RATES = []
+for f_cate,f_type in const.ITEM_L_CATE2:
+    rate = COMM_RATES.get(f_type) or 0.0
+    CATE_RATES.append( (f_cate, rate) )
+    
+CATE_RATES = dict(CATE_RATES)
+%>
+
+g_cate_rates = ${json.dumps(CATE_RATES, separators=(',',':'))};
+g_data = {};
+g_sales = {'ray': 1, 'hilda': 1};
 
 function evt_apply()
 {
@@ -67,6 +79,7 @@ function render(months, cates, sales_only)
 {
     var report_type = parseInt(g_v_ctrl_type.val());
     var s_base = report_type * 3;
+    var cate_rates = s_base ? g_cate_rates : {};
     
     var f_cates = {};
     for(var i = 0; i < cates.length; i++) f_cates[ cates[i].toLowerCase() || null ] = true;
@@ -78,7 +91,7 @@ function render(months, cates, sales_only)
             if(sales_only && !g_sales[cnz]) continue;
             
             var total = clerks_total[cnz];
-            if(total === undefined) total = clerks_total[cnz] = [0, 0, 0];
+            if(total === undefined) total = clerks_total[cnz] = [0, 0, 0, 0];
             var cates_total = clerks[cnz];
             
             for(var cate_nz in cates_total) {
@@ -88,16 +101,19 @@ function render(months, cates, sales_only)
                 if(g_cates[cate_nz] === undefined) cate_nz = null;
                 if(f_cates[cate_nz] === undefined) continue;
                 
+                var c_recv = cate_total[s_base + 1] || 0;
+                var p_recv = cate_total[s_base + 2] || 0;
                 total[0] += cate_total[s_base + 0] || 0;
-                total[1] += cate_total[s_base + 1] || 0;
-                total[2] += cate_total[s_base + 2] || 0;
+                total[1] += c_recv;
+                total[2] += p_recv;
+                total[3] += (cate_rates[cate_nz] || 0.0) * (c_recv + p_recv);
             }
 
         }
         
     }
     
-    overall_total = [0, 0, 0];
+    overall_total = [0, 0, 0, 0];
     var cnzs = [];
     for(var cnz in clerks_total) cnzs.push(cnz);
     cnzs.sort();
@@ -108,6 +124,7 @@ function render(months, cates, sales_only)
         overall_total[0] += total[0];
         overall_total[1] += total[1];
         overall_total[2] += total[2];
+        overall_total[3] += total[3];
         
         g_v_main_xtbl.append(
             $('<div class="xtbl_row"></div>')
@@ -117,7 +134,7 @@ function render(months, cates, sales_only)
             .append( $('<div></div>').text(total[1].toFixed(2)) )
             .append( $('<div></div>').text(total[2].toFixed(2)) )
             .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
-            .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) )
+            .append( $('<div></div>').text( total[3].toFixed(2) ) )
         );
         
     }
@@ -130,7 +147,7 @@ function render(months, cates, sales_only)
     .append( $('<div></div>').text(total[1].toFixed(2)) )
     .append( $('<div></div>').text(total[2].toFixed(2)) )
     .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
-    .append( $('<div></div>').text( ((total[1] + total[2]) * 0.01).toFixed(2) ) );
+    .append( $('<div></div>').text( total[3].toFixed(2) ) );
 
 }
 
@@ -138,6 +155,7 @@ function open_dlg_clerk(cnz)
 {
     var report_type = parseInt(g_v_ctrl_type.val());
     var s_base = report_type * 3;
+    var cate_rates = s_base ? g_cate_rates : {};
     
     g_v_clerk_xtbl_footer.empty();
     g_v_clerk_xtbl.empty();
@@ -152,7 +170,7 @@ function open_dlg_clerk(cnz)
     var f_cates = {};
     for(var i = 0; i < v_cbs.length; i++) {
         var nz = $(v_cbs[i]).val();
-        var s = [0, 0, 0];
+        var s = [0, 0, 0, 0];
         cates.push([nz, s]);
         f_cates[ nz.toLowerCase() || null ] = s;
     }
@@ -170,14 +188,18 @@ function open_dlg_clerk(cnz)
             var total = f_cates[cate_nz];
             if(total === undefined) continue;
             
+            var c_recv = cate_total[s_base + 1] || 0;
+            var p_recv = cate_total[s_base + 2] || 0;
+                
             total[0] += cate_total[s_base + 0] || 0;
-            total[1] += cate_total[s_base + 1] || 0;
-            total[2] += cate_total[s_base + 2] || 0;
+            total[1] += c_recv;
+            total[2] += p_recv;
+            total[3] += (cate_rates[cate_nz] || 0.0) * (c_recv + p_recv);
         }
         
     }
     
-    var total_all = [0, 0, 0, 0, 0];
+    var total_all = [0, 0, 0, 0, 0, 0];
     for(var i = 0; i < cates.length; i++) {
         var s = cates[i];
         var total = s[1];
@@ -187,12 +209,14 @@ function open_dlg_clerk(cnz)
         var r_recved = total[1];
         var r_prevrecved = total[2];
         var r_estimated = total[1] + total[2];
+        var r_commission = total[3];
         
         total_all[0] += r_total;
         total_all[1] += r_pending;
         total_all[2] += r_recved;
         total_all[3] += r_prevrecved;
         total_all[4] += r_estimated;
+        total_all[5] += r_commission;
         
         g_v_clerk_xtbl.append(
             $('<div class="xtbl_row"></div>')
@@ -202,6 +226,7 @@ function open_dlg_clerk(cnz)
             .append( $('<div></div>').text(r_recved.toFixed(2)))
             .append( $('<div></div>').text(r_prevrecved.toFixed(2)) )
             .append( $('<div></div>').text(r_estimated.toFixed(2)) )
+            .append( $('<div></div>').text(r_commission.toFixed(2)) )
         );
     }
     g_v_clerk_xtbl_footer
@@ -211,6 +236,7 @@ function open_dlg_clerk(cnz)
     .append( $('<div></div>').text(total_all[2].toFixed(2)) )
     .append( $('<div></div>').text(total_all[3].toFixed(2)) )
     .append( $('<div></div>').text(total_all[4].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[5].toFixed(2)) );
     
     g_v_dlg_clerk.dialog('option', 'title', cnz).dialog('open');
     
@@ -230,7 +256,7 @@ g_v_main_xtbl_footer = $('.main_tbl .xtbl_footer .xtbl_row');
 
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
     autoOpen: false,
-    width:850,
+    width:970,
     height:500,
 });
 
@@ -290,7 +316,7 @@ $('.filter').hover(null, function() {
 .xtbl {position:absolute;top:37px;bottom:37px;right:0;left:0;overflow:auto;}
 
 #dlg_clerk {position:relative}
-#dlg_clerk .xtbl_row {min-width:820px;}
+#dlg_clerk .xtbl_row {min-width:940px;}
 #dlg_clerk .xtbl_row > div:nth-child(1) {width:220px;}
 
 
@@ -353,7 +379,7 @@ $('.filter').hover(null, function() {
 </div>
 
 <div id="dlg_clerk">
-<div class="xtbl_header"><div class="xtbl_row"><div>Dept</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div>Dept</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>Commission</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
