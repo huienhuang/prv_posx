@@ -5,17 +5,44 @@
 <title>POSX - Comm By Dept</title>
 
 <script type="text/javascript">
+<%
+import json
+%>
+g_aus = ${json.dumps(aus, separators=(',',':'))};
 
 $(function() {
 
 $('#btn_save_users').button().click(function() {
-    var lst = $('input[name="user_id"]:checked');
-    var user_nzs = [];
-    for(var i = 0; i < lst.length; i++) user_nzs.push( $(lst[i]).val() );
+    var mgr_id = parseInt(g_v_mgr_id.val());
+    if(!mgr_id) return;
     
-    post_js_ex('?fn=set_cfg', {'user_nzs': JSON.stringify(user_nzs)}, function(js) {
+    var uids = [];
+    for(var i = 0; i < g_v_allowed_users.length; i++) {
+        var o = $(g_v_allowed_users[i]);
+        if(!o.prop('checked')) continue;
+        uids.push(o.val());
+    }
+    
+    post_js_ex('?fn=set_cfg', {'js': JSON.stringify( {uids: uids, mgr_id: mgr_id} )}, function(js) {
         window.location.reload();
     });
+    
+});
+
+
+g_v_allowed_users = $('#allowed_users input[name="user_id"]');
+
+g_v_mgr_id = $('#mgr_id').change(function() {
+    var mgr_id = parseInt(g_v_mgr_id.val());
+    g_v_allowed_users.prop('checked', false);
+    if(!mgr_id) return;
+    
+    var uids = g_aus['' + mgr_id] || {};
+    
+    for(var i = 0; i < g_v_allowed_users.length; i++) {
+        var o = $(g_v_allowed_users[i]);
+        o.prop('checked', !!uids[o.val()]);
+    }
     
 });
 
@@ -37,11 +64,21 @@ body {padding:20px;}
 </head>
 <body>
 
-<div class="allowed_users">
-%for u in sales_users:
-<div><input type="checkbox" name="user_id" value="${u[1]|h}"${u[2] and 'checked="checked"' or ''} /><span>${u[1]|h}</span></div>
+<select id="mgr_id">
+<option value="">- Select Manager -</option>
+%for u in users:
+%if u['is_mgr']:
+<option value="${u['id']}">${u['name']|h}</option>
+%endif
+%endfor
+</select>
+
+<div id="allowed_users">
+%for u in users:
+<div><input type="checkbox" name="user_id" value="${u['id']}" /><span>${u['name']|h}</span></div>
 %endfor
 </div>
+
 <div><button id="btn_save_users" type="button" class="btn btn-lg btn-primary">Save</button></div>
 
 </body>

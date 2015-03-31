@@ -165,7 +165,7 @@ function open_dlg_clerk(cnz)
     var months = [];
     for(var i = 0; i < v_cbs.length; i++) months.push( $(v_cbs[i]).val() );
     
-    var v_cbs = $('.filter_cate input');
+    var v_cbs = $('.filter_cate input:checked');
     var cates = [];
     var f_cates = {};
     for(var i = 0; i < v_cbs.length; i++) {

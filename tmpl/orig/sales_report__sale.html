@@ -92,6 +92,9 @@ function render_graph()
 
 function render(months, cates, users)
 {
+    var f_cates = {};
+    for(var i = 0; i < cates.length; i++) f_cates[ cates[i].toLowerCase() || null ] = true;
+    
     var clerks_d = [];
     for(var u = 0; u < users.length; u++) {
         var unz = users[u];
@@ -102,11 +105,15 @@ function render(months, cates, users)
             if(m_d === undefined) continue;
             
             var total = 0;
-            for(var i = 0; i < cates.length; i++) {
-                var total_c = m_d[ cates[i] || null ];
-                if(total_c === undefined) continue;
-                total += total_c[0] + total_c[1];
-            }
+            for(var cate_nz in m_d) {
+                var total_c = m_d[cate_nz];
+                
+                cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
+                if(g_cates[cate_nz] === undefined) cate_nz = null;
+                if(f_cates[cate_nz] === undefined) continue;
+                
+                total = total_c[0] + total_c[1];
+            }    
             u_d[m] = total;
         }
     }
@@ -176,19 +183,37 @@ function open_dlg_clerk(cnz, mnz)
     if(g_data[mnz] === undefined || g_data[mnz][cnz] === undefined) return;
     var total_m = g_data[mnz][cnz];
     
-    var all_total = 0;
-    var lst = [];
     var v_cbs = $('.filter_cate input:checked');
+    var cates = [];
+    var f_cates = {};
     for(var i = 0; i < v_cbs.length; i++) {
         var nz = $(v_cbs[i]).val();
-        var total_cate = total_m[nz || null];
-        if(total_cate === undefined) continue;
+        var s = [0];
+        cates.push([nz, s]);
+        f_cates[ nz.toLowerCase() || null ] = s;
+    }
+    
+    for(var cate_nz in total_m) {
+        var total_cate = total_m[cate_nz];
+            
+        cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
+        if(g_cates[cate_nz] === undefined) cate_nz = null;
         
-        var c_total = total_cate[0] + total_cate[1];
-        all_total += c_total;
+        var total = f_cates[cate_nz];
+        if(total === undefined) continue;
+        
+        total[0] += total_cate[0] + total_cate[1];
+    }
+    
+    var lst = [];
+    var all_total = 0;
+    for(var i = 0; i < cates.length; i++) {
+        var cate = cates[i];
+        all_total += cate[1][0];
+        if(!cate[1][0]) continue;
         lst.push($('<div class="prntbl_row"></div>')
-            .append( $('<div></div>').text(nz || '*NotInList*') )
-            .append( $('<div></div>').text(c_total.toFixed(2)) )
+            .append( $('<div></div>').text(cate[0] || '*NotInList*') )
+            .append( $('<div></div>').text(cate[1][0].toFixed(2)) )
             
         );
     }
@@ -273,6 +298,10 @@ $('.filter').hover(null, function() {
 
 g_v_form_dl = $('#form_dl');
 
+var v_cbs = $('.filter_cate input');
+g_cates = {};
+for(var i = 0; i < v_cbs.length; i++) g_cates[ $(v_cbs[i]).val().toLowerCase() || null ] = true;
+
 }); //ready
 
 </script>
@@ -296,6 +325,8 @@ g_v_form_dl = $('#form_dl');
 .diff_pct_dec {color:#e93f3f}
 
 #dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
+#dlg_clerk .prntbl_row > div:nth-child(1) {width:250px}
+
 
 .tiny_popup {position:relative;display:inline-block;line-height:32px;}
 .tiny_popup >div:nth-child(1) {text-align:center}
