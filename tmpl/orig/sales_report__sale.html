@@ -112,7 +112,7 @@ function render(months, cates, users)
                 if(g_cates[cate_nz] === undefined) cate_nz = null;
                 if(f_cates[cate_nz] === undefined) continue;
                 
-                total = total_c[0] + total_c[1];
+                total += total_c[0] + total_c[1];
             }    
             u_d[m] = total;
         }
