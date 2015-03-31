@@ -15,6 +15,7 @@ PERM_SALES_MGR = 1 << config.USER_PERM_BIT['sales_mgr']
 PERM_SALES = 1 << config.USER_PERM_BIT['sales']
 PERM_DELIVERY_MGR = 1 << config.USER_PERM_BIT['delivery_mgr']
 PERM_PURCHASING_MGR = 1 << config.USER_PERM_BIT['purchasing_mgr']
+PERM_PURCHASING_MGR_ADV = 1 << config.USER_PERM_BIT['delivery_mgr_adv']
 
 PERM_PURCHASING = 1 << config.USER_PERM_BIT['purchasing']
 
@@ -65,7 +66,7 @@ TOOLS_MAP = (
 ('Sales', (
     ('History', 'hist', PERM_NORMAL_ACCESS),
     ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
-    ('Sales Report', 'salesreport', PERM_SALES_MGR),
+    ('Sales Report', 'salesreport', PERM_SALES_MGR | PERM_PURCHASING_MGR_ADV),
     ('Customer Sales', 'custsales', PERM_ADMIN),
 )),
 
