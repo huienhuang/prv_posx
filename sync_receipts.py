@@ -100,7 +100,7 @@ def sync_receipts(cj_data, mode=0):
 
     seq = 0
     sql = ''
-    cur.execute("select sid,billtosid,receiptnum,receipttype,receiptstatus,receiptrefsid,sorefsid,sotype,sonum,tendertype,cashier,clerk,total,subtotal,taxamount,discamount,discpercent,receiptdate,receipttime,feeamount,creationdate,comments,pricelevel,comments,workstation from Receipt where " + where_sql + ' order by sid asc')
+    cur.execute("select sid,billtosid,receiptnum,receipttype,receiptstatus,receiptrefsid,sorefsid,sotype,sonum,tendertype,cashier,clerk,total,subtotal,taxamount,discamount,discpercent,receiptdate,receipttime,feeamount,creationdate,comments,pricelevel,comments,workstation,store from Receipt where " + where_sql + ' order by sid asc')
     cur_nzs = [ d[0].lower() for d in cur.description ]
     for r in cur.rows():
         r = dict(zip(cur_nzs, r))
@@ -204,6 +204,7 @@ def sync_receipts(cj_data, mode=0):
             'qtycount': qty_count,
             'memo': r['comments'] or '',
             'station': r['workstation'],
+            'store': r['store'],
         }
         gjs['crc'] = data_helper.get_receipt_crc(r, gjs, items)
         gjs['items_crc'] = data_helper.get_doc_items_crc(items)
