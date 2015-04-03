@@ -23,10 +23,10 @@ for r in cur.rows():
 	r = dict(zip(col_nzs, r))
 
 	units = []
-	units.append((
-		( rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ),
+	units.append([
+		[ rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ],
 		r['alu'] or '', r['unitofmeasure'] or '', 1, r['upc'] and str(r['upc']) or ''
-	))
+	])
 
 	g_items[ r['itemsid'] ] = units
 
@@ -37,7 +37,7 @@ for r in cur.rows():
 	r = dict(zip(col_nzs, r))
 
 	u = [
-		( rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ),
+		[ rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ],
 		r['alu'] or '', r['unitofmeasure'] or '', rf2(r['unitfactor']), r['upc'] and str(r['upc']) or ''
 	]
 
