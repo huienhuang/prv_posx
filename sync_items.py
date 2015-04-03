@@ -35,7 +35,7 @@ def sync_items(cj_data, mode=0):
         
         upc_lku = {}
         
-        sur.execute('select price1,price2,price3,price4,price5,price6,alu,unitofmeasure,unitfactor,upc from InventoryUnits where itemsid=?', (itemsid,))
+        sur.execute('select price1,price2,price3,price4,price5,price6,alu,unitofmeasure,unitfactor,upc from InventoryUnits where itemsid=? order by uompos asc', (itemsid,))
         units = []
         obu_idx = sbu_idx = k = 0
         sell_by_unit = r['sellbyunit'] and r['sellbyunit'].lower() or None

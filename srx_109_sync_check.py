@@ -31,7 +31,7 @@ for r in cur.rows():
 	g_items[ r['itemsid'] ] = units
 
 
-cur.execute('select * from inventoryunits')
+cur.execute('select * from inventoryunits order by uompos asc')
 col_nzs = [ d[0].lower() for d in cur.description ]
 for r in cur.rows():
 	r = dict(zip(col_nzs, r))
