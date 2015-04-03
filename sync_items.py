@@ -54,7 +54,7 @@ def sync_items(cj_data, mode=0):
             )
         )
         
-        sur.execute('select vendname,alu,upc,ordercost,vendsid from InventoryVendor where itemsid=? and vendname is not null', (itemsid,))
+        sur.execute('select vendname,alu,upc,ordercost,vendsid from InventoryVendor where itemsid=? and vendname is not null order by vendorpos asc', (itemsid,))
         vends = []
         costs = []
         for x in sur.fetchall():
