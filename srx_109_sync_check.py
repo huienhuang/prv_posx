@@ -7,6 +7,7 @@ import os
 import db as mydb
 import math
 import sys
+import TinyServer
 
 
 def ri(s): return int(math.floor(float(s)))
@@ -65,10 +66,25 @@ for sid,units in g_items.items():
 
 if not config.inst_sync_cfg.get('master'): sys.exit()
 
+
+
+
+class QBClient(TinyServer.TinyAsyncMsgClient):
+	def __init__(self):
+		TinyServer.TinyAsyncMsgClient.__init__(self, config.inst_sync_cfg['remote'])
+
+	def call_fn(self, fn, arg):
+		p = cPickle.dumps({'fn': fn, 'arg': arg, 'auth': config.inst_sync_cfg['auth']}, 1)
+		self.send_packet(zlib.compress(p, 9))
+
+		p = zlib.decompress( self.recv_packet() )
+		return cPickle.loads(p)['ret']
+
+
 print " <--> "
 print 'Comparing HQ AND STORE'
 
-g_items_2 = get_qb_client().call_fn('get_item_units', {})
+g_items_2 = QBClient().call_fn('get_item_units', {})
 
 for sid,units in g_items.items():
 	units_2 = g_items_2.get(sid)
