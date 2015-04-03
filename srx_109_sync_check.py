@@ -51,7 +51,7 @@ g_items_2 = {}
 mdb = mydb.db_mdb()
 cur = mdb.cursor()
 cur.execute('select sid,detail from sync_items')
-for r in cur.rows(): g_items_2[ r[0] ] = json.loads(r[1])['units']
+for r in cur: g_items_2[ r[0] ] = json.loads(r[1])['units']
 
 
 for sid,units in g_items.items():
