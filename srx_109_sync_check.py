@@ -8,7 +8,7 @@ import db as mydb
 import math
 import sys
 import TinyServer
-
+import zlib
 
 def ri(s): return int(math.floor(float(s)))
 def rf(s, n=0): return config.round_ex(float(s), n)
