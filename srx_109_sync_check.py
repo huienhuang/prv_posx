@@ -6,12 +6,15 @@ import json
 import os
 import db as mydb
 import math
+import sys
 
 
 def ri(s): return int(math.floor(float(s)))
 def rf(s, n=0): return config.round_ex(float(s), n)
 def rf2(s): return rf(s, 2)
 
+
+print 'Comparing POS AND POSX'
 
 g_items = {}
 
@@ -58,4 +61,18 @@ for sid,units in g_items.items():
 	units_2 = g_items_2.get(sid)
 	if units != units_2:
 		print sid, units, units_2
+
+
+if not config.inst_sync_cfg.get('master'): sys.exit()
+
+print " <--> "
+print 'Comparing HQ AND STORE'
+
+g_items_2 = get_qb_client().call_fn('get_item_units', {})
+
+for sid,units in g_items.items():
+	units_2 = g_items_2.get(sid)
+	if units != units_2:
+		print sid, units, units_2
+
 

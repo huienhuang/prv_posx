@@ -20,6 +20,12 @@ import mysql.connector as MySQL
 import sqlanydb
 
 
+def ri(s): return int(math.floor(float(s)))
+def rf(s, n=0): return config.round_ex(float(s), n)
+def rf2(s): return rf(s, 2)
+
+
+
 class QBClient(TinyServer.TinyAsyncMsgClient):
 	def __init__(self):
 		TinyServer.TinyAsyncMsgClient.__init__(self, config.inst_sync_cfg['remote'])
@@ -82,6 +88,8 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 								ret = self.fn_get_remote_customer(p['arg'])
 							elif p['fn'] == 'get_customer':
 								ret = self.fn_get_customer(p['arg'])
+							elif p['fn'] == 'get_item_units':
+								ret = self.fn_get_item_units(p['arg'])
 
 						except MySQL.errors.Error, e:
 							self.dbc = None
@@ -158,6 +166,38 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 	def fn_get_customer(self, p):
 		xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?><QBPOSXML><QBPOSXMLMsgsRq onError="stopOnError"><CustomerQueryRq><ListID>%s</ListID></CustomerQueryRq></QBPOSXMLMsgsRq></QBPOSXML>' % (p['sid'],)
 		return QBPOS.ProcessRequest(self.get_qbc(), xml.decode('utf8'))
+
+	def fn_get_item_units(self, p):
+		ret = {}
+		cur = self.get_pdb().cursor()
+		cur.execute('select * from inventory where datastate=0')
+		col_nzs = [ d[0].lower() for d in cur.description ]
+		for r in cur.rows():
+			r = dict(zip(col_nzs, r))
+
+			units = []
+			units.append([
+				[ rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ],
+				r['alu'] or '', r['unitofmeasure'] or '', 1, r['upc'] and str(r['upc']) or ''
+			])
+
+			ret[ r['itemsid'] ] = units
+
+
+		cur.execute('select * from inventoryunits order by uompos asc')
+		col_nzs = [ d[0].lower() for d in cur.description ]
+		for r in cur.rows():
+			r = dict(zip(col_nzs, r))
+
+			u = [
+				[ rf2(r['price1']), rf2(r['price2']), rf2(r['price3']), rf2(r['price4']), rf2(r['price5']), rf2(r['price6']) ],
+				r['alu'] or '', r['unitofmeasure'] or '', rf2(r['unitfactor']), r['upc'] and str(r['upc']) or ''
+			]
+
+			ret.get(r['itemsid'], []).append(u)
+
+
+		return ret
 
 
 SNAPSHOT_CFNS = [u'Type', u'Title', u'FName', u'LName', u'Company', u'Address1', u'Address2', u'City', u'State', u'ZIP', u'Country', u'ShipAddrName', u'ShipCompany', u'ShipFullName', u'ShipAddress', u'ShipAddress2', u'ShipCity', u'ShipState', u'ShipZIP', u'ShipCountry', u'Phone1', u'Phone2', u'Phone3', u'Phone4', u'Email', u'Comments', u'UDF1', u'UDF2', u'UDF3', u'UDF4', u'UDF5', u'UDF6', u'UDF7', u'TaxArea', u'PriceLevel', u'DiscType', u'TrackRewards', u'CustomerID', u'WebNumber', u'WebFullNumber', u'EmailNotify', u'AR', u'UseAccCharge', u'AcceptChecks', u'DefaultShipTo', u'NoShipToBill', u'CreditLimit', u'DiscAllowed']
