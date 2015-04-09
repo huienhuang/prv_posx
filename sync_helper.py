@@ -115,6 +115,8 @@ def fs_to_cj(data):
     
     dbc = sqlanydb.connect(**g_pos_server)
     cur = dbc.cursor()
+    cur.execute("SET TEMPORARY OPTION CONNECTION_AUTHENTICATION='Company=Intuit Inc.;Application=QuickBooks Point of Sale;Signature=000fa55157edb8e14d818eb4fe3db41447146f1571g7262d341128bbd2768e586a0b43d5568a6bb52cc'")
+    
     try:
         while data:
             cur.executemany("insert into changejournal values(default,'Customer',?,1,now(),'POSX', '-1')", data[:500])

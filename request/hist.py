@@ -697,6 +697,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                 jsd['geo_addr'] = json.loads(js).get('addr')
         jsd['zone_nz'] = const.ZONES[zidx][0]
         
+        qb_cid = 0
+        if jsd['qblistid']: qb_cid = int(jsd['qblistid'].split('-')[0][1:], 16)
+        cust['qb_cid'] = qb_cid
+
         self.req.writefile('hist_cust.html', cust)
     
     def fn_itemhist(self):
@@ -758,3 +762,65 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writejs( {'cid': str(rows[0][0])} )
         
 
+    def fn_get_qb_balance(self):
+        cid = self.qsv_int('cid')
+        cur = self.cur()
+        cur.execute('select balance from qbcustomers where cid=%s', (cid, ))
+        rows = cur.fetchall()
+        self.req.writejs( {'balance': rows and rows[0][0] or 0} )
+
+    QB_DOCS_TYPES = {2: 'invoice', 3: 'credit', 4: 'payment'}
+    def fn_get_qb_docs(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+
+        flg = self.qsv_int('flag')
+        cid = self.qsv_int('cid')
+        pgsz = self.qsv_int('pagesize')
+        sidx = self.qsv_int('sidx')
+        eidx = self.qsv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+        
+
+        ws = ' where customer_id=%d' % (cid, )
+        if not flg: ws += ' and dtype=2 and is_paid=0'
+
+        cts = int(time.mktime(datetime.date.today().timetuple()))
+
+        cur = self.cur()
+        apg = []
+        if pgsz > 0 and sidx >= 0 and sidx < eidx:
+            cur.execute('select SQL_CALC_FOUND_ROWS *,(select s.num from qblinks l left join sync_receipts s on (l.sid=s.sid and s.sid_type=0) where l.tid=q.tid and l.doc_id=q.dtype limit 1) as rnum from qbdocs q'+ws+' order by tid desc limit %d,%d' % (
+                sidx * pgsz, (eidx - sidx) * pgsz
+                )
+            )
+            nzs = cur.column_names
+            for r in cur:
+                r = dict(zip(nzs, r))
+
+                bal_amt = ''
+                if r['dtype'] == 2:
+                    if not r['is_paid']:
+                        bal_amt = '%0.2f' % (r['bal_amt'], )
+                        if r['doc_due'] < cts: bal_amt += '*'
+
+                r = (
+                    self.QB_DOCS_TYPES.get(r['dtype'], ''),
+                    r['num'],
+                    r['rnum'] or '',
+                    time.strftime("%m/%d/%y", time.localtime(r['doc_ts'])),
+                    '%0.2f' % (r['amt'], ),
+                    bal_amt,
+                )
+
+                apg.append(r)
+        
+            cur.execute('select FOUND_ROWS()')
+            
+        else:
+            cur.execute('select count(*) from qbdocs' + ws)
+            
+        rlen = int(cur.fetchall()[0][0])
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)

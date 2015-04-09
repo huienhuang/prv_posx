@@ -6,12 +6,12 @@
 
 <script type="text/javascript">
 
-g_v_datagrid = [];
+g_v_datagrid = {};
 
 function show_all()
 {
     var o = $(this);
-    var d = g_v_datagrid[ o.data('tg_idx') ];
+    var d = g_v_datagrid[ o.data('tg_nz') ];
     d.tinygrid('src').data['flag'] = o.prop('checked') ? 1 : 0;
     d.tinygrid('update', -1, true, [-1], true);
 }
@@ -244,9 +244,16 @@ function on_hover_out__doc()
 }
 
 
+function load_qb_balance()
+{
+    get_js('?fn=get_qb_balance', {cid: '${qb_cid}'}, function(js) {
+        $('#item_tab_9_QB .qb_balance').text(js.balance.toFixed(2));
+    });
+}
+
 $(function() {
 
-g_v_datagrid[0] = $('#datagrid_hist').tinygrid({
+g_v_datagrid['hist'] = $('#datagrid_hist').tinygrid({
 name: 'rc',
 len:0,
 src:{page:'?fn=getpagecust', data:{'cid': '${cust_sid}'}},
@@ -271,7 +278,7 @@ click: function(r, c, d) {
 }
 });
 
-g_v_datagrid[1] = $('#datagrid_so').tinygrid({
+g_v_datagrid['so'] = $('#datagrid_so').tinygrid({
 name: 'so',
 len:0,
 src:{page:'sync?fn=getcustorders', data:{'cid': '${cust_sid}'}},
@@ -287,10 +294,10 @@ click: function(r, c, d) {
     open_wnd('sync?fn=printorder&type=2&rid=' + d[7],'posx_so_wnd');
 },
 footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show ALL</div>',
-init: function() { this.data.footer_row.showall.children('input').data('tg_idx', 1).change(show_all); }
+init: function() { this.data.footer_row.showall.children('input').data('tg_nz', 'so').change(show_all); }
 });
 
-g_v_datagrid[2] = $('#datagrid_item').tinygrid({
+g_v_datagrid['item'] = $('#datagrid_item').tinygrid({
 len:0,
 src:{page:'?fn=get_cust_items', data:{'cid': '${cust_sid}'}},
 cols: [{name:'Num', width:70},
@@ -309,7 +316,7 @@ click: function(r, c, d) {
 });
 
 g_receipt_srch_data = {}
-g_v_datagrid_receipt = g_v_datagrid[3] = $('#datagrid_receipt').tinygrid({
+g_v_datagrid_receipt = g_v_datagrid['receipt'] = $('#datagrid_receipt').tinygrid({
 len:0,
 src:{page:'?fn=get_srch_items&cid=${cust_sid}', data:g_receipt_srch_data},
 cols: [{name:'Receipt#', width:100},
@@ -326,7 +333,7 @@ click: function(r, c, d) {
 }
 });
 
-g_v_datagrid[4] = $('#datagrid_delivery').tinygrid({
+g_v_datagrid['delivery'] = $('#datagrid_delivery').tinygrid({
 len:0,
 src:{page:'?fn=get_cust_delivery&cid=${cust_sid}'},
 cols: [{name:'Receipt#', width:100},
@@ -349,6 +356,23 @@ click: function(r, c, d) {
             open_wnd('?fn=printreceipt&rid=' + d[9],'posx_print_wnd');
     }
 }
+});
+
+g_v_datagrid['QB'] = $('#datagrid_QB').tinygrid({
+len:0,
+src:{page:'?fn=get_qb_docs', data:{'cid': '${qb_cid}'}},
+cols: [{name:'Type', width:100},
+       {name:'QB#', width:100},
+       {name:'POS#', width:100},
+       {name:'Date', width:100},
+       {name:'Amount', width:100},
+       {name:'Balance', width:100},
+       ],
+click: function(r, c, d) {
+    if(d[2]) open_wnd('?fn=printreceipt&rno=' + d[2],'posx_print_wnd');
+},
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="checkbox" /> Show All</div>',
+init: function() { this.data.footer_row.showall.children('input').data('tg_nz', 'QB').change(show_all); }
 });
 
 g_v_srch_item = $('#srch_item').autocomplete({
@@ -459,23 +483,22 @@ g_v_item_tabs = $('.item_tabs').tabs({
         return true;
     },
     activate: function(event, ui) {
-        var idx = $(this).tabs('option', 'active');
-        if(!idx) return;
-        --idx;
-        
-        g_v_datagrid[idx] && g_v_datagrid[idx].tinygrid('update', -1, true);
-        
         var nz = ui.newTab.children('a').prop('hash').substr(12);
+        
+        g_v_datagrid[nz] && g_v_datagrid[nz].tinygrid('update', -1, true);
+        
         if(nz === 'schedule') {
             g_v_schedule.data('in_els').refresh[0].click();
-        } else if (nz === 'note') {
+        } else if(nz === 'note') {
             g_v_note.tinylist('refresh');
-        } else if (nz === 'sale') {
+        } else if(nz === 'sale') {
             load_sale_report();
-        } else if (nz === 'receipt') {
+        } else if(nz === 'receipt') {
             g_v_srch_item.focus();
-        } else if (nz === 'schedule_delivery') {
+        } else if(nz === 'schedule_delivery') {
             load_schedule_delivery();
+        } else if(nz === 'QB') {
+            load_qb_balance();
         }
         
     },
@@ -532,7 +555,7 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 .cnt_ctrl > span {font-size:16px;}
 
 .item_tabs {font-size:18px;position:absolute;top:96px;bottom:0;left:0;right:0;padding:0;}
-.tinygrid .tgft_showall {position:absolute;top:0;bottom:0;right:0;width:150px;font-weight:bold}
+.tinygrid .tgft_showall {position:absolute;top:0;bottom:0;right:0;width:150px;font-weight:bold;color:red}
 
 .ui-tabs-panel {padding:10px 5px 0 5px !important;}
 
@@ -598,6 +621,11 @@ g_v_item_tabs.tabs({active: ${dg_type + 1}});
 .doc_detail >div >div:nth-child(4) {width:100px}
 .doc_detail >div >div:nth-child(5) {width:260px}
 
+
+#datagrid_QB {top:86px}
+#item_tab_9_QB >div:first-child {font-weight:bold;color:blue}
+#item_tab_9_QB >div:first-child >span {color:red}
+
 </style>
 
 </head>
@@ -635,7 +663,7 @@ ${cust_info['address2']|h}
 <li><a href="#item_tab_0_hist">Receipt</a></li>
 <li><a href="#item_tab_1_so">SO</a></li>
 <li><a href="#item_tab_2_item">Item</a></li>
-<li style="float:right"><a href="#item_tab_3_receipt">Search</a></li>
+<li style="float:right"><a href="#item_tab_3_receipt">S</a></li>
 <li><a href="#item_tab_4_delivery">Delivery</a></li>
 <li><a href="#item_tab_9_schedule_delivery">Schedule</a></li>
 <li><a href="#item_tab_5_note">Note <img src="img/add.png" alt="add note" class="cls_icon_add cust_add_note" border="0" /></a></li>
@@ -643,6 +671,7 @@ ${cust_info['address2']|h}
 <li><a href="#item_tab_6_sale">Sale</a></li>
 %endif
 <li style="float:right"><a href="#item_tab_4_schedule">Info</a></li>
+<li style="float:right"><a href="#item_tab_9_QB">QB</a></li>
 </ul>
 
 <div id="item_tab_0_hist"><div id="datagrid_hist"></div></div>
@@ -685,6 +714,13 @@ ${cust_info['address2']|h}
 </div>
 </div>
 %endif
+
+<div id="item_tab_9_QB">
+<div>QB Balance: $<span class="qb_balance"></span></div>
+<div id="datagrid_QB"></div>
+</div>
+
+
 
 <div id="cnt_doc_detail" class="doc_detail"></div>
 
