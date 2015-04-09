@@ -22,14 +22,14 @@ def open_db(dbs, nz):
             print "SQLANY(POS)",
             dbc = sqlanydb.connect(**config.sqlany_pos)
             cur = dbc.cursor()
-            cur.execute("SET TEMPORARY OPTION isolation_level = 1;")
+            #cur.execute("SET TEMPORARY OPTION isolation_level = 1;")
             print 'Connected'
 
         elif nz == 'qb':
             print "SQLANY(QB)",
             dbc = sqlanydb.connect(**config.sqlany_qb)
             cur = dbc.cursor()
-            cur.execute("SET TEMPORARY OPTION isolation_level = 1;")
+            #cur.execute("SET TEMPORARY OPTION isolation_level = 1;")
             print 'Connected'
 
         db = dbs[nz] = (dbc, cur)
