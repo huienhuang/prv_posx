@@ -41,6 +41,11 @@ function change_cost()
     update_ui_price(row, r);
 }
 
+function _txt_markup(cost, price)
+{
+    return cost ? '(' + round2((price - cost) / cost * 100).toFixed(1) + '%)' : '';
+}
+
 function update_ui_price(row, r)
 {
     var u = r.cur_unit;
@@ -57,8 +62,10 @@ function update_ui_price(row, r)
     
     if(u === undefined)
         r.v_new_price.text('E');
-    else
-        r.v_new_price.text(r.new_diff ? ( u[0][0] * (100.0 + r.new_diff) / 100.0 ).toFixed(2) : '');
+    else {
+        var new_price = u[0][0] * (100.0 + r.new_diff) / 100.0;
+        r.v_new_price.text(r.new_diff ? new_price.toFixed(2) + _txt_markup(r.cost, new_price) : '');
+    }
 }
 
 
@@ -78,10 +85,10 @@ function get_item_price_tt()
         var p = [];
         for(var j = 0; j < units.length; j++) {
             var u = units[j];
-            p.push( $('<td></td>').text(u[0][i].toFixed(2)) );
+            p.push( $('<td></td>').text(u[0][i].toFixed(2) + _txt_markup(r.cost, u[0][i])) );
             if(r.new_diff) {
                 var np = round2(u[0][i] * (100.0 + r.new_diff) / 100.0);
-                p.push( $('<td class="'+(r.new_diff >= 0 ? 'p_val_inc' : 'p_val_dec')+'"></td>').text(np.toFixed(2)) );
+                p.push( $('<td class="'+(r.new_diff >= 0 ? 'p_val_inc' : 'p_val_dec')+'"></td>').text(np.toFixed(2) + _txt_markup(r.cost, np)) );
             }
             else
                 p.push( $('<td></td>') );
@@ -128,7 +135,7 @@ function load_po_cb(js)
         .append( $('<div></div>').text(r.cost) )
         .append( $('<div></div>').append(r.v_new_cost) )
         .append( $('<div></div>').append(r.v_diff_pct) )
-        .append( $('<div></div>').text(u === undefined ? 'E' : u[0][0].toFixed(2)) )
+        .append( $('<div></div>').text(u === undefined ? 'E' : u[0][0].toFixed(2) + _txt_markup(r.cost, u[0][0])) )
         .append( r.v_new_price )
         lst.push(row);
     }
@@ -286,7 +293,7 @@ els.btn_history[0].click(open_history_wnd);
 .tp_ctrl {height:50px;line-height:50px;padding-left:6px;}
 .tp_ctrl input, .tp_ctrl select {margin-right:6px;}
 
-.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
+.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:900px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:80px;position:relative}
 .xtbl .xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
 .xtbl .xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#fffcee;width:72px}
@@ -295,7 +302,8 @@ els.btn_history[0].click(open_history_wnd);
 .xtbl_row > div:nth-child(3) {width:80px}
 .xtbl_row > div:nth-child(4) {width:60px}
 .xtbl_row > div:nth-child(5) {cursor:pointer}
-.xtbl_row > div:nth-child(9) {cursor:pointer}
+.xtbl_row > div:nth-child(8) {width:150px}
+.xtbl_row > div:nth-child(9) {width:150px;cursor:pointer}
 
 
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
