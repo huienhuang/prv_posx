@@ -145,9 +145,9 @@ def sync_salesorders(cj_data, mode=0):
             mdb.escape_string(r['sonum'] and r['sonum'].encode('utf8') or ''),
             mdb.escape_string(r['clerk'] and r['clerk'].encode('utf8') or ''),
             mdb.escape_string(r['cashier'] and r['cashier'].encode('utf8') or ''),
-            r['sodate'] and int(time.mktime(time.strptime(r['sodate'], '%Y-%m-%d'))) + 11 * 3600 or 0,
-            r['soduedate'] and int(time.mktime(time.strptime(r['soduedate'], '%Y-%m-%d'))) + 11 * 3600 or 0,
-            int(time.mktime(time.strptime(r['creationdate'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
+            parse_dt_v2(r['sodate']),
+            parse_dt_v2(r['soduedate']),
+            parse_dt_v1(r['creationdate']),
             mdb.escape_string( global_js ),
             mdb.escape_string( json.dumps(items, separators=(',',':')) )
         )

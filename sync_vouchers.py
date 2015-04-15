@@ -86,10 +86,10 @@ def sync_vouchers(cj_data, mode=0):
             (r['voucherpaid'] << 16) | (r['vouchertype'] << 8) | r['voucherstatus'],
             r['vouchernum'],
             mdb.escape_string(r['clerk'] and r['clerk'].encode('utf8') or ''),
-            r['voucherdate'] and int(time.mktime(time.strptime(r['voucherdate'] + ' ' + r['vouchertime'].split('.')[0], '%Y-%m-%d %H:%M:%S'))) or 0,
-            r['invoiceduedate'] and int(time.mktime(time.strptime(r['invoiceduedate'], '%Y-%m-%d'))) or 0,
-            r['invoicedate'] and int(time.mktime(time.strptime(r['invoicedate'], '%Y-%m-%d'))) or 0,
-            int(time.mktime(time.strptime(r['creationdate'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
+            parse_dt_v1(r['voucherdate'] + ' ' + r['vouchertime']),
+            parse_dt_v2(r['invoiceduedate']),
+            parse_dt_v2(r['invoicedate']),
+            parse_dt_v1(r['creationdate']),
             mdb.escape_string( global_js ),
             mdb.escape_string( json.dumps(items, separators=(',',':')) )
         )

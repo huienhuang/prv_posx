@@ -36,7 +36,7 @@ def sync_items_hist(cj_data, mode=0):
             float(r['costnew']),
             float(r['costdiff']),
             float(r['extprice']),
-            int(time.mktime(time.strptime(r['docdate'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
+            parse_dt_v1(r['docdate']),
         )
         
         if len(sql) + len(sqlt) >= 1024 * (1024 - 1):

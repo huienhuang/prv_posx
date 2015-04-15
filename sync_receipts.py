@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import data_helper
+import sync_items_hist
 
 
 def index_customers(customers):
@@ -78,6 +79,36 @@ def index_items(items):
         mdb.query(sql)
         sql = ''
 
+def sync_hist(hists):
+    cur,sur = pos_db()
+    mdb = sys_db()
+
+    sids = list(hists)
+
+    hists = sids
+    while hists:
+        mdb.query('delete from sync_items_hist where sid_type=0 and flag<0x200 and docsid in (%s)' % (
+            ','.join(map(str, hists[:5000])),
+            )
+        )
+        hists = hists[5000:]
+
+
+    cj_data = []
+    hists = sids
+    while hists:
+        cur.execute('select histsid from inventoryhistory where doctype in (0,1) and docsid in (%s)' % (
+            ','.join(map(str, hists[:500])),
+            )
+        )
+        hists = hists[500:]
+        for r in cur.rows(): cj_data.append( ('inventoryhistory', r[0]) )
+
+
+    sync_items_hist.sync_items_hist(cj_data, 0)
+
+
+
 def sync_receipts(cj_data, mode=0):
     cur,sur = pos_db()
     mdb = sys_db()
@@ -97,6 +128,7 @@ def sync_receipts(cj_data, mode=0):
 
     idx_customers = {}
     idx_items = {}
+    #hists = set()
 
     seq = 0
     sql = ''
@@ -107,6 +139,7 @@ def sync_receipts(cj_data, mode=0):
         
         sid = r['sid']
         feed.append( (sid, 0) )
+        #hists.add(sid)
         
         customer_info = None
         if r['billtosid'] != None:
@@ -145,7 +178,7 @@ def sync_receipts(cj_data, mode=0):
                 'tracking': s[9] or '',
                 'amt': round(float(s[10]),5),
                 'taxamt': round(float(s[11]),5),
-                'date': s[12] and int(time.mktime(time.strptime(s[12].split('.')[0], '%Y-%m-%d %H:%M:%S'))) or 0,
+                'date': parse_dt_v1(s[12]),
             }
             if not any(shipping_info.values()):
                 shipping_info = None
@@ -222,8 +255,8 @@ def sync_receipts(cj_data, mode=0):
             mdb.escape_string(r['clerk'] and r['clerk'].encode('utf8') or ''),
             mdb.escape_string(r['cashier'] and r['cashier'].encode('utf8') or ''),
             r['pricelevel'],
-            int(time.mktime(time.strptime(r['receiptdate'] + ' ' + r['receipttime'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
-            int(time.mktime(time.strptime(r['creationdate'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
+            parse_dt_v1(r['receiptdate'] + ' ' + r['receipttime']),
+            parse_dt_v1(r['creationdate']),
             mdb.escape_string( global_js ),
             mdb.escape_string( json.dumps(items, separators=(',',':')) )
         )
@@ -248,6 +281,7 @@ def sync_receipts(cj_data, mode=0):
     index_customers(idx_customers)
     index_items(idx_items)
     
+    #if mode == 0: sync_hist(hists)
     
     while feed:
         qjs = mdb.escape_string( json.dumps(feed[:1000], separators=(',',':')) )

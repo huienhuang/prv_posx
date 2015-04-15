@@ -167,3 +167,19 @@ def sync_main(sync_cb):
     mode = len(sys.argv) > 1 and int(sys.argv[1]) or 0
     sync([sync_cb], mode)
 
+
+
+def parse_dt_v1(s):
+    try:
+        ts = s and int(time.mktime(time.strptime(s.split('.')[0], '%Y-%m-%d %H:%M:%S'))) or 0
+    except:
+        ts= 0
+    return ts
+
+
+def parse_dt_v2(s):
+    try:
+        ts = s and int(time.mktime(time.strptime(s, '%Y-%m-%d'))) or 0
+    except:
+        ts= 0
+    return ts

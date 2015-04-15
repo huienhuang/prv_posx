@@ -75,7 +75,7 @@ def sync_purchaseorders(cj_data, mode=0):
             'termsdiscdays': r['termsdiscdays'],
             'termsnetdays': r['termsnetdays'],
             'termsdisc': round(float(r['termsdisc']), 5),
-            'canceldate': r['pocanceldate'] and int(time.mktime(time.strptime(r['pocanceldate'], '%Y-%m-%d'))) or 0,
+            'canceldate': parse_dt_v2(r['pocanceldate']),
         }, separators=(',',':'))
         
         if mode != 1: mdb.query('delete from sync_link_item where doc_sid=%d and doc_type=1' % (sid,))
@@ -89,10 +89,10 @@ def sync_purchaseorders(cj_data, mode=0):
             status,
             mdb.escape_string(r['ponum'] and r['ponum'].encode('utf8') or ''),
             mdb.escape_string(r['clerk'] and r['clerk'].encode('utf8') or ''),
-            r['podate'] and int(time.mktime(time.strptime(r['podate'], '%Y-%m-%d'))) or 0,
-            r['poshipdate'] and int(time.mktime(time.strptime(r['poshipdate'], '%Y-%m-%d'))) or 0,
-            r['pototduedate'] and int(time.mktime(time.strptime(r['pototduedate'], '%Y-%m-%d'))) or 0,
-            int(time.mktime(time.strptime(r['creationdate'].split('.')[0], '%Y-%m-%d %H:%M:%S'))),
+            parse_dt_v2(r['podate']),
+            parse_dt_v2(r['poshipdate']),
+            parse_dt_v2(r['pototduedate']),
+            parse_dt_v1(r['creationdate']),
             mdb.escape_string( global_js ),
             mdb.escape_string( json.dumps(items, separators=(',',':')) )
         )

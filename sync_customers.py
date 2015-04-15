@@ -118,7 +118,7 @@ def sync_customers(cj_data, mode=0):
         del r['sid']
         feed.append( (sid, 0) )
 
-        lts = int(time.mktime(time.strptime(r['lastedit'].split('.')[0], '%Y-%m-%d %H:%M:%S')))
+        lts = parse_dt_v1(r['lastedit'])
         lrs.append( (sid, lts, lr) )
         
         #generate location hash
