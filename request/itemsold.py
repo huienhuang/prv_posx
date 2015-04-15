@@ -57,7 +57,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 year,month = tools.get_date_lower(year, month, imm)
             
                 k = '%04d-%02d' % (year, month)
-                stat.setdefault(sid, {}).setdefault(k, [0])[0] += r[1]
+                ss = stat.setdefault(sid, {}).setdefault(k, [0, 0, 0])
+                ss[0] += r[1]
+                ss[1] += r[4][0][0]
+                ss[2] += r[4][1][0]
 
         return stat
 

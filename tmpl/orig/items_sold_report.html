@@ -28,20 +28,24 @@ function upd_store(store_id)
 function set_store(store_id) {
     upd_store(store_id);
     
+    var stat = {};
     var lst = g_v_xtbl.children();
     for(var i = 0; i < lst.length; i++) {
         var row = $(lst[i]);
-        var js = row.data('item_data')[3];
-        var cds = row.children();
-        var s_qtys = js.stores[g_store_id];
+        var item = row.data('item_data');
+        var js = item[3];
         
+        var s_qtys = js.stores[g_store_id];
         if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3])
             row.addClass('below_reorder_point');
         else
             row.removeClass('below_reorder_point');
         
-        upd_qtys(cds, js);
+        var tid = item[0];
+        stat[tid] = g_items[tid].s || {};
     }
+    
+    load_items_sold_report_cb({stat: stat});
 }
 
 function change_store()
@@ -262,7 +266,7 @@ function load_items_sold_report_cb(js)
             var dt = yr + '-' + str_pad(mon, 2, '0');
             var qty = st[dt];
             if(qty) {
-                qty = qty[0];
+                qty = qty[g_store_id];
                 if(factor != 1) qty /= factor;
                 total += qty;
                 el.append( $('<div></div>').text(qty.toFixed(1)) );

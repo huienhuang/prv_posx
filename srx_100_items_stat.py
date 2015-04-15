@@ -18,6 +18,9 @@ for r in cur:
     
     items = json.loads(r['items_js'])
     glbs = json.loads(r['global_js'])
+
+    store_id = glbs.get('store', 1)
+    if store_id not in (1, 2): store_id = 1
     
     rtype = (r['type'] >> 8) & 0xFF
     
@@ -30,7 +33,11 @@ for r in cur:
         if not item: item = g_items[ t['itemsid'] ] = [set(), set(), {}, None]
         item[0].add(t['itemno'])
         item[1].add(t['desc1'])
-        stat = item[2].setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
+
+        mk = tp.tm_year * 100 + tp.tm_mon
+        stat = item[2].get(mk)
+        if not stat: stat = item[2][mk] = [0, 0, 0, ([0, 0, 0], [0, 0, 0])]
+
         total_base_qty = t['nunits'] * t['qty']
         total_price =  t['price'] * t['qty'] * disc
         total_cost = t['cost'] * t['qty']
@@ -39,10 +46,15 @@ for r in cur:
             total_base_qty = -total_base_qty
             total_price = -total_price
             total_cost = -total_cost
-            
+        
         stat[0] += total_base_qty
         stat[1] += total_price
         stat[2] += total_cost
+
+        s_stat = stat[3][store_id - 1]
+        s_stat[0] += total_base_qty
+        s_stat[1] += total_price
+        s_stat[2] += total_cost
 
 
 cur.execute('select * from sorder where (ord_flag&8)!=0')
@@ -62,7 +74,11 @@ for r in cur:
         if not item: item = g_items[ t['id'] ] = [set(), set(), {}, None]
         item[0].add(t['num'])
         item[1].add(t['in_desc'])
-        stat = item[2].setdefault(tp.tm_year * 100 + tp.tm_mon, [0, 0, 0])
+
+        mk = tp.tm_year * 100 + tp.tm_mon
+        stat = item[2].get(mk)
+        if not stat: stat = item[2][mk] = [0, 0, 0, ([0, 0, 0], [0, 0, 0])]
+
         total_base_qty = t['in_base_qty']
         total_price =  t['in_price'] * t['in_qty'] * disc
         total_cost = t['prev_qty'][4] * total_base_qty
@@ -75,6 +91,11 @@ for r in cur:
         stat[0] += total_base_qty
         stat[1] += total_price
         stat[2] += total_cost
+
+        s_stat = stat[3][0]
+        s_stat[0] += total_base_qty
+        s_stat[1] += total_price
+        s_stat[2] += total_cost
 
 
 g_vendors = {}
