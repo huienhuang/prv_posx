@@ -5,7 +5,7 @@ import cPickle
 import json
 import os
 import db as mydb
-
+import sys
 
 mdb = mydb.db_mdb()
 cur = mdb.cursor()
@@ -15,6 +15,7 @@ sids = set()
 cur.execute('select GROUP_CONCAT(sid) from sync_items_hist group by itemsid,docsid having count(*) > 1')
 for r in cur.fetchall(): sids.update( map(int, r[0].split(',')) )
 print len(sids)
+if not sids: sys.exit()
 
 
 pdb= mydb.db_pos()
@@ -40,7 +41,7 @@ while l_sids:
 
 nids = sids - eids
 print len(sids), len(eids), len(nids)
-
+if not nids: sys.exit()
 
 
 print 'Check Before Delete...',
@@ -54,6 +55,7 @@ for r in cur.fetchall():
 	if r[1] not in itemsids: continue
 	dids.add(r[0])
 print len(dids)
+if not dids: sys.exit()
 
 
 print 'Deleting...',
@@ -62,3 +64,5 @@ cur.execute('delete from sync_items_hist where sid_type=0 and sid in (%s)' % (
 	)
 )
 print 'Done'
+
+
