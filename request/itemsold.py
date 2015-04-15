@@ -7,10 +7,12 @@ import datetime
 import tools
 import csv
 import cStringIO
+import bisect
+
 
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['item stat access']
 ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BIT['item stat access'])
-class RequestHandler(App.load('/basehandler').RequestHandler):
+class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         cur = self.cur()
@@ -21,7 +23,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         }
         self.req.writefile('items_sold_report.html', r)
 
-    def get_items_sold_report(self, tids, frm_ts, to_ts, imm):
+    def __get_items_sold_report(self, tids, frm_ts, to_ts, imm):
         cur = self.cur()
         cur.execute('select h.itemsid,r.order_date,h.qtydiff from sync_items_hist h left join sync_receipts r on (h.docsid=r.sid and h.sid_type=r.sid_type) where h.itemsid in (%s) and r.order_date>=%d and r.order_date<%d and (h.flag>>8)<=1' % (
             ','.join(map(str, tids)), frm_ts, to_ts
@@ -36,6 +38,29 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             stat.setdefault(r[0], {}).setdefault(k, [0])[0] += -r[2]
             
         return stat
+
+    def get_items_sold_report(self, tids, frm_ts, to_ts, imm):
+        items = self.get_items_stat()
+
+        dt = time.localtime(frm_ts)
+        frm_mon = dt.tm_year * 100 + dt.tm_mon
+        dt = time.localtime(to_ts)
+        to_mon = dt.tm_year * 100 + dt.tm_mon
+
+        stat = {}
+        for sid in tids:
+            item = items.get(sid, (None, None, []))[2]
+            mon_lst = [ f_x[0] for f_x in item ]
+            for i in range( bisect.bisect_left(mon_lst, frm_mon),  bisect.bisect_left(mon_lst, to_mon) ):
+                r = item[i]
+                year,month = divmod(r[0], 100)
+                year,month = tools.get_date_lower(year, month, imm)
+            
+                k = '%04d-%02d' % (year, month)
+                stat.setdefault(sid, {}).setdefault(k, [0])[0] += r[1]
+
+        return stat
+
 
     def fn_get_items_sold_report(self):
         tids_lst = map(int, self.req.psv_ustr('tids').split(','))
