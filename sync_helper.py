@@ -6,7 +6,7 @@ import datetime
 import sys
 
 
-__all__ = ["ri", "rf", "rf2", "pos_db", "pos_db_close", "sys_db", "sys_db_close", "set_last_update_ts", "sync", "sync_main"]
+__all__ = ["ri", "rf", "rf2", "pos_db", "pos_db_close", "sys_db", "sys_db_close", "set_last_update_ts", "sync", "sync_main", "parse_dt_v1", "parse_dt_v2"]
 
 
 g_db = {}
