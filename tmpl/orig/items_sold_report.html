@@ -343,10 +343,14 @@ function load_profile()
     var pid = parseInt(g_v_profile.val());
     g_items = {};
     g_v_xtbl.empty();
+    g_v_point_sliders.slider('value', 0);
     if(!pid) return;
     
     $.get('?fn=load_profile', {pid: pid}, function(js) {
         if( !js || !js.pid || js.pid !== parseInt(g_v_profile.val()) ) return;
+        
+        $(g_v_point_sliders[0]).slider('value', js.pts ? js.pts[0] : 0);
+        $(g_v_point_sliders[1]).slider('value', js.pts ? js.pts[1] : 0);
         
         var frm_date = new Date();
         frm_date.setTime(js.frm_ts * 1000);
@@ -401,13 +405,18 @@ function __save_profile()
         var t = $(lst[i]).data('item_data');
         items.push( [t[0], t[3].default_uom_idx] );
     }
+    var pts = [
+        parseInt($(g_v_point_sliders[0]).slider('value')),
+        parseInt($(g_v_point_sliders[1]).slider('value'))
+    ];
     var data = {
         'pid': pid,
         'nz': nz,
         'frm_ts': parseInt(frm_ts / 1000),
         'to_ts': parseInt(to_ts / 1000),
         'interval': interval,
-        'items': items
+        'items': items,
+        'pts': pts
     }
     
     $.ajax({
@@ -493,6 +502,9 @@ g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
 g_v_tp_ctrl.children('input[value="delete"]').click(delete_profile);
 
 g_v_tp_ctrl.children('input[value="export"]').click(export_csv);
+g_v_tp_ctrl.children('input[value="point"]').click(function() {
+    g_v_dlg_point.dialog('open');
+});
 
 //g_v_tp_ctrl.children('input[value="Make PO"]').click(make_po);
 
@@ -511,6 +523,35 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 g_v_form_dl = $('#form_dl');
 
 g_v_v_change_store = $('#v_change_store').click(change_store);
+
+
+g_v_dlg_point = $('#dlg_point').dialog({
+    autoOpen:false,
+    modal:true,
+    width:500,
+    height:250,
+    open: function() {
+        for(var i = 0; i < g_v_point_sliders.length; i++) __update_point_slider.call(g_v_point_sliders[i]);
+    },
+    buttons: {
+        'OK': function() { g_v_dlg_point.dialog('close'); },
+    }
+});
+
+function __update_point_slider()
+{
+    var v = $(this);
+    var n = parseInt(v.slider('value'));
+    v.parent().prev().text(n + '%');
+}
+g_v_point_sliders = $('#dlg_point .sl_point').slider({
+    orientation: "horizontal",
+    range:"min",
+    max:100,
+    value:0,
+    slide: __update_point_slider,
+    change: __update_point_slider,
+});
 
 g_v_interval.change();
 
@@ -563,6 +604,14 @@ g_v_interval.change();
 
 .below_reorder_point {background-color:#fac4c4}
 
+#dlg_point .sl_val {width:100px;height:30px;}
+#dlg_point .sl_point {width:300px;margin:5px 10px}
+.red_point .ui-slider-range {background:#ef2929}
+.red_point .ui-slider-handle {border-color:#ef2929}
+.yellow_point .ui-slider-range {background:#eecb80}
+.yellow_point .ui-slider-handle {border-color:#be953c}
+
+
 </style>
 
 </head>
@@ -581,7 +630,8 @@ g_v_interval.change();
 <select style="width:100px;margin-left:20px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
 <input style="width:100px" type="text" title="From Date" name="frm_date" />
 <input style="width:100px" type="text" title="To Date" name="to_date" />
-<input type="button" value="apply" class="btn" />
+<input type="button" value="apply" class="btn" style="display:none" />
+<input type="button" value="point" class="btn" />
 <input type="button" value="export" class="btn" />
 <input type="button" value="quit" class="btn" />
 
@@ -594,6 +644,12 @@ g_v_interval.change();
 <div id="dlg_profile_name" title="Profile Name">Name: <input name="nz" type="text"/></div>
 
 <form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
+
+
+<div id="dlg_point" title="point">
+<div class="xlabel"><div></div><div><div class="red_point sl_point"></div></div></div>
+<div class="xlabel"><div></div><div><div class="yellow_point sl_point"></div></div></div>
+</div>
 
 </body>
 </html>

@@ -95,6 +95,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'to_ts': int(js['to_ts']),
             'interval': int(js['interval']),
             'items': items,
+            'pts': map(int, js.get('pts', [0, 0])[:2])
         }
         
         cur = self.cur()

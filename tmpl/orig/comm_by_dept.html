@@ -5,28 +5,7 @@
 <title>POSX - Comm By Dept</title>
 
 <script type="text/javascript">
-<%
-import json
-
-COMM_RATES = {
-"disposable": 0.01,
-"janitorial": 0.01,
-"storage & transport": 0.05,
-"smallware & supply": 0.05,
-"tabletop": 0.05,
-"furniture": 0.10,
-"equipment": 0.10,
-}
-
-CATE_RATES = []
-for f_cate,f_type in const.ITEM_L_CATE2:
-    rate = COMM_RATES.get(f_type) or 0.0
-    CATE_RATES.append( (f_cate, rate) )
-    
-CATE_RATES = dict(CATE_RATES)
-%>
-
-g_cate_rates = ${json.dumps(CATE_RATES, separators=(',',':'))};
+g_cate_rates = {};
 g_data = {};
 g_sales = {'ray': 1, 'hilda': 1};
 
@@ -79,7 +58,7 @@ function render(months, cates, sales_only)
 {
     var report_type = parseInt(g_v_ctrl_type.val());
     var s_base = report_type * 3;
-    var cate_rates = s_base ? g_cate_rates : {};
+    var cate_rates = g_cate_rates;
     
     var f_cates = {};
     for(var i = 0; i < cates.length; i++) f_cates[ cates[i].toLowerCase() || null ] = true;
@@ -106,7 +85,7 @@ function render(months, cates, sales_only)
                 total[0] += cate_total[s_base + 0] || 0;
                 total[1] += c_recv;
                 total[2] += p_recv;
-                total[3] += (cate_rates[cate_nz] || 0.0) * (c_recv + p_recv);
+                total[3] += (cate_rates[cate_nz] ? cate_rates[cate_nz][report_type] : 0.0) * (c_recv + p_recv);
             }
 
         }
@@ -155,7 +134,7 @@ function open_dlg_clerk(cnz)
 {
     var report_type = parseInt(g_v_ctrl_type.val());
     var s_base = report_type * 3;
-    var cate_rates = s_base ? g_cate_rates : {};
+    var cate_rates = g_cate_rates;
     
     g_v_clerk_xtbl_footer.empty();
     g_v_clerk_xtbl.empty();
@@ -194,7 +173,7 @@ function open_dlg_clerk(cnz)
             total[0] += cate_total[s_base + 0] || 0;
             total[1] += c_recv;
             total[2] += p_recv;
-            total[3] += (cate_rates[cate_nz] || 0.0) * (c_recv + p_recv);
+            total[3] += (cate_rates[cate_nz] ? cate_rates[cate_nz][report_type] : 0.0) * (c_recv + p_recv);
         }
         
     }
@@ -218,6 +197,9 @@ function open_dlg_clerk(cnz)
         total_all[4] += r_estimated;
         total_all[5] += r_commission;
         
+        var key = s[0].toLowerCase() || null;
+        var prate = ((cate_rates[key] ? cate_rates[key][report_type] : 0.0) * 100).toFixed(0);
+        
         g_v_clerk_xtbl.append(
             $('<div class="xtbl_row"></div>')
             .append( $('<div></div>').text(s[0] || '*NotInList*') )
@@ -226,7 +208,7 @@ function open_dlg_clerk(cnz)
             .append( $('<div></div>').text(r_recved.toFixed(2)))
             .append( $('<div></div>').text(r_prevrecved.toFixed(2)) )
             .append( $('<div></div>').text(r_estimated.toFixed(2)) )
-            .append( $('<div></div>').text(r_commission.toFixed(2)) )
+            .append( $('<div></div>').text(r_commission.toFixed(2) + ' (' + prate + '%)') )
         );
     }
     g_v_clerk_xtbl_footer
@@ -242,10 +224,31 @@ function open_dlg_clerk(cnz)
     
 }
 
+function ui_load_rates(js)
+{
+    var vlst = $('#dlg_comm table tr');
+    for(var i = 1; i < vlst.length; i++) {
+        var vs = $(vlst[i]).children();
+        var type = $(vs[0]).text().toLowerCase();
+        var r = js.rates[type];
+        $(vs[1]).find('input').val(r && r[1] ? r[1] : '');
+        $(vs[2]).find('input').val(r && r[0] ? r[0] : '');
+    }
+}
+
+function load_rates()
+{
+    get_js('?fn=get_comm_rate_v2', {}, function(js) {
+        g_cate_rates = js.cate_rates || {};
+        evt_apply();
+    });
+}
+
 $(function() {
 
 $('.btn').button();
 $('.tp_ctrl > input[value="quit"]').click(go_home);
+$('.tp_ctrl > input[value="rate"]').click(function() { g_v_dlg_comm.dialog('open'); });
 $('.xtbl_header').tooltip();
 
 g_v_tp_ctrl = $('.tp_ctrl');
@@ -288,6 +291,34 @@ $('.filter').hover(null, function() {
     apply();
 })
 
+g_v_dlg_comm = $('#dlg_comm').dialog({
+    autoOpen: false,
+    width:460,
+    height:500,
+    open: function() {
+        get_js('?fn=get_comm_rate', {}, ui_load_rates);
+    },
+    buttons: {
+        'save': function() {
+            var vlst = $('#dlg_comm table tr');
+            var lst = [];
+            for(var i = 1; i < vlst.length; i++) {
+                var vs = $(vlst[i]).children();
+                var type = $(vs[0]).text();
+                var rate_1 = parseInt($(vs[1]).find('input').val()) || 0;
+                var rate_0 = parseInt($(vs[2]).find('input').val()) || 0;
+                lst.push( [type, rate_0, rate_1] );
+            }
+            
+            post_js('?fn=set_comm_rate', {'js': JSON.stringify(lst)}, function(js) {
+                g_v_dlg_comm.dialog('close');
+                load_rates();
+            });
+        },
+    }
+});
+
+load_rates();
 
 }); //ready
 
@@ -332,7 +363,10 @@ $('.filter').hover(null, function() {
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
 
-
+#dlg_comm input[type='text'] {width:100px}
+#dlg_comm table tr td:first-child {text-align:center}
+#dlg_comm table tr:nth-child(even) {background-color:#eee}
+#dlg_comm table tr:hover {background-color:#d2eaff}
 </style>
 
 </head>
@@ -367,6 +401,7 @@ $('.filter').hover(null, function() {
 <select name="ctrl_clerk" style="width:130px"><option value="0">All Clerks</option><option value="1">Sales Only</option></select>
 <select name="ctrl_type" style="width:130px"><option value="1">Profit Only</option><option value="0">Total Sales</option></select>
 
+<input style="margin-left:10px" type="button" value="rate" class="btn" />
 <input style="margin-left:10px" type="button" value="export" class="btn" />
 <input style="margin-left:10px" type="button" value="quit" class="btn" />
 
@@ -383,6 +418,17 @@ $('.filter').hover(null, function() {
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
+
+
+<div id="dlg_comm">
+<table>
+<tr><th width="200">Type</th><th>Profit</th><th>TotalSales</th></tr>
+%for t in const.ITEM_L_TYPE:
+<tr><td>${t[0]|h}</td><td><input type="text" /></td><td><input type="text" /></td></tr>
+%endfor
+</table>
+</div>
+
 
 </body>
 </html>

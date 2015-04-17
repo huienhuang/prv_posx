@@ -72,3 +72,30 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             js[ m ] = cPickle.load( open(datafile, 'rb') )
             
         self.req.writejs(js)
+
+    def fn_get_comm_rate(self):
+        rates = self.get_config_js('comm_rates', {})
+        self.req.writejs({'rates': rates})
+
+
+    def fn_set_comm_rate(self):
+        js = self.req.psv_js('js')
+        js = dict([ ( unicode(f_x[0]).lower(), (int(f_x[1]), int(f_x[2])) ) for f_x in js ])
+
+        self.set_config_js('comm_rates', js)
+        self.req.writejs({'ret': 1})
+
+    def fn_get_comm_rate_v2(self):
+        rates = self.get_config_js('comm_rates', {})
+
+        cate_rates = []
+        for f_cate,f_type in const.ITEM_L_CATE2:
+            r = rates.get(f_type.lower())
+            if r:
+                rate = ( round(r[0] / 100.0, 2), round(r[1] / 100.0, 2) )
+            else:
+                rate = (0, 0)
+            cate_rates.append( (f_cate, rate) )
+            
+        cate_rates = dict(cate_rates)
+        self.req.writejs({'cate_rates': cate_rates})
