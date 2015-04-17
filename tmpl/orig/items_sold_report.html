@@ -35,6 +35,8 @@ function refresh_list()
 {
     var stat = {};
     var lst = g_v_xtbl.children();
+    if(!lst.length) return;
+    
     for(var i = 0; i < lst.length; i++) {
         var row = $(lst[i]);
         var item = row.data('item_data');
@@ -42,7 +44,6 @@ function refresh_list()
         var tid = item[0];
         stat[tid] = g_items[tid].s || {};
     }
-    
     load_items_sold_report_cb({stat: stat});
 }
 
@@ -547,14 +548,13 @@ g_v_v_change_store = $('#v_change_store').click(change_store);
 
 g_v_dlg_point = $('#dlg_point').dialog({
     autoOpen:false,
-    modal:true,
     width:500,
     height:250,
     open: function() {
         for(var i = 0; i < g_v_point_sliders.length; i++) __update_point_slider.call(g_v_point_sliders[i]);
     },
     buttons: {
-        'OK': function() { g_v_dlg_point.dialog('close'); refresh_list(); },
+        'OK': function() { g_v_dlg_point.dialog('close'); },
     }
 });
 
@@ -570,7 +570,7 @@ g_v_point_sliders = $('#dlg_point .sl_point').slider({
     max:100,
     value:0,
     slide: __update_point_slider,
-    change: __update_point_slider,
+    change: function() { __update_point_slider.call(this); refresh_list(); },
 });
 
 g_v_interval.change();
@@ -632,6 +632,7 @@ g_v_interval.change();
 .yellow_point .ui-slider-handle {border-color:#be953c}
 .avg_pt_be_red {background-color:#ec8b8b}
 .avg_pt_be_yellow {background-color:#ebdfc5}
+
 
 </style>
 
