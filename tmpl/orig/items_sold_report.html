@@ -28,18 +28,16 @@ function upd_store(store_id)
 function set_store(store_id) {
     upd_store(store_id);
     
+    refresh_list()
+}
+
+function refresh_list()
+{
     var stat = {};
     var lst = g_v_xtbl.children();
     for(var i = 0; i < lst.length; i++) {
         var row = $(lst[i]);
         var item = row.data('item_data');
-        var js = item[3];
-        
-        var s_qtys = js.stores[g_store_id];
-        if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3])
-            row.addClass('below_reorder_point');
-        else
-            row.removeClass('below_reorder_point');
         
         var tid = item[0];
         stat[tid] = g_items[tid].s || {};
@@ -167,7 +165,7 @@ function new_row(item)
     var s_qtys = js.stores[g_store_id];
     
     var cls = '';
-    if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3]) cls = ' below_reorder_point';
+    //if(s_qtys[3] !== null && s_qtys[0] + s_qtys[1] - s_qtys[2] < s_qtys[3]) cls = ' below_reorder_point';
     
     
     var row = $('<div class="xtbl_row'+cls+'"></div>')
@@ -233,6 +231,8 @@ function load_items_sold_report_cb(js)
 {
     if(!g_cur_hdr || !js || !js.stat) return;
     
+    var cur_pts = get_cur_pts();
+    
     var to_d = g_cur_hdr.to_d;
     var interval = g_cur_hdr.interval;
     for(var tid in js.stat) {
@@ -274,6 +274,21 @@ function load_items_sold_report_cb(js)
                 el.append('<div></div>');
                 
             count++;
+        }
+    
+        el.removeClass('avg_pt_be_red avg_pt_be_yellow')
+        if(count) {
+            var ijs = item_js;
+            var factor = ijs.units.length > 1 ? ijs.units[ijs.default_uom_idx][3] : 1;
+            var s_qtys = ijs.stores[g_store_id];
+            if(factor) {
+                var p = (s_qtys[0] / factor) / (total / count) * 100;
+                if(p <= cur_pts[0]) {
+                    el.addClass('avg_pt_be_red');
+                } else if(p <= cur_pts[1]) {
+                    el.addClass('avg_pt_be_yellow');
+                }
+            }
         }
     
         el.append( $('<div></div>').text( count ? (total / count).toFixed(1) : '' ) );
@@ -387,6 +402,14 @@ function save_profile()
     }
 }
 
+function get_cur_pts()
+{
+    return [
+        parseInt($(g_v_point_sliders[0]).slider('value')),
+        parseInt($(g_v_point_sliders[1]).slider('value'))
+    ];
+}
+
 function __save_profile()
 {
     var pid = parseInt(g_v_profile.val());
@@ -405,10 +428,7 @@ function __save_profile()
         var t = $(lst[i]).data('item_data');
         items.push( [t[0], t[3].default_uom_idx] );
     }
-    var pts = [
-        parseInt($(g_v_point_sliders[0]).slider('value')),
-        parseInt($(g_v_point_sliders[1]).slider('value'))
-    ];
+    var pts = get_cur_pts();
     var data = {
         'pid': pid,
         'nz': nz,
@@ -534,7 +554,7 @@ g_v_dlg_point = $('#dlg_point').dialog({
         for(var i = 0; i < g_v_point_sliders.length; i++) __update_point_slider.call(g_v_point_sliders[i]);
     },
     buttons: {
-        'OK': function() { g_v_dlg_point.dialog('close'); },
+        'OK': function() { g_v_dlg_point.dialog('close'); refresh_list(); },
     }
 });
 
@@ -610,7 +630,8 @@ g_v_interval.change();
 .red_point .ui-slider-handle {border-color:#ef2929}
 .yellow_point .ui-slider-range {background:#eecb80}
 .yellow_point .ui-slider-handle {border-color:#be953c}
-
+.avg_pt_be_red {background-color:#ec8b8b}
+.avg_pt_be_yellow {background-color:#ebdfc5}
 
 </style>
 
