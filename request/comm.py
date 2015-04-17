@@ -80,7 +80,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_set_comm_rate(self):
         js = self.req.psv_js('js')
-        js = dict([ ( unicode(f_x[0]).lower(), (int(f_x[1]), int(f_x[2])) ) for f_x in js ])
+        js = dict([ ( unicode(f_x[0]).lower(), (round(float(f_x[1]), 1), round(float(f_x[2]), 1)) ) for f_x in js ])
 
         self.set_config_js('comm_rates', js)
         self.req.writejs({'ret': 1})
@@ -92,7 +92,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for f_cate,f_type in const.ITEM_L_CATE2:
             r = rates.get(f_type.lower())
             if r:
-                rate = ( round(r[0] / 100.0, 2), round(r[1] / 100.0, 2) )
+                rate = ( round(r[0] / 100.0, 5), round(r[1] / 100.0, 5) )
             else:
                 rate = (0, 0)
             cate_rates.append( (f_cate, rate) )

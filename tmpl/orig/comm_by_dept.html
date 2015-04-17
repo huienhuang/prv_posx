@@ -198,7 +198,7 @@ function open_dlg_clerk(cnz)
         total_all[5] += r_commission;
         
         var key = s[0].toLowerCase() || null;
-        var prate = ((cate_rates[key] ? cate_rates[key][report_type] : 0.0) * 100).toFixed(0);
+        var prate = ((cate_rates[key] ? cate_rates[key][report_type] : 0.0) * 100).toFixed(1);
         
         g_v_clerk_xtbl.append(
             $('<div class="xtbl_row"></div>')
@@ -231,8 +231,8 @@ function ui_load_rates(js)
         var vs = $(vlst[i]).children();
         var type = $(vs[0]).text().toLowerCase();
         var r = js.rates[type];
-        $(vs[1]).find('input').val(r && r[1] ? r[1] : '');
-        $(vs[2]).find('input').val(r && r[0] ? r[0] : '');
+        $(vs[1]).find('input').val(r && r[1] ? r[1].toFixed(1) : '');
+        $(vs[2]).find('input').val(r && r[0] ? r[0].toFixed(1) : '');
     }
 }
 
@@ -305,8 +305,8 @@ g_v_dlg_comm = $('#dlg_comm').dialog({
             for(var i = 1; i < vlst.length; i++) {
                 var vs = $(vlst[i]).children();
                 var type = $(vs[0]).text();
-                var rate_1 = parseInt($(vs[1]).find('input').val()) || 0;
-                var rate_0 = parseInt($(vs[2]).find('input').val()) || 0;
+                var rate_1 = parseFloat($(vs[1]).find('input').val()) || 0;
+                var rate_0 = parseFloat($(vs[2]).find('input').val()) || 0;
                 lst.push( [type, rate_0, rate_1] );
             }
             
