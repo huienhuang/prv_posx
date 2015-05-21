@@ -34,6 +34,7 @@ USER_MAP = {
 
 
 g_s = [{}, {}, {}]
+g_n = [{}, {}, {}]
 
 frm_ts = int(time.mktime(datetime.date(2015, 1, 1).timetuple()))
 cur.execute('select * from sync_receipts where sid_type=0 and (type&0xFF00)<0x0200 and order_date>=%s', (frm_ts, ))
@@ -53,16 +54,23 @@ for r in cur:
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
     cd0 = g_s[0].setdefault(di, {})
+    nd0 = g_n[0].setdefault(di, {})
 
     dt = datetime.date(*tp[:3]) - datetime.timedelta(tp.tm_wday)
     di = dt.year * 10000 + dt.month * 100 + dt.day
     cd1 = g_s[1].setdefault(di, {})
+    nd1 = g_n[1].setdefault(di, {})
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + 1
     cd2 = g_s[2].setdefault(di, {})
+    nd2 = g_n[2].setdefault(di, {})
+
+
+    r_clerk = (r['assoc'] or '').lower()
+    r_clerk = USER_MAP.get(r_clerk, r_clerk)
+    for nd in (nd0, nd1, nd2): nd.setdefault(r_clerk, [0])[0] += 1
 
     cds = (cd0, cd1, cd2)
-
     for t in items:
         if t['itemsid'] == 1000000005: continue
         extprice = t['price'] * t['qty'] * disc
@@ -92,6 +100,12 @@ for cd in g_s:
     cd.sort(key=lambda f_x:f_x[0])
     g_s_n.append(cd)
 
+g_n_n = []
+for nd in g_n:
+    nd = nd.items()
+    nd.sort(key=lambda f_x:f_x[0])
+    g_n_n.append(nd)
+
 datafile = os.path.join(config.APP_DIR, 'data', "daily_sale.txt")
-cPickle.dump( g_s_n, open(datafile, 'wb'), 1 )
+cPickle.dump( {'s': g_s_n, 'n': g_n_n}, open(datafile, 'wb'), 1 )
 print "Done", time.time() - CTS 
