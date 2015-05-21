@@ -77,6 +77,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     fn_export_csv.PERM = ADMIN_PERM
     
     def fn_sale(self):
+        tp = time.localtime()
+        if tp.tm_mon <= 2:
+            dt = datetime.date(tp.tm_year - 1, 10 + tp.tm_mon, 1)
+        else:
+            dt = datetime.date(tp.tm_year, tp.tm_mon - 2, 1)
+
+        to_dt = '%04d-%02d-%02d' % tp[:3]
+        frm_dt = '%04d-%02d-01' % dt.timetuple()[:2]
+
         userlist = self.getuserlist()
         if self.user_lvl & ADMIN_PERM:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
@@ -84,7 +93,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             aus = self.get_allowed_users().get(str(self.user_id), {})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
         
-        self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sales_users})
+        self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sales_users, 'frm_dt': frm_dt, 'to_dt': to_dt})
         
     
     def fn_get_sale_data(self):
