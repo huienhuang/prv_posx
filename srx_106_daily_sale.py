@@ -66,7 +66,7 @@ for r in cur:
     nd2 = g_n[2].setdefault(di, {})
 
 
-    r_clerk = (r['assoc'] or '').lower()
+    r_clerk = (r['cashier'] or '').lower()
     r_clerk = USER_MAP.get(r_clerk, r_clerk)
     for nd in (nd0, nd1, nd2): nd.setdefault(r_clerk, [0])[0] += 1
 
