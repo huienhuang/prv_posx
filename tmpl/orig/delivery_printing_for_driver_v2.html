@@ -98,12 +98,12 @@ d_recs,d_stat = drv_data
 %>
 <div class="d_tbl d_driver_id_${drv_id}">
 <div class="d_hdr">
-<span>司机: ${drv_id and users_lku.get(drv_id, 'UNK') or ''|h}</span>
-<span>总单数: ${len(d_recs)}</span>
+<span>Driver: ${drv_id and users_lku.get(drv_id, 'UNK') or ''|h}</span>
+<span>Total DOCS: ${len(d_recs)}</span>
 <span class="hdr_el_print_only">${user_name|h} - #${d_id} - ${d_name and (d_name + ' - ') or ''|h}${d_date}</span>
 </div>
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>#</div><div>号码</div><div>公司</div><div>TERM</div><div>数额</div><div>数量</div><div>现金</div><div>支票</div><div>共计</div><div>联络人</div><div>已送</div><div>总收</div><div>司机注解</div></div>
+<div class="prntbl_row prntbl_row_hdr"><div>#</div><div>DOC#</div><div>Company</div><div>TERM</div><div>Amount</div><div>QTY</div><div>Cash</div><div>Check</div><div>共计</div><div>联络人</div><div>已送</div><div>总收</div><div>司机注解</div></div>
 <div class="prntbl_cnt">
 <%
 k = 0

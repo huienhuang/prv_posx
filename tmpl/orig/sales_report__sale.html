@@ -1,58 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v3.html" />
+<%include file="header_inc_v4.html" />
+
 <title>POSX - Comm By Dept</title>
 <script type="text/javascript" src="js/canvasjs.min.js"></script>
 
 <script type="text/javascript">
-g_data = {};
-function evt_apply()
+
+function load_data_cb(js)
 {
-    apply();
+    g_v_main_xtbl.data('js', js);
+    
+    var els = g_v_m_ctrl.data('in_els');
+    
+    var users = js.users;
+    var cates = js.cates;
+    js = js.js;
+    
+    var ov_total = [];
+    var lst = [ $('<div></div>') ];
+    for(var m = 0; m < js.length; m++) {
+        lst.push( $('<div></div>').text(js[m][0]) );
+        ov_total.push(0);
+    }
+    g_v_main_xtbl_header.append(lst);
+    
+    var vss = [];
+    for(var i = 0; i < users.length; i++) {
+        var nz = users[i];
+        var vs = [ $('<div></div>').text(nz) ];
+        var prev_total = 0;
+        for(var j = 0; j < js.length; j++) {
+            var cs = js[j][1][nz];
+            var s = [];
+            
+            var total = 0;
+            if(cs !== undefined) {
+                for(var z = 0; z < cates.length; z++) {
+                    var dl = cs[ cates[z] ];
+                    if(dl !== undefined) total += dl[0];
+                }
+                
+                s.push($('<span></span>').text(total.toFixed(2)));
+                if(prev_total) {
+                    var dp = (total - prev_total) / prev_total * 100;
+                    if(dp){
+                        if(dp > 0)
+                            s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                        else
+                            s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                    }
+                }
+                
+            }
+            
+            ov_total[j] += total;
+            prev_total = total;
+            vs.push( $('<div onclick="open_dlg_clerk(\''+nz+'\', \''+j+'\');return false;"></div>').append(s) );
+        }
+        
+        vss.push( $('<div class="prntbl_row"></div>').append(vs) );
+    }
+    
+    g_v_main_xtbl.append(vss);
+    
+    
+    var vs = [ $('<div></div>') ];
+    var prev_total = 0;
+    for(var j = 0; j < js.length; j++) {
+        var total = ov_total[j];
+        var s = [];
+        
+        s.push($('<span></span>').text(total.toFixed(2)));
+        if(prev_total) {
+            var dp = (total - prev_total) / prev_total * 100;
+            if(dp){
+                if(dp > 0)
+                    s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                else
+                    s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+            }
+        }
+        
+        prev_total = total;
+        vs.push( $('<div></div>').append(s) );
+    }
+    g_v_main_xtbl_footer.append(vs);
+    
 }
 
-function apply(dont_load)
+function open_dlg_clerk(cnz, di)
 {
+    var js = g_v_main_xtbl.data('js');
+    if (js === undefined) return;
+    
+    g_v_clerk_xtbl_footer.empty();
+    g_v_clerk_xtbl.empty();
+    
+    var cates = js.cates;
+    js = js.js;
+    
+    var els = g_v_m_ctrl.data('in_els');
+    var cs = js[di][1][cnz];
+    if(cs === undefined) return;
+    
+    var ov_total = 0;
+    var vss = [];
+    for(var i = 0; i < cates.length; i++) {
+        var nz = cates[i];
+        var dl = cs[nz];
+        if(dl === undefined) continue;
+        
+        var vs = [ $('<div></div>').text(nz), $('<div></div>').text(dl[0].toFixed(2))  ];
+        ov_total += dl[0];
+        vss.push( $('<div class="prntbl_row"></div>').append(vs) );
+    }
+    g_v_clerk_xtbl.append(vss);
+    
+    g_v_clerk_xtbl_footer
+    .append( $('<div></div>') )
+    .append( $('<div></div>').text(ov_total.toFixed(2)) );
+    
+    g_v_dlg_clerk.dialog('option', 'title', cnz + ' - ' + js[di][0]).dialog('open');
+}
+
+function load_data()
+{
+    var els = g_v_m_ctrl.data('in_els');
+    
+    var intval = els.filter_intval[0].val();
+    var frm_dt = els.frm_date[0].val();
+    var to_dt = els.to_date[0].val();
+    
+    var users = [];
+    var lst = els.filter_user[0].multiselect('getChecked');
+    for(var i = 0; i < lst.length; i++) users.push( $(lst[i]).val() );
+    
+    var cates = [];
+    var lst = els.filter_cate[0].multiselect('getChecked');
+    for(var i = 0; i < lst.length; i++) cates.push( $(lst[i]).val() );
+    
     g_v_main_xtbl.data('js', null).empty();
     g_v_main_xtbl_header.empty();
     g_v_main_xtbl_footer.empty();
     
-    var v_cbs = $('.filter_month input:checked');
-    if(!v_cbs.length) return;
+    get_js('?fn=get_sale_data', {frm_dt:frm_dt, to_dt:to_dt, intval:intval}, function(js) {
+        load_data_cb({users:users, cates:cates, intval:intval, frm_dt:frm_dt, to_dt:to_dt, js:js});
+    }, undefined, undefined, undefined, 'load_data');
     
-    var lst = [[], []];
-    for(var i = 0; i < v_cbs.length; i++) {
-        var v = $(v_cbs[i]).val();
-        if(!g_data || !g_data[v])
-            lst[1].push(v);
-        else
-            lst[0].push(v);
-    }
-    
-    if (lst[1].length > 0) {
-        if(!dont_load) {
-            get_js('?fn=get_sale_data', {'months': lst[1].join('|')}, function(js) {
-                for(var k in js) g_data[k] = js[k];
-                apply(true);
-            });
-        }
-        
-        return;
-    }
-    
-    Array.prototype.push.apply(lst[0], lst[1]);
-    var months = lst[0];
-    
-    var v_cbs = $('.filter_cate input:checked');
-    var cates = [];
-    for(var i = 0; i < v_cbs.length; i++) cates.push( $(v_cbs[i]).val() );
-    
-    var v_cbs = $('.filter_user input:checked');
-    var users = [];
-    for(var i = 0; i < v_cbs.length; i++) users.push( $(v_cbs[i]).val() );
-
-    render(months, cates, users);
 }
 
 function render_graph()
@@ -63,16 +159,29 @@ function render_graph()
     var js = g_v_main_xtbl.data('js');
     if(!js) return;
     
+    var users = js.users;
+    var cates = js.cates;
+    js = js.js;
+    
     v_canvas.show();
     
     var data = [];
-    for(var i = 0; i < js.clerks_d.length; i++) {
-        var cnz = js.clerks_d[i][0];
-        var total_m = js.clerks_d[i][1];
+    for(var i = 0; i < users.length; i++) {
+        var cnz = users[i];
         
         var dp = [];
-        for(var j = 0; j < js.months.length; j++) {
-            if(total_m[j] !== undefined) dp.push( {label: js.months[j], y: parseFloat(total_m[j].toFixed(2))} );
+        for(var j = 0; j < js.length; j++) {
+            var cs = js[j][1][cnz];
+        
+            var total = 0;
+            if(cs !== undefined) {
+                for(var z = 0; z < cates.length; z++) {
+                    var dl = cs[ cates[z] ];
+                    if(dl !== undefined) total += dl[0];
+                }
+            }
+            
+            dp.push( {label: js[j][0], y: parseFloat(total.toFixed(2))} );
         }
         
         data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
@@ -90,236 +199,78 @@ function render_graph()
     
 }
 
-function render(months, cates, users)
-{
-    var f_cates = {};
-    for(var i = 0; i < cates.length; i++) f_cates[ cates[i].toLowerCase() || null ] = true;
-    
-    var clerks_d = [];
-    for(var u = 0; u < users.length; u++) {
-        var unz = users[u];
-        var u_d = [];
-        clerks_d.push( [unz, u_d] );
-        for(var m = 0; m < months.length; m++) {
-            var m_d = g_data[ months[m] ][ unz ];
-            if(m_d === undefined) continue;
-            
-            var total = 0;
-            for(var cate_nz in m_d) {
-                var total_c = m_d[cate_nz];
-                
-                cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
-                if(g_cates[cate_nz] === undefined) cate_nz = null;
-                if(f_cates[cate_nz] === undefined) continue;
-                
-                total += total_c[0] + total_c[1];
-            }    
-            u_d[m] = total;
-        }
-    }
-    
-    var lst = [ $('<div></div>') ];
-    for(var m = 0; m < months.length; m++)
-        lst.push( $('<div></div>').text(months[m]) );
-    g_v_main_xtbl_header.append(lst);
-    
-    var llst = [];
-    for(var i = 0; i < clerks_d.length; i++) {
-        var cnz = clerks_d[i][0];
-        var total_m = clerks_d[i][1];
-        
-        var lst = [ $('<div></div>').text(cnz) ];
-        for(var m = 0; m < months.length; m++) {
-            var s = [];
-            if(total_m[ m ] !== undefined) {
-                s.push($('<span></span>').text(total_m[ m ].toFixed(2)));
-                if(m && total_m[m - 1]) {
-                    var dp = ( (total_m[m] || 0) - total_m[m - 1] ) / total_m[m - 1] * 100;
-                    if(dp){
-                        if(dp > 0)
-                            s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                        else
-                            s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                    }
-                }
-            }
-            
-            lst.push( $('<div onclick="open_dlg_clerk(\''+cnz+'\', \''+months[m]+'\');return false;"></div>').append(s) );
-        }
-        llst.push( $('<div class="prntbl_row"></div>').append(lst) );
-    }
-    g_v_main_xtbl.append(llst).data('js', {months: months, clerks_d: clerks_d});
-    
-    var last_v = 0;
-    var lst = [ $('<div></div>') ];
-    for(var m = 0; m < months.length; m++) {
-        var v = 0;
-        for(var i = 0; i < clerks_d.length; i++) v += clerks_d[i][1][m] || 0;
-        var o = $('<div></div>');
-        if(v) {
-            o.append($('<span></span>').text(v.toFixed(2)));
-            if(last_v) {
-                var dp = (v - last_v) / last_v * 100;
-                if(dp){
-                    if(dp > 0)
-                        o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                    else
-                        o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                }
-            }
-        }
-        lst.push(o);
-        last_v = v;
-    }
-    g_v_main_xtbl_footer.append(lst);
-    
-}
 
-function open_dlg_clerk(cnz, mnz)
-{
-    g_v_clerk_xtbl_footer.empty();
-    g_v_clerk_xtbl.empty();
-    
-    if(g_data[mnz] === undefined || g_data[mnz][cnz] === undefined) return;
-    var total_m = g_data[mnz][cnz];
-    
-    var v_cbs = $('.filter_cate input:checked');
-    var cates = [];
-    var f_cates = {};
-    for(var i = 0; i < v_cbs.length; i++) {
-        var nz = $(v_cbs[i]).val();
-        var s = [0];
-        cates.push([nz, s]);
-        f_cates[ nz.toLowerCase() || null ] = s;
-    }
-    
-    for(var cate_nz in total_m) {
-        var total_cate = total_m[cate_nz];
-            
-        cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
-        if(g_cates[cate_nz] === undefined) cate_nz = null;
-        
-        var total = f_cates[cate_nz];
-        if(total === undefined) continue;
-        
-        total[0] += total_cate[0] + total_cate[1];
-    }
-    
-    var lst = [];
-    var all_total = 0;
-    for(var i = 0; i < cates.length; i++) {
-        var cate = cates[i];
-        all_total += cate[1][0];
-        if(!cate[1][0]) continue;
-        lst.push($('<div class="prntbl_row"></div>')
-            .append( $('<div></div>').text(cate[0] || '*NotInList*') )
-            .append( $('<div></div>').text(cate[1][0].toFixed(2)) )
-            
-        );
-    }
-    g_v_clerk_xtbl.append(lst);
-    
-    g_v_clerk_xtbl_footer
-    .append( $('<div></div>') )
-    .append( $('<div></div>').text(all_total.toFixed(2)) );
-    
-    g_v_dlg_clerk.dialog('option', 'title', cnz + ' - ' + mnz).dialog('open');
-}
-
-
-function export_csv()
-{
-    var js = g_v_main_xtbl.data('js');
-    if(!js) return;
-    
-    var data = [];
-    
-    var r = ['Sales'];
-    Array.prototype.push.apply(r, js.months);
-    data.push(r);
-    
-    for(var i = 0; i < js.clerks_d.length; i++) {
-        var r = [js.clerks_d[i][0]];
-        Array.prototype.push.apply(r, js.clerks_d[i][1]);
-        data.push(r);
-    }
-    
-    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
-    g_v_form_dl.submit();
-}
 
 $(function() {
 
 $('.btn').button();
-$('.tp_ctrl > input[value="print"]').click(function() { window.print(); });
-$('.tp_ctrl > input[value="graph"]').click(render_graph);
-$('.tp_ctrl > input[value="export"]').click(export_csv);
 
-g_v_tp_ctrl = $('.tp_ctrl');
+g_v_m_ctrl = $('.m_ctrl');
+idx_elements(g_v_m_ctrl, 5);
+var els = g_v_m_ctrl.data('in_els');
+
+els.filter_cate[0].multiselect({
+    height: 600,
+    selectedText: "# Cate(s)"
+}).multiselect('checkAll');
+
+els.filter_user[0].multiselect({
+    height: 600,
+    selectedText: "# User(s)"
+}).multiselect('checkAll');
+
+els.btn_apply[0].click(load_data);
+els.btn_chart[0].click(render_graph);
+
 g_v_main_xtbl_header = $('.main_tbl .prntbl_row_hdr');
 g_v_main_xtbl = $('.main_tbl .prntbl_cnt');
 g_v_main_xtbl_footer = $('.main_tbl .prntbl_row_ftr');
 
 g_v_main_xtbl.scroll(function() {
-    g_v_main_xtbl_header.css('left', '-' + g_v_main_xtbl.scrollLeft() + 'px' );
-    g_v_main_xtbl_footer.css('left', '-' + g_v_main_xtbl.scrollLeft() + 'px' );
+    var left = g_v_main_xtbl.scrollLeft();
+    g_v_main_xtbl_header.css('left', '-' + left + 'px' );
+    g_v_main_xtbl_footer.css('left', '-' + left + 'px' );
+    
+    $(g_v_main_xtbl_header.children()[0]).css('left', left + 'px');
+    $(g_v_main_xtbl_footer.children()[0]).css('left', left + 'px');
+    
+    g_v_main_xtbl.find('.prntbl_row >div:nth-child(1)').css('left', left + 'px');
+    
 });
+
 
 g_v_dlg_clerk = $('#dlg_clerk').dialog({
     autoOpen: false,
     width:420,
     height:500,
 });
-
 g_v_clerk_xtbl = $('.prntbl_cnt', g_v_dlg_clerk);
 g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
 
-g_v_filter_chg = false;
-$('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
 
-function filter_chk_all(chk) {
-    var d = $(this);
-    var p = d.parent().parent();
-    p.find('input[type="checkbox"]').prop('checked', chk);
-    
-    g_v_filter_chg = true;
-}
 
-v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
-v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
-v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
-v_filter_chkall.children('span:nth-child(3)').click(function() { filter_chk_all.call(this, false); });
 
-$('.filter').hover(null, function() {
-    if(!g_v_filter_chg) return;
-    g_v_filter_chg = false;
-    apply();
-})
-
-g_v_form_dl = $('#form_dl');
-
-var v_cbs = $('.filter_cate input');
-g_cates = {};
-for(var i = 0; i < v_cbs.length; i++) g_cates[ $(v_cbs[i]).val().toLowerCase() || null ] = true;
-
-}); //ready
+});
 
 </script>
 
 <style type="text/css">
 .ui-widget {font-size:18px;}
-.tp_ctrl {position:absolute;top:0;left:0;right:0;height:50px;line-height:50px;padding-left:10px;z-index:1}
-.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
-.tp_ctrl button {height:32px;vertical-align:middle;}
+    
+.m_ctrl select {width:100px}
 
 #d_canvas {position:absolute;top:50px;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
 
 .main_tbl {top:50px;bottom:0;right:0;left:0;z-index:0;overflow:hidden}
 .main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
-.main_tbl .prntbl_row > div {width:160px}
-.main_tbl .prntbl_row > div:first-child {width:100px}
+.main_tbl .prntbl_row > div {width:160px;}
+.main_tbl .prntbl_row > div:first-child {width:100px;font-weight:bold;background-color:#f5f5f5}
 .main_tbl .prntbl_cnt > .prntbl_row > div > span:nth-child(2) {margin-left:5px}
 .main_tbl .prntbl_row {min-width:8000px}
+
+.main_tbl .prntbl_row {padding-left:101px}
+.main_tbl .prntbl_row > div:nth-child(1) {position:absolute;top:0;left:0;}
+
 
 .diff_pct_inc {color:#579942}
 .diff_pct_dec {color:#e93f3f}
@@ -327,21 +278,13 @@ for(var i = 0; i < v_cbs.length; i++) g_cates[ $(v_cbs[i]).val().toLowerCase() |
 #dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
 #dlg_clerk .prntbl_row > div:nth-child(1) {width:250px}
 
-
-.tiny_popup {position:relative;display:inline-block;line-height:32px;}
-.tiny_popup >div:nth-child(1) {text-align:center}
-.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
-.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
-.tiny_popup:hover >div:nth-child(2) {display:block;}
-
-.tiny_popup >div:nth-child(2) {width:760px;}
-.tiny_popup >div:nth-child(2) >div {width:220px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
-.tiny_popup >div:nth-child(2) >div:nth-child(2) {width:280px;}
-.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
-.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
-
 @media print {
-.tp_ctrl {display:none}
+.m_ctrl {display:none}
+
+.main_tbl .prntbl_row > div:first-child {background-color:transparent}
+.main_tbl .prntbl_row {padding-left:0}
+.main_tbl .prntbl_row > div:nth-child(1) {position:static;top:0;left:0;}
+
 .main_tbl {margin:0 auto;width:928px;position:relative;top:auto;}
 .main_tbl .prntbl_row {height:20px;line-height:20px;min-width:inherit;overflow:hidden}
 .main_tbl .prntbl_cnt {top:21px;bottom:21px;}
@@ -355,50 +298,42 @@ margin:30px 50px;
 </head>
 <body>
 
-<div class="tp_ctrl">
 
-<div class="tiny_popup filter" style="width:100px">
-<div>Filter</div>
-<div>
+<div class="m_ctrl">
 
-
-<div class="filter_month">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
-%for r in reports:
-<div><input type="checkbox" value="${r|h}" name="filter_month" /><span>${r|h}</span></div>
-%endfor
-</div>
-
-
-<div class="filter_cate">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
-<div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
+<select class="filter_cate" name="ctrl_filter_cate">
+<option value="">**NotInList**</option>
 %for cate in const.ITEM_L_CATE:
-<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+<option value="${cate[0].lower()|h}">${cate[0]|h}</option>
 %endfor
-</div>
+</select>
 
-<div class="filter_user">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
+<select class="filter_user" name="ctrl_filter_user">
 %for user in sales_users:
-<div><input type="checkbox" value="${user|h}" name="filter_user" checked="checked" /><span>${user|h}</span></div>
+<option value="${user.lower()|h}">${user|h}</option>
 %endfor
+</select>
+
+<input type="date" name="ctrl_frm_date" value="2015-01-01" placeholder="From Date" style="width:170px" />
+<input type="date" name="ctrl_to_date" value="2015-03-01" placeholder="To Date" style="width:170px" />
+
+<select class="filter_intval" name="ctrl_filter_intval">
+<option value="2">Monthly</option>
+<option value="1">Weekly</option>
+<option value="0">Daily</option>
+</select>
+
+<input type="button" value="Apply" name="ctrl_btn_apply" class="btn" />
+<input type="button" value="Chart" name="ctrl_btn_chart" class="btn" />
 </div>
 
-</div>
-</div>
-
-<input style="margin-left:20px" type="button" value="print" class="btn" />
-<input style="margin-left:20px" type="button" value="graph" class="btn" />
-<input style="margin-left:20px" type="button" value="export" class="btn" />
-
-</div>
 
 <div class="prntbl main_tbl">
 <div class="prntbl_row prntbl_row_hdr"></div>
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+
 
 <div id="dlg_clerk">
 <div class="prntbl">
@@ -409,8 +344,6 @@ margin:30px 50px;
 </div>
 
 <div id="d_canvas"></div>
-
-<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
 
 </body>
 </html>

@@ -63,14 +63,14 @@ TOOLS_MAP = (
     ('Request', 'ts_request', PERM_NORMAL_ACCESS),
 )),
 
-('Sales', (
+('Store', (
     ('History', 'hist', PERM_NORMAL_ACCESS),
     ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
     ('Sales Report', 'salesreport', PERM_SALES_MGR | PERM_PURCHASING_MGR_ADV),
     ('Customer Sales', 'custsales', PERM_ADMIN),
 )),
 
-('Warehouse', (
+('Delivery', (
     ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR | PERM_PURCHASING),
     ('Account MGR', 'account_mgr', PERM_NORMAL_ACCESS),
 #    ('Pallet Map', '', PERM_NORMAL_ACCESS),

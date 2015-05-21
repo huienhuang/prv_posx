@@ -8,6 +8,7 @@ import const
 import json
 import cStringIO
 import csv
+import bisect
 
 SALES_PERM = 1 << config.USER_PERM_BIT['sales']
 ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
@@ -75,32 +76,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
     fn_export_csv.PERM = ADMIN_PERM
     
-    def get_data_files(self, months):
-        jss = {}
-        for i in range(len(months)):
-            m = months[i]
-            if not m.replace('-', '').isdigit(): return
-            datafile = '%s/data/%s_comm_clerks.txt' % (self.req.app.app_dir, m)
-            if not os.path.exists(datafile):
-                datafile = '%s/data/%s_comm.txt' % (self.req.app.app_dir, m)
-                if not os.path.exists(datafile): return
-                js = self.get_comm_js(m)
-            else:
-                js = self.get_comm_clerks_js(m)
-                
-            jss[m] = js
-            
-        return jss
-    
-    
     def fn_sale(self):
-        reports_0 = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
-        reports_1 = map(lambda n: os.path.basename(n)[:-9], glob.glob(self.req.app.app_dir + '/data/*_comm.txt'))
-        
-        s = set(reports_0)
-        reports = list(s.union(reports_1))
-        reports.sort()
-        
         userlist = self.getuserlist()
         if self.user_lvl & ADMIN_PERM:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
@@ -108,25 +84,41 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             aus = self.get_allowed_users().get(str(self.user_id), {})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
         
-        self.req.writefile('sales_report__sale.html', {'reports': reports, 'const': const, 'sales_users': sales_users})
+        self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sales_users})
         
     
     def fn_get_sale_data(self):
-        months = self.qsv_str('months').split('|')
-        
+        frm_tp = time.strptime(self.req.qsv_ustr('frm_dt'), '%Y-%m-%d')
+        to_tp = time.strptime(self.req.qsv_ustr('to_dt'), '%Y-%m-%d')
+        intval = self.req.qsv_int('intval')
+
+        fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
+        ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+
+        js = self.get_data_file_cached('daily_sale', 'daily_sale.txt')[intval]
+        da = [ f_x[0] for f_x in js ]
+        js = js[ bisect.bisect_left(da, fi): bisect.bisect_right(da, ti) ]
+
         userlist = self.getuserlist()
         if self.user_lvl & ADMIN_PERM:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
         else:
             aus = self.get_allowed_users().get(str(self.user_id), {})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
-                
-        jss = {}
-        _jss = self.get_data_files(months)
-        for m,js in _jss.items():
-            jss[m] = dict([ f_v for f_v in js[0].items() if f_v[0] in sales_users ])
-        
-        self.req.writejs(jss)
+
+        rjs = []
+        for ds in js:
+                m,d = divmod(ds[0], 100)
+                y,m = divmod(m, 100)
+                dd = {}
+                rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
+
+                for us in ds[1].items():
+                    if us[0] in sales_users:
+                        dd[us[0]] = us[1]
+
+        self.req.writejs(rjs)
+
 
     def fn_rect(self):
         reports = map(lambda n: os.path.basename(n)[:-16], glob.glob(self.req.app.app_dir + '/data/*_comm_clerks.txt'))
