@@ -24,6 +24,7 @@ function load_data_cb(js)
         lst.push( $('<div></div>').text(js[m][0]) );
         ov_total.push(0);
     }
+    lst.push($('<div>Average</div>'));
     g_v_main_xtbl_header.append(lst);
     
     var vss = [];
@@ -31,6 +32,7 @@ function load_data_cb(js)
         var nz = users[i];
         var vs = [ $('<div></div>').text(nz) ];
         var prev_total = 0;
+        var avg_total = 0;
         for(var j = 0; j < js.length; j++) {
             var cs = js[j][1][nz];
             var s = [];
@@ -55,11 +57,14 @@ function load_data_cb(js)
                 
             }
             
+            avg_total += total;
             ov_total[j] += total;
             prev_total = total;
             vs.push( $('<div onclick="open_dlg_clerk(\''+nz+'\', \''+j+'\');return false;"></div>').append(s) );
         }
         
+        avg_total /= js.length;
+        vs.push( $('<div></div>').text( isNaN(avg_total) || !avg_total ? '' : avg_total.toFixed(2) ) );
         vss.push( $('<div class="prntbl_row"></div>').append(vs) );
     }
     
