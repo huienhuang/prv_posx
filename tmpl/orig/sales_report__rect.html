@@ -36,7 +36,7 @@ function load_data_cb(js)
             
             var total = 0;
             if(cs !== undefined) {
-                total += cs[0];
+                total = cs[0];
                 
                 s.push($('<span></span>').text(total));
                 if(prev_total) {
@@ -117,7 +117,6 @@ function render_graph()
     if(!js) return;
     
     var users = js.users;
-    var cates = js.cates;
     js = js.js;
     
     v_canvas.show();
@@ -132,13 +131,10 @@ function render_graph()
         
             var total = 0;
             if(cs !== undefined) {
-                for(var z = 0; z < cates.length; z++) {
-                    var dl = cs[ cates[z] ];
-                    if(dl !== undefined) total += dl[0];
-                }
+                total = cs[0];
             }
             
-            dp.push( {label: js[j][0], y: parseFloat(total.toFixed(2))} );
+            dp.push( {label: js[j][0], y: parseFloat(total)} );
         }
         
         data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
