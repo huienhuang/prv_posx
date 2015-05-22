@@ -5,7 +5,7 @@ import datetime
 import sys
 import config
 import re
-import sqlanydb
+#import sqlanydb
 
 
 FLAG_ITEM_REQ_CHK = (1 << 3) | (1 << 4) | (1 << 5)
