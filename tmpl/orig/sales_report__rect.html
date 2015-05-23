@@ -17,8 +17,8 @@ function load_data_cb(js)
     var users = js.users;
     js = js.js;
     
-    var ov_totals = [];
-    var prev_totals = [];
+    var ov_totals = [0];
+    var prev_totals = [0];
     var lst = [ $('<div></div>') ];
     for(var m = 0; m < users.length; m++) {
         lst.push( $('<div></div>').text(users[m]) );
@@ -62,7 +62,23 @@ function load_data_cb(js)
             vs.push( $('<div></div>').append(s) );
         }
         
-        vs.push( $('<div></div>').text( clerk_total.toFixed(2) ) );
+        var total = clerk_total;
+        var prev_total = prev_totals[users.length];
+        var s = [];
+        s.push($('<span></span>').text(total));
+        if(prev_total) {
+            var dp = (total - prev_total) / prev_total * 100;
+            if(dp){
+                if(dp > 0)
+                    s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                else
+                    s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+            }
+        }
+        ov_totals[users.length] += total;
+        prev_totals[users.length] = total;
+        vs.push( $('<div></div>').append(s) );
+        
         vss.push( $('<div class="prntbl_row"></div>').append(vs) );
     }
     
