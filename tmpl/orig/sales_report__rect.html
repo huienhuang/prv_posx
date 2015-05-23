@@ -17,23 +17,26 @@ function load_data_cb(js)
     var users = js.users;
     js = js.js;
     
-    var ov_total = [];
+    var ov_totals = [];
+    var prev_totals = [];
     var lst = [ $('<div></div>') ];
-    for(var m = 0; m < js.length; m++) {
-        lst.push( $('<div></div>').text(js[m][0]) );
-        ov_total.push(0);
+    for(var m = 0; m < users.length; m++) {
+        lst.push( $('<div></div>').text(users[m]) );
+        ov_totals.push(0);
+        prev_totals.push(0);
     }
-    lst.push($('<div>Average</div>'));
+    lst.push($('<div>Total</div>'));
     g_v_main_xtbl_header.append(lst);
     
     var vss = [];
-    for(var i = 0; i < users.length; i++) {
-        var nz = users[i];
-        var vs = [ $('<div></div>').text(nz) ];
-        var prev_total = 0;
-        var avg_total = 0;
-        for(var j = 0; j < js.length; j++) {
-            var cs = js[j][1][nz];
+    for(var i = 0; i < js.length; i++) {
+        var js_i = js[i];
+        var vs = [ $('<div></div>').text(js_i[0]) ];
+        var clerk_total = 0;
+        for(var j = 0; j < users.length; j++) {
+            var prev_total = prev_totals[j];
+            var nz = users[j];
+            var cs = js_i[1][nz];
             var s = [];
             
             var total = 0;
@@ -53,38 +56,26 @@ function load_data_cb(js)
                 
             }
             
-            avg_total += total;
-            ov_total[j] += total;
-            prev_total = total;
+            clerk_total += total;
+            ov_totals[j] += total;
+            prev_totals[j] = total;
             vs.push( $('<div></div>').append(s) );
         }
         
-        avg_total /= js.length;
-        vs.push( $('<div></div>').text( isNaN(avg_total) || !avg_total ? '' : avg_total.toFixed(1) ) );
+        vs.push( $('<div></div>').text( clerk_total.toFixed(2) ) );
         vss.push( $('<div class="prntbl_row"></div>').append(vs) );
     }
     
     g_v_main_xtbl.append(vss);
     
     
-    var vs = [ $('<div></div>') ];
-    var prev_total = 0;
-    for(var j = 0; j < js.length; j++) {
-        var total = ov_total[j];
+    var vs = [ $('<div><div>Average</div><div>Total</div></div>') ];
+    for(var j = 0; j < users.length; j++) {
+        var total = ov_totals[j];
+        var avg = total / js.length;
         var s = [];
-        
-        s.push($('<span></span>').text(total));
-        if(prev_total) {
-            var dp = (total - prev_total) / prev_total * 100;
-            if(dp){
-                if(dp > 0)
-                    s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                else
-                    s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-            }
-        }
-        
-        prev_total = total;
+        s.push($('<div></div>').text( isNaN(avg) || !avg ? '' : avg.toFixed(2) ));
+        s.push($('<div></div>').text(total.toFixed(2)));
         vs.push( $('<div></div>').append(s) );
     }
     g_v_main_xtbl_footer.append(vs);
@@ -224,6 +215,8 @@ g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
 .main_tbl .prntbl_row {padding-left:101px}
 .main_tbl .prntbl_row > div:nth-child(1) {position:absolute;top:0;left:0;}
 
+.main_tbl .prntbl_row_ftr {height:60px}
+.main_tbl .prntbl_cnt {bottom:61px}
 
 .diff_pct_inc {color:#579942}
 .diff_pct_dec {color:#e93f3f}
