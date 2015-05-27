@@ -149,11 +149,11 @@ function load_data()
     var to_dt = els.to_date[0].val();
     
     var users = [];
-    var lst = els.filter_user[0].multiselect('getChecked');
+    var lst = $('.filter_user input:checked');
     for(var i = 0; i < lst.length; i++) users.push( $(lst[i]).val() );
     
     var cates = [];
-    var lst = els.filter_cate[0].multiselect('getChecked');
+    var lst = $('.filter_cate >div:not(.sel_hidden) input:checked');
     for(var i = 0; i < lst.length; i++) cates.push( $(lst[i]).val() );
     
     g_v_main_xtbl.data('js', null).empty();
@@ -220,19 +220,50 @@ $(function() {
 
 $('.btn').button();
 
+
+function filter_chk_all(chk) {
+    var d = $(this);
+    var p = d.parent().parent();
+    p.find('input[type="checkbox"]').prop('checked', chk);
+    
+    var n = p.attr('class').substr(7);
+    if(n === 'type') {
+        var c = $($('.filter_cate').children().slice(1));
+        if(chk) {
+            c.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            c.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
+}
+
+$('.filter input[type="checkbox"]').change(function() {
+    var d = $(this);
+    var n = d.prop('name').substr(7);
+    var v = d.val();
+    var chk = d.prop('checked');
+    var p = d.parent().parent();
+    if(n === 'type') {
+        var v_cate = $('.filter_cate').children('div[data-parent-type="'+v+'"]');
+        if(chk) {
+            v_cate.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            v_cate.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
+});
+
+v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
+v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
+v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+
+
+
 g_v_m_ctrl = $('.m_ctrl');
 idx_elements(g_v_m_ctrl, 5);
 var els = g_v_m_ctrl.data('in_els');
-
-els.filter_cate[0].multiselect({
-    height: 600,
-    selectedText: "# Cate(s)"
-}).multiselect('checkAll');
-
-els.filter_user[0].multiselect({
-    height: 600,
-    selectedText: "# User(s)"
-}).multiselect('checkAll');
 
 els.btn_apply[0].click(load_data);
 els.btn_chart[0].click(render_graph);
@@ -295,6 +326,22 @@ g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
 #dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
 #dlg_clerk .prntbl_row > div:nth-child(1) {width:250px}
 
+
+.tiny_popup {position:relative;display:inline-block;line-height:32px;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
+.tiny_popup:hover >div:nth-child(2) {display:block;}
+
+.tiny_popup >div:nth-child(2) {width:715px;}
+.tiny_popup >div:nth-child(2) >div {width:220px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:220px;}
+.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
+.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+.filter_cate >div.sel_hidden {display:none}
+
+
 @media print {
 .m_ctrl {display:none}
 
@@ -318,18 +365,37 @@ margin:30px 50px;
 
 <div class="m_ctrl">
 
-<select class="filter_cate" name="ctrl_filter_cate">
-<option value="">**NotInList**</option>
-%for cate in const.ITEM_L_CATE:
-<option value="${cate[0].lower()|h}">${cate[0]|h}</option>
-%endfor
-</select>
 
-<select class="filter_user" name="ctrl_filter_user">
-%for user in sales_users:
-<option value="${user.lower()|h}">${user|h}</option>
+
+<div class="tiny_popup filter" style="width:100px">
+<div>Filter</div>
+<div>
+
+<div class="filter_type">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><input type="checkbox" value="" name="filter_type" checked="checked" /><span>***NotInList***</span></div>
+%for t_type in const.ITEM_L_TYPE:
+<div><input type="checkbox" value="${t_type[0]|h}" name="filter_type" checked="checked" /><span>${t_type[0]|h}</span></div>
 %endfor
-</select>
+</div>
+
+<div class="filter_cate">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div data-parent-type=""><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>***NotInList***</span></div>
+%for cate in const.ITEM_L_CATE2:
+<div data-parent-type="${cate[1]|h}"><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+<div class="filter_user">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for user in sales_users:
+<div><input type="checkbox" value="${user.lower()|h}" name="filter_user" checked="checked" /><span>${user|h}</span></div>
+%endfor
+</div>
+
+</div>
+</div>
 
 <input type="date" name="ctrl_frm_date" value="${frm_dt}" placeholder="From Date" style="width:170px" />
 <input type="date" name="ctrl_to_date" value="${to_dt}" placeholder="To Date" style="width:170px" />

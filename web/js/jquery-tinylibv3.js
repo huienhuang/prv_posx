@@ -528,7 +528,7 @@ function load_data()
     //console.log('load_data:' + sidx + ':' + eidx)
     data.req_pg = [sidx, eidx];
     data.reqs[0]++;
-    data.reqs[1] = $.ajax({context:data.tg, type:'get', url:this.src.page,
+    data.reqs[1] = $.ajax({context:data.tg, type:this.src.method || 'get', url:this.src.page,
                      data:$.extend({sb:this.cols[view.sortby[0]].fieldname, sd:view.sortby[1], pagesize:buf.pagesize, sidx:sidx, eidx:eidx}, this.src.page_data || this.src.data || {}),
                      success:load_data_cb, dataType:'json',
                      error:ajax_on_error});

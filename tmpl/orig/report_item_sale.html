@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v2.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - Item - Report - Sale</title>
 
 <script type="text/javascript">
@@ -18,7 +18,7 @@ function apply()
     var status_lst = [];
     for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
     
-    var v_dept_cbs = $('.filter_dept input:checked');
+    var v_dept_cbs = $('.filter_dept >div:not(.sel_hidden) input:checked');
     var dept_lst = [];
     for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
     
@@ -37,7 +37,7 @@ function export_csv()
     var status_lst = [];
     for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
     
-    var v_dept_cbs = $('.filter_dept input:checked');
+    var v_dept_cbs = $('.filter_dept >div:not(.sel_hidden) input:checked');
     var dept_lst = [];
     for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
     
@@ -59,7 +59,7 @@ $('.btn').button();
 
 g_v_tg_item_list = $('.tg_item_list').tinygrid({
 len:0,
-src:{page:'reportitem?fn=get_items', data:g_tg_item_list_data},
+src:{page:'reportitem?fn=get_items', data:g_tg_item_list_data, method:'post'},
 cols: [{name:'ID', width:70},
        {name:'Name', width:"100%"},
        {name:'UOM', width:50},
@@ -91,9 +91,9 @@ $('.filter input[type="checkbox"]').change(function() {
     if(n === 'cate') {
         var v_dept = $('.filter_dept').children('div[title="'+v+'"]');
         if(chk) {
-            v_dept.show().children('input').prop('checked', true);
+            v_dept.removeClass('sel_hidden').children('input').prop('checked', true);
         } else {
-            v_dept.hide().children('input').prop('checked', false);
+            v_dept.addClass('sel_hidden').children('input').prop('checked', false);
         }
     }
     
@@ -110,9 +110,9 @@ function filter_chk_all(chk) {
     if(n === 'cate') {
         var c = $($('.filter_dept').children().slice(1));
         if(chk) {
-            c.show().children('input').prop('checked', true);
+            c.removeClass('sel_hidden').children('input').prop('checked', true);
         } else {
-            c.hide().children('input').prop('checked', false);
+            c.addClass('sel_hidden').children('input').prop('checked', false);
         }
     }
     
@@ -160,6 +160,8 @@ apply();
 .tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+.filter_dept >div.sel_hidden {display:none}
 
 </style>
 

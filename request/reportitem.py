@@ -96,15 +96,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_get_items(self):
         ret = {'res':{'len':0, 'apg':[]}}
         
-        pgsz = self.qsv_int('pagesize')
-        sidx = self.qsv_int('sidx')
-        eidx = self.qsv_int('eidx')
+        pgsz = self.req.psv_int('pagesize')
+        sidx = self.req.psv_int('sidx')
+        eidx = self.req.psv_int('eidx')
         if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
         
-        frm_mon = self.qsv_int('frm_mon')
-        to_mon = self.qsv_int('to_mon')
-        status_l = self.qsv_str('status')
-        dept_l = self.qsv_str('dept')
+        frm_mon = self.req.psv_int('frm_mon')
+        to_mon = self.req.psv_int('to_mon')
+        status_l = self.req.psv_str('status')
+        dept_l = self.req.psv_str('dept')
         
         rlen, apg_ = self.get_items(frm_mon, to_mon, status_l, dept_l, sidx, eidx, pgsz)
         apg = []
