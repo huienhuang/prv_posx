@@ -215,6 +215,45 @@ function render_graph()
 }
 
 
+function render_graph_2()
+{
+    var v_canvas = $('#d_canvas');
+    if( v_canvas.is(':visible') ) { v_canvas.hide(); return; }
+    
+    var js = g_v_main_xtbl.data('js');
+    if(!js) return;
+    
+    var users = js.users;
+    var cates = js.cates;
+    js = js.js;
+    
+    v_canvas.show();
+    
+    var data = [];
+    var dp = [];
+    for(var j = 0; j < js.length; j++) {
+        var js_j = js[j];
+        var total = 0;
+        for(var k in js_j[1]) {
+            var cs = js_j[1][k];
+            for(var c in cs) total += cs[c][0];
+        }
+        dp.push( {label: js_j[0], y: parseFloat(total.toFixed(2))} );
+    }
+    data.push({'showInLegend': true, 'type': "column", 'name': 'Total', 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
+    
+    var cfg = {
+        'zoomEnabled': true,
+        'theme': "theme2",
+        'title': {'text': "Sale"},
+        'axisX': {'labelAngle': -50},
+        'data': data
+        }
+    
+    new CanvasJS.Chart('d_canvas', cfg).render();
+    
+}
+
 
 $(function() {
 
@@ -267,6 +306,7 @@ var els = g_v_m_ctrl.data('in_els');
 
 els.btn_apply[0].click(load_data);
 els.btn_chart[0].click(render_graph);
+els.btn_chart2[0].click(render_graph_2);
 
 g_v_main_xtbl_header = $('.main_tbl .prntbl_row_hdr');
 g_v_main_xtbl = $('.main_tbl .prntbl_cnt');
@@ -408,6 +448,7 @@ margin:30px 50px;
 
 <input type="button" value="Apply" name="ctrl_btn_apply" class="btn" />
 <input type="button" value="Chart" name="ctrl_btn_chart" class="btn" />
+<input type="button" value="ChartSum" name="ctrl_btn_chart2" class="btn" />
 </div>
 
 
