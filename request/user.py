@@ -7,12 +7,10 @@ CFG = {
     'name': 'User',
     'visible': True,
     'permission_map': [
-    ('view', ''),
     ('admin', ''),
     ],
-
+    'default_permission': 0,
 }
-
 
 
 
@@ -21,7 +19,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_default(self):
         d = {'userlist': self.getuserlist(), 'PERM_BIT': config.USER_PERM_BIT}
-        self.req.writefile('user_v3.html', d)
+        self.req.writefile('user_v2.html', d)
     
     def fn_add_user(self):
         user_name = self.req.psv_ustr('name').strip().lower()
