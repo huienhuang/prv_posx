@@ -121,10 +121,10 @@ def get_fd_data(last_fd_id, max_fd_id):
     return [ ('customer', x) for x in cids ]
 
 def get_last_fd_id():
-    return config.get_config_(sys_db(), config.cid__sync_last_fd_id)
+    return int(config.get_configv2_(sys_db(), config.cid__sync_last_fd_id, '0'))
 
 def set_last_fd_id(fd_id):
-    config.set_config_(sys_db(), config.cid__sync_last_fd_id, fd_id)
+    config.set_configv2_(sys_db(), config.cid__sync_last_fd_id, str(fd_id))
 
 
 
