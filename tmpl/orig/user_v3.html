@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_s1.html" />
+<title>POSX - User</title>
+
+<script type="text/javascript">
+
+$(function() {
+    
+    
+});
+
+
+</script>
+
+<style type="text/css">
+
+table tbody tr {cursor:pointer}
+table tbody tr:hover td {background-color:#eee2c8}
+
+
+.left_cnt {overflow-x:hidden;overflow-y:scroll;position:absolute;top:54px;left:0;bottom:0;width:300px}
+.right_cnt {overflow-x:hidden;overflow-y:scroll;position:absolute;top:54px;left:310px;bottom:0;right:0}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div class="ui large menu">
+
+<div class="item">
+<div class="ui transparent icon input"><input type="text" placeholder="User Name">
+<div class="ui primary button"><i class="add user icon"></i> Add</div>
+</div>
+</div>
+
+<div class="right menu">
+<a class="item"><i class="sign out icon"></i> Quit</a>
+</div>
+
+</div>
+
+
+<div class="left_cnt">
+
+<table class="ui celled striped large table">
+<thead>
+<tr><th width="100">ID</th><th>Name</th></tr>
+</thead>
+<tbody>
+%for u in reversed(userlist):
+%if u[0] != 1:
+<tr><td>${u[0]}</td><td>${u[1]|h}</td></tr>
+%endif
+%endfor
+</tbody>
+</table>
+
+</div>
+
+<div class="right_cnt">
+
+<table class="ui celled striped large table">
+<thead>
+<tr><th width="100">Tool</th><th>Permission</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+</body>
+
+</html>

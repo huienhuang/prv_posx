@@ -103,9 +103,35 @@ def get_last_fs_id():
 def set_last_fs_id(fs_id):
     config.set_config_(sys_db(), config.cid__sync_last_fs_id, fs_id)
 
+
+
+
+
+def get_max_fd_id():
+    cur,sur = pos_db()
+    sur.execute("select max(sessionsid) from FinancialSession where sessionfinish is not null")
+    return sur.fetchall()[0][0] or 0
+
+def get_fd_data(last_fd_id, max_fd_id):
+    cur,sur = pos_db()
+    sur.execute("select pos_sid from financialdetail where sessionsid>%d and sessionsid<=%d and pos_doctype=3" % (
+        last_fd_id, max_fd_id
+    ))
+    cids = set([ f_x[0] for f_x in sur.rows() ])
+    return [ ('customer', x) for x in cids ]
+
+def get_last_fd_id():
+    return config.get_config_(sys_db(), config.cid__sync_last_fd_id)
+
+def set_last_fd_id(fd_id):
+    config.set_config_(sys_db(), config.cid__sync_last_fd_id, fd_id)
+
+
+
 g_sync_tp = (
     ['CJ', get_max_cj_id, get_cj_data, get_last_cj_id, set_last_cj_id, None, True],
-    ['FS', get_max_fs_id, get_fs_data, get_last_fs_id, set_last_fs_id, None, False]
+    ['FS', get_max_fs_id, get_fs_data, get_last_fs_id, set_last_fs_id, None, False],
+    ['FS', get_max_fd_id, get_fd_data, get_last_fd_id, set_last_fd_id, None, False]
 )
 
 def fs_to_cj(data):

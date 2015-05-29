@@ -9,6 +9,7 @@ cid_user_update_seq = 1
 cid__sync_last_update = 50001
 cid__sync_last_cj_id = 50002
 cid__sync_last_fs_id = 50003
+cid__sync_last_fd_id = 50004
 
 
 cid__inst_sync_customer_last_id = 30010
