@@ -6,6 +6,16 @@ import re
 import datetime
 import traceback
 
+
+CFG = {
+    'id': 'sync_6F5E0966',
+    'name': 'Sync',
+    'perm_list': [
+    ('access', ''),
+    ],
+}
+
+
 REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_PARTIAL = 1 << 6
 

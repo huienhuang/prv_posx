@@ -4,6 +4,19 @@ import config
 import datetime
 
 
+CFG = {
+    'id': 'project_AF5643BC',
+    'name': 'Project',
+    'visible': True,
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
+
 P_STATES = {
 'pending' : 0,
 'approved' : 16,
@@ -20,7 +33,6 @@ P_STATES_R = dict([(f_v,f_k) for f_k,f_v in P_STATES.items()])
 P_QUALITY = ['No Credit', 'Poor', 'Fair', 'Good', 'Excellent']
 P_ON_TIME = ['NO', 'YES']
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['sys']
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
@@ -75,7 +87,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'err':int(rc <= 0)})
         
-    fn_validate.PERM = 1 << config.USER_PERM_BIT['admin']    
+    fn_validate.PERM = PERM_ADMIN
     
     
     def fn_approve(self):
@@ -103,7 +115,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'err':int(rc <= 0)})
     
-    fn_approve.PERM = 1 << config.USER_PERM_BIT['admin']
+    fn_approve.PERM = PERM_ADMIN
     
     def fn_setpriority(self):
         p_id = self.req.psv_int('p_id')

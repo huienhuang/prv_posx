@@ -7,7 +7,14 @@ import const
 import csv
 import cStringIO
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+CFG = {
+    'id': 'RECEIPTCUSTOMER_C7800007',
+    'name': 'Receipt Customer',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):

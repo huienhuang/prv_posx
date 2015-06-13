@@ -5,14 +5,26 @@ import datetime
 import base64
 import const
 
+
+
+CFG = {
+    'id': 'SCHEDULEV2_C0000006',
+    'name': 'Schedule V2',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
+BIT_PPL = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
+BIT_MGR = (1 << config.BASE_ROLES_MAP['DeliveryMgr']) | (1 << config.BASE_ROLES_MAP['DriverMgr'])
+
+
 ZONES = const.ZONES
 MAX_DAYS = 7
 WDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-
-SALES_PERM = 1 << config.USER_PERM_BIT['sales']
-DELIVERY_MGR_PERM = 1 << config.USER_PERM_BIT['delivery_mgr']
-PURCHASING_PERM = 1 << config.USER_PERM_BIT['purchasing']
-
 
 REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_RESCHEDULED = 1 << 1
@@ -25,18 +37,15 @@ REC_FLAG_PARTIAL_CHANGED = 1 << 7
 
 CFG_SCHEDULE_UPDATE_SEQ = config.CFG_SCHEDULE_UPDATE_SEQ
 
-
 ORD_TYPE=('Sales', 'Return', 'Deposit', 'Refund', 'Payout', 'Payin')
 
-
-DEFAULT_PERM = SALES_PERM | DELIVERY_MGR_PERM | PURCHASING_PERM
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
         r = {
-            'sales': [ f_user for f_user in self.getuserlist() if f_user[2] & SALES_PERM ],
+            'sales': [ f_user for f_user in self.get_user_roles() if f_user[2] & BIT_PPL ],
             'zones': [ (f_x[0], f_x[2]) for f_x in ZONES ],
-            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
+            'has_perm_delivery_mgr': self.user_roles & BIT_MGR,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
@@ -127,7 +136,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if len(sc_ids) != c: i_warning_s = '%d out of %d processed' % (c, len(sc_ids))
         
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
-    fn_del.PERM = DELIVERY_MGR_PERM
+    fn_del.PERM = PERM_ADMIN
     
     def fn_confirm_rescheduling(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
@@ -178,7 +187,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if len(sc_ids) != c: i_warning_s = '%d out of %d processed' % (c, len(sc_ids))
         
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
-    fn_confirm_rescheduling.PERM = DELIVERY_MGR_PERM
+    fn_confirm_rescheduling.PERM = PERM_ADMIN
     
     def fn_get_doc(self):
         d_num = self.req.qsv_ustr('num')
@@ -611,7 +620,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
         
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
-    fn_clear_cflag.PERM = DELIVERY_MGR_PERM
+    fn_clear_cflag.PERM = PERM_ADMIN
     
     def fn_accept(self):
         sc_ids = map(int, self.req.psv_ustr('sc_ids').split('|'))
@@ -659,7 +668,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if len(sc_ids) != c: i_warning_s = '%d out of %d updated' % (c, len(sc_ids))
         
         self.req.writejs({'err': 0, 'i_warning_s': i_warning_s})
-    fn_accept.PERM = DELIVERY_MGR_PERM
+    fn_accept.PERM = PERM_ADMIN
     
     def fn_set_zone_state(self):
         date = self.req.psv_int('date')
@@ -682,7 +691,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             self.inc_seq()
         
         self.req.writejs({'err': err})
-    fn_set_zone_state.PERM = DELIVERY_MGR_PERM
+    fn_set_zone_state.PERM = PERM_ADMIN
     
     def fn_get_overview(self):
         clerk_id = self.qsv_int('clerk_id')
@@ -1204,7 +1213,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,
             'REC_FLAG_CHANGED': REC_FLAG_CHANGED,
-            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
+            'has_perm_delivery_mgr': self.user_roles & BIT_MGR,
             'view_only': view_only,
             'auto_print': self.qsv_int('auto_print'),
             'round_ex': config.round_ex,
@@ -1218,7 +1227,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_map(self):
         dt = self.qsv_int('dt')
         r = {
-            'has_perm_delivery_mgr': self.user_lvl & DELIVERY_MGR_PERM,
+            'has_perm_delivery_mgr': self.user_roles & BIT_MGR,
             'REC_FLAG_CANCELLING': REC_FLAG_CANCELLING,
             'REC_FLAG_ACCEPTED': REC_FLAG_ACCEPTED,
             'REC_FLAG_RESCHEDULED': REC_FLAG_RESCHEDULED,

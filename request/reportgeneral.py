@@ -8,6 +8,17 @@ import cStringIO
 import csv
 
 
+CFG = {
+    'id': 'GeneralReport_BF100002',
+    'name': 'General Report',
+    'visible': True,
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
+
 PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
 
 G_MAP_REPORTS = [
@@ -21,7 +32,6 @@ G_MAP_REPORTS = [
 ]
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):

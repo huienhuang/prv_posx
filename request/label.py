@@ -7,6 +7,18 @@ import socket
 import re
 
 
+
+CFG = {
+    'id': 'label_6F5E0936',
+    'name': 'Label',
+    'visible': True,
+    'perm_list': [
+    ('access', ''),
+    ],
+}
+
+
+
 TEMPLATES = (
 ('5163', 'Large', 1),
 ('5163001', 'Large - All ALU', 1),

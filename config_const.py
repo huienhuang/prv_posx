@@ -67,3 +67,25 @@ CFG_SEQ_MAX = 20000000
 CFG_SCHEDULE_UPDATE_SEQ = CFG_SEQ_MIN
 
 
+BASE_ROLES_MAP = {
+'Base' : 1,
+
+'Driver': 11,
+'DriverMgr': 12,
+'Accounting': 13,
+'AccountingMgr': 14,
+'Purchasing': 15,
+'PurchasingMgr': 16,
+'Sales': 17,
+'SalesMgr': 18,
+'Delivery': 19,
+'DeliveryMgr': 20,
+'Warehouse': 21,
+'WarehouseMgr': 22,
+
+'Admin': 30,
+}
+
+BASE_ROLES_MAP_MASK = 0
+for i in BASE_ROLES_MAP.values(): BASE_ROLES_MAP_MASK |= 1 << i
+

@@ -3,8 +3,15 @@ import time
 import datetime
 import config
 
+CFG = {
+    'id': 'MOBILE_C00E0007',
+    'name': 'Mobile',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
 
-DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):

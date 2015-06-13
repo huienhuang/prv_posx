@@ -10,8 +10,18 @@ import cStringIO
 import bisect
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['item stat access']
-ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BIT['item stat access'])
+
+CFG = {
+    'id': 'ItemSold_BF100006',
+    'name': 'Item Sold',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
@@ -114,7 +124,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         self.req.writejs( {'pid': pid} )
 
-    fn_save_profile.PERM = ADV_PERM
+    fn_save_profile.PERM = PERM_ADMIN
 
     def fn_delete_profile(self):
         pid = self.req.psv_int('pid')
@@ -124,7 +134,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur.execute('delete from report where id=%s and type=1', (pid,))
         self.req.writejs({'ret': int(bool(cur.rowcount > 0))})
         
-    fn_delete_profile.PERM = ADV_PERM
+    fn_delete_profile.PERM = PERM_ADMIN
 
     def fn_load_profile(self):
         pid = self.req.qsv_int('pid')
@@ -246,7 +256,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.write( fp.getvalue() )
         
 
-    fn_export_csv.PERM = ADV_PERM
+    fn_export_csv.PERM = PERM_ADMIN
 
     def fn_make_po(self):
         return 

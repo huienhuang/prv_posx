@@ -9,22 +9,32 @@ import csv
 import cPickle
 
 
-PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
+CFG = {
+    'id': 'DailyReport_BF100003',
+    'name': 'Daily Report',
+    'perm_list': [
+    ('access', ''),
+    ('daily inventory', ''),
+    ]
+}
+
+
+PERM_DAILY_INVENTORY = 1 << 1
+
 
 G_MAP_REPORTS = [
-    ('po', PERM_ADMIN, 'po'),
-    ('delivery', PERM_ADMIN, 'delivery'),
-    ('sales', PERM_ADMIN, 'sales'),
+    ('po', 0, 'po'),
+    ('delivery', 0, 'delivery'),
+    ('sales', 0, 'sales'),
 ]
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         reports = []
         for i in range(len(G_MAP_REPORTS)):
             report = G_MAP_REPORTS[i]
-            if not(self.user_lvl & report[1]): continue
+            #if not(self.user_lvl & report[1]): continue
             reports.append( (i, report[0]) )
         
         self.req.writefile('report_daily.html', {'reports': reports})
@@ -266,11 +276,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         depts = sorted(cPickle.loads(rows[0][0])[1].items(), key=lambda f_x: f_x[0])
     
         self.req.writejs(depts)
-    
-    fn_get_inv.PERM = 1 << config.USER_PERM_BIT['accountingv2']
+    fn_get_inv.PERM = PERM_DAILY_INVENTORY
     
     def fn_view_inv(self):
         self.req.writefile('accounting_inv.html')
-    
-    fn_view_inv.PERM = 1 << config.USER_PERM_BIT['accountingv2']
-
+    fn_view_inv.PERM = PERM_DAILY_INVENTORY

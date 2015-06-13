@@ -10,10 +10,16 @@ import cStringIO
 import bisect
 
 
+CFG = {
+    'id': 'CUSTSALES_C0000006',
+    'name': 'Customer Sales',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 REPORT_TYPE = 8
 
-
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):

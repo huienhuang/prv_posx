@@ -4,7 +4,17 @@ import bisect
 import time
 import json
 
-DEFAULT_PERM = 1
+CFG = {
+    'id': 'TS_REQUEST_C0000001',
+    'name': 'Request',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
@@ -199,5 +209,5 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         self.req.writejs({'pid': pid})
 
-    fn_send.PERM = 1 << config.USER_PERM_BIT['purchasing']
+    fn_send.PERM = PERM_ADMIN
 

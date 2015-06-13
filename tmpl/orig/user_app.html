@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+<title>POSX - User App</title>
+
+<script type="text/javascript">
+
+
+function load_depts()
+{
+    g_v_cnt.empty();
+    get_js('?fn=get_apps_cfg', {}, function(js) {
+        for(var i = 0; i < js.length; i++) add_dept(js[i]);
+    });
+}
+
+function save_depts()
+{
+    var vlst = g_v_cnt.children();
+    
+    var depts = [];
+    for(var i = 0; i < vlst.length; i++) {
+        var vs = $(vlst[i]).children();
+        var nz = $(vs[0]).text();
+        
+        var apps = [];
+        var llst = $(vs[1]).children();
+        for(var j = 0; j < llst.length; j++) {
+            var l = $(llst[j]);
+            
+            var js = l.data('js');
+            if(!js || !js.md || !js.fn) continue;
+            apps.push( {name: $(l.children()[0]).text(), md: js.md, fn: js.fn.substr(js.md.length + 1)} );
+        }
+        
+        depts.push({name: nz, apps: apps});
+    }
+    
+    
+    post_js('?fn=set_apps_cfg', {'js': JSON.stringify(depts)}, function(js) {
+        load_depts();
+    });
+    
+}
+
+
+function add_dept(js)
+{
+    js = js || {};
+    
+    var vlst = [];
+    if (js.apps) {
+        for(var i = 0; i < js.apps.length; i++) {
+            var app = js.apps[i];
+            app.fn = app.md + '-' + app.fn;
+            vlst.push( $('<li></li>').append( $('<a></a>').text(app.name) ).data('js', app).click(open_app_cfg) );
+        }
+    }
+    
+    var v = $('<div></div>')
+    .append( $('<div></div>').text(js.name).click(open_dept_cfg) )
+    .append( $('<ul></ul>').append(vlst).sortable().disableSelection() )
+    .append( $('<div></div>') );
+    
+    
+    g_v_cnt.append(v);
+}
+
+function open_dept_cfg()
+{
+    var v = $(this);
+    var p = v.parent('div');
+    g_v_dlg_dept_cfg.find('input').val(v.text());
+    g_v_dlg_dept_cfg.data('js', p).dialog('open');
+    
+}
+
+function open_app_cfg()
+{
+    var v = $(this);
+    var els = g_v_dlg_app_cfg.data('in_els');
+    var js = v.data('js') || {};
+    
+    els.name[0].val( $(v.children()[0]).text() );
+    els.md[0].val( js.md );
+    els.fn[0].val( js.fn );
+    g_v_dlg_app_cfg.data('js', v).dialog('open');
+}
+
+$(function() {
+
+
+$('.button').button();
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+
+var els = g_v_ctrl.data('in_els');
+els.btn_save[0].click(save_depts);
+
+els.btn_add[0].click(function() {
+    add_dept();
+});
+
+g_v_cnt = $('#cnt').sortable().disableSelection();
+
+
+g_v_dlg_dept_cfg = $('#dlg_dept_cfg').dialog({
+    modal: true,
+    autoOpen: false,
+    width: 300,
+    height: 200,
+    close: function() {
+        var p = g_v_dlg_dept_cfg.data('js');
+        $(p.children()[0]).text( g_v_dlg_dept_cfg.find('input').val() );
+        g_v_dlg_dept_cfg.data('js', null);
+    },
+    buttons: {
+        'new app': function() {
+            var p = g_v_dlg_dept_cfg.data('js');
+            var v = $('<li><a>*NEW*</a></li>').click(open_app_cfg);
+            $(p.children()[1]).append(v);
+            g_v_dlg_dept_cfg.dialog('close');
+            v.click();
+        },
+        
+        'delete': function() {
+            g_v_dlg_dept_cfg.data('js').remove();
+            g_v_dlg_dept_cfg.dialog('close');
+        },
+    }
+});
+
+
+g_v_dlg_app_cfg = $('#dlg_app_cfg').dialog({
+    modal: true,
+    autoOpen: false,
+    width: 600,
+    height: 280,
+    close: function() {
+        var p = g_v_dlg_app_cfg.data('js');
+        var els = g_v_dlg_app_cfg.data('in_els');
+        
+        p.data('js', {fn: els.fn[0].val(), md: els.md[0].val()});
+        
+        $(p.children()[0]).text( els.name[0].val() );
+        g_v_dlg_app_cfg.data('js', null);
+    },
+    buttons: {
+        'delete': function() {
+            g_v_dlg_app_cfg.data('js').remove();
+            g_v_dlg_app_cfg.dialog('close');
+        },
+    }
+});
+idx_elements(g_v_dlg_app_cfg, 4);
+els = g_v_dlg_app_cfg.data('in_els');
+
+els.md[0].change(function() {
+    var els = g_v_dlg_app_cfg.data('in_els');
+    var v = $(this).val();
+    var lst = els.fn[0].children();
+    
+    lst.hide();
+    lst = lst.filter('[data-md="'+v+'"]').show();
+    els.fn[0].val(v+'-default');
+    
+}).change();
+
+
+load_depts();
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+#cnt >div {margin-bottom:10px;overflow:hidden;}
+#cnt >div >:first-child {cursor:pointer;background-color:#8064a2;height:40px;line-height:40px;text-align:center;font-size:22px;color:#fff;margin-bottom:10px;border-radius:5px;}
+
+#cnt >div >:nth-child(2) li {cursor:pointer;background-color:#b3a2c7;width:130px;height:30px;padding:5px;float:left;margin:0 10px 10px 10px;border-radius:5px}
+#cnt >div >:nth-child(2) li a {display:block;height:30px;line-height:30px;text-align:center;color:#fff}
+
+#cnt >div >:nth-child(3) {clear:both}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div class="x_ctrl">
+<input type="button" class="button" name="ctrl_btn_add" value="Add" />
+<input type="button" class="button" name="ctrl_btn_save" value="Save" />
+</div>
+
+<div class="x_body" id="cnt"></div>
+<div id="dlg_dept_cfg" title="Dept Config"><input type="text" placeholder="Dept Name" /></div>
+
+<div id="dlg_app_cfg" title="APP Config">
+<p><input name="app_name" type="text" placeholder="APP Name" /></p>
+<p>
+<select name="app_md" style="width:200px">
+%for cfg,nz,fns in cfgs:
+<option>${nz|h}</option>
+%endfor
+</select>
+<select name="app_fn" style="width:300px">
+%for cfg,nz,fns in cfgs:
+%for fn in fns:
+<option data-md="${nz|h}" value="${nz|h}-${fn|h}">${fn|h}</option>
+%endfor
+%endfor
+</select>
+</p>
+</div>
+
+</body>
+
+</html>

@@ -4,13 +4,21 @@ import datetime
 import config
 
 
-PERM_PURCHASING_MGR = 1 << config.USER_PERM_BIT['purchasing_mgr']
+CFG = {
+    'id': 'CYCLE_COUNT_AF5643BB',
+    'name': 'Cycle Count',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
 
-DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
+PERM_ADMIN = 1 << 1
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_default(self):
         tabs = [('user', 'User')]
-        if self.user_lvl & PERM_PURCHASING_MGR: tabs.extend( [('manager', 'Manager'), ('record', 'Record', True)] )
+        if self.get_cur_rh_perm() & PERM_ADMIN: tabs.extend( [('manager', 'Manager'), ('record', 'Record', True)] )
 
         r = {
             'tab_cur_idx' : 2,
@@ -28,7 +36,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     	self.req.writefile('cycle_count/manager.html', {'users': users})
 
-    fn_manager.PERM = PERM_PURCHASING_MGR
+    fn_manager.PERM = PERM_ADMIN
 
 
     def fn_record(self):
@@ -38,7 +46,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         }
         self.req.writefile('cycle_count/record.html', r)
 
-    fn_record.PERM = PERM_PURCHASING_MGR
+    fn_record.PERM = PERM_ADMIN
 
 
     def fn_user(self):
@@ -65,7 +73,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         self.req.writejs({'err': int(rc <= 0)})
 
-    fn_del_record.PERM = PERM_PURCHASING_MGR
+    fn_del_record.PERM = PERM_ADMIN
 
     def fn_save_record(self):
         r_id = self.req.psv_int('r_id')
@@ -101,7 +109,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         self.req.writejs({'r_id': r_id})
 
-    fn_save_record.PERM = PERM_PURCHASING_MGR
+    fn_save_record.PERM = PERM_ADMIN
 
 
     def fn_load_record(self):
@@ -119,7 +127,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         self.req.writejs(r)
 
-    fn_load_record.PERM = PERM_PURCHASING_MGR
+    fn_load_record.PERM = PERM_ADMIN
 
 
     def fn_get_records(self):
@@ -153,14 +161,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         res['apg'] = apg
         self.req.writejs(ret)
     
-    fn_get_records.PERM = PERM_PURCHASING_MGR
+    fn_get_records.PERM = PERM_ADMIN
 
 
     def fn_load_record_detail_by_user(self):
         ret = {'res':{'len':0, 'apg':[]}}
         
         u_id = self.req.qsv_int('u_id') or self.user_id
-        if not(self.user_lvl & PERM_PURCHASING_MGR): u_id = self.user_id
+        if not(self.get_cur_rh_perm() & PERM_ADMIN): u_id = self.user_id
 
         r_id = self.req.qsv_int('r_id')
 

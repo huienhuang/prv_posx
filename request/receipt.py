@@ -3,12 +3,25 @@ import time
 import config
 import datetime
 
+CFG = {
+    'id': 'RECEIPT_C00B8008',
+    'name': 'Receipt',
+    'perm_list': [
+    ('access', ''),
+    ('account report', ''),
+    ]
+}
+PERM_ACC = 1 << 1
+
+BIT_ACC = (1 << config.BASE_ROLES_MAP['Accounting'])
+BIT_DRV = (1 << config.BASE_ROLES_MAP['Driver'])
+
+
 REC_FLAG_DELIVERED = 1 << 0
 REC_FLAG_PROBLEM = 1 << 1
 REC_FLAG_PAID = 1 << 2
 REC_FLAG_PM_REQ = 1 << 3
 
-DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def add_comment(self, rid, c_type, user_name, comment):
@@ -132,11 +145,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r = {
             'd_id': d_id,
             'read_only': read_only,
-            'has_perm__accounting': self.user_lvl & (1 << config.USER_PERM_BIT['accounting'])
+            'has_perm__accounting': self.user_roles() & BIT_ACC
         }
         
-        users = self.getuserlist()
-        perm_driver = 1 << config.USER_PERM_BIT['driver']
+        users = self.get_user_roles()
+        perm_driver = BIT_DRV
         drivers = r['drivers'] = [ x for x in users if x[2] & perm_driver and x[0] != 1 ]
         drivers.insert(0, (0, 'Select Driver', 0))
         
@@ -165,9 +178,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             'auto_print': self.req.qsv_int('auto_print'),
             'cur_driver_id': self.req.qsv_int('driver_id')
         }
-        users = self.getuserlist()
+        users = self.get_user_roles()
         users_lku = dr['users_lku'] = {}
-        perm_driver = 1 << config.USER_PERM_BIT['driver']
+        perm_driver = BIT_DRV
         drivers = dr['drivers'] = []
         for x in users:
             users_lku[ x[0] ] = x[1]
@@ -235,7 +248,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         dr = self.prepare_record_per_driver(d_id)
         self.req.writefile('delivery_printing_accounting_report.html', dr)
         
-    fn_delivery_printing_accounting_report.PERM = 1 << config.USER_PERM_BIT['accounting']
+    fn_delivery_printing_accounting_report.PERM = PERM_ACC
 
     def fn_delivery_printing_for_driver(self):
         d_id = self.req.qsv_int('d_id')

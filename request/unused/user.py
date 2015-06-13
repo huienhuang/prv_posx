@@ -2,18 +2,6 @@ import config
 import hashlib
 
 
-
-CFG = {
-    'name': 'User',
-    'visible': True,
-    'permission_map': [
-    ('admin', ''),
-    ],
-    'default_permission': 0,
-}
-
-
-
 DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
 class RequestHandler(App.load('/basehandler').RequestHandler):
 

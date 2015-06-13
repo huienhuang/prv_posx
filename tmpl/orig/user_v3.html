@@ -1,15 +1,246 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_s1.html" />
+<%include file="header_inc_v4.html" />
 <title>POSX - User</title>
 
 <script type="text/javascript">
 
-$(function() {
+function clear_chkboxes()
+{
+    for(var i = 0; i < g_perms.length; i++) {
+        var l = g_perms[i];
+        l[1].prop('checked', false);
+        l[2].prop('checked', false);
+    }
+}
+
+function load_roles(user_id)
+{
+    g_v_dlg_roles.data('user_id', 0).dialog('close');
+    if(!user_id) return;
     
+    get_js('?fn=get_user_roles', {user_id:user_id}, function(js) {
+        
+        for(var i = 0; i < g_v_dlg_roles_lst.length; i++) {
+            var v = $(g_v_dlg_roles_lst[i]);
+            v.prop('checked', !!(js.user_roles & (1 << parseInt(v.data('roleid')))) );
+        }
+        
+        g_v_dlg_roles.data('user_id', user_id).dialog('open');
+    });
+}
+
+function render_app_perms(js, p) {
+    for(var i = 0; i < js[2].length; i++) {
+        $(js[2][i]).prop('checked', !!(p & (1 << i)) );
+    }
+}
+
+function cb_d_chg() {
+    if(g_user === null) return;
+    var js = g_perms[ parseInt($(this).closest('tr').data('app_idx')) ];
+
+    var p = g_user[ js[1].prop('checked') ? 'role_perms' : 'merg_perms' ][ js[0] ] || 0;
+    render_app_perms(js, p);
+}
+
+function cb_p_chg() {
+    if(g_user === null) return;
+    var v = $(this);
+    var js = g_perms[ parseInt(v.closest('tr').data('app_idx')) ];
+
+    var i = parseInt(v.data('pidx'));
+    var d_chk = js[1].prop('checked');
+    var b = !!((g_user['role_perms'][ js[0] ] || 0) & (1 << i));
+    if(d_chk && $(js[2][i]).prop('checked') != b) js[1].prop('checked', false);
+}
+
+function load_perms(user_id)
+{
+    g_user = null;
+    g_v_user_roles.empty();
+    clear_chkboxes();
+    if(!user_id) return;
+    
+    get_js('?fn=get_user_perms', {user_id: user_id}, function(js) {
+        
+        for(var i = 0; i < g_perms.length; i++) {
+            var l = g_perms[i];
+            
+            l[1].prop('checked', js.user_perms[l[0]] === undefined);
+            render_app_perms(l, js.merg_perms[l[0]] || 0);
+        }
+        
+        g_v_user_roles.text(js.user_name + ' - ' + js.roles_s);
+        
+        g_user = js;
+    });
+}
+
+
+$(function() {
+
+g_user = null;
+
+$('.button').button();
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+
+var els = g_v_ctrl.data('in_els');
+els.btn_add[0].button().click(function() {
+    var els = g_v_ctrl.data('in_els');
+    var v = els.user[0];
+    
+    var nz = $.trim(v.val());
+    if (!nz) return;
+    v.val('');
+    
+    post_js('?fn=add_user', {name:nz}, function(js) {
+        g_v_tg_lst.tinygrid('update', -1, true, true, true);
+        load_perms(js.uid);
+        
+        
+    });
     
 });
+
+els.btn_save[0].button().click(function() {
+    if(g_user === null) return;
+    
+    var perms = [];
+    for(var i = 0; i < g_perms.length; i++) {
+        var l = g_perms[i];
+        if(l[1].prop('checked')) continue;
+        
+        var p = 0;
+        for(var j = 0; j < l[2].length; j++) {
+            if($(l[2][j]).prop('checked')) p |= 1 << j;
+        }
+        
+        perms.push( [l[0], p] );
+    }
+    
+    post_js('?fn=save_user_perms', {'js':JSON.stringify([g_user.user_id, perms])}, function(js) {
+
+        load_perms(js.user_id);
+    });
+    
+});
+
+
+g_v_tg_lst = $('#user_lst').tinygrid({
+len:1,
+src:{page:'?fn=get_user_list'},
+cols: [{name:'ID', width:60},
+       {name:'Name', width:"100%"},
+       {name:'Roles', width:90},
+       ],
+click: function(r, c, d) {
+    if (c == 2) load_roles(d[0]);
+    load_perms(d[0]);
+}
+});
+
+
+g_v_perms = $('#perm_lst tbody > tr');
+g_perms = [];
+for(var i = 0; i < g_v_perms.length; i++) {
+    var tr = $(g_v_perms[i]).data('app_idx', i);
+    var appid = tr.data('appid');
+    var cds = tr.children();
+    
+    var inp_d = $(cds[1]).find('input').change(cb_d_chg);
+    var inp_l = $(cds[2]).find('input').change(cb_p_chg);
+    
+    g_perms.push( [appid, inp_d, inp_l] );
+}
+
+
+g_v_perms.find('span').click(function() {
+    $(this).prev().click();
+});
+
+$('#perm_lst thead input[name="default_checkall"]').click(function() {
+    var chk = $(this).prop('checked');
+    for(var i = 0; i < g_perms.length; i++) {
+        g_perms[i][1].prop('checked', chk).change();
+    }
+});
+
+g_v_dlg_password = $('#dlg_password').dialog({
+    modal: true,
+    autoOpen: false,
+    width: 300,
+    height: 230,
+    buttons: {
+        'Set': function() {
+            var v = g_v_dlg_password.find('input');
+            var pass = $.trim(v.val());
+            v.val('');
+            var user_id = g_v_dlg_roles.data('user_id');
+            if(!user_id) return;
+            
+            post_js('?fn=set_password', {uid: user_id, password: pass}, function() {
+                g_v_dlg_password.dialog('close');
+            });
+        }
+    }
+});
+
+g_v_dlg_roles = $('#dlg_roles').dialog({
+    modal: true,
+    autoOpen: false,
+    width: 600,
+    height: 600,
+    buttons: {
+        'Password': function() {
+            g_v_dlg_password.dialog('open').find('input').val('');
+        },
+        
+        'Delete': function() {
+            if( !confirm('Delete this User?') ) return;
+            
+            var user_id = g_v_dlg_roles.data('user_id');
+            if(!user_id) return;
+            post_js('?fn=del_user', {uid: user_id}, function() {
+                g_v_tg_lst.tinygrid('update', -1, true, true, true);
+                load_perms();
+                g_v_dlg_roles.dialog('close');
+            });
+        },
+        
+        'Save': function() {
+            var user_id = g_v_dlg_roles.data('user_id');
+            if(!user_id) return;
+            
+            var roles = 0;
+            for(var i = 0; i < g_v_dlg_roles_lst.length; i++) {
+                var v = $(g_v_dlg_roles_lst[i]);
+                if( v.prop('checked') ) roles |= 1 << parseInt(v.data('roleid'));
+            }
+        
+            post_js('?fn=set_user_roles', {'user_id': user_id, 'roles': roles}, function(js) {
+                g_v_tg_lst.tinygrid('update', -1, true, true, true);
+                load_perms(js.user_id);
+                
+                g_v_dlg_roles.dialog('close');
+            });
+        }
+        
+    }
+});
+
+
+g_v_dlg_roles_lst = g_v_dlg_roles.find('li >input');
+
+g_v_user_roles = $('#user_roles');
+
+
+
+});
+
 
 
 </script>
@@ -19,9 +250,13 @@ $(function() {
 table tbody tr {cursor:pointer}
 table tbody tr:hover td {background-color:#eee2c8}
 
+#user_lst {top:0;left:0;bottom:0;width:350px}
+#perm_lst {overflow-x:hidden;overflow-y:scroll;position:absolute;top:36px;left:360px;bottom:0;right:0}
+#user_roles {position:absolute;top:0;left:360px;height:36px;right:0;line-height:36px;font-weight:bold}
+.pxm_tbl {width:98%}
+.pxm_tbl tr td:nth-child(3) {text-align:left}
 
-.left_cnt {overflow-x:hidden;overflow-y:scroll;position:absolute;top:54px;left:0;bottom:0;width:300px}
-.right_cnt {overflow-x:hidden;overflow-y:scroll;position:absolute;top:54px;left:310px;bottom:0;right:0}
+
 
 </style>
 
@@ -30,48 +265,59 @@ table tbody tr:hover td {background-color:#eee2c8}
 <body>
 
 
-<div class="ui large menu">
-
-<div class="item">
-<div class="ui transparent icon input"><input type="text" placeholder="User Name">
-<div class="ui primary button"><i class="add user icon"></i> Add</div>
-</div>
-</div>
-
-<div class="right menu">
-<a class="item"><i class="sign out icon"></i> Quit</a>
-</div>
-
+<div class="x_ctrl">
+<input type="text" name="ctrl_user" placeholder="User Name" />
+<input type="button" class="button" name="ctrl_btn_add" value="Add User" />
+<input type="button" class="button" name="ctrl_btn_save" value="Save Permission" />
 </div>
 
 
-<div class="left_cnt">
+<div class="x_body">
 
-<table class="ui celled striped large table">
-<thead>
-<tr><th width="100">ID</th><th>Name</th></tr>
-</thead>
+<div id="user_lst"></div>
+
+<div id="user_roles"></div>
+<div id="perm_lst">
+<table class="pxm_tbl">
+<thead><tr><th width="200">App</th><th><input type="checkbox" name="default_checkall" /> Default</th><th>Permissions</th></tr></thead>
 <tbody>
-%for u in reversed(userlist):
-%if u[0] != 1:
-<tr><td>${u[0]}</td><td>${u[1]|h}</td></tr>
-%endif
+%for k in range(len(cfgs)):
+<%
+cfg = cfgs[k][0]
+%>
+<tr data-appid="${cfg['id']}"><td>${cfg['name']}</td>
+<td><input type="checkbox" /><span> Default</span></td>
+<td><ul>
+%for i in range(len(cfg['perm_list'])):
+<%
+p = cfg['perm_list'][i]
+%>
+<li><input type="checkbox" data-pidx="${i}" /><span> ${p[0]|h}${p[1] and ' - ' + p[1] or ''|h}</span></li>
 %endfor
-</tbody>
+</ul></td></tr>
+%endfor
+<tbody>
 </table>
+</div>
 
 </div>
 
-<div class="right_cnt">
 
-<table class="ui celled striped large table">
-<thead>
-<tr><th width="100">Tool</th><th>Permission</th></tr>
-</thead>
-<tbody></tbody>
-</table>
+<div id="dlg_roles" title="Roles">
+
+<ul>
+%for role_name,role_id in role_list:
+<li><input type="checkbox" data-roleid="${role_id}" /><span> ${role_name|h}</span></li>
+%endfor
+</ul>
 
 </div>
+
+
+<div id="dlg_password" title="Password">
+<input type="password" placeholder="password" />
+</div>
+
 
 </body>
 

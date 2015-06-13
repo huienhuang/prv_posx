@@ -46,6 +46,7 @@ class ModuleRef:
         
     def load(self):
         m = self.module
+        m.__file__ = self.fname
         try:
             execfile(self.fname, m.__dict__)
         except:
@@ -219,6 +220,7 @@ class _Application:
             if self.debug:
                 tdata[1].clear()
                 tdata[2].clear()
+                self.als.clear()
         
         headers.append( ('SYS', 'TS:%0.3f, TID:%08X, AID:%08X' % (time.time() - ts, tid, self.aid)) )
         start_response(status, headers)
@@ -434,9 +436,9 @@ class RequestHandler:
         sfn = fn.replace('_', '')
         if sfn.isalnum():
             mn = 'fn_' + fn
-            co = getattr(self, mn, None)
+            co = getattr(self.__class__, mn, None)
             if co and self.check_perm(fn, co) != False and self.precall_fn(fn) != False:
-                if co() != False:
+                if co(self) != False:
                     self.postcall_fn(fn)
     
     def fn_default(self):

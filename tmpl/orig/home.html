@@ -310,12 +310,12 @@ get_js('?fn=load_dashboard', {}, function(js) {
 
 <div class="m_body">
 <div>
-%for s_dept,l_tools in tools_map:
-<div class="pxm_blk blk_${s_dept.lower()}">
-<div>${s_dept}</div>
+%for dept in depts:
+<div class="pxm_blk blk_${dept['name'].lower()|h}">
+<div>${dept['name']|h}</div>
 <ul class="pxm_list">
-%for tool in l_tools:
-<li><a href="${tool[1]|h}">${tool[0]|h}</a></li>
+%for app in dept['apps']:
+<li><a href="${app['md']|h}?fn=${app['fn']|h}">${app['name']|h}</a></li>
 %endfor
 </ul>
 <div style="clear:both"></div>

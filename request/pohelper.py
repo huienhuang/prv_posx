@@ -9,8 +9,18 @@ import csv
 import cStringIO
 import bisect
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['item stat access']
-ADV_PERM = (1 << config.USER_PERM_BIT['purchasing']) | (1 << config.USER_PERM_BIT['item stat access'])
+
+CFG = {
+    'id': 'POHELPER_C1000001',
+    'name': 'Po Helper',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
@@ -78,6 +88,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         )
         self.req.writejs({'err': int(cur.rowcount<=0)})
 
+    fn_publish.PERM = PERM_ADMIN
+
     def fn_save_profile(self):
         js = self.req.psv_js('js')
         
@@ -120,8 +132,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         self.req.writejs( {'pid': pid} )
 
-    fn_save_profile.PERM = ADV_PERM
-
     def fn_delete_profile(self):
         pid = self.req.psv_int('pid')
         if not pid: return
@@ -129,8 +139,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         cur.execute('delete from inv_request where pid=%s and (uid=%s or (flg&2)!=0) and dtype=2 and (flg&1)=0', (pid, self.user_id))
         self.req.writejs({'ret': int(bool(cur.rowcount > 0))})
-        
-    fn_delete_profile.PERM = ADV_PERM
 
     def fn_load_profile(self):
         pid = self.req.qsv_int('pid')

@@ -7,7 +7,14 @@ import datetime
 import traceback
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+CFG = {
+    'id': 'RECEIPTSTAT_C1230007',
+    'name': 'ReceiptStat',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
 
     OF_PAID = 1 << 8

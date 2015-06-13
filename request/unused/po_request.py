@@ -4,7 +4,9 @@ import bisect
 import time
 import json
 
-DEFAULT_PERM = 1
+
+
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):

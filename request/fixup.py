@@ -4,7 +4,15 @@ import json
 import time
 import datetime
 
-DEFAULT_PERM = 0x00000001
+
+CFG = {
+    'id': 'FIXUP_C0000003',
+    'name': 'Customer Error',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):

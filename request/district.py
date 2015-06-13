@@ -4,12 +4,19 @@ import config
 import datetime
 
 
+CFG = {
+    'id': 'DISTRICT_C0010006',
+    'name': 'District',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 
 DAY_SECS = 3600 * 24
 WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
-DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):

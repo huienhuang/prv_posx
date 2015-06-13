@@ -7,7 +7,17 @@ import const
 import csv
 import cStringIO
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+
+
+CFG = {
+    'id': 'ItemReport_BF100000',
+    'name': 'Item Report',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):

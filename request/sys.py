@@ -9,7 +9,15 @@ import struct
 import cPickle
 import hashlib
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+
+CFG = {
+    'id': 'SYS_AF5643BD',
+    'name': 'System',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_get_cust_chg(self):
@@ -67,6 +75,4 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_project(self):
         self.req.writefile('project.html')
-
-    fn_project.PERM = 1 << config.USER_PERM_BIT['sys']
 

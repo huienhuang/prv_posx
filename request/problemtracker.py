@@ -5,6 +5,16 @@ import time
 import struct
 import re
 
+CFG = {
+    'id': 'PROBLEM_TRACKER_C00E6007',
+    'name': 'Problem Tracker',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+PERM_ADMIN = 1 << 1
+
 
 TICKET_TYPES = {
 
@@ -18,7 +28,6 @@ T_FLAG_APPROVED = 1 << 1
 T_FLAG_CLOSED = 1 << 2
 
 
-DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
@@ -125,7 +134,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         self.req.writejs({'err': rc})
 
-    fn_close_ticket.PERM = 1 << config.USER_PERM_BIT['purchasing']
+    fn_close_ticket.PERM = PERM_ADMIN
 
     def fn_reply_ticket(self):
         t_id = self.req.psv_int('id')
@@ -152,7 +161,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('delete from tracker where id=%s', (t_id, ))
         self.req.writejs({'err': int(cur.rowcount <= 0)})
 
-    fn_del_ticket.PERM = 1 << config.USER_PERM_BIT['purchasing']
+    fn_del_ticket.PERM = PERM_ADMIN
 
     def fn_get_tickets_by_item(self):
         sid = self.req.qsv_int('sid')

@@ -5,6 +5,24 @@ import datetime
 import bisect
 import base64
 
+
+CFG = {
+    'id': 'DELIVERY_C0000007',
+    'name': 'Delivery',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
+BIT_ACC = (1 << config.BASE_ROLES_MAP['Accounting'])
+BIT_DRV = (1 << config.BASE_ROLES_MAP['Driver'])
+BIT_MGR = (1 << config.BASE_ROLES_MAP['DeliveryMgr'])
+BIT_PPL = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
+
+
 PROBLEMS = [
     'Other',
     'Missing Products',
@@ -18,12 +36,11 @@ PROBLEMS = [
 
 REC_FLAG_PARTIAL = 1 << 6
 
-DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         r = {}
-        r['has_perm_admin'] = self.user_lvl & (1 << config.USER_PERM_BIT['admin'])
+        r['has_perm_admin'] = self.get_cur_rh_perm() & PERM_ADMIN
         self.req.writefile('delivery_v2.html', r)
     
     def fn_get_delivery_record(self):
@@ -160,15 +177,15 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = {
             'd_id': d_id,
             'read_only': read_only,
-            'has_perm__accounting': self.user_lvl & (1 << config.USER_PERM_BIT['accounting'])
+            'has_perm__accounting': self.user_roles & BIT_ACC
         }
         
-        users = self.getuserlist()
-        perm_driver = 1 << config.USER_PERM_BIT['driver']
+        users = self.get_user_roles()
+        perm_driver = BIT_DRV
         drivers = r['drivers'] = [ x for x in users if x[2] & perm_driver and x[0] != 1 ]
         drivers.insert(0, (0, '- Driver -', 0))
         
-        perm_sales = 1 << config.USER_PERM_BIT['sales']
+        perm_sales = BIT_PPL
         sales = r['sales'] = [ x for x in users if x[2] & perm_sales and x[0] != 1 ]
         sales.insert(0, (0, '- Sales -', 0))
         
@@ -515,9 +532,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'cur_driver_id': self.req.qsv_int('driver_id'),
             'user_name': dv['user_name']
         }
-        users = self.getuserlist()
+        users = self.get_user_roles()
         users_lku = dr['users_lku'] = {}
-        perm_driver = 1 << config.USER_PERM_BIT['driver']
+        perm_driver = BIT_DRV
         drivers = dr['drivers'] = []
         for x in users:
             users_lku[ x[0] ] = x[1]
@@ -670,7 +687,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         self.req.writejs({'d_id':d_id})
         
-    fn_delete.PERM = 1 << config.USER_PERM_BIT['admin'] 
+    fn_delete.PERM = PERM_ADMIN
 
     def fn_get_problem_receipts(self):
         ret = {'res':{'len':0, 'apg':[]}}
@@ -725,7 +742,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             'delivery_completed': self.get_report__delivery_completed()
         }
         self.req.writefile('delivery_v2_report.html', r)
-    fn_report.PERM = 1 << config.USER_PERM_BIT['delivery_mgr_adv']
+    fn_report.PERM = PERM_ADMIN
     
     def get_report__mons_total(self):
         js = self.get_data_file_cached('delivery_report', 'delivery_report.txt')

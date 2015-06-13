@@ -6,7 +6,15 @@ import re
 import datetime
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+CFG = {
+    'id': 'RECEIPTTOTAL_C1235007',
+    'name': 'Receipt Total',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_default(self):

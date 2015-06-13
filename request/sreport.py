@@ -11,7 +11,14 @@ import bisect
 import cStringIO
 import csv
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['admin']
+CFG = {
+    'id': 'StoreReport_BF100005',
+    'name': 'Store Report',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):

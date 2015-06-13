@@ -5,7 +5,17 @@ import json
 import time
 
 
-DEFAULT_PERM = 1 << config.USER_PERM_BIT['purchasing']
+CFG = {
+    'id': 'purchasing_C0000000',
+    'name': 'Purchasing',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
+PERM_ADMIN = 1 << 1
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
@@ -316,7 +326,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur.execute("update qbpos set rev=rev+1,state=1 where id=%s", (qbpos_id,))
 
         self.req.writejs( {'pid': pid} )
-
 
     def fn_get_po_sid_by_num(self):
         num = self.req.qsv_int('num')

@@ -10,13 +10,24 @@ import cStringIO
 import csv
 import bisect
 
-SALES_PERM = 1 << config.USER_PERM_BIT['sales']
-ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
-SMGRS_PERM = 1 << config.USER_PERM_BIT['sales_mgr']
-DMGRS_PERM = 1 << config.USER_PERM_BIT['delivery_mgr_adv']
 
 
-DEFAULT_PERM = SMGRS_PERM | DMGRS_PERM
+CFG = {
+    'id': 'SALESREPORT_C0000005',
+    'name': 'Sales Report',
+    'perm_list': [
+    ('access', ''),
+    ('admin', ''),
+    ]
+}
+
+PERM_ADMIN = 1 << 1
+
+
+BIT_PPL = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
+BIT_MGR = (1 << config.BASE_ROLES_MAP['SalesMgr']) | (1 << config.BASE_ROLES_MAP['DeliveryMgr'])
+
+
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
@@ -32,9 +43,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_cfg(self):
         aus = self.get_allowed_users()
         users = []
-        for user in self.getuserlist():
-            if not user[2] & SALES_PERM: continue
-            users.append( {'id': user[0], 'name': user[1], 'is_mgr': user[2] & DEFAULT_PERM} )
+        for user in self.get_user_roles():
+            if not user[2] & BIT_PPL: continue
+            users.append( {'id': user[0], 'name': user[1], 'is_mgr': user[2] & BIT_MGR} )
 
         r = {
             'users': users,
@@ -42,18 +53,18 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         }
         self.req.writefile('sales_report__cfg.html', r)
         
-    fn_cfg.PERM = ADMIN_PERM
+    fn_cfg.PERM = PERM_ADMIN
     
     
     def fn_set_cfg(self):
         js = self.req.psv_js('js')
         
-        d_users = dict([ (f_user[0], (f_user[1], f_user[2] & DEFAULT_PERM)) for f_user in self.getuserlist() if f_user[2] & SALES_PERM ])
+        d_users = dict([ (f_user[0], (f_user[1], f_user[2] & BIT_MGR)) for f_user in self.get_user_roles() if f_user[2] & BIT_PPL ])
         
         mgr_id = int(js['mgr_id'])
         if not d_users.get(mgr_id)[1]: return
 
-        uids = dict([ (u, 1) for u in js['uids'] if int(u) in d_users ])
+        uids = dict([ (int(u), 1) for u in js['uids'] if int(u) in d_users ])
 
         aus = self.get_allowed_users()
         aus[mgr_id] = uids
@@ -61,7 +72,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.set_config_js('sales_report_allowed_users', aus)
         self.req.writejs({'err' : 0})
         
-    fn_set_cfg.PERM = ADMIN_PERM
+    fn_set_cfg.PERM = PERM_ADMIN
     
     def fn_export_csv(self):
         data = [ map(lambda f_x: f_x != None and unicode(f_x) or '', f_r) for f_r in self.req.psv_js('js') ]
@@ -74,7 +85,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
         self.req.write( fp.getvalue() )
         
-    fn_export_csv.PERM = ADMIN_PERM
+    fn_export_csv.PERM = PERM_ADMIN
     
     def fn_sale(self):
         tp = time.localtime()
@@ -86,12 +97,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         to_dt = '%04d-%02d-%02d' % tp[:3]
         frm_dt = '%04d-%02d-01' % dt.timetuple()[:2]
 
-        userlist = self.getuserlist()
-        if self.user_lvl & ADMIN_PERM:
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
         else:
             aus = self.get_allowed_users().get(str(self.user_id), {})
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
         
         self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sales_users, 'frm_dt': frm_dt, 'to_dt': to_dt})
         
@@ -108,12 +121,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         da = [ f_x[0] for f_x in js ]
         js = js[ bisect.bisect_left(da, fi): bisect.bisect_right(da, ti) ]
 
-        userlist = self.getuserlist()
-        if self.user_lvl & ADMIN_PERM:
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
         else:
             aus = self.get_allowed_users().get(str(self.user_id), {})
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
 
         rjs = []
         for ds in js:
@@ -139,12 +154,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         to_dt = '%04d-%02d-%02d' % tp[:3]
         frm_dt = '%04d-%02d-01' % dt.timetuple()[:2]
 
-        userlist = self.getuserlist()
-        if self.user_lvl & ADMIN_PERM:
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
         else:
             aus = self.get_allowed_users().get(str(self.user_id), {})
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
         
         self.req.writefile('sales_report__rect.html', {'const': const, 'sales_users': sales_users, 'frm_dt': frm_dt, 'to_dt': to_dt})
         
@@ -161,12 +178,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         da = [ f_x[0] for f_x in js ]
         js = js[ bisect.bisect_left(da, fi): bisect.bisect_right(da, ti) ]
 
-        userlist = self.getuserlist()
-        if self.user_lvl & ADMIN_PERM:
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM ])
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+        
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
         else:
             aus = self.get_allowed_users().get(str(self.user_id), {})
-            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & SALES_PERM and aus.get(str(f_user[0])) ])
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
 
         rjs = []
         for ds in js:

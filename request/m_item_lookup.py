@@ -8,13 +8,21 @@ import re
 #import sqlanydb
 
 
+CFG = {
+    'id': 'M_ITEM_LOOKUP_C00E1007',
+    'name': 'Mobile Item Lookup',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
 FLAG_ITEM_REQ_CHK = (1 << 3) | (1 << 4) | (1 << 5)
 
 TICKET_TYPE_MAPPING = {1: 24, 2: 25, 50: 26}
 TICKET_TYPE_MAPPING_R = dict([(f_v[1], f_v[0]) for f_v in TICKET_TYPE_MAPPING.items()])
     
 
-DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
@@ -219,7 +227,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs(js)
         
         
-    def fn_set_item_qty(self):
+    def set_item_qty(self):
         return
     
     
@@ -263,9 +271,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             ))
         
         self.req.writejs({'err': int(not ret)})
-    
-    fn_set_item_qty.PERM = 1 << config.USER_PERM_BIT['adj item qty']
-    
     
     def modify_item_qty(self, sid, old_qty, new_qty):
         dbc = sqlanydb.connect(**config.sqlany_pos_server)

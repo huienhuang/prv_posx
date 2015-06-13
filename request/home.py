@@ -1,85 +1,14 @@
 import time
 import config
 
+CFG = {
+    'id': 'HOME_BBBBBBBB',
+    'name': 'Home',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
 
-PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
-PERM_SYS = 1 << config.USER_PERM_BIT['sys']
-PERM_TIME = 1 << config.USER_PERM_BIT['time']
-PERM_ITEM_STAT_ACCESS = 1 << config.USER_PERM_BIT['item stat access']
-PERM_NORMAL_ACCESS = 1 << config.USER_PERM_BIT['normal access']
-PERM_BASE_ACCESS = 1 << config.USER_PERM_BIT['base access']
-PERM_ACCOUNTINGV2 = 1 << config.USER_PERM_BIT['accountingv2']
-PERM_CASHIER = 1 << config.USER_PERM_BIT['cashier']
-PERM_SALES_MGR = 1 << config.USER_PERM_BIT['sales_mgr']
-
-PERM_SALES = 1 << config.USER_PERM_BIT['sales']
-PERM_DELIVERY_MGR = 1 << config.USER_PERM_BIT['delivery_mgr']
-PERM_PURCHASING_MGR = 1 << config.USER_PERM_BIT['purchasing_mgr']
-PERM_PURCHASING_MGR_ADV = 1 << config.USER_PERM_BIT['delivery_mgr_adv']
-
-PERM_PURCHASING = 1 << config.USER_PERM_BIT['purchasing']
-
-
-TOOLS_MAP = (
-
-('Admin', (
-    ('User', 'user', PERM_ADMIN),
-    ('Project', 'project', PERM_SYS),
-    #('Mac', 'sys?fn=mac', PERM_ADMIN),
-)),
-
-('Report', (
-#    ('Commision', 'comm', PERM_ADMIN),
-    ('Commision', 'comm?fn=comm_by_dept', PERM_ADMIN),
-    ('Item Sale', 'reportitem', PERM_ADMIN),
-    ('Customer Sale', 'sreport?fn=cust_by_dept', PERM_ADMIN),
-#    ('General Report', 'reportgeneral', PERM_ADMIN),
-#    ('Daily Report', 'reportdaily', PERM_ADMIN),
-    ('Report', 'sreport', PERM_ADMIN),
-)),
-
-('HR', (
-    ('Time MGR', 'clockinv2?fn=mgr', PERM_TIME),
-#    ('Payroll', '', PERM_TIME),
-#    ('PTO Tracking', '', PERM_TIME),
-#    ('Employee File', '', PERM_TIME),
-#    ('HR Metrics', '', PERM_TIME),
-)),
-
-('Accounting', (
-    ('Daily Inventory', 'reportdaily?fn=view_inv', PERM_ACCOUNTINGV2),
-    ('Cash Drawer', 'cashdrawer', PERM_CASHIER),
-)),
-
-('Purchasing', (
-    ('Item Sold', 'itemsold', PERM_ITEM_STAT_ACCESS),
-    ('Label', 'label', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
-#    ('Maintenance', 'invsrv', PERM_NORMAL_ACCESS),
-#    ('Tracker', 'problemtracker', PERM_BASE_ACCESS | PERM_NORMAL_ACCESS),
-#    ('Cycle Count', 'cycle_count', PERM_NORMAL_ACCESS),
-#    ('Receiving Schedule', '', PERM_NORMAL_ACCESS),
-    ('Report', 'purchasing', PERM_PURCHASING),
-#    ('PO', 'po_request', PERM_NORMAL_ACCESS),
-    ('Request', 'ts_request', PERM_NORMAL_ACCESS),
-)),
-
-('Store', (
-    ('History', 'hist', PERM_NORMAL_ACCESS),
-    ('Customer Error', 'fixup', PERM_NORMAL_ACCESS),
-    ('Sales Report', 'salesreport', PERM_SALES_MGR | PERM_PURCHASING_MGR_ADV),
-    ('Customer Sales', 'custsales', PERM_ADMIN),
-)),
-
-('Delivery', (
-    ('Delivery', 'delivery', PERM_SALES | PERM_DELIVERY_MGR | PERM_PURCHASING),
-    ('Account MGR', 'account_mgr', PERM_NORMAL_ACCESS),
-#    ('Pallet Map', '', PERM_NORMAL_ACCESS),
-#    ('Warehouse Map', '', PERM_NORMAL_ACCESS),
-)),
-
-)
-
-DEFAULT_PERM = PERM_BASE_ACCESS | PERM_NORMAL_ACCESS
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
@@ -90,22 +19,25 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             self.go_default()
         
     def go_default(self):
-        tools_map_f = []
-        for s_dept,l_tools in TOOLS_MAP:
-            l_tools_f = []
-            for tool in l_tools:
-                if tool[2] and not (tool[2] & self.user_lvl): continue
-                l_tools_f.append(tool)
-            if l_tools_f: tools_map_f.append( (s_dept, l_tools_f) )
-        
-        d = {
-            'user_lvl': self.user_lvl,
-            'user_name': self.user_name,
-            'user_id': self.user_id,
-            'tools_map': tools_map_f
-        }
-        
-        self.req.writefile('home.html', d)
+        app_lku = dict([(f_x[2], f_x) for f_x in self.get_app_lst()])
+        user_perms = self.get_user_perms()
+
+        depts = self.get_config_js('APPS_BY_DEPTS', [])
+        if self.user_id != 1:
+            n_depts = []
+            for v in depts:
+                apps = []
+                for app in v['apps']:
+                    cfg,md,nz = app_lku.get(app['md'])
+                    if not md: continue
+                    if not self.has_perm(app['fn'], md.RequestHandler): continue
+                    apps.append(app)
+                
+                if apps: n_depts.append({'name': v['name'], 'apps': apps})
+
+            depts = n_depts
+
+        self.req.writefile('home.html', {'depts': depts, 'user_id': self.user_id, 'user_name': self.user_name})
         
     def fn_password(self):
         old_passwd = self.req.psv_ustr('old_passwd', '')

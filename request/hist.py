@@ -12,7 +12,18 @@ import cPickle
 import base64
 
 
-ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
+
+CFG = {
+    'id': 'HIST_C0000001',
+    'name': 'Internal History',
+    'perm_list': [
+    ('access', ''),
+    ('item stat', ''),
+    ]
+}
+
+PERM_ITEM_STAT = 1 << 1
+
 
 REC_FLAG_ACCEPTED = 1 << 0
 REC_FLAG_PARTIAL = 1 << 6
@@ -21,7 +32,6 @@ Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
 Tracker = App.load('/request/problemtracker')
 
-DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_default(self):
@@ -117,7 +127,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         apg = []
-        perm = self.user_lvl & (1 << config.USER_PERM_BIT['item stat access'])
+        perm = self.get_cur_rh_perm() & PERM_ITEM_STAT
+
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid,count(*),(max(h.docdate)&(~0x7ffff)|count(*)) as pos from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by pos desc,h.itemsid asc limit %d,%d' % (
                 cid, sidx * pgsz, (eidx - sidx) * pgsz
@@ -158,7 +169,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         apg = []
-        perm = self.user_lvl & (1 << config.USER_PERM_BIT['item stat access'])
+        perm = self.get_cur_rh_perm() & PERM_ITEM_STAT
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             
             users = self.getuserlist()
@@ -286,7 +297,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         cur = self.cur()
         apg = []
-        perm = self.user_lvl & (1 << config.USER_PERM_BIT['item stat access'])
+        perm = self.get_cur_rh_perm() & PERM_ITEM_STAT
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             cur.execute('select SQL_CALC_FOUND_ROWS c.name,sum(h.qtydiff) as total_qty,max(h.docdate) as last_docdate,r.cid from sync_items_hist h left join sync_receipts r on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_customers c on (c.sid=r.cid) where h.itemsid=%d and r.cid is not null group by r.cid order by total_qty asc,r.cid asc limit %d,%d' % (
                 tid, sidx * pgsz, (eidx - sidx) * pgsz
@@ -372,7 +383,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         
         self.req.writejs({'tid':str(tid), 'stat':stat})
     
-    fn_get_item_sold_report.PERM = 1 << config.USER_PERM_BIT['item stat access']
+    fn_get_item_sold_report.PERM = PERM_ITEM_STAT
     
     TENDER_TYPES = ('None', 'Cash', 'Check', 'Credit', 'Debit', 'UNK', 'Account', '', 'Deposit', 'Split')
     PRICE_LEVELS = ['Regular Price', 'Wholesale 1', 'Wholesale 2', 'special', 'Dealer Price']
@@ -685,7 +696,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not res: return
         res = res[0]
         jsd = json.loads(res[2])
-        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type, 'has_report_access': self.user_lvl & ADMIN_PERM}
+        cust = {'cust_sid': res[0], 'cust_name': res[1], 'cust_info': jsd, 'dg_type': dg_type, 'has_report_access': self.get_cur_rh_perm() & PERM_ITEM_STAT}
         
         loc = jsd.get('loc')
         zidx = 0

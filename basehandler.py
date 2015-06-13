@@ -8,11 +8,12 @@ import config
 import urllib
 import urlparse
 import json
+import os
+import types
 
-LOGIN_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
-ADMIN_PERM = 1 << config.USER_PERM_BIT['admin']
 
-DEFAULT_PERM = ADMIN_PERM
+G_ADMIN_APP_PERM = (1 << 30) - 1
+
 class RequestHandler(tinywsgi.RequestHandler):
     
     def setup(self):
@@ -22,14 +23,19 @@ class RequestHandler(tinywsgi.RequestHandler):
         self.cookie = self.req.cookie
         self.out_cookie = self.req.out_cookie
         
-        self.user_id = 0
-        self.user_name = None
-        self.user_lvl = 0
-        self.user_msg_id = 0
+        self.clear_user()
         
         self.user_triggered = True
         self.is_ajax = bool(self.qsv_int('ajax'))
     
+    def clear_user(self):
+        self.user_id = 0
+        self.user_name = None
+        self.user_lvl = 0
+        self.user_msg_id = 0
+        self.__user_perms = {}
+        self.user_roles = 0
+
     def cleanup(self):
         tinywsgi.RequestHandler.cleanup(self)
 
@@ -110,7 +116,7 @@ class RequestHandler(tinywsgi.RequestHandler):
             
         if uid:
             cur = self.cur()
-            cur.execute('select user_name,user_passwd,user_lvl,user_msg_id from user where user_id=%d limit 1' % (uid, ))
+            cur.execute('select user_name,user_passwd,user_msg_id,user_perms,user_roles from user where user_id=%d limit 1' % (uid, ))
             r = cur.fetchall()
             r = r and r[0] or None
             if r:
@@ -128,8 +134,9 @@ class RequestHandler(tinywsgi.RequestHandler):
                 if login_pass:
                     self.user_id = uid
                     self.user_name = r[0]
-                    self.user_lvl = r[2]
-                    self.user_msg_id = r[3]
+                    self.user_msg_id = r[2]
+                    self.__user_perms = r[3]
+                    self.user_roles = r[4]
                     
                     if login_pass == 2 and self.user_triggered: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
                     if in_uid:
@@ -140,19 +147,104 @@ class RequestHandler(tinywsgi.RequestHandler):
                     
                     return True
         
-        self.user_id = 0
-        self.user_name = None
-        self.user_lvl = 0
-        
+        self.clear_user()
+
         if auth: self.logout()
         
         return False
-    
-    
-    def get_perm_lvl(self, fn_nz, fn_inst):
-        return getattr(fn_inst, 'PERM', fn_inst.im_func.func_globals.get('DEFAULT_PERM', DEFAULT_PERM))
+
+    def get_user_perms(self):
+        if type(self.__user_perms) == dict: return self.__user_perms
+
+        self.__user_perms = self.__user_perms and json.loads(self.__user_perms) or {}
+        perms = {}
+        if self.user_roles:
+            cur = self.cur()
+            cur.execute('select role_perms from user_role where role_id in (%s)' % (
+                ','.join(map(str, config.extract_bits(self.user_roles))),
+                )
+            )
+            for r in cur.fetchall():
+                if not r[0]: continue
+                p = json.loads(r[0])
+                for k,v in p.items(): perms[k] = perms.get(k, 0) | v
+
+        perms.update(self.__user_perms)
+        self.__user_perms = perms
         
+        return perms
+
+    def get_fn_info(self, fn):
+        cfg = fn.im_func.func_globals.get('CFG', {})
+        perm = getattr(fn, 'PERM', 1)
+        return (cfg, perm)
+
+    def _get_rh_perm_by_cfg(self, cfg):
+        if not cfg or not cfg.get('id'): return 0
+        return self.get_user_perms().get(cfg.get('id'), 0)
+
+    def get_rh_perm(self, rh_cls):
+        if self.user_id == 1: return G_ADMIN_APP_PERM
+
+        cfg = getattr(rh_cls.__module__, 'CFG', {})
+        return self._get_rh_perm_by_cfg(cfg)
+
+    def get_cur_rh_perm(self):
+        return self.get_rh_perm(self.__class__)
+
+    def has_perm(self, fn, rh_cls=None):
+        if self.user_id == 1: return True
+        if not isinstance(fn, types.MethodType):
+            if rh_cls == None: rh_cls = self.__class__
+            fn = getattr(rh_cls, 'fn_' + fn, None)
+            if fn == None: return False
+
+        cfg,perm = self.get_fn_info(fn)
+        if not perm: return True
+
+        return self._get_rh_perm_by_cfg(cfg) & perm == perm
+
     def check_perm(self, fn_nz, fn_inst):
+        self.user_triggered = getattr(fn_inst, 'USER_TRIGGERED', True)
+
+        cfg,perm = self.get_fn_info(fn_inst)
+        if not perm: return True
+        
+        self.login()
+        if self.user_id == 1: return True
+        if self._get_rh_perm_by_cfg(cfg) & perm == perm:
+            return True
+        elif self.is_ajax:
+            self.req.exitjs({'err':-999})
+            return False
+        else:
+            self.req.redirect('?' + urllib.urlencode({'fn': 'login', 'req_qs': self.environ.get('QUERY_STRING') or ''}))
+            return False
+
+    def get_app_lst(self):
+        app = self.req.app
+        lst = app.als.get('APP_LST')
+        if lst != None: return lst
+
+        lst = []
+        rd = app.req_dir
+        for f in os.listdir(rd):
+            ff = os.path.join(rd, f)
+            if not os.path.isfile(ff) or f[-3:] != '.py': continue
+            n = f[:-3]
+            m = app.load('/request/%s' % (n,))
+            if not hasattr(m, 'CFG') or not m.CFG.get('id'): continue
+            lst.append( (m.CFG, m, n) )
+            
+        lst.sort(key=lambda f_x:f_x[0].get('name', '').lower())
+
+        app.als['APP_LST'] = lst
+        return lst
+
+    def _get_perm_lvl(self, fn_nz, fn_inst):
+        return getattr(fn_inst, 'PERM', fn_inst.im_func.func_globals.get('DEFAULT_PERM', DEFAULT_PERM))
+
+    def _check_perm(self, fn_nz, fn_inst):
         self.user_triggered = getattr(fn_inst, 'USER_TRIGGERED', True)
         
         rlvl = self.get_perm_lvl(fn_nz, fn_inst)
@@ -200,6 +292,11 @@ class RequestHandler(tinywsgi.RequestHandler):
         cur = self.db().cur()
         cur.execute('select user_id,user_name,user_lvl from user order by user_id asc')
         return cur.fetchall()
+
+    def get_user_roles(self):
+        cur = self.cur()
+        cur.execute('select user_id,user_name,user_roles from user order by user_id asc')
+        return cur.fetchall()
     
     def finduser(self, uid):
         cur = self.cur()
@@ -214,7 +311,8 @@ class RequestHandler(tinywsgi.RequestHandler):
         return res and res[0] or None
     
     def fn_getusers(self):
-        users = [ user for user in self.getuserlist() if user[2] & LOGIN_PERM ]
+        PM_BASE = 1 << config.BASE_ROLES_MAP['Base']
+        users = [ user for user in self.get_user_roles() if user[2] & PM_BASE ]
         self.req.writejs(users)
     #fn_getusers
     fn_getusers.PERM = 0
@@ -266,10 +364,11 @@ class RequestHandler(tinywsgi.RequestHandler):
         ck_uid = self.out_cookie.get('__uid__') or self.cookie.get('__uid__')
         ck_uid = unicode(ck_uid and ck_uid.value or '')
         ck_uid = ck_uid.isdigit() and int(ck_uid) or 0
+        PM_BASE = 1 << config.BASE_ROLES_MAP['Base']
         d = {
             'action_url': urllib.urlencode({'fn': 'login', 'req_qs': req_qs}),
             'ck_uid': ck_uid,
-            'userlist': [ user for user in self.getuserlist() if user[2] & LOGIN_PERM ],
+            'userlist': [ user for user in self.get_user_roles() if user[2] & PM_BASE ],
         }
         self.req.writefile('login.html', d)
     #fn_login

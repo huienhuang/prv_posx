@@ -85,3 +85,12 @@ def set_configv2_(db, k, v):
         ))
 
 
+
+def extract_bits(v):
+    lst = []
+    if v:
+        for i in range(31):
+            if v & (1 << i):
+                lst.append(i)
+    return lst
+

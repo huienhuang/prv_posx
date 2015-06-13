@@ -11,6 +11,15 @@ import config
 import cStringIO
 
 
+CFG = {
+    'id': 'SFILE_AA000007',
+    'name': 'File Storage',
+    'perm_list': [
+    ('access', ''),
+    ]
+}
+
+
 ORIENTATION = [
     None, None,
     (Image.FLIP_LEFT_RIGHT), #2
@@ -22,8 +31,6 @@ ORIENTATION = [
     Image.ROTATE_90 #8
 ]
 
-
-DEFAULT_PERM = (1 << config.USER_PERM_BIT['base access']) | (1 << config.USER_PERM_BIT['normal access'])
 class RequestHandler(App.load('/basehandler').RequestHandler):
     
     def fn_upload_img(self):
