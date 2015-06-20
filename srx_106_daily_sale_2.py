@@ -33,9 +33,8 @@ USER_MAP = {
 }
 
 
-g_s = [{}, {}, {}]
-g_n = [{}, {}, {}]
-g_c = {}
+g_c = [{}, {}, {}]
+g_z = {}
 
 
 frm_ts = int(time.mktime(datetime.date(2015, 1, 1).timetuple()))
@@ -52,29 +51,24 @@ for r in cur:
     disc = 1
     if glbs['subtotal']: disc = 1 - glbs['discamt'] / glbs['subtotal']
     
-
-    g_m = g_c.setdefault(r['cid'])
-    if g_m == None: g_m = g_c[ r['cid'] ] = [{}, {}, {}]
-
-    g_gs = (g_s, g_n, g_m)
-    g_gt = ([], [], [])
+    cid = r['cid']
+    if cid != None:
+        cz = glbs.get('customer', {})
+        g_z[cid] = cz.get('company') or cz.get('name') or ''
 
     tp = time.localtime(r['order_date'])
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
-    for i in range(len(g_gs)): g_gt[i].append( g_gs[i][0].setdefault(di, {}) )
+    d0 = g_c[0].setdefault(di, {})
 
     dt = datetime.date(*tp[:3]) - datetime.timedelta(tp.tm_wday)
     di = dt.year * 10000 + dt.month * 100 + dt.day
-    for i in range(len(g_gs)): g_gt[i].append( g_gs[i][1].setdefault(di, {}) )
+    d1 = g_c[1].setdefault(di, {})
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + 1
-    for i in range(len(g_gs)): g_gt[i].append( g_gs[i][2].setdefault(di, {}) )
+    d2 = g_c[2].setdefault(di, {})
 
-    r_clerk = (r['cashier'] or '').lower()
-    r_clerk = USER_MAP.get(r_clerk, r_clerk)
-    for nd in g_gt[1]: nd.setdefault(r_clerk, [0])[0] += 1
-
+    cds = (d0, d1, d2)
     for t in items:
         if t['itemsid'] == 1000000005: continue
         extprice = t['price'] * t['qty'] * disc
@@ -92,36 +86,18 @@ for r in cur:
         clerk = (t['clerk'] or '').lower()
         clerk = USER_MAP.get(clerk, clerk)
 
-        for i in (0, 2):
-            cds = g_gt[i]
-            for cd in cds:
-                v_s = cd.setdefault(clerk, {}).setdefault(cate, [0, 0])
-                v_s[0] += extprice
-                v_s[1] += extcost
+        for cd in cds:
+            v_s = cd.setdefault(clerk, {}).setdefault(cid, {}).setdefault(cate, [0, 0])
+            v_s[0] += round(extprice, 5)
+            v_s[1] += round(extcost, 5)
 
-
-g_s_n = []
-for cd in g_s:
+g_c_n = []
+for cd in g_c:
     cd = cd.items()
     cd.sort(key=lambda f_x:f_x[0])
-    g_s_n.append(cd)
-
-g_n_n = []
-for nd in g_n:
-    nd = nd.items()
-    nd.sort(key=lambda f_x:f_x[0])
-    g_n_n.append(nd)
-
-g_c_n = {}
-for cid,g_m in g_c.items():
-    g_m_n = []
-    for md in g_m:
-        md = md.items()
-        md.sort(key=lambda f_x:f_x[0])
-        g_m_n.append(md)
-    g_c_n[cid] = g_m_n
+    g_c_n.append(cd)
 
 
-datafile = os.path.join(config.APP_DIR, 'data', "daily_sale.txt")
-cPickle.dump( {'s': g_s_n, 'n': g_n_n}, open(datafile, 'wb'), 1 )
-print "Done", time.time() - CTS 
+datafile = os.path.join(config.APP_DIR, 'data', "daily_sale_2.txt")
+cPickle.dump( {'c': g_c_n, 'z': g_z}, open(datafile, 'wb'), 1 )
+print "Done", time.time() - CTS

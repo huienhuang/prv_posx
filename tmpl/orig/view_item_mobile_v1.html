@@ -298,9 +298,9 @@ init_item_ac(
             }
             
             g_v_item_tbl.inv
-            .append($('<div></div>').text('现有: ' + Math.floor(qty[0]) + ' ' + def_unit[2]))
-            .append($('<div></div>').text('订单: ' + Math.floor(qty[1]) + ' ' + def_unit[2]))
-            .append($('<div></div>').text('购买: ' + Math.floor(qty[3]) + ' ' + def_unit[2]));
+            .append($('<div></div>').text('OnHand: ' + Math.floor(qty[0]) + ' ' + def_unit[2]))
+            .append($('<div></div>').text('OnSO: ' + Math.floor(qty[1]) + ' ' + def_unit[2]))
+            .append($('<div></div>').text('OnPO: ' + Math.floor(qty[3]) + ' ' + def_unit[2]));
             
         }
         
@@ -400,9 +400,9 @@ body {margin:0 auto;padding-top:51px}
 .tg_checkbox.tg_checkbox_active {background: rgb(180,227,145);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(180,227,145,1)), color-stop(50%,rgba(97,196,25,1)), color-stop(100%,rgba(180,227,145,1)));}
 
 .item_info_tbl {position:absolute;top:51px;right:0;bottom:0;left:0;}
-.item_info_tbl > div {position:relative;border-bottom:1px solid #ddd;margin:0;padding-left:70px;line-height:40px;font-size:22px;}
+.item_info_tbl > div {position:relative;border-bottom:1px solid #ddd;margin:0;padding-left:100px;line-height:40px;font-size:22px;}
 .item_info_tbl > div > div {min-height:40px;}
-.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:60px;padding-right:10px;text-align:right}
+.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:90px;padding-right:10px;text-align:right}
 .item_info_tbl > div > div:nth-child(2) {text-align:center;padding:6px 0px}
 
 .ui-autocomplete {top:51px;left:0;bottom:0;right:0;border:none;padding:0;position:fixed}
@@ -457,18 +457,18 @@ body {margin:0 auto;padding-top:51px}
 <body>
 
 <div class="item_info_tbl">
-<div><div>名称</div><div class="item_name"></div></div>
-<div><div>库存</div><div class="item_inv"></div></div>
-<div><div>单位</div><div class="item_unit"></div></div>
-<div><div>厂商</div><div class="item_vend"></div></div>
-<div><div>图片</div><div class="item_pics"></div></div>
+<div><div>Name</div><div class="item_name"></div></div>
+<div><div>Inventory</div><div class="item_inv"></div></div>
+<div><div>Units</div><div class="item_unit"></div></div>
+<div><div>Vendors</div><div class="item_vend"></div></div>
+<div><div>Pictures</div><div class="item_pics"></div></div>
 </div>
 
 <div class="m_top app_mode_${mode}">
 <input type="text" name="ctrl_search" style="width:200px" />
-<input type="button" value="清空" name="ctrl_clear_search" />
-<input type="button" value="扫描" name="ctrl_scan_barcode" />
-<input type="button" value="照片" name="ctrl_add_img" />
+<input type="button" value="Clear" name="ctrl_clear_search" />
+<input type="button" value="Scan" name="ctrl_scan_barcode" />
+<input type="button" value="Photo" name="ctrl_add_img" />
 </div>
 
 <div class="m_pic_cnt m_dlg_cnt"><img alt="" border="0" /></div>

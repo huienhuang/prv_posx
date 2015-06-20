@@ -48,9 +48,9 @@ function load_data_cb(js)
                     var dp = (total - prev_total) / prev_total * 100;
                     if(dp){
                         if(dp > 0)
-                            s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                            s.push( $('<span class="diff_pct_inc"></span>').text('+' + dp.toFixed(1) + '') );
                         else
-                            s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                            s.push( $('<span class="diff_pct_dec"></span>').text('' + dp.toFixed(1) + '') );
                     }
                 }
                 
@@ -70,9 +70,9 @@ function load_data_cb(js)
             var dp = (total - prev_total) / prev_total * 100;
             if(dp){
                 if(dp > 0)
-                    s.push( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                    s.push( $('<span class="diff_pct_inc"></span>').text('+' + dp.toFixed(1) + '') );
                 else
-                    s.push( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                    s.push( $('<span class="diff_pct_dec"></span>').text('' + dp.toFixed(1) + '') );
             }
         }
         ov_totals[users.length] += total;
@@ -265,7 +265,6 @@ g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
 .main_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
 .main_tbl .prntbl_row > div {width:160px;}
 .main_tbl .prntbl_row > div:first-child {width:100px;font-weight:bold;background-color:#f5f5f5}
-.main_tbl .prntbl_cnt > .prntbl_row > div > span:nth-child(2) {margin-left:5px}
 .main_tbl .prntbl_row {min-width:32000px}
 
 .main_tbl .prntbl_row {padding-left:101px}
@@ -279,6 +278,13 @@ g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
 
 #dlg_clerk .prntbl {top:0;bottom:0;right:0;left:0;}
 #dlg_clerk .prntbl_row > div:nth-child(1) {width:250px}
+
+
+.prntbl_cnt .prntbl_row >div {text-align:left}
+.prntbl_row >div >span {display:inline-block;text-align:right}
+.prntbl_row >div >span:nth-child(1) {width:110px}
+.prntbl_row >div >span:nth-child(2) {width:50px;background-color:#eceacd;font-weight:bold}
+
 
 @media print {
 .m_ctrl {display:none}
@@ -305,7 +311,11 @@ margin:30px 50px;
     
 <select class="filter_user" name="ctrl_filter_user">
 %for user in sales_users:
+%if not user:
+<option value="">***NotInList***</option>
+%else:
 <option value="${user.lower()|h}">${user|h}</option>
+%endif
 %endfor
 </select>
 

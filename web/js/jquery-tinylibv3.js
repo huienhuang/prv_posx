@@ -189,6 +189,7 @@ function init(a) {
         lockview:0,
         need_render:false,
         load_data_timer:null,
+        resizer: function() { update.apply(ctx, [-1, true, false, false, true]); }
         };
     
     ctx.init && ctx.init.call(ctx);
@@ -198,7 +199,26 @@ function init(a) {
     
     update.apply(ctx, [ctx.len, true]);
     
-    if(ctx.auto_resize) $(window).resize(function() { update.apply(ctx, [-1, true, false, false, true]); });
+    if(ctx.auto_resize) $(window).resize(ctx.data.resizer);
+}
+
+function remove()
+{
+    var ctx = this;
+    var data = ctx.data;
+    var view = ctx.view;
+    var reqs = data.reqs;
+    
+    if(reqs[0] && reqs[1]) reqs[1].abort();
+    reqs[0]++;
+    reqs[1] = null;
+    
+    $(window).off('resize', ctx.data.resizer);
+    
+    ctx.data = null;
+    
+    data.tg.data('tinygrid', null);
+    data.tg.remove();
 }
 
 function autowidth(ctx)
@@ -918,6 +938,15 @@ function ctrl_keyup(e)
 
 
 var g_tgcall = {
+
+'remove': function() {
+    for(var i = 0; i < this.length; i++) {
+        var ctx = $(this[i]).data('tinygrid');
+        if(ctx) remove.apply(ctx, []);
+    }
+    
+    return this;
+},
 
 'update': function(a, b, c, d, e) {
     for(var i = 0; i < this.length; i++) {

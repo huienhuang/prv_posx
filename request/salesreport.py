@@ -29,10 +29,19 @@ BIT_MGR = (1 << config.BASE_ROLES_MAP['SalesMgr']) | (1 << config.BASE_ROLES_MAP
 
 
 class RequestHandler(App.load('/advancehandler').RequestHandler):
-    
+
     def fn_default(self):
-        self.req.writefile('sales_report_frame.html')
-    
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        r = {
+            'tab_cur_idx' : 2,
+            'title': 'Purchasing',
+            'tabs': [ ('sale', 'Sale'), ('rect', 'Receipt'), ('customer', 'Customer')  ]
+        }
+        if perm: r['tabs'].append( ('cfg', 'Config') )
+
+        self.req.writefile('tmpl_multitabs.html', r)
+
     
     def get_allowed_users(self):
         m = self.get_config_js('sales_report_allowed_users', {})
@@ -102,11 +111,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         userlist = self.get_user_roles()
         if perm:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
         else:
-            aus = self.get_allowed_users().get(str(self.user_id), {})
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
         
-        self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sales_users, 'frm_dt': frm_dt, 'to_dt': to_dt})
+        self.req.writefile('sales_report__sale.html', {'const': const, 'sales_users': sorted(sales_users), 'frm_dt': frm_dt, 'to_dt': to_dt})
         
     
     def fn_get_sale_data(self):
@@ -126,20 +136,23 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         userlist = self.get_user_roles()
         if perm:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
         else:
-            aus = self.get_allowed_users().get(str(self.user_id), {})
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
 
         rjs = []
         for ds in js:
-                m,d = divmod(ds[0], 100)
-                y,m = divmod(m, 100)
-                dd = {}
-                rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
+            m,d = divmod(ds[0], 100)
+            y,m = divmod(m, 100)
+            dd = {}
+            rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
 
-                for us in ds[1].items():
-                    if us[0] in sales_users:
-                        dd[us[0]] = us[1]
+            for us in ds[1].items():
+                unz = us[0]
+                if unz not in sales_users: unz = ''
+                if unz in sales_users:
+                    dd[unz] = us[1]
 
         self.req.writejs(rjs)
 
@@ -159,8 +172,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         userlist = self.get_user_roles()
         if perm:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
         else:
-            aus = self.get_allowed_users().get(str(self.user_id), {})
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
         
         self.req.writefile('sales_report__rect.html', {'const': const, 'sales_users': sales_users, 'frm_dt': frm_dt, 'to_dt': to_dt})
@@ -183,21 +197,99 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         userlist = self.get_user_roles()
         if perm:
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
         else:
-            aus = self.get_allowed_users().get(str(self.user_id), {})
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
             sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
 
         rjs = []
         for ds in js:
-                m,d = divmod(ds[0], 100)
-                y,m = divmod(m, 100)
-                dd = {}
-                rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
+            m,d = divmod(ds[0], 100)
+            y,m = divmod(m, 100)
+            dd = {}
+            rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
 
-                for us in ds[1].items():
-                    if us[0] in sales_users:
-                        dd[us[0]] = us[1]
+            for us in ds[1].items():
+                unz = us[0]
+                if unz not in sales_users: unz = ''
+                if unz in sales_users:
+                    dd[unz] = us[1]
 
         self.req.writejs(rjs)
+
+
+    def fn_customer(self):
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
+        else:
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
+        
+        self.req.writefile('sales_report__customer.html', {'const': const, 'sales_users': sales_users})
+
+
+    def fn_get_customer_data(self):
+        js = self.req.psv_js('js')
+
+        frm_tp = time.strptime(js['frm_dt'], '%m/%d/%Y')
+        to_tp = time.strptime(js['to_dt'], '%m/%d/%Y')
+        intval = int(js['intval'])
+        cates = js.get('cates') or []
+        users = js.get('users') or []
+
+        fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
+        ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+
+        fz = self.get_data_file_cached('daily_sale', 'daily_sale_2.txt')
+        cz = fz['z']
+
+        js = fz['c'][intval]
+        da = [ f_x[0] for f_x in js ]
+        js = js[ bisect.bisect_left(da, fi): bisect.bisect_right(da, ti) ]
+
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+        userlist = self.get_user_roles()
+        if perm:
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL ])
+            sales_users.add('')
+        else:
+            aus = self.get_allowed_users().get(str(self.user_id), {str(self.user_id): 1})
+            sales_users = set([ f_user[1].lower() for f_user in userlist if f_user[2] & BIT_PPL and aus.get(str(f_user[0])) ])
+
+        users = set(users) & sales_users
+        cates = set(cates)
+
+        hdr = set()
+        cust = {}
+
+        for di,d_users in js:
+            for clerk,d_custs in d_users.items():
+                if clerk not in sales_users: clerk = ''
+                if clerk not in users: continue
+
+                for cid,d_cates in d_custs.items():
+                    if cid == None: continue
+
+                    for cate,dd in d_cates.items():
+                        if not const.ITEM_D_CATE2.has_key(cate): cate = ''
+                        if cate not in cates: continue
+
+                        v = round(dd[0], 5)
+
+                        hdr.add(di)
+                        ds = cust.setdefault(cid, {}).setdefault(di, {})
+                        ds.setdefault('$', [0])[0] += v
+                        ds.setdefault(cate, {}).setdefault(clerk, [0])[0] += v
+
+        n_cz = []
+        for cid,v in cust.items(): n_cz.append( (str(cid), v, cz.get(cid, '')) )
+        n_cz.sort(key=lambda f_x:f_x[2].lower())
+
+        self.req.writejs({'hdr': sorted(hdr), 'cust': n_cz})
+
 
 
