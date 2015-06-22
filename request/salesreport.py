@@ -244,7 +244,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
         ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
 
+
+        ts = time.time()
         fz = self.get_data_file_cached('daily_sale', 'daily_sale_2.txt')
+        ts = ts - time.time()
+
         cz = fz['z']
 
         js = fz['c'][intval]
@@ -289,7 +293,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         for cid,v in cust.items(): n_cz.append( (str(cid), v, cz.get(cid, '')) )
         n_cz.sort(key=lambda f_x:f_x[2].lower())
 
-        self.req.writejs({'hdr': sorted(hdr), 'cust': n_cz})
+        self.req.writejs({'hdr': sorted(hdr), 'cust': n_cz, 'ts': ts})
 
 
 

@@ -109,7 +109,8 @@ class QBServer(TinyServer.TinyAsyncMsgServer):
 			except Exception, e:
 				es = traceback.format_exc()
 				err_s = str(es)
-				print err_s
+				#print err_s
+				print e
 
 			self.append_response(s, zlib.compress(cPickle.dumps({'err': err, 'err_s': err_s, 'ret': ret}, 1), 9) )
 			self.qmsg.task_done()
