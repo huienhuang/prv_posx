@@ -17,18 +17,14 @@ CFG = {
     ]
 }
 
-
-
-PERM_ADMIN = 1 << config.USER_PERM_BIT['admin']
-
 G_MAP_REPORTS = [
-    ('AR Ages', PERM_ADMIN, 'ar_ages'),
-    ('Active Customers', PERM_ADMIN, 'active_customers'),
-    ('Average Order Value', PERM_ADMIN, 'average_order_value'),
-    ('Delivery Receipts', PERM_ADMIN, 'delivery_receipts'),
-    ('Delivery Perfect Order', PERM_ADMIN, 'delivery_perfect_order'),
-    ('Worker Productivity', PERM_ADMIN, 'worker_productivity'),
-    ('Inventory To Sales Ratio', PERM_ADMIN, 'inventory_to_sales_ratio'),
+    ('AR Ages', 0, 'ar_ages'),
+    ('Active Customers', 0, 'active_customers'),
+    ('Average Order Value', 0, 'average_order_value'),
+    ('Delivery Receipts', 0, 'delivery_receipts'),
+    ('Delivery Perfect Order', 0, 'delivery_perfect_order'),
+    ('Worker Productivity', 0, 'worker_productivity'),
+    ('Inventory To Sales Ratio', 0, 'inventory_to_sales_ratio'),
 ]
 
 
@@ -38,7 +34,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         reports = []
         for i in range(len(G_MAP_REPORTS)):
             report = G_MAP_REPORTS[i]
-            if not(self.user_lvl & report[1]): continue
+            #if not(self.user_lvl & report[1]): continue
             reports.append( (i, report[0]) )
         
         self.req.writefile('report_general.html', {'reports': reports})
@@ -55,7 +51,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if report_idx < 0 or report_idx >= len(G_MAP_REPORTS): return
         
         report = G_MAP_REPORTS[report_idx]
-        if not(self.user_lvl & report[1]): return
+        #if not(self.user_lvl & report[1]): return
         
         js = getattr(self, 'report_%s' % (report[2], ))(frm_ts, to_ts)
         self.req.writejs(js)
@@ -69,7 +65,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         lst = []
         for report in G_MAP_REPORTS:
-            if not(self.user_lvl & report[1]): continue
+            #if not(self.user_lvl & report[1]): continue
             js = getattr(self, 'report_%s' % (report[2], ))(frm_ts, to_ts)
             lst.append(js)
         self.req.writejs(lst)

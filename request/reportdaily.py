@@ -59,7 +59,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if report_idx < 0 or report_idx >= len(G_MAP_REPORTS): return
         
         report = G_MAP_REPORTS[report_idx]
-        if not(self.user_lvl & report[1]): return
+        #if not(self.user_lvl & report[1]): return
         
         js = getattr(self, 'report_%s' % (report[2], ))(frm_ts, to_ts)
         self.req.writejs(js)
@@ -81,7 +81,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         lst = []
         for report in G_MAP_REPORTS:
-            if not(self.user_lvl & report[1]): continue
+            #if not(self.user_lvl & report[1]): continue
             js = getattr(self, 'report_%s' % (report[2], ))(frm_ts, to_ts)
             lst.append(js)
         self.req.writejs(lst)
