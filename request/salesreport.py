@@ -304,7 +304,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         frm_tp = time.strptime(js['frm_dt'], '%m/%d/%Y')
         to_tp = time.strptime(js['to_dt'], '%m/%d/%Y')
         intval = int(js['intval'])
-        filter_percent = 20
+        filter_percent = float(js['filter_percent'])
 
         mi = self.MON_INTVALS[intval]
 
