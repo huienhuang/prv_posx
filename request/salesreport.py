@@ -18,11 +18,12 @@ CFG = {
     'perm_list': [
     ('access', ''),
     ('admin', ''),
+    ('access adv', ''),
     ]
 }
 
 PERM_ADMIN = 1 << 1
-
+PERM_ADV_ACCESS = 1 << 2
 
 BIT_PPL = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
 BIT_MGR = (1 << config.BASE_ROLES_MAP['SalesMgr']) | (1 << config.BASE_ROLES_MAP['DeliveryMgr'])
@@ -31,14 +32,14 @@ BIT_MGR = (1 << config.BASE_ROLES_MAP['SalesMgr']) | (1 << config.BASE_ROLES_MAP
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
-        perm = self.get_cur_rh_perm() & PERM_ADMIN
-
         r = {
             'tab_cur_idx' : 2,
             'title': 'Purchasing',
-            'tabs': [ ('sale', 'Sale'), ('rect', 'Receipt'), ('customer', 'Customer')  ]
+            'tabs': [ ('sale', 'Sale'), ('rect', 'Receipt'), ('customer', 'Customer') ]
         }
-        if perm: r['tabs'].append( ('cfg', 'Config') )
+
+        if self.get_cur_rh_perm() & PERM_ADV_ACCESS: r['tabs'].append( ('customer_r', 'Customer - DEC') )
+        if self.get_cur_rh_perm() & PERM_ADMIN: r['tabs'].append( ('cfg', 'Config') )
 
         self.req.writefile('tmpl_multitabs.html', r)
 
@@ -293,3 +294,68 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
 
 
+    def fn_customer_r(self):
+        self.req.writefile('sales_report__customer_r.html', {})
+
+    MON_INTVALS = (1, 3, 6)
+    def fn_get_customer_r_data(self):
+        js = self.req.psv_js('js')
+
+        frm_tp = time.strptime(js['frm_dt'], '%m/%d/%Y')
+        to_tp = time.strptime(js['to_dt'], '%m/%d/%Y')
+        intval = int(js['intval'])
+        filter_percent = 20
+
+        mi = self.MON_INTVALS[intval]
+
+        frm_mon = (frm_tp.tm_mon - 1) / mi * mi + 1
+        to_mon = (to_tp.tm_mon - 1) / mi * mi + 1
+
+        fi = frm_tp.tm_year * 10000 + frm_mon * 100 + 1
+        ti = to_tp.tm_year * 10000 + to_mon * 100 + 1
+
+        dd = self.get_data_file_cached('customer_sale', 'customer_sale.txt')
+        if not dd: return
+
+        dc = dd['c'][intval]
+        k = [ f_x[0] for f_x in dc ]
+        dc = dc[ bisect.bisect_left(k, fi): bisect.bisect_right(k, ti) ]
+        if len(dc) <= 1: return
+
+        cust = []
+
+        if dc[-1][0] < ti: dc.append( (ti, {}) )
+        for cid,nz in dd['z'].items():
+            m = len(dc)
+            l = [''] * m
+            t = [0, 0, 0]
+            for i in range(m):
+                s = dc[i][1].get(cid)
+                if not s: continue
+                l[i] = "%0.2f" % s[0]
+                if i < m - 1:
+                    t[0] += s[0]
+                    t[1] += 1
+                else:
+                    t[2] = s[0]
+
+            if not t[1]: continue
+            t[0] = round(t[0] / t[1], 2)
+            if t[0] <= 0 or t[0] <= t[2]: continue
+            p = round(100.0 * (t[0] - t[2]) / t[0], 1)
+            if p < filter_percent: continue
+
+            l.insert(m - 1, '%0.2f' % t[0])
+            l.insert(0, '%0.1f' % p)
+            l.insert(0, nz)
+            l.append( str(cid) )
+
+            cust.append(l)
+
+
+        hdr = [ f_x[0] for f_x in dc[:-1] ]
+        cust.sort(key=lambda f_x: f_x[0])
+        self.req.writejs({'cust': cust, 'hdr': hdr})
+
+
+    fn_get_customer_r_data.PERM = PERM_ADV_ACCESS

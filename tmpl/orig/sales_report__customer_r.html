@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+
+<title>POSX - Report - Sale</title>
+<script type="text/javascript" src="js/canvasjs.min.js"></script>
+
+<script type="text/javascript">
+
+var __timeout__search_filter = null;
+var g_regx_kw_repl_a = new RegExp('[\\s]+', 'gim');
+var g_regx_kw_repl_b = new RegExp('[^\\w\\s]+', 'gim');
+
+function gen_kws(kw)
+{
+    var d_kw = {};
+    kw = $.trim(kw.replace(g_regx_kw_repl_a, ' ').replace(g_regx_kw_repl_b, '$ ')).split(' ');
+    for(var i = 0; i < kw.length; i++) {
+        var e = kw[i];
+        if(!e.length || e == '$') continue;
+        d_kw[ e.toLowerCase() ] = null;
+    }
+    kw = [];
+    for(var k in d_kw) {
+        if(k[k.length - 1] == '$')
+            kw.push( RegExp('\\b' + k.substr(0, k.length - 1) + '\\b', 'gim') );
+        else
+            kw.push( RegExp('\\b' + k, 'gim') );
+    }
+    return kw;
+}
+
+function show_all()
+{
+    var src = g_v_tg_tbl.tinygrid('src');
+    if(src.is_filtered) {
+        src.page = src._page;
+        src.is_filtered = false;
+        g_v_tg_tbl.tinygrid('update', src.page.length, true, true, true);
+    }
+}
+
+function __search()
+{
+    var kw = gen_kws(g_v_search.val());
+    if(!kw.length) {
+        show_all();
+        return;
+    }
+        
+    var src = g_v_tg_tbl.tinygrid('src');
+    var page = [];
+    for(var i = 0; i < src._page.length; i++) {
+        var r = src._page[i];
+        var s = 1;
+        for(var j = 0; j < kw.length; j++) {
+            if(r[0].search(kw[j]) < 0) {
+                s = 0;
+                break;
+            }
+        }
+        if(s) page.push(r);
+    }
+        
+    src.page = page;
+    src.is_filtered = true;
+    g_v_tg_tbl.tinygrid('update', src.page.length, true, true, true);
+}
+
+function key_up__search_filter()
+{
+    if(!g_v_tg_tbl) return;
+    
+    if(__timeout__search_filter) {
+        clearTimeout(__timeout__search_filter);
+        __timeout__search_filter = null;
+    }
+    
+    if(!$.trim(g_v_search.val()).length) {
+        show_all();
+        return;
+    }
+    
+    __timeout__search_filter = setTimeout(__search, 200);
+}
+
+
+function click_cust(r, c, d)
+{
+    var z = d[d.length - 1];
+    if (c == 0) {
+        open_wnd('hist?fn=custhist&cid=' + z[0],'posx_customer_hist');
+    } else {
+        //open_dlg_clerk(d[0], z, g_hdr[c - 1]);
+    }
+}
+
+function load_data_cb(js)
+{
+    g_hdr = js.hdr;
+    
+    var hdr = [ {name:'Customer', width:250}, {name:'Percent', width:80} ];
+    for(var i = 0; i < js.hdr.length; i++) {
+        var s = '' + js.hdr[i];
+        var nz = s.substr(0, 4) + '-' + s.substr(4, 2) + '-' + s.substr(6, 2);
+        hdr.push({name: nz, width:110});
+    }
+    hdr.push({name: 'AVG', width:110});
+    hdr.push({name: 'LAST', width:110});
+    
+    g_v_tg_tbl = $('<div class="tg_tbl"></div>').prependTo( $('body') );
+    g_v_tg_tbl.tinygrid({
+        len: js.cust.length,
+        src:{page: js.cust, _page: js.cust},
+        cols: hdr,
+        click: click_cust
+    });
+    
+    __search();
+}
+
+function load_data()
+{
+    var els = g_v_m_ctrl.data('in_els');
+    
+    var intval = els.intval[0].val();
+    var frm_dt = els.frm_date[0].val();
+    var to_dt = els.to_date[0].val();
+    
+    if(g_v_tg_tbl) {
+        g_v_tg_tbl.tinygrid('remove');
+        g_v_tg_tbl = null;
+    }
+    
+    var filter_percent = parseInt( els.filter_percent[0].val() ) || 20;
+    
+    get_js_ex('?fn=get_customer_r_data', {'js': JSON.stringify({frm_dt:frm_dt, to_dt:to_dt, intval:intval, filter_percent:filter_percent}) }, load_data_cb,
+           undefined, undefined, undefined, 'load_data');
+    
+}
+
+function render_graph()
+{
+    var v_canvas = $('#d_canvas');
+    if( v_canvas.is(':visible') ) { v_canvas.hide(); return; }
+    
+    var js = g_v_main_xtbl.data('js');
+    if(!js) return;
+    
+    var users = js.users;
+    var cates = js.cates;
+    js = js.js;
+    
+    v_canvas.show();
+    
+    var data = [];
+    for(var i = 0; i < users.length; i++) {
+        var cnz = users[i];
+        
+        var dp = [];
+        for(var j = 0; j < js.length; j++) {
+            var cs = js[j][1][cnz];
+        
+            var total = 0;
+            if(cs !== undefined) {
+                for(var z = 0; z < cates.length; z++) {
+                    var dl = cs[ cates[z] ];
+                    if(dl !== undefined) total += dl[0];
+                }
+            }
+            
+            dp.push( {label: js[j][0], y: parseFloat(total.toFixed(2))} );
+        }
+        
+        data.push({'showInLegend': true, 'type': "line", 'name': cnz, 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
+    }
+    
+    var cfg = {
+        'zoomEnabled': true,
+        'theme': "theme2",
+        'title': {'text': "Sale"},
+        'axisX': {'labelAngle': -50},
+        'data': data
+        }
+    
+    new CanvasJS.Chart('d_canvas', cfg).render();
+    
+}
+
+
+function render_graph_2()
+{
+    var v_canvas = $('#d_canvas');
+    if( v_canvas.is(':visible') ) { v_canvas.hide(); return; }
+    
+    var js = g_v_main_xtbl.data('js');
+    if(!js) return;
+    
+    var users = js.users;
+    var cates = js.cates;
+    js = js.js;
+    
+    v_canvas.show();
+    
+    var data = [];
+    var dp = [];
+    for(var j = 0; j < js.length; j++) {
+        var js_j = js[j];
+        var total = 0;
+        for(var k in js_j[1]) {
+            var cs = js_j[1][k];
+            for(var c in cs) total += cs[c][0];
+        }
+        dp.push( {label: js_j[0], y: parseFloat(total.toFixed(2))} );
+    }
+    data.push({'showInLegend': true, 'type': "column", 'name': 'Total', 'dataPoints': dp, 'toolTipContent': '<span style="color:#3e6aac;font-weight:bold">{name}</span>(<span style="color:#aa452e;font-weight:bold">{label}</span>): {y}'});
+    
+    var cfg = {
+        'zoomEnabled': true,
+        'theme': "theme2",
+        'title': {'text': "Sale"},
+        'axisX': {'labelAngle': -50},
+        'data': data
+        }
+    
+    new CanvasJS.Chart('d_canvas', cfg).render();
+    
+}
+
+
+$(function() {
+
+g_v_tg_tbl = null;
+
+$('.btn').button();
+
+g_v_m_ctrl = $('.m_ctrl');
+idx_elements(g_v_m_ctrl, 5);
+var els = g_v_m_ctrl.data('in_els');
+
+g_v_search = els.search[0].keyup(key_up__search_filter);
+
+var dt = new Date();
+dt.setMonth( dt.getMonth() - 1, 1 );
+els.to_date[0].datepicker().datepicker('setDate', dt);
+dt.setMonth( dt.getMonth() - 2, 1 );
+els.frm_date[0].datepicker().datepicker('setDate', dt);
+els.btn_apply[0].click(load_data);
+els.btn_chart[0].click(render_graph);
+
+g_v_dlg_clerk = $('#dlg_clerk').dialog({
+    autoOpen: false,
+    width:420,
+    height:500,
+});
+g_v_clerk_xtbl = $('.prntbl_cnt', g_v_dlg_clerk);
+g_v_clerk_xtbl_footer = $('.prntbl_row_ftr', g_v_dlg_clerk);
+
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+
+#d_canvas {position:absolute;top:50px;left:0;right:0;bottom:0;overflow:hidden;z-index:2;background-color:#fff;display:none}
+
+.tg_tbl {top:50px}
+
+
+</style>
+
+</head>
+<body>
+
+
+<div class="m_ctrl">
+
+<input type="text" name="ctrl_search" style="width:150px" placeholder="Search" />
+
+<input type="text" name="ctrl_frm_date" placeholder="From Date" style="width:100px" />
+<input type="text" name="ctrl_to_date" placeholder="To Date" style="width:100px" />
+
+<select name="ctrl_intval">
+<option value="0">Monthly</option>
+<option value="1">Quarterly</option>
+<option value="2">SemiAnnually</option>
+</select>
+
+<input type="text" name="ctrl_filter_percent" placeholder="Filter >= 20" style="width:100px" />
+
+<input type="button" value="Apply" name="ctrl_btn_apply" class="btn" />
+<input type="button" value="Chart" name="ctrl_btn_chart" class="btn" style="display:none" />
+</div>
+
+<div id="d_canvas"></div>
+
+<div id="dlg_clerk">
+<div class="prntbl">
+<div class="prntbl_row prntbl_row_hdr"><div>Dept</div><div>Total</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
+</div>
+
+
+
+</body>
+</html>
+
+
