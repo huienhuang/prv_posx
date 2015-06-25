@@ -97,6 +97,18 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
     fn_export_csv.PERM = PERM_ADMIN
     
+
+    def reg_dt(self, i, tp):
+        if i == 1:
+            dt = datetime.date(*tp[:3]) - datetime.timedelta(tp.tm_wday)
+            di = dt.year * 10000 + dt.month * 100 + dt.day
+        elif i == 2:
+            di = tp.tm_year * 10000 + tp.tm_mon * 100 + 1
+        else:
+            di = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
+
+        return di
+
     def fn_sale(self):
         tp = time.localtime()
         if tp.tm_mon <= 2:
@@ -125,8 +137,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         to_tp = time.strptime(self.req.qsv_ustr('to_dt'), '%Y-%m-%d')
         intval = self.req.qsv_int('intval')
 
-        fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
-        ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        #fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
+        #ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        fi = self.reg_dt(intval, frm_tp)
+        ti = self.reg_dt(intval, to_tp)
 
         js = self.get_data_file_cached('daily_sale', 'daily_sale.txt')['s'][intval]
         da = [ f_x[0] for f_x in js ]
@@ -186,8 +200,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         to_tp = time.strptime(self.req.qsv_ustr('to_dt'), '%Y-%m-%d')
         intval = self.req.qsv_int('intval')
 
-        fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
-        ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        #fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
+        #ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        fi = self.reg_dt(intval, frm_tp)
+        ti = self.reg_dt(intval, to_tp)
 
         js = self.get_data_file_cached('daily_sale', 'daily_sale.txt')['n'][intval]
         da = [ f_x[0] for f_x in js ]
@@ -242,8 +258,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cates = js.get('cates') or []
         users = js.get('users') or []
 
-        fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
-        ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        #fi = frm_tp.tm_year * 10000 + frm_tp.tm_mon * 100 + frm_tp.tm_mday
+        #ti = to_tp.tm_year * 10000 + to_tp.tm_mon * 100 + to_tp.tm_mday
+        fi = self.reg_dt(intval, frm_tp)
+        ti = self.reg_dt(intval, to_tp)
 
         fz = self.get_data_file_cached('daily_sale', 'daily_sale_2.txt')
         cz = fz['z']
@@ -359,3 +377,5 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
 
     fn_get_customer_r_data.PERM = PERM_ADV_ACCESS
+
+
