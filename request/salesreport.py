@@ -167,7 +167,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 unz = us[0]
                 if unz not in sales_users: unz = ''
                 if unz in sales_users:
-                    dd[unz] = us[1]
+                    cd = dd.get(unz)
+                    if cd == None:
+                        dd[unz] = us[1]
+                    else:
+                        for c_k,c_v in us[1].items():
+                            v_v = cd.setdefault(c_k, [0, 0])
+                            v_v[0] += c_v[0]
+                            v_v[1] += c_v[1]
 
         self.req.writejs(rjs)
 
@@ -230,7 +237,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 unz = us[0]
                 if unz not in sales_users: unz = ''
                 if unz in sales_users:
-                    dd[unz] = us[1]
+                    cd = dd.get(unz)
+                    if cd == None:
+                        dd[unz] = us[1]
+                    else:
+                        cd[0] += us[1][0]
 
         self.req.writejs(rjs)
 
@@ -297,7 +308,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                         if not const.ITEM_D_CATE2.has_key(cate): cate = ''
                         if cate not in cates: continue
 
-                        v = round(dd[0], 5)
+                        v = dd[0]
 
                         hdr.add(di)
                         ds = cust.setdefault(cid, {}).setdefault(di, {})

@@ -8,6 +8,12 @@
 
 g_v_datagrid = {};
 
+
+function open_wnd_order_form()
+{
+    open_wnd('hist?fn=print_order_form&sid=${cust_sid}','posx_wnd_print_order_form');
+}
+
 function show_all()
 {
     var o = $(this);
@@ -313,6 +319,8 @@ click: function(r, c, d) {
     } else
         open_wnd('hist?fn=itemhist&tid='+d[6],'posx_item_hist');
 },
+footer_html: '<div class="tgft_page"></div><div class="tgft_showall"><input type="button" value="Order Form" /></div>',
+init: function() { this.data.footer_row.showall.children('input').button().click(open_wnd_order_form); }
 });
 
 g_receipt_srch_data = {}

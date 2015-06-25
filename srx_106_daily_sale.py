@@ -77,8 +77,8 @@ for r in cur:
 
     for t in items:
         if t['itemsid'] == 1000000005: continue
-        extprice = t['price'] * t['qty'] * disc
-        extcost = t['cost'] * t['qty']
+        extprice = round(t['price'] * t['qty'] * disc, 5)
+        extcost = round(t['cost'] * t['qty'], 5)
         if rtype > 0:
             extprice = -extprice
             extcost = -extcost

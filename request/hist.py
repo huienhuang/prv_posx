@@ -851,3 +851,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         res['len'] = rlen
         res['apg'] = apg
         self.req.writejs(ret)
+
+
+
+    def fn_print_order_form(self):
+        sid = self.req.qsv_int('sid')
+
+        cur = self.cur()
+        cur.execute('select sid,name,detail from sync_customers where sid=%d limit 1' % (sid,))
+        r = cur.fetchall()[0]
+
+        cust = json.loads(r[2])
+        cust['sid'] = str(r[0])
+        cust['bname'] = r[1]
+
+        self.req.writefile('customer_order_form.html', {'cust': cust})
+

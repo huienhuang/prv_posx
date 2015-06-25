@@ -71,8 +71,8 @@ for r in cur:
     cds = (d0, d1, d2)
     for t in items:
         if t['itemsid'] == 1000000005: continue
-        extprice = t['price'] * t['qty'] * disc
-        extcost = t['cost'] * t['qty']
+        extprice = round(t['price'] * t['qty'] * disc, 5)
+        extcost = round(t['cost'] * t['qty'], 5)
         if rtype > 0:
             extprice = -extprice
             extcost = -extcost
@@ -88,8 +88,8 @@ for r in cur:
 
         for cd in cds:
             v_s = cd.setdefault(clerk, {}).setdefault(cid, {}).setdefault(cate, [0, 0])
-            v_s[0] += round(extprice, 5)
-            v_s[1] += round(extcost, 5)
+            v_s[0] += extprice
+            v_s[1] += extcost
 
 g_c_n = []
 for cd in g_c:
