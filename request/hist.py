@@ -32,11 +32,27 @@ Receipt = App.load('/request/receipt')
 Delivery = App.load('/request/delivery')
 Tracker = App.load('/request/problemtracker')
 
-class RequestHandler(App.load('/basehandler').RequestHandler):
+class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         self.req.writefile('hist_receipts.html')
     
+    def fn_get_customer_sale(self):
+        cid = self.req.qsv_int('cid')
+        rjs = (self.get_data_file_cached('receipt_report', 'receipt_report.txt') or {}).get('customer', {})
+        ms = rjs.get(cid) or []
+        
+        ym = []
+        for mts,msa in ms:
+            tp = time.localtime(mts)
+            if not ym or ym[-1][0] != tp.tm_year: ym.append( (tp.tm_year, [0,] * 12) )
+            m = ym[-1][1]
+            m[tp.tm_mon - 1] += msa[0]
+        
+        self.req.writejs(ym)
+
+    fn_get_customer_sale.PERM = PERM_ITEM_STAT
+
     def fn_search(self):
         self.req.writefile('receipt_search.html')
     

@@ -100,7 +100,7 @@ function load_sale_report()
     var v_cnt = g_v_cust_sale_tbl.children('.prntbl_cnt').empty();
     var v_ftr = g_v_cust_sale_tbl.children('.prntbl_row_ftr').empty();
     
-    get_js_ex('sreport?fn=get_customer_sale&cid=${cust_sid}', {}, function(js) {
+    get_js_ex('?fn=get_customer_sale&cid=${cust_sid}', {}, function(js) {
         var o_lst = [ $('<div>Month</div>') ];
         var ss = [];
         for(var i = 0; i < js.length; i++) {
