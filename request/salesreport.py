@@ -263,7 +263,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         fi = self.reg_dt(intval, frm_tp)
         ti = self.reg_dt(intval, to_tp)
 
-        fz = self.get_data_file_cached('daily_sale', 'daily_sale_2.txt')
+        fz = self.get_data_file_cached('daily_sale_2', 'daily_sale_2.txt')
         cz = fz['z']
 
         js = fz['c'][intval]
