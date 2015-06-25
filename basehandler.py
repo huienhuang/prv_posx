@@ -186,7 +186,7 @@ class RequestHandler(tinywsgi.RequestHandler):
     def get_rh_perm(self, rh_cls):
         if self.user_id == 1: return G_ADMIN_APP_PERM
 
-        cfg = getattr(rh_cls.__module__, 'CFG', {})
+        cfg = rh_cls.fn_default.im_func.func_globals.get('CFG', {})
         return self._get_rh_perm_by_cfg(cfg)
 
     def get_cur_rh_perm(self):
