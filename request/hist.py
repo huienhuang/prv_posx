@@ -145,9 +145,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         apg = []
         perm = self.get_cur_rh_perm() & PERM_ITEM_STAT
 
+        cur_day_ts = int(time.mktime((datetime.datetime.now() + datetime.timedelta(1)).timetuple()))
+
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
-            cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid,count(*),(max(h.docdate)&(~0x7ffff)|count(*)) as pos from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by pos desc,h.itemsid asc limit %d,%d' % (
-                cid, sidx * pgsz, (eidx - sidx) * pgsz
+            cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid,count(*),((0x7FC00000-(ABS(%d-max(h.docdate))&0x7FC00000))|count(*)) as pos from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by pos desc,h.itemsid asc limit %d,%d' % (
+                cur_day_ts, cid, sidx * pgsz, (eidx - sidx) * pgsz
                 )
             )
             for r in cur.fetchall():
@@ -864,6 +866,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cust = json.loads(r[2])
         cust['sid'] = str(r[0])
         cust['bname'] = r[1]
+
+
+        cur_day_ts = int(time.mktime((datetime.datetime.now() + datetime.timedelta(1)).timetuple()))
+
+        cur.execute('select SQL_CALC_FOUND_ROWS i.num,i.detail,i.name,sum(h.qtydiff) as total_qty,0,max(h.docdate) as last_docdate,h.itemsid,count(*),((0x7FC00000-(ABS(%d-max(h.docdate))&0x7FC00000))|count(*)) as pos from sync_receipts r left join sync_items_hist h on (r.sid=h.docsid and r.sid_type=h.sid_type and (h.flag>>8)<2) left join sync_receipts_items i on (h.itemsid=i.sid) where r.cid=%d and h.itemsid is not null and h.itemsid != 1000000005 group by h.itemsid order by pos desc,h.itemsid asc limit 200' % (
+            cur_day_ts, sid
+            )
+        )
 
         self.req.writefile('customer_order_form.html', {'cust': cust})
 
