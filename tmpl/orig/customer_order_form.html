@@ -24,11 +24,36 @@ function view_map()
 }
 
 $(function() {
+
+$('.btn').button();
 $(document).tooltip();
+g_v_item_lst = $('#item_lst').sortable().disableSelection();
+
+g_v_filter = $('#filter').change(function() {
+    var t = parseInt(g_v_filter.val());
+    if(t)
+        g_v_item_lst.addClass('only_sel');
+    else
+        g_v_item_lst.removeClass('only_sel');
+});
+g_v_item_lst.find('input').change(function() {
+    var o = $(this);
+    var v = o.closest('.prntbl_row');
+    
+    var chk = o.prop('checked');
+    if(chk)
+        v.removeClass('not_sel');
+    else
+        v.addClass('not_sel');
+});
+
+
 })
 </script>
 
 <style type="text/css">
+
+body {overflow-y:scroll}
 
 .p_doc {padding-top:51px;page-break-after:always;width:712px;margin:0 auto;min-height:400px;position:relative;}
 .p_doc > div {margin-bottom:8px}
@@ -42,17 +67,24 @@ $(document).tooltip();
 .p_doc_addr > .shipto {float:right}
 
 .prntbl {position:relative}
+.prntbl .prntbl_row {cursor:pointer}
 .prntbl >.prntbl_row_hdr, .prntbl >.prntbl_row_ftr, .prntbl >.prntbl_cnt {overflow:visible;position:static}
 .prntbl .prntbl_row_hdr {border-bottom:none}
 .prntbl .prntbl_row >div:last-child {border-right:none}
-.prntbl .prntbl_row >div:nth-child(2) {width:70px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(3) {width:160px;font-weight:bold}
-.prntbl .prntbl_row >div:nth-child(4) {width:396px}
-.prntbl .prntbl_row >div:nth-child(1) {width:80px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(2) {width:60px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(3) {width:150px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(4) {width:310px}
+.prntbl .prntbl_row >div:nth-child(5) {width:40px;font-weight:bold}
+.prntbl .prntbl_row >div:nth-child(6) {width:80px}
 
 .prntbl .prntbl_row_ftr >div:nth-child(1) {width:710px;font-weight:bold}
 
 .prntbl .prntbl_cnt .prntbl_row:hover {background-color:#ffe7d7 !important}
+
+.prntbl .prntbl_cnt.only_sel .prntbl_row.not_sel {display:none}
+
+.m_print {display:none}
 
 
 @media print {
@@ -61,6 +93,18 @@ $(document).tooltip();
 .p_doc {padding-top:0}
 div {border-color:#000 !important}
 .prntbl {-webkit-print-color-adjust:exact}
+
+.prntbl .prntbl_row >div:nth-child(5), .prntbl .prntbl_row >div:nth-child(6) {display:none}
+.prntbl .prntbl_row >div:nth-child(4) {width:436px;border-right:none}
+.prntbl .prntbl_cnt .prntbl_row:nth-child(even) {background-color:#fff}
+
+.prntbl .prntbl_cnt .prntbl_row.not_sel {display:none}
+
+.prntbl .prntbl_cnt .prntbl_row >div:nth-child(1) >input {display:none}
+
+.m_view {display:none}
+.m_print {display:block}
+
 }
 @page {
 margin:50px 50px;
@@ -73,8 +117,8 @@ margin:50px 50px;
 
 <div class="m_ctrl">
 
-<input type="text" placeholder="Search" />
-<input type="button" value="Print" class="btn" />
+<select id="filter"><option value="0">All</option><option value="1">Selected Only</option></select>
+<input type="button" value="Print" class="btn" onclick="print();" />
 
 </div>
 
@@ -102,8 +146,21 @@ margin:50px 50px;
 </div>
 
 <div class="prntbl">
-<div class="prntbl_row prntbl_row_hdr"><div>Qty</div><div>NUM</div><div>ALU</div><div>Name</div></div>
-<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_hdr"><div><span class="m_view">CHK</span><span class="m_print">Qty</span></div><div>NUM</div><div>ALU</div><div>Name</div><div>NR.</div><div>LastSale</div></div>
+<div class="prntbl_cnt" id="item_lst">
+
+%for r in cust['items']:
+<div class="prntbl_row not_sel">
+<div><input type="checkbox" /></div>
+<div>${r['num']}</div>
+<div>${r['gjs'].get('alu') or ''|h}</div>
+<div>${r['name']|h}</div>
+<div>${r['total']|h}</div>
+<div>${r['lastsale_s']|h}</div>
+</div>
+%endfor
+
+</div>
 <div class="prntbl_row prntbl_row_ftr"><div></div></div>
 </div>
 
