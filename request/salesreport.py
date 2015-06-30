@@ -26,8 +26,11 @@ PERM_ADMIN = 1 << 1
 PERM_ADV_ACCESS = 1 << 2
 
 BIT_PPL = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
-BIT_MGR = (1 << config.BASE_ROLES_MAP['SalesMgr']) | (1 << config.BASE_ROLES_MAP['DeliveryMgr'])
+BIT_SALES_MGR = 1 << config.BASE_ROLES_MAP['SalesMgr']
+BIT_DELIVERY_MGR = 1 << config.BASE_ROLES_MAP['DeliveryMgr']
+BIT_MGR = BIT_SALES_MGR | BIT_DELIVERY_MGR
 
+STORES = [ ('SSF', BIT_DELIVERY_MGR), ('SF', BIT_SALES_MGR) ]
 
 class RequestHandler(App.load('/advancehandler').RequestHandler):
 
@@ -35,10 +38,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = {
             'tab_cur_idx' : 2,
             'title': 'Purchasing',
-            'tabs': [ ('sale', 'Sale'), ('rect', 'Receipt'), ('customer', 'Customer') ]
+            'tabs': [ ('sale', 'Sale'), ('rect', 'Receipt'), ('customer', 'Customer'), ('customer_r', 'Customer - DEC') ]
         }
 
-        if self.get_cur_rh_perm() & PERM_ADV_ACCESS: r['tabs'].append( ('customer_r', 'Customer - DEC') )
+
+        if self.get_cur_rh_perm() & PERM_ADV_ACCESS: r['tabs'].append( ('store', 'Store') )
         if self.get_cur_rh_perm() & PERM_ADMIN: r['tabs'].append( ('cfg', 'Config') )
 
         self.req.writefile('tmpl_multitabs.html', r)
@@ -380,6 +384,57 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs({'cust': cust, 'hdr': hdr})
 
 
-    fn_get_customer_r_data.PERM = PERM_ADV_ACCESS
+    #fn_get_customer_r_data.PERM = PERM_ADV_ACCESS
 
+
+    def fn_store(self):
+        tp = time.localtime()
+        if tp.tm_mon <= 2:
+            dt = datetime.date(tp.tm_year - 1, 10 + tp.tm_mon, 1)
+        else:
+            dt = datetime.date(tp.tm_year, tp.tm_mon - 2, 1)
+
+        to_dt = '%04d-%02d-%02d' % tp[:3]
+        frm_dt = '%04d-%02d-01' % dt.timetuple()[:2]
+
+        perm = self.get_cur_rh_perm() & PERM_ADMIN
+
+        if perm:
+            stores = [ f_x[0] for f_x in STORES ]
+        else:
+            stores = [ f_x[0] for f_x in STORES if f_x[1] & self.user_roles ]
+        
+        self.req.writefile('sales_report__store.html', {'const': const, 'stores': stores, 'frm_dt': frm_dt, 'to_dt': to_dt})
+        
+
+    def fn_get_store_data(self):
+        frm_tp = time.strptime(self.req.qsv_ustr('frm_dt'), '%Y-%m-%d')
+        to_tp = time.strptime(self.req.qsv_ustr('to_dt'), '%Y-%m-%d')
+        intval = self.req.qsv_int('intval')
+        store = self.req.qsv_int('store') & 1
+
+
+        if not STORES[ store ][1] & self.user_roles: return
+
+        fi = self.reg_dt(intval, frm_tp)
+        ti = self.reg_dt(intval, to_tp)
+
+        js = self.get_data_file_cached('daily_sale_2', 'daily_sale_2.txt')['s'][intval + store * 3]
+        da = [ f_x[0] for f_x in js ]
+        js = js[ bisect.bisect_left(da, fi): bisect.bisect_right(da, ti) ]
+
+        users = set()
+        rjs = []
+        for ds in js:
+            m,d = divmod(ds[0], 100)
+            y,m = divmod(m, 100)
+            dd = ds[1].copy()
+            rjs.append(['%04d-%02d-%02d' % (y, m, d), dd])
+
+            for us in dd.items():
+                users.add(us[0])
+                dd[us[0]] = round(us[1][0], 5)
+
+        users = sorted(users)
+        self.req.writejs({'js': rjs, 'users': users})
 

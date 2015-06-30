@@ -76,12 +76,22 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     fn_del_record.PERM = PERM_ADMIN
 
     def fn_save_record(self):
-        r_id = self.req.psv_int('r_id')
-        r_desc = self.req.psv_ustr('r_desc')[:256].strip()
-        r_loc = self.req.psv_ustr('r_loc')[:256].strip()
-        r_enable = self.req.psv_int('r_enable')
-        r_users = [ int(f_x) for f_x in self.req.psv_ustr('r_users').split('|') if f_x ]
+        js = self.req.psv_js('js')
+
+        r_id = int(js['r_id'])
+        r_desc = js['r_desc'][:256].strip()
+        r_loc = js['r_loc'][:256].strip()
+        r_enable = int(js['r_enable'])
+        r_mode = int(js['r_mode']) & 1
+        r_store = int(js['r_store']) & 1
+        r_users = [ int(f_x) for f_x in js['r_users'] if f_x ]
         if not r_desc or not r_users: return
+
+        if r_mode:
+            r_items = map(str, set([ int(f_x) for f_x in js['r_items'] ]))
+        else:
+            r_items = []
+        r_js = {'r_items': r_items}
 
         locs = set()
         for s in r_loc.replace('\n', ',').split(','):
@@ -94,18 +104,26 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         cur = self.cur()
         if not r_id:
-            cur.execute('insert into phycount_record values(null, 1, %s, %s, %s, null, %s)', (
-                r_enable, r_desc, r_loc, cts
+            cur.execute('insert into phycount_record values(null, 1, %s, %s, %s, %s, %s, %s, %s)', (
+                r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), cts
                 )
             )
             if not cur.rowcount: return
             r_id = cur.lastrowid
         else:
-            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_desc=%s,r_loc=%s where r_id=%s', (r_enable, r_desc, r_loc, r_id))
+            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_mode=%s,r_store=%s,r_desc=%s,r_loc=%s,r_js=%s where r_id=%s', (
+                r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), r_id
+                )
+            )
             if not cur.rowcount: return
             cur.execute('delete from phycount_user where r_id=%d and u_uid not in (%s)' % (r_id, ','.join(map(str, r_users))) )
-        
+            if r_items:
+                cur.execute('delete from phycount_item where r_id=%d and r_sid not in (%s)' % (r_id, ','.join(r_items)) )
+            else:
+                cur.execute('delete from phycount_item where r_id=%d')
+
         cur.executemany('insert ignore into phycount_user values(%s,%s)', [ (r_id, f_x) for f_x in r_users ] )
+        if r_items: cur.executemany('insert ignore into phycount_item values(%s,%s)', [ (r_id, f_x) for f_x in r_items ] )
 
         self.req.writejs({'r_id': r_id})
 
@@ -120,6 +138,10 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         rows = cur.fetchall()
         if not rows: return
         r = dict(zip(cur.column_names, rows[0]))
+
+        r_js = r['r_js'] = r['r_js'] and json.loads(r['r_js']) or {}
+        r['items'] = r['r_js'].get('r_items')
+        r_js['r_items'] = None
 
         d_users = dict([f_v[:2] for f_v in self.getuserlist()])
         cur.execute('select u_uid from phycount_user where r_id=%s', (r_id, ))
@@ -142,15 +164,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select r_id,r_enable,r_desc,(select GROUP_CONCAT(u_uid) from phycount_user where r_id=r.r_id),r_ts from phycount_record r order by r_id desc limit %d,%d' % (
+            cur.execute('select r_id,r_store,r_mode,r_enable,r_desc,(select GROUP_CONCAT(u_uid) from phycount_user where r_id=r.r_id),r_ts from phycount_record r order by r_id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
                 r = list(r)
-                r[1] = r[1] and 'Y' or 'N'
-                r[3] = ','.join([ d_users.get(int(f_x), 'UNK') for f_x in r[3].split(',') if f_x ])
-                r[4] = time.strftime("%m/%d/%Y", time.localtime(r[4]))
+                r[3] = r[3] and 'Y' or 'N'
+                r[1] = r[1] and 'SF' or 'SSF'
+                r[2] = r[2] and 'Specific' or 'All'
+                r[5] = ','.join([ d_users.get(int(f_x), 'UNK') for f_x in r[5].split(',') if f_x ])
+                r[6] = time.strftime("%m/%d/%Y", time.localtime(r[6]))
                 apg.append(r)
         
         cur.execute('select count(*) from phycount_record')
@@ -187,11 +211,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             for r in cur.fetchall():
                 h_sid,h_qty,h_uom,h_loc,h_ts,num,name,h_js = r
                 h_js = json.loads(h_js)
-                l_qs = h_js['l_qs']
+                cur_qty = h_js['cur_qty']
                 fc = h_js['fc']
 
                 apg.append((
-                    num, name, str(h_qty) + (h_uom or ''), h_loc, time.strftime("%m/%d/%y %I:%M:%S %p", time.localtime(h_ts)), round(l_qs[0] / fc, 1) or '', round(l_qs[1] / fc, 1) or '', str(h_sid)
+                    num, name, str(h_qty) + (h_uom or ''), h_loc, time.strftime("%m/%d/%y %I:%M:%S %p", time.localtime(h_ts)), round(cur_qty / fc, 1) or '', '', str(h_sid)
                     )
                 )
 
@@ -256,22 +280,30 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r_id = int(js['r_id'])
 
         cur = self.cur()
-        cur.execute('select count(*) from phycount_user where r_id=%s and u_uid=%s and (select count(*) from phycount_record where r_enable!=0 and r_id=%s)>0', (r_id, self.user_id, r_id))
-        if cur.fetchall()[0][0] <= 0: return
+        cur.execute('select r.r_store,r.r_mode from phycount_user u left join phycount_record r on (u.r_id=r.r_id) where u.r_id=%s and u.u_uid=%s and r.r_enable!=0', (r_id, self.user_id))
+        rows = cur.fetchall()
+        if not rows: self.req.exitjs({'err': -1, 'err_s': 'No Record'})
+        r_store,r_mode = rows[0]
 
         cts = int(time.time())
 
-        cur.execute('select detail from sync_items where sid=%s', (h_sid, ))
-        gjs = json.loads( cur.fetchall()[0][0] )
+        if r_mode:
+            cur.execute('select detail from sync_items where sid=%d and (select count(*) from phycount_item where r_id=%d and r_sid=%d) > 0' % (h_sid, r_id, h_sid))
+        else:
+            cur.execute('select detail from sync_items where sid=%s', (h_sid, ))
+        rows = cur.fetchall()
+        if not rows: self.req.exitjs({'err': -1, 'err_s': 'Item Not In List'})
+
+        gjs = json.loads( rows[0][0] )
+        cur_qty = gjs['stores'][r_store + 1][0]
         d_units = dict([ (u[2].lower(), u[3]) for u in gjs['units'] ])
-        l_qtys = gjs['qty']
 
         s = []
         for r in js['lst']:
             fc = d_units.get(r[1].lower()) or 0
             if fc <= 0: self.req.exitjs({'err': -100, 'err_s': 'Invalid Factor'})
 
-            h_js = json.dumps({'l_qs': l_qtys, 'fc': fc})
+            h_js = json.dumps({'fc': fc, 'cur_qty': cur_qty})
             s.append( (r_id, self.user_id, h_sid, int(r[0]), r[1], js['loc'], cts, h_js) )
 
         if s: cur.executemany('insert into phycount_user_hist values(null,%s,%s,%s,%s,%s,%s,%s,%s)', s)
@@ -284,21 +316,21 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         d_user = {}
         cur = self.cur()
-        cur.execute('select u_uid,(select user_name from user where user_id=u_uid limit 1) from phycount_user where r_id=%s order by u_uid asc', (r_id,))
+        cur.execute('select u_uid,(select user_name from user where user_id=u_uid limit 1) as u_name from phycount_user where r_id=%s order by u_uid asc', (r_id,))
         k = 0
         for r in cur.fetchall():
-            d_user[ r[0] ] = (r[1], k, [])
+            d_user[ r[0] ] = (r[1], k)
             k += 1
 
         d_item = {}
-        cur.execute('select sid,num,name,detail from sync_items where sid in (select h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+        cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
         for r in cur.fetchall():
             sid,num,name,detail = r
             gjs = json.loads(detail)
             gjs['d_units'] = dict([ (u[2].lower(), u[3]) for u in gjs['units'] ])
-            d_item.setdefault(sid, (num, name, gjs, [0], []))
+            d_item.setdefault(sid, (num, name, gjs, [0,] * k, [[] for i in range(k)]))
 
-        cur.execute('select * from phycount_user_hist where r_id=%s', (r_id,))
+        cur.execute('select * from phycount_user_hist where r_id=%s order by h_id asc', (r_id,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -306,17 +338,32 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             t = d_item.get( r['h_sid'] )
             if t == None: continue
 
-            u = d_user.get('u_id')
+            u = d_user.get( r['u_id'] )
             if u == None: continue
 
-            d_units = t[2]['d_units']
-            fc = d_units.get(r['h_uom'])
+            h_js = json.loads(r['h_js'])
 
-            t[3] += r['h_qty'] * fc
-            t[4].append(r)
+            in_qty = r['h_qty'] * h_js['fc']
 
+            t[3][ u[1] ] += in_qty
+            t[4][ u[1] ].append( (r['h_qty'], r['h_uom']) )
 
+        items = []
+        for k,v in d_item.items():
+            e = True
+            f = v[3][0]
+            for s in v[3][1:]:
+                if f != s:
+                    e = False
+                    break
+            if not e: items.append( (v[0], v[1], v[3], v[4]) )
 
+        items.sort(key=lambda f_k: f_k[0])
+
+        users = d_user.values()
+        users.sort(key=lambda f_k: f_k[1])
+
+        self.req.writejs({'items': items, 'users': users})
             
 
 

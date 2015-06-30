@@ -35,6 +35,8 @@ USER_MAP = {
 
 g_c = [{}, {}, {}]
 g_z = {}
+g_s = [{}, {}, {}, {}, {}, {}]
+
 
 
 frm_ts = int(time.mktime(datetime.date(2015, 1, 1).timetuple()))
@@ -58,17 +60,24 @@ for r in cur:
 
     tp = time.localtime(r['order_date'])
 
+    idx = (glbs['store'] - 1) * 3
+
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
     d0 = g_c[0].setdefault(di, {})
+    s0 = g_s[0 + idx].setdefault(di, {})
 
     dt = datetime.date(*tp[:3]) - datetime.timedelta(tp.tm_wday)
     di = dt.year * 10000 + dt.month * 100 + dt.day
     d1 = g_c[1].setdefault(di, {})
+    s1 = g_s[1 + idx].setdefault(di, {})
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + 1
     d2 = g_c[2].setdefault(di, {})
+    s2 = g_s[2 + idx].setdefault(di, {})
 
+    sds = (s0, s1, s2)
     cds = (d0, d1, d2)
+
     for t in items:
         if t['itemsid'] == 1000000005: continue
         extprice = round(t['price'] * t['qty'] * disc, 5)
@@ -78,7 +87,7 @@ for r in cur:
             extcost = -extcost
 
         if not extcost: extcost = extprice
-        
+
         cate = (DEPTS.get(t['deptsid']) or [None, None])[1]
         if cate == None: cate = (ITEM_DEPTS.get(t['itemsid']) or [None, None])[1]
         cate = (cate or '').lower()
@@ -91,6 +100,11 @@ for r in cur:
             v_s[0] += extprice
             v_s[1] += extcost
 
+        for sd in sds:
+            v_s = sd.setdefault(clerk, [0, 0])
+            v_s[0] += extprice
+            v_s[1] += extcost
+
 g_c_n = []
 for cd in g_c:
     cd = cd.items()
@@ -98,6 +112,14 @@ for cd in g_c:
     g_c_n.append(cd)
 
 
+g_s_n = []
+for sd in g_s:
+    sd = sd.items()
+    sd.sort(key=lambda f_x:f_x[0])
+    g_s_n.append(sd)
+
+
+
 datafile = os.path.join(config.APP_DIR, 'data', "daily_sale_2.txt")
-cPickle.dump( {'c': g_c_n, 'z': g_z}, open(datafile, 'wb'), 1 )
+cPickle.dump( {'c': g_c_n, 'z': g_z, 's': g_s_n}, open(datafile, 'wb'), 1 )
 print "Done", time.time() - CTS

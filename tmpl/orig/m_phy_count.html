@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=600,user-scalable=no" />
+<meta name="viewport" content="width=620,user-scalable=no" />
 <script>posx_enable_chk_login = true;</script>
 <%include file="header_mobile.html" />
 <title>POSX - Physical Count</title>
@@ -226,9 +226,9 @@ function set_item(item)
         }
         
         g_v_item_tbl.inv
-        .append($('<div></div>').text('现有: ' + Math.floor(qty[0]) + ' ' + def_unit[2]))
-        .append($('<div></div>').text('订单: ' + Math.floor(qty[1]) + ' ' + def_unit[2]))
-        .append($('<div></div>').text('购买: ' + Math.floor(qty[3]) + ' ' + def_unit[2]));
+        .append($('<div></div>').text('OH: ' + Math.floor(qty[0]) + ' ' + def_unit[2]))
+        .append($('<div></div>').text('SO: ' + Math.floor(qty[1]) + ' ' + def_unit[2]))
+        .append($('<div></div>').text('PO: ' + Math.floor(qty[3]) + ' ' + def_unit[2]));
         
     }
     
@@ -351,9 +351,9 @@ body {margin:0 auto;padding-top:51px}
 .tg_checkbox.tg_checkbox_active {background: rgb(180,227,145);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(180,227,145,1)), color-stop(50%,rgba(97,196,25,1)), color-stop(100%,rgba(180,227,145,1)));}
 
 .item_info_tbl {position:absolute;top:0;right:0;bottom:0;left:0;}
-.item_info_tbl > div {position:relative;border-bottom:1px solid #ddd;margin:0;padding-left:70px;line-height:40px;font-size:22px;}
+.item_info_tbl > div {position:relative;border-bottom:1px solid #ddd;margin:0;padding-left:90px;line-height:40px;font-size:22px;}
 .item_info_tbl > div > div {min-height:40px;}
-.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:60px;padding-right:10px;text-align:right}
+.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:80px;padding-right:10px;text-align:right}
 .item_info_tbl > div > div:nth-child(2) {text-align:center;padding:6px 0px}
 .item_info_tbl_main {top:51px}
 
@@ -421,10 +421,10 @@ body {margin:0 auto;padding-top:51px}
 <body>
 
 <div class="item_info_tbl item_info_tbl_main">
-<div style="max-height:93px;overflow:hidden"><div>名称</div><div class="item_name"></div></div>
-<div><div>库存</div><div class="item_inv"></div></div>
-<div><div>盘点</div><div class="item_count"></div></div>
-<div style="min-height:104px"><div>历史<br/><img src="img/edit.png" border="0" onclick="edit_hist_switch()" /></div><div class="item_hist"></div></div>
+<div style="max-height:93px;overflow:hidden"><div>Name</div><div class="item_name"></div></div>
+<div><div>Inventory</div><div class="item_inv"></div></div>
+<div><div>Count</div><div class="item_count"></div></div>
+<div style="min-height:104px"><div>History<br/><img src="img/edit.png" border="0" onclick="edit_hist_switch()" /></div><div class="item_hist"></div></div>
 </div>
 
 <div class="m_top">
@@ -441,8 +441,8 @@ body {margin:0 auto;padding-top:51px}
 
 <div class="m_inv_cnt m_dlg_cnt">
 <div class="item_info_tbl">
-<div><div>单位</div><div class="item_unit"></div></div>
-<div><div>厂商</div><div class="item_vend"></div></div>
+<div><div>Units</div><div class="item_unit"></div></div>
+<div><div>Vendors</div><div class="item_vend"></div></div>
 </div>
 </div>
 

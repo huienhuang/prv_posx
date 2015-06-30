@@ -24,6 +24,24 @@ Delivery = App.load('/request/delivery')
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
+    def fn_get_items(self):
+        sids = map(str, map(int, self.req.psv_str('sids').split('|')))[:200]
+
+        items = {}
+
+        cur = self.cur()
+        cur.execute('select sid,num,name,detail from sync_items where sid in (%s)' % (','.join(sids),))
+        
+        for r in cur.fetchall():
+            gjs = json.loads(r[3])
+            items[ str(r[0]) ] = {
+            'name': r[2],
+            'num': r[1],
+            'alu': gjs['units'][0][1]
+            }
+
+        self.req.writejs(items)
+
     def fn_get_item(self):
         row = self.get_item( self.qsv_int('item_no') )
         if not row: return

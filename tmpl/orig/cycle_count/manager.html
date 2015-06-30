@@ -5,21 +5,27 @@
 <title>POSX - Cost &amp; Price Tool</title>
 
 <script type="text/javascript">
+g_items_cache = {};
 
-
-function load_record()
+function load_record(r_id)
 {
-    var r_id = g_v_dlg_record.dialog('option', 'title', 'New Record').data('r_id');
+    g_v_dlg_record.data('js', {});
+    
+    var v_store = g_v_dlg_record.find('[name="r_store"]').val('1');
     var v_enable = g_v_dlg_record.find('[name="r_enable"]').val('1');
+    var v_mode = g_v_dlg_record.find('[name="r_mode"]').val('0');
     var v_desc = g_v_dlg_record.find('[name="r_desc"]').val('');
     var v_loc = g_v_dlg_record.find('[name="r_loc"]').val('');
     var v_user = g_v_dlg_record.find('[name="r_user"]').prop('checked', false);
-
+    g_v_dlg_record.dialog('option', 'title', 'New Record').dialog('open');
+                                                                  
     if(!r_id) return;
     g_v_dlg_record.dialog('option', 'title', 'Record #' + r_id);
     
     get_js_ex('?fn=load_record', {'r_id': r_id}, function(js) {
+        v_store.val(js.r_store + '');
         v_enable.val(js.r_enable + '');
+        v_mode.val(js.r_mode + '');
         v_desc.val(js.r_desc);
         v_loc.val(js.r_loc);
 
@@ -27,26 +33,47 @@ function load_record()
             var v_o = $(v_user[i]);
             js.r_users[ parseInt( v_o.val() ) ] !== undefined && v_o.prop('checked', true);
         }
+        
+        g_v_dlg_record.data('js', js);
+        
     }, undefined, undefined, undefined, '__load_record__');
 }
 
 function save_record()
 {
-    var r_id = g_v_dlg_record.data('r_id');
+    var js = g_v_dlg_record.data('js');
+    
+    var r_id = js.r_id;
     var r_desc = g_v_dlg_record.find('[name="r_desc"]').val();
     var r_loc = g_v_dlg_record.find('[name="r_loc"]').val();
+    var r_store = g_v_dlg_record.find('[name="r_store"]').val();
+    var r_mode = g_v_dlg_record.find('[name="r_mode"]').val();
     var r_enable = g_v_dlg_record.find('[name="r_enable"]').val();
     var v_lst = g_v_dlg_record.find('[name="r_user"]:checked');
     var r_users = [];
     for(var i = 0; i < v_lst.length; i++) r_users.push( $(v_lst[i]).val() );
     
-    post_js_ex('?fn=save_record', {'r_id': r_id, 'r_enable': r_enable, 'r_desc': r_desc, 'r_loc': r_loc, 'r_users': r_users.join('|')}, function(js) {
-        g_v_dlg_record.data('r_id', js.r_id);
-        load_record();
+    var n_js = {
+        'r_id': r_id,
+        'r_items': js.items,
+        'r_store': r_store,
+        'r_mode': r_mode,
+        'r_enable': r_enable,
+        'r_desc': r_desc,
+        'r_loc': r_loc,
+        'r_users': r_users
+    };
+    post_js_ex('?fn=save_record', {'js': JSON.stringify(n_js)}, function(js) {
+        load_record(js.r_id);
         
         g_v_tg_lst.tinygrid('update', -1, true, true, true);
         
     }, undefined, undefined, undefined, '__save_record__');
+}
+
+function remove_item()
+{
+    $(this).closest('.prntbl_row').remove();
 }
 
 $(function() {
@@ -56,7 +83,6 @@ idx_elements(g_v_ctrl, 5);
 var els = g_v_ctrl.data('in_els');
 
 els.create[0].button().click(function() {
-    g_v_dlg_record.data('r_id', null).dialog('open');
     load_record();
 });
 
@@ -66,31 +92,72 @@ g_v_tg_lst = $('#tg_lst').tinygrid({
 len:1,
 src:{page:'?fn=get_records', data:g_tg_tg_lst},
 cols: [{name:'ID', width:80},
+       {name:'Store', width:70},
+       {name:'Count', width:80},
        {name:'Enable', width:70},
        {name:'Desc', width:"70%"},
        {name:'User', width:"30%"},
        {name:'Date', width:120},
        ],
 click: function(r, c, d) {
-    if (c !== 3) {
-        g_v_dlg_record.data('r_id', d[0]).dialog('open');
-        load_record();
+    if (c !== 5) {
+        load_record(d[0]);
     } else {
         window.parent.open_wnd && window.parent.open_wnd('record', '?fn=record&r_id=' + d[0]);
     }
 }
 });
 
+function show_items() {
+    g_v_items_ctn.empty();
+    g_v_dlg_add_items.dialog('open');
+    
+    var v_lst = [];
+    var js = g_v_dlg_record.data('js');
+    var items = js.items || {};
+    for(var i = 0; i < items.length; i++) {
+        var sid = items[i];
+        var t = g_items_cache[sid] || {};
+        
+        v_lst.push(
+        $('<div class="prntbl_row" data-rsid="'+sid+'"></div>').data('sid', sid)
+        .append( $('<div>X</div>').click(remove_item) )
+        .append( $('<div></div>').text(t['num']) )
+        .append( $('<div></div>').text(t['alu']) )
+        .append( $('<div></div>').text(t['name']) )
+        );
+    }
+    
+    g_v_items_ctn.append(v_lst);
+}
+
 g_v_dlg_record = $('#dlg_record').dialog({
     modal: false,
     autoOpen: false,
     width:400,
-    height:560,
+    height:600,
     buttons: {
+        'Items': function() {
+            var js = g_v_dlg_record.data('js');
+            var items = js.items;
+            if(!items) { show_items(); return; }
+            
+            var sids = [];
+            for(var i = 0; i < items.length; i++) {
+                if(g_items_cache[ items[i] ] === undefined) sids.push(items[i]);
+            }
+            if(!sids.length) { show_items(); return; }
+            
+            post_js_ex('sync?fn=get_items', {'sids': sids.join('|')}, function(d_items) {
+                for(var sid in d_items) g_items_cache[sid] = d_items[sid];
+                
+                show_items();
+            }, undefined, undefined, 'Loading Items ...');
+        },
         
-        'DELETE': function() {
-            var r_id = g_v_dlg_record.data('r_id');
-            if(!confirm('Are You Sure?') || !r_id) return;
+        'Delete': function() {
+            var js = g_v_dlg_record.data('js');
+            if(!confirm('Are You Sure?') || !js || !js.r_id) return;
             
             post_js_ex('?fn=del_record', {'r_id': r_id}, function(js) {
                 g_v_dlg_record.dialog('close');
@@ -99,11 +166,47 @@ g_v_dlg_record = $('#dlg_record').dialog({
             }, undefined, undefined, undefined, '__del_record__');
         },
         
-        'OK': save_record,
+        'Save': save_record,
     }
 });
 
+g_v_items_ctn = $('#dlg_add_items .prntbl_cnt');
 
+g_v_dlg_add_items = $('#dlg_add_items').dialog({
+    modal: true,
+    autoOpen: false,
+    width:860,
+    height:600,
+    buttons: {
+        'Update': function() {
+            var sids = [];
+            var cds = g_v_items_ctn.children();
+            for(var i = 0; i < cds.length; i++) sids.push( $(cds[i]).data('sid') );
+            var js = g_v_dlg_record.data('js');
+            js.items = sids;
+            g_v_dlg_add_items.dialog('close');
+        },
+    }
+});
+
+init_item_ac('#srch_item', function(evt, item) {
+    var t = item.item;
+    var d = g_v_items_ctn.children().filter('[data-rsid="' + t[0] + '"]')
+    if(d.length) {
+        g_v_items_ctn.scrollTop( d.position().top );
+        d.effect("shake");
+        return;
+    }
+    
+    g_v_items_ctn.prepend(
+        $('<div class="prntbl_row" data-rsid="'+t[0]+'"></div>').data('sid', t[0])
+        .append( $('<div>X</div>').click(remove_item) )
+        .append( $('<div></div>').text(t[1]) )
+        .append( $('<div></div>').text(t[3].units[0][1]) )
+        .append( $('<div></div>').text(t[2]) )
+    );
+    
+});
 
 
 });
@@ -117,10 +220,22 @@ g_v_dlg_record = $('#dlg_record').dialog({
 #tg_lst {top:0;bottom:0;right:0;left:0}
 
 #dlg_record >div {margin-bottom:8px}
-#dlg_record >div:nth-child(1) textarea {width:358px;height:70px;}
-#dlg_record >div:nth-child(2) textarea {width:358px;height:50px;}
-#dlg_record >div:nth-child(3) select {width:364px}
-#dlg_record >div:nth-child(4) {height:200px;overflow-y:scroll;border:1px solid #ccc;background-color:#f0f0f0;padding:4px;}
+#dlg_record >div:nth-child(1) select {width:364px}
+#dlg_record >div:nth-child(2) textarea {width:358px;height:52px;}
+#dlg_record >div:nth-child(3) textarea {width:358px;height:26px;}
+#dlg_record >div:nth-child(4) select {width:364px}
+#dlg_record >div:nth-child(5) select {width:364px}
+#dlg_record >div:nth-child(6) {height:200px;overflow-y:scroll;border:1px solid #ccc;background-color:#f0f0f0;padding:4px;}
+
+#dlg_add_items {position:relative}
+#dlg_add_items >.prntbl {top:50px;bottom:0;right:0;left:0;z-index:0;overflow:hidden}
+
+
+#dlg_add_items .prntbl_row >div:nth-child(1) {width:30px;font-weight:bold;color:red;cursor:pointer}
+#dlg_add_items .prntbl_row >div:nth-child(2) {width:80px}
+#dlg_add_items .prntbl_row >div:nth-child(3) {width:160px}
+#dlg_add_items .prntbl_row >div:nth-child(4) {width:560px}
+
 
 </style>
 
@@ -142,8 +257,10 @@ g_v_dlg_record = $('#dlg_record').dialog({
 
 
 <div id="dlg_record">
+<div><select name="r_store"><option value="0">SSF</option><option value="1">SF</option></select></div>
 <div><textarea placeholder="Description" name="r_desc" ></textarea></div>
-<div><textarea placeholder="Location" name="r_loc" ></textarea></div>
+<div><textarea placeholder="Tag" name="r_loc" ></textarea></div>
+<div><select name="r_mode"><option value="0">Count All</option><option value="1">Count Specific</option></select></div>
 <div><select name="r_enable"><option value="1">Enable</option><option value="0">Disable</option></select></div>
 <div>
 %for u in users:
@@ -151,6 +268,16 @@ g_v_dlg_record = $('#dlg_record').dialog({
 %endfor
 </div>
 
+</div>
+
+
+<div id="dlg_add_items">
+<div><input type="text" placeholder="Search" id="srch_item" /></div>
+<div class="prntbl">
+<div class="prntbl_row prntbl_row_hdr"><div></div><div>Num</div><div>ALU</div><div>Name</div></div>
+<div class="prntbl_cnt"></div>
+<div class="prntbl_row prntbl_row_ftr"></div>
+</div>
 </div>
 
 
