@@ -17,15 +17,17 @@ PERM_ADMIN = 1 << 1
 
 class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_default(self):
-        tabs = [('user', 'User')]
-        if self.get_cur_rh_perm() & PERM_ADMIN: tabs.extend( [('manager', 'Manager'), ('record', 'Record', True)] )
+        tabs = [] #[('user', 'User')]
+        if self.get_cur_rh_perm() & PERM_ADMIN: tabs.extend( [
+            {'id': 'manager', 'name': 'Manager'}, {'id': 'record', 'name': 'Record'}
+            ] )
 
         r = {
             'tab_cur_idx' : 2,
             'title': 'Cycle Count',
             'tabs': tabs
         }
-        self.req.writefile('tmpl_multitabs.html', r)
+        self.req.writefile('tmpl_multitabs_v2.html', r)
 
     def fn_mobile(self):
         self.req.writefile('m_phy_count.html')
@@ -34,7 +36,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_manager(self):
         users = self.getuserlist()
 
-    	self.req.writefile('cycle_count/manager.html', {'users': users})
+    	self.req.writefile('cycle_count/manager.html', {'users': users, 'store_id': config.store_id})
 
     fn_manager.PERM = PERM_ADMIN
 
@@ -65,7 +67,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if not r_id: return
 
         cur = self.cur()
-        cur.execute('delete from phycount_record where r_id=%s', (r_id, ))
+        cur.execute('delete from phycount_record where r_id=%s and qbpos_id=0', (r_id, ))
         rc = cur.rowcount
         if rc:
             cur.execute('delete from phycount_user where r_id=%s', (r_id, ))
@@ -78,12 +80,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_save_record(self):
         js = self.req.psv_js('js')
 
-        r_id = int(js['r_id'])
+        r_id = int(js.get('r_id') or 0)
         r_desc = js['r_desc'][:256].strip()
         r_loc = js['r_loc'][:256].strip()
         r_enable = int(js['r_enable'])
         r_mode = int(js['r_mode']) & 1
-        r_store = int(js['r_store']) & 1
+        
+        #r_store = int(js['r_store']) & 1
+        r_store = config.store_id - 1
+
         r_users = [ int(f_x) for f_x in js['r_users'] if f_x ]
         if not r_desc or not r_users: return
 
@@ -104,15 +109,15 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
         cur = self.cur()
         if not r_id:
-            cur.execute('insert into phycount_record values(null, 1, %s, %s, %s, %s, %s, %s, %s)', (
+            cur.execute('insert into phycount_record values(null, 1, 0, %s, %s, %s, %s, %s, %s, %s)', (
                 r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), cts
                 )
             )
             if not cur.rowcount: return
             r_id = cur.lastrowid
         else:
-            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_mode=%s,r_store=%s,r_desc=%s,r_loc=%s,r_js=%s where r_id=%s', (
-                r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), r_id
+            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_desc=%s,r_loc=%s,r_js=%s where r_id=%s and qbpos_id=0', (
+                r_enable, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), r_id
                 )
             )
             if not cur.rowcount: return
@@ -164,17 +169,23 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         apg = []
         if pgsz > 0 and sidx >= 0 and sidx < eidx:
             d_users = dict([f_v[:2] for f_v in self.getuserlist()])
-            cur.execute('select r_id,r_store,r_mode,r_enable,r_desc,(select GROUP_CONCAT(u_uid) from phycount_user where r_id=r.r_id),r_ts from phycount_record r order by r_id desc limit %d,%d' % (
+            cur.execute('select r_id,r_store,r_mode,r_enable,q.doc_num,r_desc,(select GROUP_CONCAT(u_uid) from phycount_user where r_id=r.r_id),r_ts,qbpos_id from phycount_record r left join qbpos q on (r.qbpos_id=q.id) order by r_id desc limit %d,%d' % (
                         sidx * pgsz, (eidx - sidx) * pgsz
                         )
             )
             for r in cur.fetchall():
+                if r[8]:
+                    s = r[4] or '*'
+                else:
+                    s = ''
+
                 r = list(r)
                 r[3] = r[3] and 'Y' or 'N'
                 r[1] = r[1] and 'SF' or 'SSF'
                 r[2] = r[2] and 'Specific' or 'All'
-                r[5] = ','.join([ d_users.get(int(f_x), 'UNK') for f_x in r[5].split(',') if f_x ])
-                r[6] = time.strftime("%m/%d/%Y", time.localtime(r[6]))
+                r[4] = s
+                r[6] = ','.join([ d_users.get(int(f_x), 'UNK') for f_x in r[6].split(',') if f_x ])
+                r[7] = time.strftime("%m/%d/%Y", time.localtime(r[7]))
                 apg.append(r)
         
         cur.execute('select count(*) from phycount_record')
@@ -233,7 +244,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def fn_load_cycle_count_list(self):
         ret = []
         cur = self.cur()
-        cur.execute('select r_id,r_desc,r_loc,r_ts from phycount_record where r_enable!=0 and r_id in (select r_id from phycount_user where u_uid=%d) order by r_id asc' % (self.user_id,))
+        cur.execute('select r_id,r_desc,r_loc,r_ts from phycount_record where r_enable!=0 and qbpos_id=0 and r_id in (select r_id from phycount_user where u_uid=%d) order by r_id asc' % (self.user_id,))
         nzs = cur.column_names
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
@@ -267,7 +278,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r_id = self.req.psv_int('r_id')
 
         cur = self.cur()
-        cur.execute('delete from phycount_user_hist where h_id=%s and r_id=%s and u_id=%s and (select count(*) from phycount_record where r_enable!=0 and r_id=%s)>0', (
+        cur.execute('delete from phycount_user_hist where h_id=%s and r_id=%s and u_id=%s and (select count(*) from phycount_record where r_enable!=0 and r_id=%s and qbpos_id=0)>0', (
             h_id, r_id, self.user_id, r_id
             )
         )
@@ -280,7 +291,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r_id = int(js['r_id'])
 
         cur = self.cur()
-        cur.execute('select r.r_store,r.r_mode from phycount_user u left join phycount_record r on (u.r_id=r.r_id) where u.r_id=%s and u.u_uid=%s and r.r_enable!=0', (r_id, self.user_id))
+        cur.execute('select r.r_store,r.r_mode from phycount_user u left join phycount_record r on (u.r_id=r.r_id) where u.r_id=%s and u.u_uid=%s and r.r_enable!=0 and r.qbpos_id=0', (r_id, self.user_id))
         rows = cur.fetchall()
         if not rows: self.req.exitjs({'err': -1, 'err_s': 'No Record'})
         r_store,r_mode = rows[0]
@@ -303,32 +314,72 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             fc = d_units.get(r[1].lower()) or 0
             if fc <= 0: self.req.exitjs({'err': -100, 'err_s': 'Invalid Factor'})
 
-            h_js = json.dumps({'fc': fc, 'cur_qty': cur_qty})
-            s.append( (r_id, self.user_id, h_sid, int(r[0]), r[1], js['loc'], cts, h_js) )
+            h_js = json.dumps({'fc': fc, 'cur_qty': cur_qty, 'base_uom': gjs['units'][0][2].lower()}, separators=(',',':'))
+            s.append( (r_id, self.user_id, h_sid, int(r[0]), r[1], fc, js['loc'], cts, h_js) )
 
-        if s: cur.executemany('insert into phycount_user_hist values(null,%s,%s,%s,%s,%s,%s,%s,%s)', s)
+        if s: cur.executemany('insert into phycount_user_hist values(null,%s,%s,%s,%s,%s,%s,%s,%s,%s)', s)
 
         self.req.writejs({'err': int(not len(s))})
 
 
-    def fn_cmp(self):
+    def fn_get_count_items(self):
         r_id = self.req.qsv_int('r_id')
+        diff_only = self.req.qsv_int('diff_only')
+
+        if diff_only:
+            record, d_user, d_item, items = self.count_cmp(r_id)
+            i = d_user[ self.user_id ][1]
+            items = [ (v[0], v[1], v[2][i], str(v[5])) for v in items ]
+
+        else:
+            d_item = self.count_lst(r_id)
+            items = d_item.values()
+        
+        items.sort(key=lambda f_k: f_k[0])
+        self.req.writejs({'items': items})
+
+
+    def count_lst(self, r_id):
+        cur = self.cur()
+        cur.execute('select * from phycount_record where r_id=%s', (r_id,))
+        record = dict(zip(cur.column_names, cur.fetchall()[0]))
+
+        d_item = {}
+        if record['r_mode']:
+            cur.execute('select sid,num,name from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
+        else:
+            cur.execute('select sid,num,name from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+        for r in cur.fetchall():
+            sid,num,name = r
+            d_item.setdefault(sid, [num, name, None, str(sid)])
+
+        cur.execute('select h_sid,sum(h_qty * h_fc) from phycount_user_hist where r_id=%s and u_id=%s group by h_sid', (r_id, self.user_id))
+        for r in cur.fetchall(): d_item[ r[0] ][2] = r[1]
+
+        return d_item
+
+    def count_cmp(self, r_id):
+        cur = self.cur()
+        cur.execute('select * from phycount_record where r_id=%s', (r_id,))
+        record = dict(zip(cur.column_names, cur.fetchall()[0]))
 
         d_user = {}
-        cur = self.cur()
-        cur.execute('select u_uid,(select user_name from user where user_id=u_uid limit 1) as u_name from phycount_user where r_id=%s order by u_uid asc', (r_id,))
+        cur.execute('select u_uid,(select user_name from user where user_id=u_uid) as u_name from phycount_user where r_id=%s order by u_uid asc', (r_id,))
         k = 0
         for r in cur.fetchall():
             d_user[ r[0] ] = (r[1], k)
             k += 1
 
         d_item = {}
-        cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+        if record['r_mode']:
+            cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
+        else:
+            cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
         for r in cur.fetchall():
             sid,num,name,detail = r
             gjs = json.loads(detail)
             gjs['d_units'] = dict([ (u[2].lower(), u[3]) for u in gjs['units'] ])
-            d_item.setdefault(sid, (num, name, gjs, [0,] * k, [[] for i in range(k)]))
+            d_item.setdefault(sid, [num, name, gjs, [None,] * k, [[] for i in range(k)], [None, ] * k, True])
 
         cur.execute('select * from phycount_user_hist where r_id=%s order by h_id asc', (r_id,))
         nzs = cur.column_names
@@ -345,25 +396,88 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
             in_qty = r['h_qty'] * h_js['fc']
 
-            t[3][ u[1] ] += in_qty
+            gjs = t[2]
+
+            if gjs['d_units'].get(r['h_uom'].lower()) != h_js['fc']: t[6] = False
+            if gjs['units'][0][2].lower() != h_js['base_uom']: t[6] = False
+
+            if t[3][ u[1] ] != None:
+                t[3][ u[1] ] += in_qty
+            else:
+                t[3][ u[1] ] = in_qty
             t[4][ u[1] ].append( (r['h_qty'], r['h_uom']) )
+            t[5][ u[1] ] = h_js['cur_qty']
 
         items = []
-        for k,v in d_item.items():
+        for sid,v in d_item.items():
             e = True
-            f = v[3][0]
-            for s in v[3][1:]:
-                if f != s:
-                    e = False
-                    break
-            if not e: items.append( (v[0], v[1], v[3], v[4]) )
+            if v[6] and v[3][0] != None:
+                f = (v[3][0], v[5][0])
+                a = 1
+                while a < k:
+                    if f != (v[3][a], v[5][a]):
+                        e = False
+                        break
+                    a += 1
+            else:
+                e = False
+
+            if not e: items.append( (v[0], v[1], v[3], v[4], v[5], sid) )
+
+        return (record, d_user, d_item, items)
+
+
+    def fn_cmp(self):
+        r_id = self.req.qsv_int('r_id')
+        record, d_user, d_item, items = self.count_cmp(r_id)
+
+        if not self.req.qsv_int('diff_only'): items = [ (v[0], v[1], v[3], v[4], v[5]) for v in d_item.values() ]
 
         items.sort(key=lambda f_k: f_k[0])
 
         users = d_user.values()
         users.sort(key=lambda f_k: f_k[1])
 
-        self.req.writejs({'items': items, 'users': users})
-            
+        self.req.writejs({'items': items, 'users': users, 'ttl_num': len(d_item)})
 
+    def fn_send(self):
+        r_id = self.req.psv_int('r_id')
+        user_id = self.req.psv_int('user_id')
+        record, d_user, d_item, items = self.count_cmp(r_id)
 
+        if record['r_store'] + 1 != config.store_id: self.req.exitjs({'err': 1, 'err_s': 'Only Allow Store %d' % (config.store_id,)})
+        if not d_item: self.req.exitjs({'err': 1, 'err_s': 'No Item'})
+
+        idx = 0
+        if items:
+            if user_id:
+                idx = d_user.get(user_id)[1]
+                for sid,v in d_item.items():
+                    if v[3][idx] == None:
+                        self.req.exitjs({'err': 1, 'err_s': 'Not All Items Counted'})
+
+            else:
+                self.req.exitjs({'ret': 1, 'd_user': d_user})
+
+        cur = self.cur()
+
+        rev = record['r_rev']
+        qbpos_id = record['qbpos_id']
+
+        if not qbpos_id:
+            cur.execute("insert into qbpos values(null,1,2,-99,%s,%s,null,0,null)", (4,r_id,))
+            last_qbpos_id = cur.lastrowid
+            cur.execute("update phycount_record set r_rev=r_rev+1,qbpos_id=%s where r_id=%s and r_rev=%s and qbpos_id=0", (
+                last_qbpos_id, r_id, rev
+                )
+            )
+            if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(1)"})
+            qbpos_id = last_qbpos_id
+
+        js = json.dumps({'items': d_item, 'store': record['r_store'], 'idx': idx}, separators=(',',':'))
+        cur.execute("update qbpos set rev=rev+1,state=1,errno=0,js=%s where id=%s and state=2 and errno!=0", (js, qbpos_id,))
+        if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(2)"})
+
+        self.req.writejs({'r_id': r_id})
+
+    fn_send.PERM = PERM_ADMIN

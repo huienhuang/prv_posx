@@ -363,6 +363,99 @@ def adjust_po(cur, r):
 
 	return (errc != 0 and -9 or 0, (None, 0), '\n'.join(msgs))
 
+
+
+def insert_qty_adj(cur, r):
+	gjs = json.loads(r['js'])
+	items = gjs['items']
+	idx = gjs['idx']
+	
+	itemsids = map(str, items.keys())
+	cur[1].execute('select itemsid,itemno,qtystore%d,unitofmeasure from inventory where datastate=0 and itemsid in (%s) order by itemno asc' % (
+		gjs['store'] + 1, ','.join(itemsids)
+		)
+	)
+	adjust_items = []
+	for sid,itemnum,cur_inv_qty,uom in cur[1].fetchall():
+		v = items[ str(sid) ]
+
+		uom = uom or ''
+		in_base_uom = v[2]['units'][0][2]
+		if in_base_uom.lower() != uom.lower():
+			return (-1, None, 'BASE UOM NOT MATCHED, %s : %s' % (in_base_uom, uom))
+
+		in_usr_qty = v[3][idx]
+		in_inv_qty = v[5][idx]
+
+		cur_inv_qty = float(cur_inv_qty)
+
+		diff = cur_inv_qty - in_inv_qty
+		cur_usr_qty = in_usr_qty + diff
+
+		#print itemnum, in_inv_qty, in_usr_qty, cur_inv_qty, cur_usr_qty
+
+		if cur_inv_qty == cur_usr_qty: continue
+
+		adjust_items.append( (sid, cur_usr_qty, uom) )
+
+	#raise
+	if not adjust_items: return (-1, None, 'No Items')
+
+	tree = ET.fromstring('<QBPOSXML><QBPOSXMLMsgsRq onError="stopOnError"><InventoryQtyAdjustmentAddRq><InventoryQtyAdjustmentAdd></InventoryQtyAdjustmentAdd></InventoryQtyAdjustmentAddRq></QBPOSXMLMsgsRq></QBPOSXML>')
+	T_AddRq = tree.find('QBPOSXMLMsgsRq/InventoryQtyAdjustmentAddRq/InventoryQtyAdjustmentAdd')
+
+	T_ELEM = ET.Element('TxnState')
+	T_ELEM.text = 'Normal'
+	T_AddRq.append(T_ELEM)
+
+	T_ELEM = ET.Element('StoreNumber')
+	T_ELEM.text = str(gjs['store'] + 1)
+	T_AddRq.append(T_ELEM)
+
+	T_ELEM = ET.Element('Reason')
+	T_ELEM.text = 'Qty Adj'
+	T_AddRq.append(T_ELEM)
+
+	T_ELEM = ET.Element('Comments')
+	T_ELEM.text = 'POSX Cycle Count %d' % (r['doc_id'], )
+	T_AddRq.append(T_ELEM)
+
+	for sid, qty, uom in adjust_items:
+		t_ItemAdd = ET.Element('InventoryQtyAdjustmentItemAdd')
+		T_AddRq.append(t_ItemAdd)
+
+		T_ELEM = ET.Element('ListID')
+		T_ELEM.text = str(sid)
+		t_ItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('NewQuantity')
+		T_ELEM.text = str(qty)
+		t_ItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('UnitOfMeasure')
+		T_ELEM.text = str(uom)
+		t_ItemAdd.append(T_ELEM)
+
+
+	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
+	xml = pos_process_request(xml.decode('utf8'))
+	if not xml: return (-111, None, 'QBPOS Runtime Error')
+	
+	tree = ET.fromstring(xml)
+
+	rs = tree.find("QBPOSXMLMsgsRs/InventoryQtyAdjustmentAddRs")
+	msg = (rs.get('statusSeverity') + ' ' + rs.get('statusMessage', '')).strip()
+
+	if int(rs.get('statusCode')) != 0:
+		return (-2, None, msg)
+	else:
+		rt = rs.find('InventoryQtyAdjustmentRet')
+		sid = int(rt.find('TxnID').text)
+		num = int(rt.find('InventoryAdjustmentNumber').text)
+		return (0, (sid, num), msg)
+
+
+
 def worker(cur):
 	ts = time.time()
 	rs = []
@@ -378,6 +471,8 @@ def worker(cur):
 			ret = insert_po(cur, r)
 		elif r['doc_type'] == 3:
 			ret = adjust_po(cur, r)
+		elif r['doc_type'] == 4:
+			ret = insert_qty_adj(cur, r)
 		else:
 			ret = (-1, None, 'Invalid Type')
 

@@ -7,13 +7,19 @@
 <script type="text/javascript">
 g_items_cache = {};
 
+
+function on_wnd_active()
+{
+    g_v_tg_lst.tinygrid('update', -1, true, true, true);
+}
+
 function load_record(r_id)
 {
     g_v_dlg_record.data('js', {});
     
-    var v_store = g_v_dlg_record.find('[name="r_store"]').val('1');
+    var v_store = g_v_dlg_record.find('[name="r_store"]').val('${store_id-1}').prop('disabled', true);
     var v_enable = g_v_dlg_record.find('[name="r_enable"]').val('1');
-    var v_mode = g_v_dlg_record.find('[name="r_mode"]').val('0');
+    var v_mode = g_v_dlg_record.find('[name="r_mode"]').val('1').prop('disabled', false);
     var v_desc = g_v_dlg_record.find('[name="r_desc"]').val('');
     var v_loc = g_v_dlg_record.find('[name="r_loc"]').val('');
     var v_user = g_v_dlg_record.find('[name="r_user"]').prop('checked', false);
@@ -23,9 +29,9 @@ function load_record(r_id)
     g_v_dlg_record.dialog('option', 'title', 'Record #' + r_id);
     
     get_js_ex('?fn=load_record', {'r_id': r_id}, function(js) {
-        v_store.val(js.r_store + '');
+        v_store.val(js.r_store + '').prop('disabled', true);
         v_enable.val(js.r_enable + '');
-        v_mode.val(js.r_mode + '');
+        v_mode.val(js.r_mode + '').prop('disabled', true);
         v_desc.val(js.r_desc);
         v_loc.val(js.r_loc);
 
@@ -95,12 +101,13 @@ cols: [{name:'ID', width:80},
        {name:'Store', width:70},
        {name:'Count', width:80},
        {name:'Enable', width:70},
+       {name:'DocNum', width:80},
        {name:'Desc', width:"70%"},
        {name:'User', width:"30%"},
        {name:'Date', width:120},
        ],
 click: function(r, c, d) {
-    if (c !== 5) {
+    if (c !== 6) {
         load_record(d[0]);
     } else {
         window.parent.open_wnd && window.parent.open_wnd('record', '?fn=record&r_id=' + d[0]);
@@ -159,7 +166,7 @@ g_v_dlg_record = $('#dlg_record').dialog({
             var js = g_v_dlg_record.data('js');
             if(!confirm('Are You Sure?') || !js || !js.r_id) return;
             
-            post_js_ex('?fn=del_record', {'r_id': r_id}, function(js) {
+            post_js_ex('?fn=del_record', {'r_id': js.r_id}, function(js) {
                 g_v_dlg_record.dialog('close');
                 g_v_tg_lst.tinygrid('update', -1, true, true, true);
                 
@@ -279,6 +286,7 @@ init_item_ac('#srch_item', function(evt, item) {
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
 </div>
+
 
 
 

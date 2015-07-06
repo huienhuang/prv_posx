@@ -12,9 +12,10 @@ function do_cmp(r_id)
     g_r_id = r_id;
     g_v_d_tbl_hdr.empty();
     g_v_d_tbl_cnt.empty();
+    g_v_d_tbl_ftr.empty();
+    diff_only = g_filter.val();
     
-    
-    get_js_ex('?fn=cmp', {'r_id': r_id}, function(js) {
+    get_js_ex('?fn=cmp', {'r_id': r_id, 'diff_only': diff_only}, function(js) {
         var vlst = [];
         for(var i = 0; i < js.users.length; i++) {
             vlst.push( $('<div></div>').text( js.users[i][0] ) );
@@ -30,15 +31,37 @@ function do_cmp(r_id)
             .append( $('<div></div>').text(t[1]) );
             
             for(var j = 0; j < js.users.length; j++) {
-                v.append( $('<div></div>').text(t[2][j]) )
+                v.append( $('<div></div>').text(t[2][j] == null ? '' : t[2][j]) )
             }
             
             vlst.push(v);
         }
         g_v_d_tbl_cnt.append(vlst);
         
+        g_v_d_tbl_ftr.text(js.items.length + ' / ' + js.ttl_num);
         
     }, undefined, undefined, undefined, 'do_cmp');
+}
+
+function send()
+{
+    var d = {r_id: g_r_id};
+    
+    if( g_v_dlg_select_user.dialog('isOpen') ) {
+        d['user_id'] = g_v_dlg_select_user_lst.val();
+    }
+    
+    post_js_ex('?fn=send', d, function(js) {
+        if(js.ret) {
+            g_v_dlg_select_user.dialog('open');
+            g_v_dlg_select_user_lst.empty();
+            for(var user_id in js.d_user)
+                g_v_dlg_select_user_lst.append( $('<option value="'+user_id+'"></option>').text(js.d_user[user_id][0]) )
+                
+        } else {
+            window.location.reload();
+        }
+    });
 }
 
 $(function() {
@@ -47,10 +70,32 @@ g_v_ctrl = $('.x_ctrl');
 idx_elements(g_v_ctrl, 5);
 var els = g_v_ctrl.data('in_els');
 
-els.btn_upload[0].button();
+g_filter = els.filter[0].change(function() {
+    do_cmp(g_r_id);
+});
+
+els.btn_refresh[0].button().click(function() {
+    do_cmp(g_r_id);
+});
+
+els.btn_upload[0].button().click(send);
 
 g_v_d_tbl_hdr = $('#d_tbl .prntbl_row_hdr');
 g_v_d_tbl_cnt = $('#d_tbl .prntbl_cnt');
+g_v_d_tbl_ftr = $('#d_tbl .prntbl_row_ftr');
+
+
+g_v_dlg_select_user = $('#dlg_select_user').dialog({
+    modal: true,
+    autoOpen: false,
+    width:600,
+    height:250,
+    buttons: {
+        'Send': send
+    }
+});
+
+g_v_dlg_select_user_lst = g_v_dlg_select_user.find('select');
 
 
 %if r_id:
@@ -70,7 +115,7 @@ do_cmp(${r_id});
 .prntbl_row >div:nth-child(1) {width:60px}
 .prntbl_row >div:nth-child(2) {width:280px}
 .prntbl_row_hdr >div:nth-child(n+3) {color:red}
-
+.prntbl_row_ftr {text-align:center}
 </style>
 
 </head>
@@ -78,6 +123,9 @@ do_cmp(${r_id});
 
 <div class="x_ctrl">
 
+<select name="ctrl_filter"><option value="1">Diff Only</option><option value="0">All</option></select>
+
+<input type="button" name="ctrl_btn_refresh" value="Refresh" />
 <input type="button" name="ctrl_btn_upload" value="Upload" />
 
 </div>
@@ -88,8 +136,11 @@ do_cmp(${r_id});
 <div class="prntbl_cnt"></div>
 <div class="prntbl_row prntbl_row_ftr"></div>
 </div>
+</div>
 
-
+<div id="dlg_select_user" style="text-align:center" title="Not Matched">
+<div>Some Items don't Match, Select Which Count Will Be Applied</div>
+<div><br/><select style="width:200px"></select></div>
 </div>
 
 

@@ -3,12 +3,14 @@
 <head>
 <meta name="viewport" content="width=620,user-scalable=no" />
 <script>posx_enable_chk_login = true;</script>
-<%include file="header_mobile.html" />
+<%include file="header_mobile_v2.html" />
 <title>POSX - Physical Count</title>
 
 <script type="text/javascript">
 g_tg_tg_lst = g_cfg = {};
 var g_item = null;
+var g_diff_only = 0;
+
 
 function itemsearch_render_item(ul, item)
 {
@@ -32,20 +34,57 @@ function OnBarcodeReady()
     g_v_itemsearch.val(barcode).autocomplete('searchNow');
 }
 
-function show_tools()
+function load_item(sid)
+{
+    swipe_wnd({
+        swipestart: {coords:[0]},
+        swipestop: {coords:[1]},
+    });
+    
+    get_js_ex('mobile?fn=get_item', {sid: sid}, function(js) {
+        set_item(js.item);
+    }, undefined, undefined, undefined, '__get_item_s__');
+}
+
+function show_tools(cb)
 {
     g_v_itemsearch.blur();
     g_v_tools_cnt.show();
+
+    //g_v_tg_lst.tinygrid('update', -1, true, true, true);
     
-    g_v_tg_lst.tinygrid('update', -1, true, true, true);
+    g_v_m_tools_cnt_lst.empty();
+    get_js_ex('?fn=get_count_items', {r_id: g_cfg.r_id, diff_only: g_diff_only}, function(js) {
+        var vlst = [];
+        
+        for(var i = 0; i < js.items.length; i++) {
+            var r = js.items[i];
+            vlst.push(
+            $('<div onclick="load_item(\''+r[3]+'\')" '+ (r[2] !== null ? 'class="in_usr_count"' : "")+'></div>')
+            .append( $('<div></div>').text(r[0]) )
+            .append( $('<div></div>').text(r[1]) )
+            .append( $('<div></div>').text(r[2] === null ? '' : r[2]) )
+            );
+        }
+        
+        g_v_m_tools_cnt_lst.append(vlst);
+        
+        cb && cb();
+        
+    }, undefined, undefined, undefined, '__get_count_items__');
 }
 
 
 function show_inv()
 {
     g_v_itemsearch.blur();
-    if(!g_item) return;
     g_v_inv_cnt.show();
+}
+
+function show_main()
+{
+    g_v_itemsearch.blur();
+    g_v_main_cnt.show();
 }
 
 function onsel_cycle_count(idx)
@@ -79,6 +118,12 @@ function load_cycle_count_sel()
         }
         $('#cycle_count_sel').append(v_lst);
     });
+}
+
+function on_enter_in_qty(e)
+{
+    if(e.keyCode != 13) return;
+    save_qty();
 }
 
 function save_qty()
@@ -180,7 +225,7 @@ function set_item(item)
     for(var i = 0; i < units.length; i++) {
         var unit = units[i];
         var unz = (unit[2] ? ' ' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '');
-        var v = [$('<input type="number" />'), $('<div></div>')];
+        var v = [$('<input type="number" data-role="none" />').keyup(on_enter_in_qty), $('<div></div>')];
         v_units.push(v);
         g_v_item_tbl.count.append(
             $('<div></div>')
@@ -248,6 +293,42 @@ function edit_hist_switch()
     
 }
 
+function hide_all()
+{
+    g_v_tools_cnt.hide();
+    g_v_inv_cnt.hide();
+    g_v_main_cnt.hide();
+}
+
+
+function swipe_wnd(e) {
+    var i;
+    for(i = 0; i < g_v_cnts.length; i++) if(g_v_cnts[i].is(':visible')) break;
+    
+    var cnt = g_v_cnts[i];
+    var sc = cnt.data('swipe_cnt');
+    
+    var tar_idx;
+    if(e.swipestart.coords[0] > e.swipestop.coords[0])
+        tar_idx = sc[0];
+    else
+        tar_idx = sc[1];
+    
+    if(tar_idx === null) return;
+    
+    if(sc[3] !== null) sc[3] = $(document).scrollTop();
+    
+    cnt.hide();
+    var tar_cnt = g_v_cnts[ tar_idx ];
+    tar_cnt.show();
+    tc = tar_cnt.data('swipe_cnt')
+    tc[2](function() {
+        $(document).scrollTop(tc[3]);
+    });
+    
+}
+
+
 $(function() {
 
 g_v_m_top = $('.m_top');
@@ -278,7 +359,7 @@ init_item_ac(
     itemsearch_render_item
     
 ); //init_item_ac
-
+/*
 g_v_tg_lst = $('#tg_lst').tinygrid({
 len:0,
 src:{page:'?fn=load_record_detail_by_user', data:g_tg_tg_lst},
@@ -295,11 +376,27 @@ click: function(r, c, d) {
     }, undefined, undefined, undefined, '__get_item_s__');
 }
 });
+*/
+g_v_main_cnt = $('.m_main_cnt').data('swipe_cnt', [2, 0, show_main, null]);
+g_v_tools_cnt = $('.m_tools_cnt').data('swipe_cnt', [null, 1, show_tools, 0]);
+g_v_inv_cnt = $('.m_inv_cnt').data('swipe_cnt', [1, null, show_inv, null]);
+g_v_cnts = [g_v_inv_cnt, g_v_main_cnt, g_v_tools_cnt];
 
-g_v_tools_cnt = $('.m_tools_cnt');
-g_v_inv_cnt = $('.m_inv_cnt');
+g_v_m_tools_cnt_lst = $('#m_tools_cnt_lst');
 
-var lst = $('.item_info_tbl_main').on('swipeleft', show_tools).on('swiperight', show_inv).find('> div > div:nth-child(2)');
+g_v_tools_cnt.find('>.top_bar >input').click(function() {
+    var v = $(this);
+    g_diff_only ^= 1;
+    v.val(g_diff_only ? 'Diff only' : 'All');
+    
+    show_tools();
+});
+
+
+$('body').on('swipe', swipe_wnd);
+
+
+var lst = g_v_main_cnt.find('.item_info_tbl_main > div > div:nth-child(2)');
 g_v_item_tbl = {
     'name': $(lst[0]),
     'inv': $(lst[1]),
@@ -310,18 +407,20 @@ g_v_item_tbl = {
     //'picture': $(lst[4]),
 }
 
+/*
 g_v_inv_cnt.on('swipe', function(e) {
     if (e.swipestart.coords[0] < e.swipestop.coords[0])
         show_inv(); 
     else
         g_v_inv_cnt.hide();
 });
-/*
+
+
 g_v_tools_cnt.on('swipe', function(e) {
-    if (e.swipestart.coords[0] > e.swipestop.coords[0])
-        show_tools(); 
-    else
-        g_v_tools_cnt.hide();
+    hide_all();
+    
+    if(e.swipestart.coords[0] > e.swipestop.coords[0]) show_tools();
+    
 });
 */
 
@@ -332,9 +431,9 @@ load_cycle_count_sel();
 </script>
 
 <style type="text/css">
-body {margin:0 auto;padding-top:51px}
+body {margin:0 auto}
 
-.m_top {position:fixed;border-bottom:1px solid #ddd;top:0;left:0;right:0;height:42px;padding:4px;line-height:42px;background-color:#f9f9f9}
+.top_bar {position:fixed;border-bottom:1px solid #ddd;top:0;left:0;right:0;height:42px;padding:4px;line-height:42px;background-color:#f9f9f9}
 .m_top input {vertical-align:bottom;margin-left:5px;height:36px !important;font-size:26px !important}
 .m_top select {vertical-align:bottom;margin-left:5px;height:42px !important;font-size:26px !important;width:140px}
 .m_top input[type="button"] {height:42px !important;width:49px !important;padding:0 !important;}
@@ -342,10 +441,10 @@ body {margin:0 auto;padding-top:51px}
 .m_top input[name="ctrl_save"] {background:transparent url("img/save.png") no-repeat 10px 0;width:64px !important;margin-left:10px}
 .m_top input[name="ctrl_home"] {background:transparent url("img/home.png") no-repeat 10px 0;width:64px !important;margin-left:10px}
 
-.m_dlg_cnt {display:none;position:fixed;top:51px;left:0;bottom:0;right:0;}
-.m_pic_cnt {background:url("img/overlay.png") repeat;text-align:center}
-.m_pic_cnt >img {max-height:100%;max-width:100%}
-.m_tools_cnt, .m_inv_cnt {background-color:#fdfdfd;padding:30px;}
+
+
+.m_dlg_cnt {display:none;position:relative}
+.m_tools_cnt, .m_inv_cnt {background-color:#fdfdfd;}
 
 .tg_checkbox {cursor:pointer;width:200px;font-weight:bold;height:40px;line-height:40px;text-align:center;border:1px solid #ddd;border-radius:10px;padding:10px 0;margin:0 auto 20px auto;background:#fff;background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(50%,#f3f3f3), color-stop(51%,#ededed), color-stop(100%,#ffffff));}
 .tg_checkbox.tg_checkbox_active {background: rgb(180,227,145);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(180,227,145,1)), color-stop(50%,rgba(97,196,25,1)), color-stop(100%,rgba(180,227,145,1)));}
@@ -415,29 +514,45 @@ body {margin:0 auto;padding-top:51px}
 
 #tg_lst {top:-1px}
 
+#m_tools_cnt_lst >div {position:relative;height:50px}
+#m_tools_cnt_lst >div >div {position:absolute;overflow:hidden;line-height:50px;top:0;bottom:0;}
+#m_tools_cnt_lst >div >div:nth-child(1) {width:70px;left:10px;font-weight:bold}
+#m_tools_cnt_lst >div >div:nth-child(2) {left:80px;right:80px}
+#m_tools_cnt_lst >div >div:nth-child(3) {width:70px;right:10px;font-weight:bold;text-align:right}
+
+#m_tools_cnt {margin-top:51px}
+
+.in_usr_count {background-color:#b0c48d}
+.m_main_cnt {display:block}
+
+
+
 </style>
 
 </head>
 <body>
 
-<div class="item_info_tbl item_info_tbl_main">
+<div class="m_main_cnt">
+<div class="item_info_tbl item_info_tbl_main"> 
 <div style="max-height:93px;overflow:hidden"><div>Name</div><div class="item_name"></div></div>
 <div><div>Inventory</div><div class="item_inv"></div></div>
 <div><div>Count</div><div class="item_count"></div></div>
 <div style="min-height:104px"><div>History<br/><img src="img/edit.png" border="0" onclick="edit_hist_switch()" /></div><div class="item_hist"></div></div>
 </div>
 
-<div class="m_top">
-<input type="button" value="" name="ctrl_scan_barcode" />
-<input type="text" name="ctrl_search" style="width:200px" />
-<select name="ctrl_loc"></select>
-<input type="button" value="" name="ctrl_save" />
-<input type="button" value="" name="ctrl_home" />
+<div class="m_top top_bar" data-role="none">
+<input type="button" value="" name="ctrl_scan_barcode" data-role="none" />
+<input type="text" name="ctrl_search" style="width:200px" data-role="none" />
+<select name="ctrl_loc" data-role="none" style="display:none"></select>
+<input type="button" value="" name="ctrl_save" data-role="none" />
+<input type="button" value="" name="ctrl_home" data-role="none" style="display:none"/>
+</div>
 </div>
 
-<div class="m_pic_cnt m_dlg_cnt"><img alt="" border="0" /></div>
-
-<div class="m_tools_cnt m_dlg_cnt"><div id="tg_lst"></div></div>
+<div class="m_tools_cnt m_dlg_cnt" id="m_tools_cnt">
+<div id="m_tools_cnt_lst"></div>
+<div class="top_bar" data-role="none"><input type="button" value="All" data-role="none" style="width:100px" /></div>
+</div>
 
 <div class="m_inv_cnt m_dlg_cnt">
 <div class="item_info_tbl">
@@ -447,6 +562,7 @@ body {margin:0 auto;padding-top:51px}
 </div>
 
 <div id="cycle_count_sel"></div>
+
 
 </body>
 </html>
