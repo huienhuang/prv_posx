@@ -369,7 +369,7 @@ def insert_qty_adj(cur, r):
 	gjs = json.loads(r['js'])
 	items = gjs['items']
 	idx = gjs['idx']
-	
+
 	itemsids = map(str, items.keys())
 	cur[1].execute('select itemsid,itemno,qtystore%d,unitofmeasure from inventory where datastate=0 and itemsid in (%s) order by itemno asc' % (
 		gjs['store'] + 1, ','.join(itemsids)
@@ -464,6 +464,8 @@ def worker(cur):
 	nz = cur[0].column_names
 	for r in cur[0].fetchall():
 		r = dict(zip(nz, r))
+
+		if config.store_id != 1 and r['doc_type'] not in (4, ): r['doc_type'] = -999
 
 		if r['doc_type'] == 1:
 			ret = insert_transfer_slip(cur, r)
