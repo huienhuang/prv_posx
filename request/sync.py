@@ -24,8 +24,26 @@ Delivery = App.load('/request/delivery')
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
+    def fn_get_items_by_nums(self):
+        nums = map(str, map(int, self.req.psv_str('nums').split('|')))[:5000]
+
+        items = {}
+
+        cur = self.cur()
+        cur.execute('select sid,num,name,detail from sync_items where num in (%s)' % (','.join(nums),))
+        
+        for r in cur.fetchall():
+            gjs = json.loads(r[3])
+            items[ str(r[0]) ] = {
+            'name': r[2],
+            'num': r[1],
+            'alu': gjs['units'][0][1]
+            }
+
+        self.req.writejs(items)
+
     def fn_get_items(self):
-        sids = map(str, map(int, self.req.psv_str('sids').split('|')))[:200]
+        sids = map(str, map(int, self.req.psv_str('sids').split('|')))[:5000]
 
         items = {}
 

@@ -144,6 +144,7 @@ g_v_dlg_record = $('#dlg_record').dialog({
     width:400,
     height:600,
     buttons: {
+        
         'Items': function() {
             var js = g_v_dlg_record.data('js');
             var items = js.items;
@@ -159,7 +160,7 @@ g_v_dlg_record = $('#dlg_record').dialog({
                 for(var sid in d_items) g_items_cache[sid] = d_items[sid];
                 
                 show_items();
-            }, undefined, undefined, 'Loading Items ...');
+            }, undefined, undefined, 'Loading Items ...', '__get_items__');
         },
         
         'Delete': function() {
@@ -171,6 +172,12 @@ g_v_dlg_record = $('#dlg_record').dialog({
                 g_v_tg_lst.tinygrid('update', -1, true, true, true);
                 
             }, undefined, undefined, undefined, '__del_record__');
+        },
+        
+        'Copy': function() {
+            var js = g_v_dlg_record.data('js');
+            js.r_id = undefined;
+            g_v_dlg_record.dialog('option', 'title', 'New Record');
         },
         
         'Save': save_record,
@@ -196,6 +203,40 @@ g_v_dlg_add_items = $('#dlg_add_items').dialog({
     }
 });
 
+g_v_dlg_batch_add_items = $('#dlg_batch_add_items').dialog({
+    modal: true,
+    autoOpen: false,
+    width:400,
+    height:300,
+    buttons: {
+        'Add': function() {
+            var nums = $.trim(g_v_dlg_batch_add_items.find('textarea').val()).replace(/[^0-9]+/gi, '|');
+            
+            post_js_ex('sync?fn=get_items_by_nums', {'nums': nums}, function(d_items) {
+                var v_lst = [];
+                for(var sid in d_items) {
+                    if(g_items_cache[sid] !== undefined) continue;
+                    var t = g_items_cache[sid] = d_items[sid];
+                    
+                    v_lst.push(
+                    $('<div class="prntbl_row" data-rsid="'+sid+'"></div>').data('sid', sid)
+                    .append( $('<div>X</div>').click(remove_item) )
+                    .append( $('<div></div>').text(t['num']) )
+                    .append( $('<div></div>').text(t['alu']) )
+                    .append( $('<div></div>').text(t['name']) )
+                    );
+                }
+                
+                g_v_items_ctn.append(v_lst);
+                
+                g_v_dlg_batch_add_items.dialog('close');
+                
+            }, undefined, undefined, 'Adding Items ...', '__get_items_by_nums__');
+            
+        },
+    }
+});
+
 init_item_ac('#srch_item', function(evt, item) {
     var t = item.item;
     var d = g_v_items_ctn.children().filter('[data-rsid="' + t[0] + '"]')
@@ -213,6 +254,11 @@ init_item_ac('#srch_item', function(evt, item) {
         .append( $('<div></div>').text(t[2]) )
     );
     
+});
+
+$('#batch_add_items').button().click(function() {
+    g_v_dlg_batch_add_items.find('textarea').val('');
+    g_v_dlg_batch_add_items.dialog('open');
 });
 
 
@@ -242,7 +288,6 @@ init_item_ac('#srch_item', function(evt, item) {
 #dlg_add_items .prntbl_row >div:nth-child(2) {width:80px}
 #dlg_add_items .prntbl_row >div:nth-child(3) {width:160px}
 #dlg_add_items .prntbl_row >div:nth-child(4) {width:560px}
-
 
 </style>
 
@@ -279,7 +324,7 @@ init_item_ac('#srch_item', function(evt, item) {
 
 
 <div id="dlg_add_items">
-<div><input type="text" placeholder="Search" id="srch_item" /></div>
+<div><input type="text" placeholder="Search" id="srch_item" />&nbsp;<input type="button" id="batch_add_items" value="batch" /></div>
 <div class="prntbl">
 <div class="prntbl_row prntbl_row_hdr"><div></div><div>Num</div><div>ALU</div><div>Name</div></div>
 <div class="prntbl_cnt"></div>
@@ -287,6 +332,8 @@ init_item_ac('#srch_item', function(evt, item) {
 </div>
 </div>
 
+
+<div id="dlg_batch_add_items" title="Add Items"><div class="rel_txt"><textarea></textarea></div></div>
 
 
 

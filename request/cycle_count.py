@@ -268,7 +268,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         for r in cur.fetchall():
             r = dict(zip(nzs, r))
             ret.append(r)
-            r['h_dt'] = time.strftime("%m/%d/%y %I:%M:%S %p", time.localtime(r['h_ts']))
+            r['h_dt'] = time.strftime("%m/%d/%y %I:%M %p", time.localtime(r['h_ts']))
 
         self.req.writejs(ret)
 
