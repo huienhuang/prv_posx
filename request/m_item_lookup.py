@@ -27,7 +27,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
         r = {'mode': config.settings['mode']}
-        self.req.writefile('view_item_mobile_v1.html', r)
+        self.req.writefile('view_item_mobile_v2.html', r)
     
     def fn_search_item(self):
         kw = self.qsv_str('term')
