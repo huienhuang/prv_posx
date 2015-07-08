@@ -66,6 +66,7 @@ function show_tools(cb)
             var r = js.items[i];
             var v = $('<div onclick="load_item(\''+r[3]+'\')" '+ (r[2] !== null ? 'class="in_usr_count"' : "")+'></div>')
             .append( $('<div></div>').text(r[0]) )
+            .append( $('<div></div>').text(r[4]) )
             .append( $('<div></div>').text(r[1]) )
             .append( $('<div></div>').text(r[2] === null ? '' : r[2]) );
             vlst.push(v);
@@ -538,8 +539,9 @@ body {margin:0 auto}
 #m_tools_cnt_lst >div {position:relative;height:60px;border-bottom:1px solid #ccc}
 #m_tools_cnt_lst >div >div {position:absolute;overflow:hidden;line-height:60px;top:0;bottom:0;}
 #m_tools_cnt_lst >div >div:nth-child(1) {width:70px;left:10px;font-weight:bold;color:blue}
-#m_tools_cnt_lst >div >div:nth-child(2) {left:80px;right:80px}
-#m_tools_cnt_lst >div >div:nth-child(3) {width:70px;right:10px;font-weight:bold;text-align:right;color:red}
+#m_tools_cnt_lst >div >div:nth-child(2) {width:120px;left:80px;font-weight:bold;color:purple}
+#m_tools_cnt_lst >div >div:nth-child(3) {left:200px;right:80px}
+#m_tools_cnt_lst >div >div:nth-child(4) {width:70px;right:10px;font-weight:bold;text-align:right;color:red}
 
 #m_tools_cnt {margin-top:51px}
 

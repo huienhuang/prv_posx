@@ -2,7 +2,7 @@ import json
 import time
 import datetime
 import config
-
+import cPickle
 
 CFG = {
     'id': 'CYCLE_COUNT_AF5643BB',
@@ -329,7 +329,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         if diff_only:
             record, d_user, d_item, items = self.count_cmp(r_id)
             i = d_user[ self.user_id ][1]
-            items = [ (v[0], v[1], v[2][i], str(v[5])) for v in items ]
+            items = [ (v[0], v[1], v[2][i], str(v[5]), d_item[v[5]][2]['deptname'] ) for v in items ]
 
         else:
             d_item = self.count_lst(r_id)
@@ -344,14 +344,17 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         cur.execute('select * from phycount_record where r_id=%s', (r_id,))
         record = dict(zip(cur.column_names, cur.fetchall()[0]))
 
+        cur.execute("select cval from configv2 where ckey='departments' limit 1")
+        DEPTS = dict((f_x[1], f_x[0]) for f_x in cPickle.loads( cur.fetchall()[0][0] ))
+
         d_item = {}
         if record['r_mode']:
-            cur.execute('select sid,num,name from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
+            cur.execute('select sid,num,name,deptsid from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
         else:
-            cur.execute('select sid,num,name from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+            cur.execute('select sid,num,name,deptsid from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
         for r in cur.fetchall():
-            sid,num,name = r
-            d_item.setdefault(sid, [num, name, None, str(sid)])
+            sid,num,name,deptsid = r
+            d_item.setdefault(sid, [num, name, None, str(sid), DEPTS.get(deptsid)])
 
         cur.execute('select h_sid,sum(h_qty * h_fc) from phycount_user_hist where r_id=%s and u_id=%s group by h_sid', (r_id, self.user_id))
         for r in cur.fetchall(): d_item[ r[0] ][2] = r[1]
@@ -370,14 +373,18 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             d_user[ r[0] ] = (r[1], k)
             k += 1
 
+        cur.execute("select cval from configv2 where ckey='departments' limit 1")
+        DEPTS = dict((f_x[1], f_x[0]) for f_x in cPickle.loads( cur.fetchall()[0][0] ))
+
         d_item = {}
         if record['r_mode']:
-            cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
+            cur.execute('select sid,num,name,detail,deptsid from sync_items where sid in (select distinct r_sid from phycount_item where r_id=%d)' % (r_id,))
         else:
-            cur.execute('select sid,num,name,detail from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
+            cur.execute('select sid,num,name,detail,deptsid from sync_items where sid in (select distinct h_sid from phycount_user_hist where r_id=%d)' % (r_id,))
         for r in cur.fetchall():
-            sid,num,name,detail = r
+            sid,num,name,detail,deptsid = r
             gjs = json.loads(detail)
+            gjs['deptname'] = DEPTS.get(deptsid)
             gjs['d_units'] = dict([ (u[2].lower(), u[3]) for u in gjs['units'] ])
             d_item.setdefault(sid, [num, name, gjs, [None,] * k, [[] for i in range(k)], [None, ] * k, True])
 
