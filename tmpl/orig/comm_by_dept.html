@@ -270,16 +270,44 @@ var v_cbs = $('.filter_cate input');
 g_cates = {};
 for(var i = 0; i < v_cbs.length; i++) g_cates[ $(v_cbs[i]).val().toLowerCase() || null ] = true;
 
+
 g_v_filter_chg = false;
-$('.filter input[type="checkbox"]').change(function() { g_v_filter_chg = true; });
 
 function filter_chk_all(chk) {
     var d = $(this);
     var p = d.parent().parent();
     p.find('input[type="checkbox"]').prop('checked', chk);
     
+    var n = p.attr('class').substr(7);
+    if(n === 'type') {
+        var c = $($('.filter_cate').children().slice(1));
+        if(chk) {
+            c.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            c.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
     g_v_filter_chg = true;
 }
+
+$('.filter input[type="checkbox"]').change(function() {
+    var d = $(this);
+    var n = d.prop('name').substr(7);
+    var v = d.val();
+    var chk = d.prop('checked');
+    var p = d.parent().parent();
+    if(n === 'type') {
+        var v_cate = $('.filter_cate').children('div[data-parent-type="'+v+'"]');
+        if(chk) {
+            v_cate.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            v_cate.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
+    g_v_filter_chg = true;
+});
 
 v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
 v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
@@ -357,11 +385,15 @@ load_rates();
 .tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
 .tiny_popup:hover >div:nth-child(2) {display:block;}
 
-.tiny_popup >div:nth-child(2) {width:510px;}
-.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap;overflow-x:hidden}
-.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) {width:715px;}
+.tiny_popup >div:nth-child(2) >div {width:220px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:220px;}
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+.filter_cate >div.sel_hidden {display:none}
+
+
 
 #dlg_comm input[type='text'] {width:100px}
 #dlg_comm table tr td:first-child {text-align:center}
@@ -386,12 +418,19 @@ load_rates();
 %endfor
 </div>
 
+<div class="filter_type">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><input type="checkbox" value="" name="filter_type" checked="checked" /><span>***NotInList***</span></div>
+%for t_type in const.ITEM_L_TYPE:
+<div><input type="checkbox" value="${t_type[0]|h}" name="filter_type" checked="checked" /><span>${t_type[0]|h}</span></div>
+%endfor
+</div>
 
 <div class="filter_cate">
 <div><span>Check All</span> / <span>Uncheck All</span></div>
-<div><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>**NotInList**</span></div>
-%for cate in const.ITEM_L_CATE:
-<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+<div data-parent-type=""><input type="checkbox" value="" name="filter_cate" checked="checked" /><span>***NotInList***</span></div>
+%for cate in const.ITEM_L_CATE2:
+<div data-parent-type="${cate[1]|h}"><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
 %endfor
 </div>
 
