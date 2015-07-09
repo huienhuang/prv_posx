@@ -111,8 +111,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         js_s = json.dumps(js, separators=(',',':'))
         if pid:
-            cur.execute('update report set js=%s where id=%s and type=1', (
-                js_s, pid
+            cur.execute('update report set nz=%s,js=%s where id=%s and type=1', (
+                nz, js_s, pid
                 )
             )
         else:
@@ -143,7 +143,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         cur.execute('select js from report where id=%s and type=1', (pid,))
         rows = cur.fetchall()
-        if not rows: return;
+        if not rows: return
         
         js = json.loads(rows[0][0])
         js['pid'] = pid
@@ -257,25 +257,3 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
 
     fn_export_csv.PERM = PERM_ADMIN
-
-    def fn_make_po(self):
-        return 
-        
-        js = self.req.psv_js('js')
-        ref = int(js['ref'])
-        lst = [ map(int, f_x[:4]) for f_x in js['lst'] if int(f_x[3]) > 0 ]
-        if not lst: return
-
-        cur = self.cur()
-
-        nz = ''
-        cur.execute('select nz from report where type=1 and id=%s', (ref,))
-        rows = cur.fetchall()
-        if rows: nz = rows[0][0]
-
-        cur.execute('insert into inv_request values(null,1,0,2,0,%s,0,%s,%s,%s,%s)', (
-            ref, int(time.time()), int(self.user_id), nz, json.dumps(lst, separators=(',',':'))
-            )
-        )
-
-        self.req.writejs( {'pid': cur.lastrowid} )
