@@ -14,8 +14,8 @@ function upd_qtys(cds, js)
 {
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
     var s_qtys = js.stores[g_store_id];
-    $(cds[5]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
-    $(cds[6]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
+    $(cds[6]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
+    $(cds[7]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
 }
 
 var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
@@ -77,9 +77,9 @@ function mk_hdr(frm_date, to_date, interval)
     g_cur_hdr = {frm_d:frm_d, frm_ts:frm_date.getTime(), to_d:to_d, to_ts:to_date.getTime(), interval:interval};
     
     //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
-    $(g_v_xtbl_hdr.children().slice(7)).remove();
+    $(g_v_xtbl_hdr.children().slice(8)).remove();
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 70 + 80 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 250 + 46 + 80 + 46 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -174,13 +174,16 @@ function new_row(item)
     var v_inp = $('<input text="number" />');
     js.v_inp = v_inp;
     
+    var r_inp = $('<input text="number" />');
+    js.r_inp = r_inp;
+    
     var row = $('<div class="xtbl_row'+cls+'"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(v_inp) )
     .append( $('<div></div>').append(sel) )
-    .append( $('<div><input type="text" /></div>') )
+    .append( $('<div></div>').append(r_inp) )
     .append( $('<div class="item_qty_lst"></div>').tooltip({
        items: '.item_qty_lst',
        content: get_item_qty_lst
@@ -565,7 +568,6 @@ g_v_interval = g_v_tp_ctrl.children('select[name="interval"]').change(load_items
 g_v_tp_ctrl.children('input[value="apply"]').click(load_items_sold_report);
 
 g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
-g_v_tp_ctrl.children('input[value="delete"]').click(delete_profile);
 
 g_v_tp_ctrl.children('input[value="export"]').click(export_csv);
 g_v_tp_ctrl.children('input[value="point"]').click(function() {
@@ -582,6 +584,7 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
     width:400,
     height:200,
     buttons: {
+        'delete': delete_profile,
         'save': function() {__save_profile(); g_v_dlg_profile_name.dialog('close');},
     } 
 });
@@ -632,13 +635,13 @@ g_v_interval.change();
 .xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
 .xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:70px;position:relative}
 .xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
-.xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:48px}
+.xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:38px}
 .xtbl_row > div:nth-child(1) {width:26px}
 .xtbl_row > div:nth-child(2) {width:70px;cursor:pointer}
 .xtbl_row > div:nth-child(3) {width:250px}
-.xtbl_row > div:nth-child(4) {width:56px}
+.xtbl_row > div:nth-child(4) {width:46px}
 .xtbl_row > div:nth-child(5) {width:80px}
-.xtbl_row > div:nth-child(6) {width:0px}
+.xtbl_row > div:nth-child(6) {width:46px}
 .xtbl_row > div:nth-child(7) {cursor:pointer}
 
 .xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
@@ -694,7 +697,6 @@ g_v_interval.change();
 </select>
 <input type="text" style="width:150px" id="srch_item" />
 <input type="button" value="save" class="btn" />
-<input type="button" value="delete" class="btn"/>
 <select style="width:100px;margin-left:20px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
 <input style="width:100px" type="text" title="From Date" name="frm_date" />
 <input style="width:100px" type="text" title="To Date" name="to_date" />
@@ -706,7 +708,7 @@ g_v_interval.change();
 
 </div>
 
-<div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>Name</div><div>PO Qty</div><div>Unit</div><div></div><div id="v_change_store">OH(AL)</div><div>OP</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>Name</div><div>PO</div><div>Unit</div><div>Point</div><div id="v_change_store">OH(AL)</div><div>PO</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 
