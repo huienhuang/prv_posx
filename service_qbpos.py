@@ -366,7 +366,7 @@ def adjust_po(cur, r):
 
 
 def insert_qty_adj(cur, r):
-	gjs = json.loads(r['js'])
+	gjs = r['js']
 	items = gjs['items']
 	idx = gjs['idx']
 
@@ -456,6 +456,44 @@ def insert_qty_adj(cur, r):
 
 
 
+def insert_reorder_qty_adj(cur, r):
+	gjs = r['js']
+	rpts = gjs['reorder_pts']
+	rpts.sort(key=lambda f_x: f_x[0])
+
+	for sid,v in rpts:
+		cur[1].execute('update inventory set lastedit=now() where itemsid=? and datastate=0', (sid,))
+		cur[1].execute('select @@rowcount')
+		if cur[1].fetchall()[0][0] <= 0: continue
+
+		#print sid
+		for store_id, pt in v:
+			if store_id == 0:
+				cur[1].execute('update inventory set cmpmin=?,reordernotnull=? where itemsid=?', (
+					pt or 0, pt != None and 1 or 0, sid
+					)
+				)
+
+			else:
+				cur[1].execute('update inventorystore set reorderpoint=?,reordernotnull=? where itemsid=? and store=?', (
+					pt or 0, pt != None and 1 or 0, sid, store_id
+					)
+				)
+				cur[1].execute('select @@rowcount')
+				if cur[1].fetchall()[0][0] <= 0:
+					cur[1].execute('insert into inventorystore ON EXISTING SKIP values(?,?,0,0,0,0,0,0,0,?,?)', (
+						sid, store_id, pt or 0, pt != None and 1 or 0
+						)
+					)
+
+		cur[1].execute('update inventory set lastedit=now() where itemsid=?', (sid,))
+		cur[1].execute("insert into changejournal values(default,'Inventory',?,1,now(),'POSXRM', '-1')", (sid,))
+
+	cur[1].execute('commit')
+
+	return (0, (None, 0), 'OK')
+
+
 def worker(cur):
 	ts = time.time()
 	rs = []
@@ -464,6 +502,10 @@ def worker(cur):
 	nz = cur[0].column_names
 	for r in cur[0].fetchall():
 		r = dict(zip(nz, r))
+		if r['js']:
+			r['js'] = json.loads(r['js'])
+		else:
+			r['js'] = None
 
 		if config.store_id != 1 and r['doc_type'] not in (4, ): r['doc_type'] = -999
 
@@ -475,6 +517,8 @@ def worker(cur):
 			ret = adjust_po(cur, r)
 		elif r['doc_type'] == 4:
 			ret = insert_qty_adj(cur, r)
+		elif r['doc_type'] == 5:
+			ret = insert_reorder_qty_adj(cur, r)
 		else:
 			ret = (-1, None, 'Invalid Type')
 
@@ -482,14 +526,15 @@ def worker(cur):
 		if errno == -111:
 			del_pos_conn()
 		else:
+			njs_s = json.dumps({'msg':doc_msg, 'ojs': r['js']}, separators=(',',':'))
 			if not errno:
 				cur[0].execute("update qbpos set rev=rev+1,state=%s,errno=%s,doc_sid=%s,doc_num=%s,js=%s where id=%s and state=1", (
-					2, errno, doc_info[0], doc_info[1], json.dumps({'msg':doc_msg}, separators=(',',':')), r['id'],
+					2, errno, doc_info[0], doc_info[1], njs_s, r['id'],
 					)
 				)
 			else:
 				cur[0].execute("update qbpos set rev=rev+1,state=%s,errno=%s,js=%s where id=%s and state=1", (
-					2, errno, json.dumps({'msg':doc_msg}, separators=(',',':')), r['id'],
+					2, errno, njs_s, r['id'],
 					)
 				)
 

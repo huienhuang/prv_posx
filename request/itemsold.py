@@ -98,6 +98,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             tids.add(tid)
         if len(tids) != len(items): return
         
+        reorder_pts = []
+        for v in js['reorder_pts']:
+            pts = [ (f_x[0], round(f_x[1], 5)) for f_x in v[1] if f_x[0] >=0 and f_x[0] <= 2 ]
+            if pts: reorder_pts.append( (int(v[0]), pts) )
+
         pid = int(js['pid'])
         nz = js['nz'][:128].strip()
         js = {
@@ -121,8 +126,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 )
             )
             pid = cur.lastrowid
-        
-        self.req.writejs( {'pid': pid} )
+
+        qbpos_id = 0
+        if reorder_pts:
+            js_s = json.dumps({'reorder_pts': reorder_pts}, separators=(',',':'))
+            cur.execute("insert into qbpos values(null,1,1,0,5,%s,null,0,%s)", (pid, js_s))
+            qbpos_id = cur.lastrowid
+
+        self.req.writejs( {'pid': pid, 'qbpos_id': qbpos_id} )
 
     fn_save_profile.PERM = PERM_ADMIN
 
