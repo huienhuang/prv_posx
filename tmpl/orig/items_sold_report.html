@@ -21,8 +21,8 @@ function upd_qtys(cds, js)
 {
     var factor = js.units.length > 1 ? js.units[js.default_uom_idx][3] : 1;
     var s_qtys = js.stores[g_store_id];
-    $(cds[6]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
-    $(cds[7]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
+    $(cds[7]).text(factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E' );
+    $(cds[8]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
 
     update_reorder_point($(cds[0]).parent(), js);
 }
@@ -86,9 +86,9 @@ function mk_hdr(frm_date, to_date, interval)
     g_cur_hdr = {frm_d:frm_d, frm_ts:frm_date.getTime(), to_d:to_d, to_ts:to_date.getTime(), interval:interval};
     
     //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
-    $(g_v_xtbl_hdr.children().slice(8)).remove();
+    $(g_v_xtbl_hdr.children().slice(9)).remove();
     var frm = frm_d;
-    var width = 26 + 70 + 250 + 46 + 80 + 76 + 70 + 70 + 70 + 70;
+    var width = 26 + 70 + 100 + 250 + 46 + 80 + 76 + 70 + 70 + 70 + 70;
     while(true) {
         var mon = frm & 0xFF;
         var yr = frm >> 8;
@@ -244,6 +244,7 @@ function new_row(item)
     var row = $('<div class="xtbl_row'+cls+'"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
+    .append( $('<div></div>').text(js.units[0][1]) )
     .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
     .append( $('<div></div>').append(v_inp) )
     .append( $('<div></div>').append(sel) )
@@ -319,7 +320,7 @@ function load_items_sold_report_cb(js)
         var item_js = el.data('item_data')[3];
         var factor = item_js.units.length > 1 ? item_js.units[item_js.default_uom_idx][3] : 1;
         var cds = el.children();
-        $(cds.slice(8)).remove();
+        $(cds.slice(9)).remove();
         
         var qtys = item_js.qty;
         upd_qtys(cds, item_js);
@@ -388,7 +389,7 @@ function load_items_sold_report()
         var d = $(lst[i]).width(g_cur_hdr.width);
         var tid = d.data('item_data')[0];
         g_items[tid].s = null;
-        $(d.children().slice(8)).remove();
+        $(d.children().slice(9)).remove();
         tids.push(tid);
     }
     
@@ -732,13 +733,14 @@ g_v_interval.change();
 .xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
 .xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:38px}
 .xtbl_row > div:nth-child(1) {width:26px}
-.xtbl_row > div:nth-child(2) {width:70px;cursor:pointer;font-weight:bold}
-.xtbl_row > div:nth-child(3) {width:250px}
-.xtbl_row > div:nth-child(4) {width:46px}
-.xtbl_row > div:nth-child(5) {width:80px}
-.xtbl_row > div:nth-child(6) {width:76px}
-.xtbl_row > div:nth-child(6) >input {width:68px}
-.xtbl_row > div:nth-child(7) {cursor:pointer}
+.xtbl_row > div:nth-child(2) {width:50px;cursor:pointer;font-weight:bold}
+.xtbl_row > div:nth-child(3) {width:100px;font-style:italic}
+.xtbl_row > div:nth-child(4) {width:250px}
+.xtbl_row > div:nth-child(5) {width:46px}
+.xtbl_row > div:nth-child(6) {width:80px}
+.xtbl_row > div:nth-child(7) {width:76px}
+.xtbl_row > div:nth-child(7) >input {width:68px}
+.xtbl_row > div:nth-child(8) {cursor:pointer}
 
 .xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
@@ -807,7 +809,7 @@ g_v_interval.change();
 
 </div>
 
-<div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>Name</div><div>PO</div><div>Unit</div><div title="reorder point">Point</div><div id="v_change_store" title="Switch Store" style="color:red">OH(AL)</div><div>PO</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>ALU</div><div>Name</div><div>PO</div><div>Unit</div><div title="reorder point">Point</div><div id="v_change_store" title="Switch Store" style="color:red">OH(AL)</div><div>PO</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 

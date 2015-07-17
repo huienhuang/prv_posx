@@ -429,7 +429,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             else:
                 e = False
 
-            if not e: items.append( (v[0], v[1], v[3], v[4], v[5], sid) )
+            if not e: items.append( (v[0], v[1], v[3], v[4], v[5], sid, v[2]['units'][0][1]) )
 
         return (record, d_user, d_item, items)
 
@@ -438,14 +438,36 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         r_id = self.req.qsv_int('r_id')
         record, d_user, d_item, items = self.count_cmp(r_id)
 
-        if not self.req.qsv_int('diff_only'): items = [ (v[0], v[1], v[3], v[4], v[5]) for v in d_item.values() ]
+        if not self.req.qsv_int('diff_only'):
+            items = [ (v[0], v[1], v[3], v[4], v[5], str(f_sid), v[2]['units'][0][1]) for f_sid,v in d_item.items() ]
+        else:
+            _items = []
+            for x in items:
+                x = list(x)
+                x[5] = str(x[5])
+                _items.append(x)
+            items = _items
 
         items.sort(key=lambda f_k: f_k[0])
 
         users = d_user.values()
         users.sort(key=lambda f_k: f_k[1])
 
-        self.req.writejs({'items': items, 'users': users, 'ttl_num': len(d_item)})
+        usr_idx = None
+        d_usr_qty = None
+        if record['qbpos_id']:
+            cur = self.cur()
+            cur.execute('select * from qbpos where id=%s', (record['qbpos_id'],))
+            qbr = dict(zip(cur.column_names, cur.fetchall()[0]))
+            if qbr['state'] == 2 and qbr['errno'] == 0 and qbr['doc_num']:
+                ojs = json.loads(qbr['js']).get('ojs')
+                if ojs:
+                    usr_idx = ojs['idx']
+                    o_d_item = ojs['items']
+                    d_usr_qty = {}
+                    for sid,v in o_d_item.items(): d_usr_qty[ str(sid) ] = v[-1]
+
+        self.req.writejs({'items': items, 'users': users, 'ttl_num': len(d_item), 'd_usr_qty': d_usr_qty, 'usr_idx': usr_idx})
 
     def fn_send(self):
         r_id = self.req.psv_int('r_id')
@@ -481,7 +503,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(1)"})
             qbpos_id = last_qbpos_id
 
-        js = json.dumps({'items': d_item, 'store': record['r_store'], 'idx': idx}, separators=(',',':'))
+        js = json.dumps({'items': d_item, 'd_user': d_user, 'store': record['r_store'], 'idx': idx}, separators=(',',':'))
         cur.execute("update qbpos set rev=rev+1,state=1,errno=0,js=%s where id=%s and state=2 and errno!=0", (js, qbpos_id,))
         if cur.rowcount <= 0: self.req.exitjs({'err': -1, 'err_s': "can't send(2)"})
 

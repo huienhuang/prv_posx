@@ -18,9 +18,15 @@ function do_cmp(r_id)
     get_js_ex('?fn=cmp', {'r_id': r_id, 'diff_only': diff_only}, function(js) {
         var vlst = [];
         for(var i = 0; i < js.users.length; i++) {
-            vlst.push( $('<div></div>').text( js.users[i][0] ) );
+            if(i === js.usr_idx)
+                vlst.push( $('<div class="in_usr"></div>').text( js.users[i][0] ) );
+            else
+                vlst.push( $('<div></div>').text( js.users[i][0] ) );
         }
-        g_v_d_tbl_hdr.append( $('<div>Num</div><div>Name</div>') ).append(vlst);
+        vlst.push('<div>OLD</div>');
+        g_v_d_tbl_hdr.append( $('<div>Num</div><div>ALU</div><div>Name</div>') ).append(vlst);
+        
+        var d_usr_qty = js.d_usr_qty;
         
         vlst = [];
         for(var i = 0; i < js.items.length; i++) {
@@ -28,12 +34,16 @@ function do_cmp(r_id)
             
             var v = $('<div class="prntbl_row"></div>')
             .append( $('<div></div>').text(t[0]) )
+            .append( $('<div></div>').text(t[6]) )
             .append( $('<div></div>').text(t[1]) );
             
             for(var j = 0; j < js.users.length; j++) {
-                v.append( $('<div></div>').text(t[2][j] == null ? '' : t[2][j]) )
+                if(j === js.usr_idx)
+                    v.append( $('<div class="in_usr"></div>').text(t[2][j] == null ? '' : t[2][j]) )
+                else
+                    v.append( $('<div></div>').text(t[2][j] == null ? '' : t[2][j]) )
             }
-            
+            v.append( $('<div></div>').text( d_usr_qty != null ? d_usr_qty[ t[5] ] : '' ) );
             vlst.push(v);
         }
         g_v_d_tbl_cnt.append(vlst);
@@ -112,10 +122,15 @@ do_cmp(${r_id});
 
 #d_tbl {top:0;bottom:0;right:0;left:0;z-index:0;overflow:hidden}
 
-.prntbl_row >div:nth-child(1) {width:60px}
-.prntbl_row >div:nth-child(2) {width:280px}
-.prntbl_row_hdr >div:nth-child(n+3) {color:red}
+.prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
+.prntbl_row >div:nth-child(2) {width:160px;font-style:italic;font-weight:bold;color:#735629}
+.prntbl_row >div:nth-child(3) {width:350px}
+.prntbl_row_hdr >div:nth-child(n+4) {color:red}
 .prntbl_row_ftr {text-align:center}
+
+.in_usr,.prntbl_row >div:last-child {color:#7c9070 !important}
+
+
 </style>
 
 </head>

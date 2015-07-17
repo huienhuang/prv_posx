@@ -388,6 +388,7 @@ def insert_qty_adj(cur, r):
 		in_inv_qty = v[5][idx]
 
 		cur_inv_qty = float(cur_inv_qty)
+		v.append( round(cur_inv_qty, 2) )
 
 		diff = cur_inv_qty - in_inv_qty
 		cur_usr_qty = in_usr_qty + diff
