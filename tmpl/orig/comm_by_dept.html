@@ -5,6 +5,11 @@
 <title>POSX - Comm By Dept</title>
 
 <script type="text/javascript">
+<%
+import json
+%>
+ITEM_D_CATE2 = ${json.dumps(const.ITEM_D_CATE2, separators=(',',':'))};
+
 g_cate_rates = {};
 g_data = {};
 g_sales = {'ray': 1, 'hilda': 1};
@@ -107,7 +112,7 @@ function render(months, cates, sales_only)
         
         g_v_main_xtbl.append(
             $('<div class="xtbl_row"></div>')
-            .append( $('<div onclick="open_dlg_clerk(\''+cnz+'\');return false;"></div>').text(cnz) )
+            .append( $('<div onclick="open_dlg_clerk_w(\''+cnz+'\');return false;"></div>').text(cnz) )
             .append( $('<div></div>').text( (total[0] + total[1]).toFixed(2) ) )
             .append( $('<div></div>').text(total[0].toFixed(2)) )
             .append( $('<div></div>').text(total[1].toFixed(2)) )
@@ -128,6 +133,135 @@ function render(months, cates, sales_only)
     .append( $('<div></div>').text( (total[1] + total[2]).toFixed(2) ) )
     .append( $('<div></div>').text( total[3].toFixed(2) ) );
 
+}
+
+g_cur_cnz = null;
+function open_dlg_clerk_w(cnz)
+{
+    g_cur_cnz = cnz;
+    if(g_v_c_detail.prop('checked')) {
+        open_dlg_clerk(cnz);
+        
+    } else {
+        open_dlg_clerk_v2(cnz);
+        
+    }
+}
+
+function open_dlg_clerk_v2(cnz)
+{
+    var report_type = parseInt(g_v_ctrl_type.val());
+    var s_base = report_type * 3;
+    var cate_rates = g_cate_rates;
+    
+    g_v_clerk_xtbl_footer.empty();
+    g_v_clerk_xtbl.empty();
+    
+    var v_cbs = $('.filter_month input:checked');
+    if(!v_cbs.length) return;
+    var months = [];
+    for(var i = 0; i < v_cbs.length; i++) months.push( $(v_cbs[i]).val() );
+    
+    var v_cbs = $('.filter_cate input:checked');
+    var cates = [];
+    var f_cates = {};
+    for(var i = 0; i < v_cbs.length; i++) {
+        var nz = $(v_cbs[i]).val();
+        var s = [0, 0, 0, 0];
+        cates.push([nz, s]);
+        f_cates[ nz.toLowerCase() || null ] = s;
+    }
+    
+    for(var m = 0; m < months.length; m++) {
+        var cates_total = g_data[ months[m] ][cnz];
+        if(cates_total === undefined) continue;
+        
+        for(var cate_nz in cates_total) {
+            var cate_total = cates_total[cate_nz];
+            
+            cate_nz = cate_nz === null ? null : cate_nz.toLowerCase();
+            if(g_cates[cate_nz] === undefined) cate_nz = null;
+            
+            var total = f_cates[cate_nz];
+            if(total === undefined) continue;
+            
+            var c_recv = cate_total[s_base + 1] || 0;
+            var p_recv = cate_total[s_base + 2] || 0;
+                
+            total[0] += cate_total[s_base + 0] || 0;
+            total[1] += c_recv;
+            total[2] += p_recv;
+            total[3] += (cate_rates[cate_nz] ? cate_rates[cate_nz][report_type] : 0.0) * (c_recv + p_recv);
+        }
+        
+    }
+    
+    var d_type = {};
+    var total_all = [0, 0, 0, 0, 0, 0];
+    for(var i = 0; i < cates.length; i++) {
+        var s = cates[i];
+        var total = s[1];
+        
+        var r_total = total[0] + total[1];
+        var r_pending = total[0];
+        var r_recved = total[1];
+        var r_prevrecved = total[2];
+        var r_estimated = total[1] + total[2];
+        var r_commission = total[3];
+        
+        total_all[0] += r_total;
+        total_all[1] += r_pending;
+        total_all[2] += r_recved;
+        total_all[3] += r_prevrecved;
+        total_all[4] += r_estimated;
+        total_all[5] += r_commission;
+        
+        var key = s[0].toLowerCase() || null;
+        var prate = ((cate_rates[key] ? cate_rates[key][report_type] : 0.0) * 100).toFixed(1);
+        
+        var pt = ITEM_D_CATE2[ s[0] ];
+        var pd = d_type[pt];
+        if(pd === undefined) pd = d_type[pt] = [pt, 0, 0, 0, 0, 0, 0, {}];
+        
+        pd[1] += r_total;
+        pd[2] += r_pending;
+        pd[3] += r_recved;
+        pd[4] += r_prevrecved;
+        pd[5] += r_estimated;
+        pd[6] += r_commission;
+        pd[7][prate] = 1;
+    }
+    
+    var l_type = []; for(var t in d_type) l_type.push(t); l_type.sort();
+    
+    for(var i = 0; i < l_type.length; i++) {
+        var pd = d_type[ l_type[i] ];
+        
+        var rs = []; for(var r in pd[7]) rs.push(r + '%');
+        
+        g_v_clerk_xtbl.append(
+            $('<div class="xtbl_row"></div>')
+            .append( $('<div></div>').text(pd[0] || '*NotInList*') )
+            .append( $('<div></div>').text(pd[1].toFixed(2)) )
+            .append( $('<div></div>').text(pd[2].toFixed(2)) )
+            .append( $('<div></div>').text(pd[3].toFixed(2)))
+            .append( $('<div></div>').text(pd[4].toFixed(2)) )
+            .append( $('<div></div>').text(pd[5].toFixed(2)) )
+            .append( $('<div></div>').text(pd[6].toFixed(2) + ' (' + rs.join(',') + ')') )
+        );
+        
+    }
+    g_v_clerk_xtbl_footer
+    .append( $('<div></div>') )
+    .append( $('<div></div>').text(total_all[0].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[1].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[2].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[3].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[4].toFixed(2)) )
+    .append( $('<div></div>').text(total_all[5].toFixed(2)) );
+    
+    g_v_dlg_clerk.dialog('option', 'title', cnz).dialog('open');
+    
 }
 
 function open_dlg_clerk(cnz)
@@ -223,6 +357,9 @@ function open_dlg_clerk(cnz)
     g_v_dlg_clerk.dialog('option', 'title', cnz).dialog('open');
     
 }
+
+
+
 
 function ui_load_rates(js)
 {
@@ -346,6 +483,9 @@ g_v_dlg_comm = $('#dlg_comm').dialog({
     }
 });
 
+g_v_c_detail = $('#c_detail >input').change(function() { open_dlg_clerk_w(g_cur_cnz); });
+
+
 load_rates();
 
 }); //ready
@@ -373,6 +513,8 @@ load_rates();
 .xtbl_footer {bottom:0;top:auto}
 .xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
 .xtbl {position:absolute;top:37px;bottom:37px;right:0;left:0;overflow:auto;}
+
+#c_detail {color:red;font-size:12px;font-style:italic;margin-right:10px}
 
 #dlg_clerk {position:relative}
 #dlg_clerk .xtbl_row {min-width:940px;}
@@ -453,7 +595,7 @@ load_rates();
 </div>
 
 <div id="dlg_clerk">
-<div class="xtbl_header"><div class="xtbl_row"><div>Dept</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>Commission</div></div></div>
+<div class="xtbl_header"><div class="xtbl_row"><div><span id="c_detail"><input type="checkbox" />Detail</span>Name</div><div title="Pending + Rcved">Total</div><div>NotRcved</div><div>Rcved</div><div>PrevRcved</div><div title="Rcved + PrevRcved">Estimated</div><div>Commission</div></div></div>
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row"></div></div>
 </div>
