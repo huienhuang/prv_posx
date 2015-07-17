@@ -17,6 +17,8 @@ CFG = {
 }
 
 
+ROLE_SALES = (1 << config.BASE_ROLES_MAP['Sales'])
+
 class RequestHandler(App.load('/basehandler').RequestHandler):
 
     def fn_default(self):
@@ -56,8 +58,11 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         s = set(reports_0)
         reports = list(s.union(reports_1))
         reports.sort()
+
+        users = self.get_user_roles()
+        sales = dict([ (x[1].lower(), 1) for x in users if x[2] & ROLE_SALES ])
         
-        self.req.writefile('comm_by_dept.html', {'reports': reports, 'const': const})
+        self.req.writefile('comm_by_dept.html', {'reports': reports, 'const': const, 'sales': sales})
     
     USER_MAP = {
         'sales1': 'ray',

@@ -12,7 +12,7 @@ ITEM_D_CATE2 = ${json.dumps(const.ITEM_D_CATE2, separators=(',',':'))};
 
 g_cate_rates = {};
 g_data = {};
-g_sales = {'ray': 1, 'hilda': 1};
+g_sales = ${json.dumps(sales, separators=(',',':'))};
 
 function evt_apply()
 {
