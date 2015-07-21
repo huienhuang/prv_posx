@@ -594,7 +594,7 @@ function export_csv()
     var frm_date = new Date(g_cur_hdr.frm_d >> 8, (g_cur_hdr.frm_d & 0xFF) - 1, 1);
     var to_date = new Date(g_cur_hdr.to_d >> 8, (g_cur_hdr.to_d & 0xFF) - 1, 1);
     
-    var items = []
+    var items = [];
     for(var i = 0; i < lst.length; i++) {
         var t = $(lst[i]).data('item_data');
         items.push( [t[0], t[3].default_uom_idx] );
@@ -610,6 +610,36 @@ function export_csv()
     g_v_form_dl.submit();
 }
 
+
+function print_x()
+{
+    var v = $('<div><div>ID</div><div>ALU</div><div>Name</div><div>OnHand</div></div>');
+    
+    var vs = [v];
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var t = $(lst[i]).data('item_data');
+        var js = t[3];
+        
+        var unit = js.units[js.default_uom_idx];
+        var factor = js.units.length > 1 ? unit[3] : 1;
+        var s_qtys = js.stores[g_store_id];
+        var qty = factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E';
+        
+        var v = $('<div></div>')
+        .append( $('<div></div>').text(t[1]) )
+        .append( $('<div></div>').text(js.units[0][1]) )
+        .append( $('<div></div>').text(t[2]) )
+        .append( $('<div></div>').text(qty + ' ' + unit[2] + ' ') );
+        vs.push(v);
+    }
+    
+    
+    g_v_print_lst.empty().append(vs);
+    
+    print();
+    
+}
 
 
 $(function() {
@@ -672,6 +702,8 @@ g_v_tp_ctrl.children('input[value="point"]').click(function() {
 
 g_v_tp_ctrl.children('input[value="Make PO"]').click(make_po);
 
+g_v_tp_ctrl.children('input[value="print"]').click(print_x);
+
 g_v_tp_ctrl.children('input[value="quit"]').click(go_home);
 
 g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
@@ -718,6 +750,10 @@ g_v_point_sliders = $('#dlg_point .sl_point').slider({
 });
 
 g_v_interval.change();
+
+
+g_v_print_lst = $('.vtable >div');
+
 
 }); //ready
 
@@ -784,6 +820,35 @@ g_v_interval.change();
 .bg_red {background-color:#ec8b8b !important;}
 .bg_purple {background-color:#e5c2e9 !important;}
 
+
+
+.vtable {width:952px;display:none}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:101px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:1px;width:100px;font-weight:bold;text-align:right}
+
+
+@media print {
+.vtable {display:block}
+.tp_ctrl,.xtbl_header,.xtbl,.xtbl_footer {display:none}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000}
+}
+@page {
+margin:60px 50px;
+}
+
+
 </style>
 
 </head>
@@ -805,6 +870,7 @@ g_v_interval.change();
 <input type="button" value="point" class="btn" style="display:none" />
 <input type="button" value="Make PO" class="btn" />
 <input type="button" value="export" class="btn" />
+<input type="button" value="print" class="btn" />
 <input type="button" value="quit" class="btn" />
 
 </div>
@@ -823,6 +889,7 @@ g_v_interval.change();
 <div class="xlabel"><div></div><div><div class="yellow_point sl_point"></div></div></div>
 </div>
 
+<div class="vtable"><div></div></div>
 
 </body>
 </html>
