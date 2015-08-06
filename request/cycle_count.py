@@ -77,6 +77,79 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
 
     fn_del_record.PERM = PERM_ADMIN
 
+
+
+    def fn_upload_items_list(self):
+        store_id = self.req.psv_int('store_id')
+        items_list = self.req.psv_str('items_list')
+ 
+        d_lst = {}
+        for l in items_list.strip().split('\n'):
+            num, name = l.strip().split(',')[:2]
+            num = int(num.strip())
+            name = name.strip()
+            d_lst.setdefault(name, set()).add(num)
+
+        nums = set()
+        for v in d_lst.values(): nums.update(v)
+
+        if not nums: return
+
+        cur = self.cur()
+        cur.execute('select num,sid from sync_items where num in (%s)' % ( ','.join(map(str, nums)) ))
+        sids_lku = dict(cur.fetchall())
+
+        r_ids = []
+        for r_desc, nums in sorted(d_lst.items(), key=lambda f_x: f_x[0]):
+            nums = sorted(nums)
+            r_items = [ str(sids_lku[n]) for n in nums if sids_lku.has_key(n) ]
+            if not r_items: continue
+
+            r_id = 0
+            r_loc = ''
+            r_enable = 0
+            r_mode = 1
+            r_store = config.store_id - 1
+            r_users = [1]
+            r_js = {'r_items': r_items}
+
+            r_id = self._save_record(r_id, r_desc, r_loc, r_enable, r_mode, r_store, r_items, r_users, r_js)
+            r_ids.append(r_id)
+
+        self.req.writejs({'r_ids': r_ids})
+
+    fn_upload_items_list.PERM = PERM_ADMIN
+
+
+    def _save_record(self, r_id, r_desc, r_loc, r_enable, r_mode, r_store, r_items, r_users, r_js):
+        cts = int(time.time())
+
+        cur = self.cur()
+        if not r_id:
+            cur.execute('insert into phycount_record values(null, 1, 0, %s, %s, %s, %s, %s, %s, %s)', (
+                r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), cts
+                )
+            )
+            if not cur.rowcount: return
+            r_id = cur.lastrowid
+        else:
+            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_desc=%s,r_loc=%s,r_js=%s where r_id=%s and qbpos_id=0', (
+                r_enable, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), r_id
+                )
+            )
+            if not cur.rowcount: return
+            cur.execute('delete from phycount_user where r_id=%d and u_uid not in (%s)' % (r_id, ','.join(map(str, r_users))) )
+            if r_items:
+                cur.execute('delete from phycount_item where r_id=%d and r_sid not in (%s)' % (r_id, ','.join(r_items)) )
+            else:
+                cur.execute('delete from phycount_item where r_id=%d')
+
+        cur.executemany('insert ignore into phycount_user values(%s,%s)', [ (r_id, f_x) for f_x in r_users ] )
+        if r_items: cur.executemany('insert ignore into phycount_item values(%s,%s)', [ (r_id, f_x) for f_x in r_items ] )
+
+        return r_id
+
+
     def fn_save_record(self):
         js = self.req.psv_js('js')
 
@@ -105,30 +178,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             locs.add(s)
         r_loc = ','.join(sorted(locs))
 
-        cts = int(time.time())
-
-        cur = self.cur()
-        if not r_id:
-            cur.execute('insert into phycount_record values(null, 1, 0, %s, %s, %s, %s, %s, %s, %s)', (
-                r_enable, r_mode, r_store, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), cts
-                )
-            )
-            if not cur.rowcount: return
-            r_id = cur.lastrowid
-        else:
-            cur.execute('update phycount_record set r_rev=r_rev+1,r_enable=%s,r_desc=%s,r_loc=%s,r_js=%s where r_id=%s and qbpos_id=0', (
-                r_enable, r_desc, r_loc, json.dumps(r_js, separators=(',',':')), r_id
-                )
-            )
-            if not cur.rowcount: return
-            cur.execute('delete from phycount_user where r_id=%d and u_uid not in (%s)' % (r_id, ','.join(map(str, r_users))) )
-            if r_items:
-                cur.execute('delete from phycount_item where r_id=%d and r_sid not in (%s)' % (r_id, ','.join(r_items)) )
-            else:
-                cur.execute('delete from phycount_item where r_id=%d')
-
-        cur.executemany('insert ignore into phycount_user values(%s,%s)', [ (r_id, f_x) for f_x in r_users ] )
-        if r_items: cur.executemany('insert ignore into phycount_item values(%s,%s)', [ (r_id, f_x) for f_x in r_items ] )
+        r_id = self._save_record(r_id, r_desc, r_loc, r_enable, r_mode, r_store, r_items, r_users, r_js)
 
         self.req.writejs({'r_id': r_id})
 

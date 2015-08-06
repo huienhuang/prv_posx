@@ -93,6 +93,14 @@ els.create[0].button().click(function() {
 });
 
 
+els.upload[0].button().click(function() {
+    
+    g_v_dlg_upload_items_list.find('select').val('${store_id-1}').prop('disabled', true);
+    g_v_dlg_upload_items_list.find('textarea').val('');
+    g_v_dlg_upload_items_list.dialog('open');
+    
+});
+
 g_tg_tg_lst = {};
 g_v_tg_lst = $('#tg_lst').tinygrid({
 len:1,
@@ -237,6 +245,26 @@ g_v_dlg_batch_add_items = $('#dlg_batch_add_items').dialog({
     }
 });
 
+g_v_dlg_upload_items_list = $('#dlg_upload_items_list').dialog({
+    modal: true,
+    autoOpen: false,
+    width:400,
+    height:500,
+    buttons: {
+        'Upload': function() {
+            var store_id = g_v_dlg_upload_items_list.find('select').val();
+            var items_list = g_v_dlg_upload_items_list.find('textarea').val();
+    
+            post_js_ex('?fn=upload_items_list', {'store_id': store_id, items_list: items_list}, function(d_items) {
+                g_v_dlg_upload_items_list.dialog('close');
+                g_v_tg_lst.tinygrid('update', -1, true, true, true);
+                
+            }, undefined, undefined, 'Uploading Items ...', '__upload_item_list__');
+            
+        }
+    }
+});
+
 init_item_ac('#srch_item', function(evt, item) {
     var t = item.item;
     var d = g_v_items_ctn.children().filter('[data-rsid="' + t[0] + '"]')
@@ -297,6 +325,7 @@ $('#batch_add_items').button().click(function() {
 <div class="x_ctrl">
 
 <input type="button" value="New" name="ctrl_create" />
+<input type="button" value="Upload" name="ctrl_upload" />
 
 </div>
 
@@ -336,6 +365,10 @@ $('#batch_add_items').button().click(function() {
 <div id="dlg_batch_add_items" title="Add Items"><div class="rel_txt"><textarea></textarea></div></div>
 
 
+<div id="dlg_upload_items_list" title="Upload Items List">
+<div><select><option value="0">SSF</option><option value="1">SF</option></select></div>
+<div class="rel_txt" style="top:50px"><textarea></textarea></div>
+</div>
 
 </body>
 </html>
