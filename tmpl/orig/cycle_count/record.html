@@ -16,6 +16,8 @@ function do_cmp(r_id)
     diff_only = g_filter.val();
     
     get_js_ex('?fn=cmp', {'r_id': r_id, 'diff_only': diff_only}, function(js) {
+        g_v_doc_title.text(js.record.r_desc + ' - printed: ' + fmt_time());
+        
         var vlst = [];
         for(var i = 0; i < js.users.length; i++) {
             if(i === js.usr_idx)
@@ -90,6 +92,11 @@ els.btn_refresh[0].button().click(function() {
 
 els.btn_upload[0].button().click(send);
 
+els.btn_print[0].button().click(function() { window.print(); });
+
+
+g_v_doc_title = $('#doc_title');
+
 g_v_d_tbl_hdr = $('#d_tbl .prntbl_row_hdr');
 g_v_d_tbl_cnt = $('#d_tbl .prntbl_cnt');
 g_v_d_tbl_ftr = $('#d_tbl .prntbl_row_ftr');
@@ -121,14 +128,29 @@ do_cmp(${r_id});
 .x_ctrl input, .x_ctrl select {margin-right:10px;}
 
 #d_tbl {top:0;bottom:0;right:0;left:0;z-index:0;overflow:hidden}
-
+.prntbl .prntbl_row >div {width:70px}
 .prntbl_row >div:nth-child(1) {width:60px;font-weight:bold}
-.prntbl_row >div:nth-child(2) {width:160px;font-style:italic;font-weight:bold;color:#735629}
-.prntbl_row >div:nth-child(3) {width:350px}
+.prntbl_row >div:nth-child(2) {width:120px;font-style:italic;font-weight:bold;color:#735629}
+.prntbl_row >div:nth-child(3) {width:300px}
 .prntbl_row_hdr >div:nth-child(n+4) {color:red}
 .prntbl_row_ftr {text-align:center}
 
 .in_usr,.prntbl_row >div:last-child {color:#7c9070 !important}
+
+.cls_prn_only {display:none}
+
+#doc_title {font-weight:bold}
+
+@media print {
+.cls_prn_only {display:block}
+div {border-color:#000 !important}
+.prntbl {-webkit-print-color-adjust:exact;width:800px;}
+.x_ctrl {display:none}
+}
+@page {
+margin:50px 50px;
+}
+
 
 
 </style>
@@ -142,8 +164,11 @@ do_cmp(${r_id});
 
 <input type="button" name="ctrl_btn_refresh" value="Refresh" />
 <input type="button" name="ctrl_btn_upload" value="Upload" />
+<input type="button" name="ctrl_btn_print" value="Print" />
 
 </div>
+
+<div id="doc_title" class="cls_prn_only"></div>
 
 <div class="x_body">
 <div class="prntbl" id="d_tbl">

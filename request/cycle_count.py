@@ -517,7 +517,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
                     d_usr_qty = {}
                     for sid,v in o_d_item.items(): d_usr_qty[ str(sid) ] = v[-1]
 
-        self.req.writejs({'items': items, 'users': users, 'ttl_num': len(d_item), 'd_usr_qty': d_usr_qty, 'usr_idx': usr_idx})
+        self.req.writejs({'record': record, 'items': items, 'users': users, 'ttl_num': len(d_item), 'd_usr_qty': d_usr_qty, 'usr_idx': usr_idx})
 
     def fn_send(self):
         r_id = self.req.psv_int('r_id')
