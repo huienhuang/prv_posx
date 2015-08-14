@@ -1,33 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v4.html" />
+<%include file="header_bs_v1.html" />
 <title>POSX - Account MGR</title>
 
 <script type="text/javascript">
 
+g_wnds = [];
+
+function hide_wnd(w)
+{
+    w.wnd.hide();
+    w.link.removeClass('active');
+}
+
+function show_wnd(w)
+{
+    w.wnd.show();
+    w.link.addClass('active');
+}
+
+function alloc_wnd(cid, nz)
+{
+    var wnd;
+    if(g_wnds.length >= 4) {
+        var w = g_wnds.pop();
+        w.link.remove();
+        wnd = w.wnd;
+        
+    } else {
+        wnd = $('<iframe></iframe>').appendTo(g_m_cnt);
+        
+    }
+    
+    if(g_wnds.length) hide_wnd(g_wnds[0]);
+    
+    var link = $('<li></li>').append($('<a href="#" onclick="_load_wnd.call(this);return false;"></a>').text(nz).data('pjs', {cid: cid, nz: nz})).appendTo(g_v_customer_list);
+    var w = {cid: cid, nz: nz, wnd: wnd, link: link};
+    show_wnd(w);
+    
+    w.wnd.attr('src', 'hist?fn=custhist&cid=' + cid);
+    g_wnds.unshift(w);
+    
+}
+
+function _load_wnd()
+{
+    var pjs = $(this).data('pjs');
+    load_wnd(pjs.cid, pjs.nz);
+}
+
+function load_wnd(cid, nz)
+{
+    var i;
+    for(i = 0; i < g_wnds.length; i++) {
+        if(g_wnds[i].cid === cid) break;
+    }
+    
+    if(i == g_wnds.length) {
+        alloc_wnd(cid, nz);
+        
+    } else if(i == 0) {
+        return;
+    
+    } else {
+        var t = g_wnds[i];
+
+        g_wnds[i] = g_wnds[0];
+        g_wnds[0] = t;
+        
+        hide_wnd(g_wnds[i]);
+        show_wnd(t);
+    }
+    
+}
+
 function load_cust()
 {
     var o = $(this);
-    g_v_cust_wnd.attr('src', 'hist?fn=custhist&cid=' + o.data('cid'));
+    load_wnd(o.data('cid'), o.text());
 }
 
 $(function() {
 
-$('input[value="Quit"]').button().click(go_home);
 
-g_v_cust_wnd = $('.customer_wnd > iframe');
+function show_side_cnt()
+{
+    g_v_m_left_side_cnt.show();
+    g_m_cnt.addClass('side_cnt_on');
+}
 
-g_v_custs_tbl = $('.custs_tbl');
-g_v_custs_tbl_cnt = g_v_custs_tbl.children('.prntbl_cnt');
+function hide_side_cnt()
+{
+    g_v_m_left_side_cnt.hide();
+    g_m_cnt.removeClass('side_cnt_on');
+}
 
-$('#srch_cust').keyup(function() {
+
+g_v_customer_list = $('#customer_list');
+
+g_m_cnt = $('#m_cnt');
+
+g_srch_focus = [0, 0];
+g_v_m_left_side_cnt = $('#m_left_side_cnt').hover(function() {
+    g_srch_focus[1] = 1;
+    
+}, function() {
+    g_srch_focus[1] = 0;
+    
+    if(g_srch_focus[0] + g_srch_focus[1] === 0) hide_side_cnt();
+    
+});
+
+$('#srch_cust').focusin(function() {
+    g_srch_focus[0] = 1;
+    show_side_cnt();
+    
+}).focusout(function() {
+    g_srch_focus[0] = 0;
+    if(g_srch_focus[0] + g_srch_focus[1] === 0) hide_side_cnt();
+    
+}).keyup(function() {
+    
+    
     if(window.g_srch_cust_to) {
         clearTimeout(window.g_srch_cust_to);
         window.g_srch_cust_to = null;
     }
     
-    var o = g_v_custs_tbl_cnt;
+    var o = g_v_m_left_side_cnt;
     var term = $.trim( $(this).val() );
     if(!term) { o.empty(); return; }
     
@@ -37,7 +138,7 @@ $('#srch_cust').keyup(function() {
             for(var i = 0; i < js.length; i++) {
                 var c = js[i];
                 lst.push(
-                       $('<div class="prntbl_row"></div>').append(
+                       $('<div></div>').append(
                             $('<div></div>').text(c[1]).data('cid', c[0]).click(load_cust)
                         )
                 );
@@ -53,44 +154,48 @@ $('#srch_cust').keyup(function() {
     
 });
 
+
 });
 
 </script>
 
 <style type="text/css">
-.ui-widget {font-size:18px;}
+body{padding-top:50px}
 
-.custs_tbl {top:0;bottom:0;width:300px;left:0;z-index:0;overflow:hidden}
-.custs_tbl .prntbl_cnt > .prntbl_row {cursor:pointer}
-.custs_tbl .prntbl_cnt > .prntbl_row > div:nth-child(1) {text-align:center}
-.custs_tbl .prntbl_row > div {width:280px}
+#m_left_side_cnt {padding:4px 4px;display:none;position:fixed;top:50px;left:0;bottom:0;width:260px;background-color:#fbfbfb;border-right:1px solid #e7e7e7;overflow-y:auto;overflow-x:hidden}
+#m_left_side_cnt >div {padding:4px 0px;cursor:pointer}
+#m_left_side_cnt >div:nth-child(even) {background-color:#fff}
+#m_cnt.side_cnt_on {left:260px}
 
-.customer_wnd {top:0;bottom:0;right:0;left:300px;z-index:0;overflow:hidden;position:absolute}
-.customer_wnd > iframe {width:100%;height:100%;border:none;margin:0;padding:0}
+#m_cnt {top:50px;bottom:0;right:0;left:0px;z-index:0;overflow:hidden;position:absolute}
+#m_cnt > iframe {display:block;width:100%;height:100%;border:none;margin:0;padding:0}
+
+
+
 
 </style>
 
 </head>
 <body>
     
-<div class="x_ctrl">
-<input type="text" placeholder="find customers" id="srch_cust" />
-<input type="button" value="Quit" class="btn" style="float:right;margin-top:9px" />
-</div>
-
-<div class="x_body">
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+    <form class="navbar-form navbar-left" role="search">
+        <div class="form-group"><input type="text" class="form-control" placeholder="Search" id="srch_cust" autocomplete="off"></div>
+    </form>
     
-<div class="prntbl custs_tbl">
-<div class="prntbl_row prntbl_row_hdr"><div>Customer</div></div>
-<div class="prntbl_cnt"></div>
-<div class="prntbl_row prntbl_row_ftr"></div>
+    <ul class="nav navbar-nav navbar-left" id="customer_list"></ul>
+    
+    <ul class="nav navbar-nav navbar-right"><li><a href="#" onclick="go_home()">Quit</a></li></ul>
+    </div>
+</nav>
+
+<div id="m_left_side_cnt"></div>
+
+<div id="m_cnt"></div>
+
+
 </div>
-
-<div class="customer_wnd"><iframe></iframe></div>
-
-</div>
-
-
 </body>
 </html>
 
