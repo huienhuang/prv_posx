@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=600,user-scalable=no" />
+<script>posx_enable_chk_login = true;</script>
+<%include file="header_mobile_v2.html" />
+<title>POSX - Physical Count</title>
+
+<script type="text/javascript">
+g_tg_tg_lst = g_cfg = {};
+var g_item = null;
+var g_diff_only = 0;
+var g_chg = true;
+var g_v_items = {};
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function OnBarcodeReady()
+{
+    var barcode = window.Android.getBarcode();
+    g_v_itemsearch.val(barcode).autocomplete('searchNow');
+}
+
+function load_item(sid)
+{
+    swipe_wnd({
+        swipestart: {coords:[0]},
+        swipestop: {coords:[1]},
+    });
+    
+    get_js_ex('mobile?fn=get_item', {sid: sid}, function(js) {
+        set_item(js.item);
+    }, undefined, undefined, undefined, '__get_item_s__');
+}
+
+
+function show_tools(cb)
+{
+    g_v_itemsearch.blur();
+    g_v_tools_cnt.show();
+
+    //g_v_tg_lst.tinygrid('update', -1, true, true, true);
+    
+    if(!g_chg) { cb && cb(); return; }
+    
+    g_v_m_tools_cnt_lst.empty();
+    get_js_ex('?fn=get_count_items', {r_id: g_cfg.r_id, diff_only: g_diff_only}, function(js) {
+        g_v_items = {};
+        var vlst = [];
+        
+        for(var i = 0; i < js.items.length; i++) {
+            var r = js.items[i];
+            var v = $('<div onclick="load_item(\''+r[3]+'\')" '+ (r[2] !== null ? 'class="in_usr_count"' : "")+'></div>')
+            .append( $('<div></div>').text(r[0]) )
+            .append( $('<div></div>').text(r[4]) )
+            .append( $('<div></div>').text(r[1]) )
+            .append( $('<div></div>').text(r[2] === null ? '' : r[2]) );
+            vlst.push(v);
+            
+            g_v_items[ r[3] ] = v;
+        }
+        
+        g_v_m_tools_cnt_lst.append(vlst);
+        g_v_btn_count_lst_stat.text('Total: ' + js.items.length);
+        
+        
+        cb && cb();
+        
+        g_chg = false;
+        
+    }, undefined, undefined, undefined, '__get_count_items__');
+}
+
+
+function show_inv()
+{
+    g_v_itemsearch.blur();
+    g_v_inv_cnt.show();
+}
+
+function show_main()
+{
+    g_v_itemsearch.blur();
+    g_v_main_cnt.show();
+}
+
+function onsel_cycle_count(idx)
+{
+    var r = g_cc_lst[idx];
+    g_cfg.r_id = r['r_id'];
+
+    var v_lst = [];
+    var locs = r['r_loc'].split(',');
+    for(var i = 0; i < locs.length; i++) v_lst.push( $('<option></option>').text(locs[i]) );
+    g_v_m_top.data('in_els').loc[0].append(v_lst);
+
+    $('#cycle_count_sel').hide();
+    g_v_itemsearch.focus();
+}
+
+function load_cycle_count_sel()
+{
+    get_js_ex('?fn=load_cycle_count_list', {}, function(js) {
+        g_cc_lst = js;
+
+        if(js.length === 1) {
+            onsel_cycle_count(0);
+            return;
+        }
+        
+        var v_lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            v_lst.push( $('<div onclick="onsel_cycle_count('+i+')"></div>').text(r['r_dt'] + ' ' + r['r_desc']) );
+        }
+        $('#cycle_count_sel').append(v_lst);
+    });
+}
+
+function save_qty()
+{
+    if(!g_item) return;
+    
+    var loc = g_v_m_top.data('in_els').loc[0].val();
+    var units = g_item[3].units;
+    var v_units = g_item[3].v_units;
+    var d = [];
+    for(var i = 0; i < v_units.length; i++) {
+        var v = v_units[i];
+        var u = units[i];
+        var qty = $.trim(v[0].val());
+        if(!qty) continue;
+        d.push([qty, u[2]]);
+    }
+    if(!d.length) return;
+     
+    post_js_ex('?fn=save_qty', {'js': JSON.stringify({'h_sid': g_item[0], 'r_id': g_cfg.r_id, 'lst': d, 'loc': loc})}, function(js) {
+        if(!g_item) return;
+        
+        var v_units = g_item[3].v_units;
+        for(var i = 0; i < v_units.length; i++) v_units[i][0].val('');
+        
+        g_v_item_tbl.hist.empty();
+        load_hist();
+        g_v_itemsearch.focus();
+        
+        //g_chg = true;
+        
+    }, undefined, undefined, undefined, '__save_qty__');
+}
+
+function del_hist(h_id)
+{
+    post_js_ex('?fn=del_hist', {'h_id': h_id, 'r_id': g_cfg.r_id}, function(js) {
+        if(!g_item) return;
+        
+        g_v_item_tbl.hist.empty();
+        load_hist();
+        
+    }, undefined, undefined, undefined, '__del_hist__');
+}
+
+function load_hist()
+{
+    var sid = g_item[0];
+    get_js_ex('?fn=load_hist', {'h_sid': sid, 'r_id': g_cfg.r_id}, function(js) {
+        if(!g_item || g_item[0] !== sid) return;
+        
+        var units = g_item[3].units;
+        var d_u = {};
+        for(var i = 0; i < units.length; i++) {
+            var u = units[i];
+            d_u[ u[2].toLowerCase() ] = u[3];
+        }
+        
+        var ttl = 0;
+        var v_lst = [];
+        for(var i = 0; i < js.length; i++) {
+            var r = js[i];
+            v_lst.push( $('<div></div')
+                       .append( $('<div></div>').text(r.h_qty + r.h_uom) )
+                       .append( $('<div></div>').text(r.h_loc) )
+                       .append( $('<div></div>').text(r.h_dt).append( $('<img onclick="del_hist('+r.h_id+')" src="img/minus.png" />') ) )
+            );
+            
+            ttl += (d_u[ r.h_uom.toLowerCase() ] || 0) * r.h_qty;
+        }
+        g_v_item_tbl.hist.append(v_lst);
+        
+        var v_units = g_item[3].v_units;
+        for(var i = 0; i < v_units.length; i++) {
+            var v = v_units[i];
+            var u = units[i];
+            v[1].text((u[3] ? Math.floor(ttl / u[3]) : '*') + u[2]);
+        }
+        
+        var v = g_v_items[ sid ];
+        if(v !== undefined) {
+            v_lst.length ? v.addClass('in_usr_count') : v.removeClass('in_usr_count');
+            $(v.children()[2]).text(v_lst.length ? parseInt(ttl) : '');
+        }
+        
+    }, undefined, undefined, undefined, '__load_hist__');
+}
+
+
+function set_item(item)
+{
+    g_item = item;
+
+    g_v_item_tbl.name.empty();
+    g_v_item_tbl.count.empty();
+    g_v_item_tbl.unit.empty();
+    g_v_item_tbl.vend.empty();
+    g_v_item_tbl.inv.empty();
+    g_v_item_tbl.hist.empty();
+    if(!item) return;
+
+    g_v_item_tbl.name
+    .append( $('<span><span>').text('*'+item[1]+'*') )
+    .append( $('<span><span>').text(item[2]) );
+    
+    var units = item[3].units;
+    var v_units = item[3].v_units = [];
+    for(var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        var unz = (unit[2] ? ' ' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '');
+        var v = [$('<input type="number" data-role="none" />'), $('<div></div>')];
+        v_units.push(v);
+        g_v_item_tbl.count.append(
+            $('<div></div>')
+            .append( $('<div>+</div>').append(v[0]).append(unz) )
+            .append(v[1])
+            .append( $('<div></div>').text( unit[1] ) )
+        );
+    }
+    v_units[0][0].focus();
+    
+    var units = item[3].units;
+    for(var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        g_v_item_tbl.unit.append(
+            $('<div></div>')
+            .append( $('<div></div>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] + (unit[3] != 1 ? '('+unit[3]+')' : '') : '') + ' ' ) )
+            .append( $('<div></div>').text( unit[1] + ' ' ) )
+            .append( $('<div></div>').text( unit[4]) )
+        );
+    }
+    
+    var vends = item[3].vends;
+    for(var i = 0; i < vends.length; i++) {
+        var vend = vends[i];
+        if(vend[0]) {
+            g_v_item_tbl.vend.append(
+                $('<div></div>')
+                .append( $('<div></div>').text(vend[0]) )
+                .append( $('<div></div>').text(vend[1]) )
+                .append( $('<div></div>').text(vend[2]) )
+            );
+        }
+    }
+    
+    var qty = item[3].qty.slice(0);
+    var def_unit = units[ item[3].default_uom_idx ];
+    if(def_unit[3]) {
+        
+        if (def_unit[3] != 1) {
+            qty[0] /= def_unit[3];
+            qty[1] /= def_unit[3];
+            qty[3] /= def_unit[3];
+        }
+        
+        g_v_item_tbl.inv
+        .append($('<div></div>').text('OH: ' + Math.floor(qty[0]) + ' ' + def_unit[2]))
+        .append($('<div></div>').text('SO: ' + Math.floor(qty[1]) + ' ' + def_unit[2]))
+        .append($('<div></div>').text('PO: ' + Math.floor(qty[3]) + ' ' + def_unit[2]));
+        
+    }
+    
+    //load_imgs(item[0], item[3].desc1 || item[2]);
+    
+    load_hist();
+}
+
+function edit_hist_switch()
+{
+    var lst = g_v_item_tbl.hist.find('img');
+    if(!lst.length) return;
+    
+    var state = !$(lst[0]).is(':visible');
+    
+    for(var i = 0; i < lst.length; i++) state ? $(lst[i]).show() : $(lst[i]).hide();
+    
+}
+
+function hide_all()
+{
+    g_v_tools_cnt.hide();
+    g_v_inv_cnt.hide();
+    g_v_main_cnt.hide();
+}
+
+
+function swipe_wnd(e) {
+    var i;
+    for(i = 0; i < g_v_cnts.length; i++) if(g_v_cnts[i].is(':visible')) break;
+    
+    var cnt = g_v_cnts[i];
+    var sc = cnt.data('swipe_cnt');
+    
+    var tar_idx;
+    if(e.swipestart.coords[0] > e.swipestop.coords[0])
+        tar_idx = sc[0];
+    else
+        tar_idx = sc[1];
+    
+    if(tar_idx === null) return;
+    
+    if(sc[3] !== null) sc[3] = $(document).scrollTop();
+    
+    var tar_cnt = g_v_cnts[ tar_idx ];
+    tar_cnt.show();
+    tc = tar_cnt.data('swipe_cnt')
+    tc[2](function() {
+        $(document).scrollTop(tc[3]);
+    });
+    
+    cnt.hide();
+    
+}
+
+
+$(function() {
+
+g_v_m_top = $('.m_top');
+idx_elements(g_v_m_top, 5);
+var els = g_v_m_top.data('in_els');
+els.scan_barcode[0].click(function() {
+    window.Android && window.Android.scanBarcode();
+});
+
+els.save[0].click(save_qty);
+els.home[0].click(function() {
+    g_v_inv_cnt.hide();
+    g_v_tools_cnt.hide();
+});
+g_v_itemsearch = els.search[0];
+
+init_item_ac(
+    '[name="ctrl_search"]',
+    function(evt, ui) {
+        set_item(ui.item);
+    },
+    {
+        source: "mobile?fn=search_item",
+        delay: 500,
+        position: {mode:1},
+        autoSelect: true
+    },
+    itemsearch_render_item
+    
+); //init_item_ac
+/*
+g_v_tg_lst = $('#tg_lst').tinygrid({
+len:0,
+src:{page:'?fn=load_record_detail_by_user', data:g_tg_tg_lst},
+cols: [{name:'Num', width:80},
+       {name:'Desc', width:"70%"},
+       {name:'Qty+', width:100},
+       {name:'Loc', width:120},
+       {name:'DateTime', width:0},
+       ],
+click: function(r, c, d) {
+    g_v_tools_cnt.hide();
+    get_js_ex('mobile?fn=get_item', {sid: d[7]}, function(js) {
+        set_item(js.item);
+    }, undefined, undefined, undefined, '__get_item_s__');
+}
+});
+*/
+g_v_main_cnt = $('.m_main_cnt').data('swipe_cnt', [2, 0, show_main, null]);
+g_v_tools_cnt = $('.m_tools_cnt').data('swipe_cnt', [null, 1, show_tools, 0]);
+g_v_inv_cnt = $('.m_inv_cnt').data('swipe_cnt', [1, null, show_inv, null]);
+g_v_cnts = [g_v_inv_cnt, g_v_main_cnt, g_v_tools_cnt];
+
+g_v_m_tools_cnt_lst = $('#m_tools_cnt_lst');
+
+$('#btn_count_lst_all').button().click(function() {
+    var v = $(this);
+    g_diff_only ^= 1;
+    v.val(g_diff_only ? 'Diff only' : 'All');
+    
+    g_chg = true;
+    show_tools();
+});
+
+$('#btn_count_lst_refresh').button().click(function() {
+    g_chg = true;
+    show_tools();
+});
+
+
+g_v_btn_count_lst_stat = $('#btn_count_lst_stat');
+
+
+//$('body').on('swipe', swipe_wnd);
+
+
+var lst = g_v_main_cnt.find('.item_info_tbl_main > div > div:nth-child(2)');
+g_v_item_tbl = {
+    'name': $(lst[0]),
+    'inv': $(lst[1]),
+    'count': $($(lst[2]).children()[0]),
+    'hist': $(lst[3]),
+    'unit': g_v_inv_cnt.find('.item_unit'),
+    'vend': g_v_inv_cnt.find('.item_vend'),
+    //'picture': $(lst[4]),
+}
+
+/*
+g_v_inv_cnt.on('swipe', function(e) {
+    if (e.swipestart.coords[0] < e.swipestop.coords[0])
+        show_inv(); 
+    else
+        g_v_inv_cnt.hide();
+});
+
+
+g_v_tools_cnt.on('swipe', function(e) {
+    hide_all();
+    
+    if(e.swipestart.coords[0] > e.swipestop.coords[0]) show_tools();
+    
+});
+*/
+
+load_cycle_count_sel();
+
+}); //-ready
+
+</script>
+
+<style type="text/css">
+body {margin:0 auto}
+
+.top_bar {position:fixed;border-bottom:1px solid #ddd;top:0;left:0;right:0;height:42px;padding:4px;line-height:42px;background-color:#f9f9f9}
+.top_bar input {float:left;margin-left:8px;height:36px !important;font-size:26px !important;line-height:26px;}
+.m_top input[type="button"] {height:42px !important;width:49px !important;padding:0 !important;}
+.m_top input[name="ctrl_scan_barcode"] {background:transparent url("img/scanner.png") no-repeat;}
+.m_top input[name="ctrl_save"] {background:transparent url("img/save.png") no-repeat 10px 0;width:64px !important;margin-left:10px}
+
+
+
+.m_dlg_cnt {display:none;position:relative}
+.m_tools_cnt, .m_inv_cnt {background-color:#fdfdfd;}
+
+.tg_checkbox {cursor:pointer;width:200px;font-weight:bold;height:40px;line-height:40px;text-align:center;border:1px solid #ddd;border-radius:10px;padding:10px 0;margin:0 auto 20px auto;background:#fff;background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(50%,#f3f3f3), color-stop(51%,#ededed), color-stop(100%,#ffffff));}
+.tg_checkbox.tg_checkbox_active {background: rgb(180,227,145);background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(180,227,145,1)), color-stop(50%,rgba(97,196,25,1)), color-stop(100%,rgba(180,227,145,1)));}
+
+.item_info_tbl {position:absolute;top:0;right:0;bottom:0;left:0;}
+.item_info_tbl > div {position:relative;border-bottom:1px solid #ddd;margin:0;padding-left:70px;line-height:40px;font-size:22px;}
+.item_info_tbl > div > div {min-height:40px;}
+.item_info_tbl > div > div:nth-child(1) {position:absolute;background-color:#f1f1f1;top:0;bottom:0;left:0;width:60px;padding-right:10px;text-align:right;font-size:16px}
+.item_info_tbl > div > div:nth-child(2) {text-align:center;padding:6px 0px}
+.item_info_tbl_main {top:51px}
+
+.ui-autocomplete {top:51px !important;left:0 !important;bottom:0 !important;right:0 !important;border:none;padding:0;position:fixed}
+.ui-menu > .ui-menu-item {width:auto;height:66px}
+.ui-menu > .ui-menu-item > a {font-size:20px;width:auto;height:60px}
+.ui-menu > .ui-menu-item > a > span {height:30px;line-height:30px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:160px}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:240px;margin-right:0;}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:auto;margin-right:0;clear:left}
+
+.item_count >form > div {height:40px;}
+.item_count >form > div > div {float:left;height:40px;white-space:nowrap;overflow:hidden;border-right:1px dotted #ddd}
+.item_count >form > div > div:nth-child(1) {color:#394c8a;width:170px;text-align:left;font-weight:bold}
+.item_count >form > div > div:nth-child(1) >input {width:60px;margin-left:4px;vertical-align:text-bottom !important}
+.item_count >form > div > div:nth-child(2) {color:#394c8a;width:130px;font-weight:bold}
+.item_count >form > div > div:nth-child(3) {color:#4e6f15;width:220px;border-right:none}
+.item_count >form > div:nth-child(even) {background-color:#fdf3e4}
+
+.item_unit > div {height:40px;}
+.item_unit > div > div {float:left;height:40px;white-space:nowrap;overflow:hidden;border-right:1px dotted #ddd}
+.item_unit > div > div:nth-child(1) {color:#394c8a;width:148px;}
+.item_unit > div > div:nth-child(2) {color:#4e6f15;width:190px;}
+.item_unit > div > div:nth-child(3) {color:#833f16;width:190px;border-right:none}
+.item_unit > div:nth-child(even) {background-color:#fdf3e4}
+
+
+.item_hist > div {height:50px;}
+.item_hist > div > div {float:left;height:50px;line-height:50px;white-space:nowrap;overflow:hidden;border-right:1px dotted #ddd}
+.item_hist > div > div:nth-child(1) {color:#50af53;width:108px;}
+.item_hist > div > div:nth-child(2) {color:#2f73d8;width:150px;}
+.item_hist > div > div:nth-child(3) {color:#313131;width:260px;border-right:none}
+.item_hist > div > div:nth-child(3) >img {vertical-align:middle;margin-left:6px;width:32px;height:32px;border:none;display:none}
+.item_hist > div:nth-child(even) {background-color:#fdf3e4}
+
+
+.item_vend > div {height:40px;}
+.item_vend > div > div {float:left;height:40px;white-space:nowrap;overflow:hidden;border-right:1px dotted #ddd}
+.item_vend > div > div:nth-child(1) {color:#833f16;width:148px;}
+.item_vend > div > div:nth-child(2) {color:#4e6f15;width:190px;}
+.item_vend > div > div:nth-child(3) {color:#833f16;width:190px;border-right:none}
+.item_vend > div:nth-child(even) {background-color:#fdf3e4}
+
+.item_pics {max-height:120px;white-space:nowrap;overflow:hidden}
+.item_pics > img {max-width:120px;max-height:120px;padding-left:5px;}
+
+.item_name > span:nth-child(1) {font-weight:bold;color:#0f3a6b;padding-right:10px;}
+
+
+.item_inv > div {float:left;height:40px;white-space:nowrap;overflow:hidden;font-weight:bold;width:176px}
+.item_inv > div:nth-child(1) {color:#37461b}
+.item_inv > div:nth-child(2) {color:#2d4396}
+.item_inv > div:nth-child(3) {color:#882525}
+
+#cycle_count_sel {background-color:#f0f0f0;position:absolute;top:0;right:0;bottom:0;left:0;padding:50px 0;}
+#cycle_count_sel >div {text-align:center;font-size:32px;font-weight:bold;height:150px;line-height:50px;overflow:hidden;background-color:#faebd5;margin-bottom:50px}
+#cycle_count_sel >div:nth-child(even) {background-color:#cadcf4}
+
+#tg_lst {top:-1px}
+
+#m_tools_cnt_lst >div {position:relative;height:60px;border-bottom:1px solid #ccc}
+#m_tools_cnt_lst >div >div {position:absolute;overflow:hidden;line-height:60px;top:0;bottom:0;}
+#m_tools_cnt_lst >div >div:nth-child(1) {width:70px;left:10px;font-weight:bold;color:blue}
+#m_tools_cnt_lst >div >div:nth-child(2) {width:120px;left:80px;font-weight:bold;color:purple}
+#m_tools_cnt_lst >div >div:nth-child(3) {left:200px;right:80px}
+#m_tools_cnt_lst >div >div:nth-child(4) {width:70px;right:10px;font-weight:bold;text-align:right;color:red}
+
+#m_tools_cnt {margin-top:51px}
+
+.in_usr_count {background-color:#b0c48d}
+.m_main_cnt {display:block}
+
+
+
+</style>
+
+</head>
+<body>
+
+<div class="m_main_cnt">
+<div class="item_info_tbl item_info_tbl_main"> 
+<div style="max-height:93px;overflow:hidden"><div>Name</div><div class="item_name"></div></div>
+<div><div>QTY</div><div class="item_inv"></div></div>
+<div><div>Count</div><div class="item_count"><form data-role="none" onsubmit="save_qty();return false"></form></div></div>
+<div style="min-height:104px"><div>History<br/><img src="img/edit.png" border="0" onclick="edit_hist_switch()" /></div><div class="item_hist"></div></div>
+</div>
+
+<div class="m_top top_bar" data-role="none">
+<input type="button" value="" name="ctrl_scan_barcode" data-role="none" />
+<input type="text" name="ctrl_search" style="width:200px" data-role="none" />
+<select name="ctrl_loc" data-role="none" style="display:none"></select>
+<input type="button" value="" name="ctrl_save" data-role="none" />
+<input type="button" value="" name="ctrl_home" data-role="none" style="display:none"/>
+</div>
+</div>
+
+<div class="m_tools_cnt m_dlg_cnt" id="m_tools_cnt">
+<div id="m_tools_cnt_lst"></div>
+<div class="top_bar" data-role="none">
+<input type="button" id="btn_count_lst_all" value="All" data-role="none" style="width:160px" />
+<input type="button" id="btn_count_lst_refresh" value="Refresh" data-role="none" style="width:160px" />
+<span style="padding-left:20px" id="btn_count_lst_stat"></span>
+</div>
+</div>
+
+<div class="m_inv_cnt m_dlg_cnt">
+<div class="item_info_tbl">
+<div><div>Units</div><div class="item_unit"></div></div>
+<div><div>Vends</div><div class="item_vend"></div></div>
+</div>
+</div>
+
+<div id="cycle_count_sel"></div>
+
+
+</body>
+</html>
