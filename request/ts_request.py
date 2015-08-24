@@ -19,6 +19,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
     def fn_default(self):
         tabs = [
+        {'id': 'itemsold', 'name': 'Item Sold', 'src': 'itemsold'},
         {'id': 'Request', 'name': 'Request'},
         {'id': 'View', 'name': 'View', 'src': '?fn=View'},
         {'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'}
@@ -35,7 +36,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writefile('purchasing/ts_list.html')
         
     def fn_view(self):
-        self.req.writefile('purchasing/ts_request.html')
+        cur = self.cur()
+        cur.execute('select id,nz from report where type=1 order by id desc')
+        profiles = cur.fetchall()
+        r = {
+            'profiles': sorted(profiles, key=lambda f_x:f_x[1].lower())
+        }
+        self.req.writefile('purchasing/ts_request.html', r)
         
     
     def fn_get_lst(self):

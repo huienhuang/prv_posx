@@ -463,6 +463,15 @@ function load_profile()
     
 }
 
+function duplicate_profile()
+{
+    if( parseInt(g_v_profile.val()) ) {
+        g_v_dlg_profile_name.find('input[name="nz"]').val( 'Copy Of ' + g_v_profile.children(":selected").text() );
+        g_v_profile.val('0');
+    }
+    
+}
+
 function save_profile()
 {
     var pid = parseInt(g_v_profile.val());
@@ -712,6 +721,7 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
     width:400,
     height:200,
     buttons: {
+        'duplicate': duplicate_profile,
         'delete': delete_profile,
         'save': function() {__save_profile(); g_v_dlg_profile_name.dialog('close');},
     } 

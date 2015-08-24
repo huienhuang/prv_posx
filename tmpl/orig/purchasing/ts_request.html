@@ -143,7 +143,7 @@ function _delete()
 function _save()
 {
     var lst = g_v_xtbl.children();
-    console.log(g_pid);
+    //console.log(g_pid);
     if(!g_pid && !lst.length) return;
     
     var items = []
@@ -283,6 +283,28 @@ els.btn_send[0].click(function() {
     
 });
 
+
+var g_v_pull = els.pull[0].change(function() {
+    
+    var pid = parseInt(g_v_pull.val());
+    if(!pid) return;
+    g_v_pull.val('');
+    
+    get_js_ex('itemsold?fn=load_profile', {pid: pid}, function(js) {
+        
+        for(var i = 0; i < js.items.length; i++) {
+            var t = js.items[i];
+            var item = t[0];
+            if(g_items[ item[0] ] !== undefined) return;
+            if(t[1] < item[3].units.length && t[1] >= 0) item[3].default_uom_idx = t[1];
+            g_items[ item[0] ] = {'v': new_row(item)};
+        }
+        
+    }, undefined, false, undefined, '__load_profile__');
+    
+});
+
+
 }); //ready
 
 </script>
@@ -343,9 +365,17 @@ input[type="text"]:focus {background-color:#fffceb}
 <br/>
 <input type="text" style="width:180px" id="srch_item" name="ctrl_search" placeholder="search item.." />
 <input type="button" name="ctrl_btn_save" value="Save" class="btn" />
-<input type="button" name="ctrl_btn_delete" value="Delete" class="btn"/>
-<input type="button" name="ctrl_btn_print" value="Print" class="btn"/>
-<input type="button" name="ctrl_btn_send" value="Send" class="btn"/>
+<input type="button" name="ctrl_btn_delete" value="Delete" class="btn" />
+<input type="button" name="ctrl_btn_print" value="Print" class="btn" title="Save It Before Do The Printing" />
+<input type="button" name="ctrl_btn_send" value="Send" class="btn" />
+
+<select name="ctrl_pull" style="width:230px">
+<option value="">Pull List From ItemSold</option>
+%for pid,pnz in profiles:
+<option value="${pid}">${pnz|h}</option>
+%endfor
+</select>
+
 </div>
 
 <div class="xtbl_header"><div class="xtbl_row"><div></div><div>#</div><div>ALU</div><div>Name</div><div>UOM</div><div>OH_QTY</div><div>PO_QTY</div><div>RQ_QTY</div></div></div>

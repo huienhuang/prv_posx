@@ -22,7 +22,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = {
             'tab_cur_idx' : 2,
             'title': 'Purchasing',
-            'tabs': [ ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup'), ('price_adjustment', 'Price Adjustment') ]
+            'tabs': [ ('$itemsold', 'Item Sold'), ('item_margin', 'Item Margin'), ('item_markup', 'Item Markup'), ('price_adjustment', 'Price Adjustment') ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
         
