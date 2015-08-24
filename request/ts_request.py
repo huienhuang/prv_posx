@@ -22,9 +22,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         {'id': 'Request', 'name': 'Request'},
         {'id': 'View', 'name': 'View', 'src': '?fn=View'},
-        {'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'}
+        {'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'},
         {'id': 'itemsold', 'name': 'Item Sold', 'src': 'itemsold'},
-        
+
         ]
         r = {
             'tab_cur_idx' : 2,
