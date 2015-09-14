@@ -167,6 +167,12 @@ load_js = function(type, msg, url, data, cb, err_cb, sync)
 };
 
 var load_js_ex__s_tag = {}
+
+invalid_ajs = function(s_tag)
+{
+    if(load_js_ex__s_tag[s_tag] !== undefined) load_js_ex__s_tag[s_tag]++;
+}
+
 load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
 {
     var cur_seq = 0;
@@ -183,9 +189,7 @@ load_js_ex = function(type, msg, url, data, cb, err_cb, sync, s_tag)
             
             hide_loading_msg();
             if(js.err) {
-                if(js.err === -999) {
-                    show_login();
-                } else if(err_cb)
+                if(err_cb)
                     err_cb.call(this, 1, arguments);
                 else
                     MsgBox('Erorr Code #' + (js.err || 'None'), js.err_s || 'unexpected error');
@@ -231,6 +235,89 @@ open_wnd = function(url, nz, width, height) {
     __c_wnds[nz] && __c_wnds[nz].window && __c_wnds[nz].close && __c_wnds[nz].close();
     __c_wnds[nz] = window.open(url, nz, 'location=0,width='+(width || 992)+',height='+(height || 700));
 };
+
+
+
+var __dialogs = {};
+function open_dlg(url, cb, cb_always, opts)
+{
+    opts = $.extend({}, opts || {});
+    opts.show = true;
+    
+    var dlg = __dialogs[url];
+    if(dlg === undefined) {
+        dlg = __dialogs[url] = $('<div class="modal fade" role="dialog"></div>').data('pjs', {ready: 0}).appendTo($('body')).modal(opts);
+        dlg.load(url, function() {
+            cb && cb.call(dlg);
+            dlg.data('pjs').ready = 1;
+        });
+    }
+    
+    if(!dlg.data('pjs').ready || dlg.is(':visible')) return dlg;
+    
+    if(cb && cb_always) cb.call(dlg);
+    dlg.modal('show');
+    
+    return dlg;
+}
+
+var v_login = null;
+function show_login() {
+    v_login = open_dlg('?fn=dlg_login', function() {
+        var dlg = this;
+        var v_uid = dlg.find('[name="user_id"]').empty();
+        dlg.find('[name="user_passwd"]').empty();
+        $.get('?fn=getusers', {}, function(js) {
+            v_uid.empty();
+            v_uid.append('<option value="0"> -- Select -- </option>')
+            for(var i = 0; i < js.length; i++) v_uid.append( $('<option></option>').text(js[i][1]).val(js[i][0]) );
+
+        }, 'json');
+    }, 1, {backdrop: 'static', keyboard: false});
+}
+
+posx_login = function() {
+    var user_id = parseInt(v_login.find('[name="user_id"]').val());
+    var v_pass = v_login.find('[name="user_passwd"]');
+    var user_passwd = $.trim(v_pass.val());
+    v_pass.val('');
+    
+    if(!user_id || !user_passwd) return;
+    post_js_ex('?fn=login_js', {'user_id':user_id, 'user_passwd':user_passwd}, function(js) {
+        if(!js || !js.user_id) return;
+        v_login.modal('hide');
+        invalid_ajs('__posx_login_check__');
+    }, undefined, undefined, "");
+}
+
+var timeout_chk_login = null;
+function chk_login()
+{
+    var cba = typeof(window.posx_chk_login_cba) == 'function' ? window.posx_chk_login_cba() : [];
+    
+    get_js_ex('?fn=getuser', cba[1] || {}, function(js) {
+        timeout_chk_login && clearTimeout(timeout_chk_login);
+        timeout_chk_login = setTimeout(chk_login, 5000);
+        
+        if(!js || js.user_id !== 0) {
+            v_login && v_login.modal('hide');
+            cba[0] && cba[0](js);
+        } else {
+            show_login();
+        }
+        
+    }, 'json').error(function() {
+        timeout_chk_login && clearTimeout(timeout_chk_login);
+        timeout_chk_login = setTimeout(chk_login, 5000);
+        
+        v_login && v_login.modal('hide');
+        
+    }, undefined, undefined, undefined, '__posx_login_check__');
+}
+
+$(function() {
+    if(window.posx_enable_chk_login) timeout_chk_login = setTimeout(chk_login, 5000);
+});
 
 })();
 

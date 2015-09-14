@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v3.html" />
+<title>POSX - Delivery V3</title>
+
+<script type="text/javascript">
+
+$(function() {
+$('.btn').button();
+
+g_v_tabs = $('#m_tabs').tabs({
+    'heightStyle': 'fill',
+    beforeActivate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'quit') {
+            go_home();
+            return false;
+        }
+        
+        return true;
+    },
+    activate: function(event, ui) {
+        var nz = ui.newTab.children('a').prop('hash').substr(6);
+        if(nz == 'main') {
+            g_v_records.tinygrid('update', -1, true, true, true);
+            
+        } else if(nz == 'receipts') {
+            g_v_receipts.tinygrid('update', -1, true, true, true);
+            
+        } else if(nz == 'district') {
+            if(!g_v_district_iframe.data('inited')) {
+                g_v_district_iframe.data('inited', true);
+                g_v_district_iframe.attr('src', 'district');
+            }
+        } else if(nz == 'report') {
+            if(!g_v_report_iframe.data('inited')) {
+                g_v_report_iframe.data('inited', true);
+                g_v_report_iframe.attr('src', 'delivery?fn=report');
+            }
+        } else if(nz == 'schedule') {
+            if(!g_v_schedule_iframe.data('inited')) {
+                g_v_schedule_iframe.data('inited', true);
+                g_v_schedule_iframe.attr('src', 'schedulev2');
+            }
+        }
+    },
+    active: 0
+});
+
+g_v_view_iframe = $('#tabs_view > iframe', g_v_tabs);
+
+g_v_district_iframe = $('#tabs_district > iframe', g_v_tabs);
+
+g_v_schedule_iframe = $('#tabs_schedule > iframe', g_v_tabs);
+
+g_v_report_iframe = $('#tabs_report > iframe', g_v_tabs);
+
+g_v_records = $('#tabs_main > #records', g_v_tabs).tinygrid({
+len:1,
+src:{page:'delivery?fn=get_delivery_record_list'},
+cols: [{name:'#', width:100},
+       {name:'Name', width:'100%'},
+       {name:'Clerk', width:120},
+       {name:'Count', width:70},
+       {name:'Date', width:120},
+       ],
+click: function(r, c, d) {
+    g_v_tabs.tabs("option", "active", 1);
+    g_v_view_iframe.attr('src', '?fn=delivery_edit&read_only=1&d_id=' + d[0]);
+}
+});
+
+
+g_v_receipts = $('#tabs_receipts > #receipts', g_v_tabs).tinygrid({
+len:0,
+src:{page:'delivery?fn=get_problem_receipts'},
+cols: [{name:'#', width:100},
+       {name:'Company', width:260},
+       {name:'Clerk', width:100},
+       {name:'Record', width:70},
+       {name:'Driver', width:100},
+       {name:'RecordName', width:0},
+       {name:'OrderDate', width:90},
+       {name:'ShipDate', width:90},
+       {name:'Problem', width:'100%'},
+       ],
+click: function(r, c, d) {
+    if (c === 3) {
+        window.open('delivery?fn=delivery_edit&read_only=1&d_id='+d[3],'posx_delivery_record','location=0,width=1150,height=800');
+    } else if (c === 1) {
+        open_wnd('hist?fn=custhist&cid='+d[11],'posx_customer_hist');
+    } else {
+        if (d[10])
+            window.open('sorder?fn=print&rid=' + d[0],'posx_print_wnd','location=0,width=992,height=700');
+        else
+            window.open('hist?fn=printreceipt&rid=' + d[9],'posx_print_wnd','location=0,width=992,height=700');
+    }
+}
+});
+
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+#m_tabs {position:absolute;top:0;left:0;right:0;bottom:0;font-size:18px;padding:0px;}
+#m_tabs > div {position:absolute;top:49px;left:0;right:0;bottom:0;height:auto !important;width:auto !important;padding:0px;}
+#m_tabs > div > iframe {border:0;margin:0;padding:0;position:absolute;top:0;bottom:0;width:100%;height:100%;}
+
+</style>
+
+</head>
+<body>
+
+<div id="m_tabs">
+<ul>
+    <li><a href="#tabs_main">All</a></li>
+    <li><a href="#tabs_view">View</a></li>
+    <li><a href="#tabs_new">New</a></li>
+</ul>
+
+<div id="tabs_main"><div id="records"></div></div>
+<div id="tabs_view"><iframe src="about:blank"></iframe></div>
+<div id="tabs_new"><iframe src="?fn=delivery_edit"></iframe></div>
+
+</div>
+
+</body>
+</html>

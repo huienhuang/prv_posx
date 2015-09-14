@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>POSX - Report</title>
+<%include file="../header_bs_v1.html" />
+
+<script type="text/javascript">
+
+
+function load_report(nz)
+{
+    for(var nzz in g_v_sale_tbls) {
+        if(nzz !== nz) g_v_sale_tbls[nzz].v.parent().parent().hide();
+    }
+    
+    var c = g_v_sale_tbls[nz];
+    c.v.parent().parent().show();
+    if(!c.inited) {
+        c.init.call(c);
+        c.inited = true;
+    }
+}
+
+function _load_report()
+{
+    g_js = null;
+    var v_hdr = this.v.children('thead').empty();
+    var v_cnt = this.v.children('tbody').empty();
+    var v_ftr = this.v.children('tfoot').empty();
+    
+    get_js_ex('sreport?fn=get_sale', {}, function(js) {
+        g_js = js;
+        var o_lst = [ $('<th></th>') ];
+        var ss = [];
+        for(var i = 0; i < js.length; i++) {
+            ss.push(0);
+            o_lst.push( $('<th></th>').text(js[i][0]) );
+        }
+        v_hdr.append($('<tr></tr>').append(o_lst));
+        
+        o_lst = [];
+        for(var j = 0; j < 12; j++) {
+            var v = $('<tr onclick="show_chart_cmp_same_month('+j+')"></tr>').append( $('<td>'+(j+1)+'</td>') );
+            var last_o = 0;
+            for(var i = 0; i < js.length; i++) {
+                var o = js[i][1][j];
+                ss[i] += o;
+                var v_o = $('<td></td>');
+                if(o) {
+                    v_o.append( $('<span></span>').text( o.toFixed(2) ) );
+                    if(last_o){
+                        var dp = (o - last_o) / last_o * 100;
+                        if(dp){
+                            if(dp > 0)
+                                v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                            else
+                                v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                        }
+                    }
+                }
+                last_o = o;
+                v.append(v_o);
+            }
+            o_lst.push(v);
+        }
+        v_cnt.append(o_lst);
+        
+        o_lst = [ $('<td>Total:</td>') ];
+        var last_o = 0;
+        for(var i = 0; i < js.length; i++) {
+            var o = ss[i];
+            var v_o = $('<td></td>');
+            if(o) {
+                v_o.append( $('<span></span>').text( o.toFixed(2) ) );
+                if(last_o){
+                    var dp = (o - last_o) / last_o * 100;
+                    if(dp){
+                        if(dp > 0)
+                            v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                        else
+                            v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                    }
+                }
+            }
+            last_o = o;
+            
+            o_lst.push(v_o);
+        }
+        v_ftr.append( $('<tr></tr>').append(o_lst) );
+        
+    }, undefined, undefined, undefined, '__load_sale_report__');
+}
+
+
+
+
+$(function() {
+
+<%
+REPORT_TBL_NZS = ['mom', 'cate', 'cate_mg', 'rep', 'rep_mg']
+
+%>
+
+g_v_sale_tbls = {
+%for nz in REPORT_TBL_NZS:
+    ${nz}: { v: $('#sale_${nz}_tbl'), src: 'sreport?fn=get_sale', data: {}, init: _load_report },
+%endfor
+};
+
+
+load_report('mom');
+
+});
+
+
+</script>
+
+<style type="text/css">
+.diff_pct_inc {color:#579942}
+.diff_pct_dec {color:#e93f3f}
+
+table {text-align:center;margin-bottom:0 !important;cursor:pointer}
+table >thead >tr >th {text-align:center}
+table >tfoot {font-weight:bold}
+.tbl_panel {display:none}
+
+
+</style>
+
+</head>
+<body>
+
+<nav class="navbar navbar-default"><div class="container-fluid">
+
+<form class="navbar-form navbar-left">
+<div class="form-group input-group">
+<span class="input-group-addon">Location:</span>
+<select class="form-control"><option>All</option><option>Delivery SSF</option><option>Store SF</option></select>
+</div>
+</form>
+
+<button type="button" class="btn btn-primary navbar-btn">Export</button>
+
+<div class="btn-group" role="group">
+  <button type="button" class="btn btn-default">Month</button>
+  <button type="button" class="btn btn-default">Category</button>
+  <button type="button" class="btn btn-default">Category Margin</button>
+  <button type="button" class="btn btn-default">Rep</button>
+  <button type="button" class="btn btn-default">Rep Margin</button>
+</div>
+
+</div></nav>
+
+
+<div class="container-fluid">
+
+%for nz in REPORT_TBL_NZS:
+<div class="panel panel-primary tbl_panel"><div class="panel-heading">Sales Month Over Month</div>
+<div class="panel-body"><table class="table table-striped table-hover" id="sale_${nz}_tbl"><thead></thead><tfoot></tfoot><tbody></tbody></table></div>
+</div>
+%endfor
+
+</div>
+
+
+
+</body>
+</html>

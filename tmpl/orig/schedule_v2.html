@@ -902,6 +902,10 @@ window.posx_chk_login_cb = function(js) {
     }
 };
 
+window.posx_chk_login_cba = function() {
+    return [window.posx_chk_login_cb, window.posx_chk_login_args()];
+}
+
 
 g_v_dlg_partial_reason = $('#dlg_partial_reason').dialog({
     modal: true,

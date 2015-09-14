@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>posx_enable_chk_login = true;</script>
+<title>POSX - ${title|h}</title>
+<%include file="header_bs_v1.html" />
+
+<script type="text/javascript">
+
+
+function get_active_wnd()
+{
+    for(var wnd_nz in g_wnds) {
+        var v = g_wnds[wnd_nz];
+        if(v.wnd && v.wnd.parent().hasClass('active')) return v;
+    }
+    return null;
+}
+
+function posx_chk_login_cba()
+{
+    var ret = [null, null];
+    var v = get_active_wnd();
+    if (v === null || !v.wnd[0].contentWindow) return ret;
+
+    var cba = v.wnd[0].contentWindow.posx_chk_login_cba;
+    if(typeof(cba) != 'function') return ret;
+
+    return cba();
+}
+
+function open_wnd(nz, url)
+{
+    var w = g_wnds[nz];
+    w.lnk.tab('show');
+    if(url) w.wnd.attr('src', url);
+}
+
+function on_tab_show(evt)
+{
+    var nz = $(evt.target).prop('hash').substr(6);
+    if(nz === 'quit') { go_home(); return; }
+    
+}
+
+function on_tab_shown(evt)
+{
+    var nz = $(evt.target).prop('hash').substr(6);
+    var w = g_wnds[nz];
+    
+    if(!w.wnd.attr('src')) w.wnd.attr('src', w.wnd.data('viewsrc'));
+    else w.wnd[0].contentWindow && w.wnd[0].contentWindow.on_wnd_active && w.wnd[0].contentWindow.on_wnd_active();
+    
+}
+
+$(function() {
+
+g_wnds = {};
+
+var v_lst = $('#m_nav >li >a');
+for(var i = 0; i < v_lst.length; i++) {
+    var o = $(v_lst[i]).on('show.bs.tab', on_tab_show).on('shown.bs.tab', on_tab_shown);
+    g_wnds[ o.prop('hash').substr(6) ] = {lnk: o, idx: i};
+}
+
+var v_lst = $('#m_tabs >div');
+for(var i = 0; i < v_lst.length; i++) {
+    var o = $(v_lst[i]);
+    g_wnds[ o.attr('id').substr(5) ].wnd = o.children('iframe');
+}
+
+
+%if view:
+open_wnd('${view}');
+%endif
+
+});
+
+</script>
+
+<style type="text/css">
+body {-webkit-user-select:none;}
+
+
+</style>
+
+</head>
+<body>
+
+<div>
+<ul class="nav nav-tabs posx-tab-menu" id="m_nav">
+    <li role="presentation" style="float:right"><a href="#tabs_quit" role="tab" data-toggle="tab"><strong>Quit</strong></a></li>
+%for t in tabs:
+    <li role="presentation"><a href="#tabs_${t['id']}" role="tab" data-toggle="tab"><strong>${t['name']|h}</strong></a></li>
+%endfor
+</ul>
+
+<div class="tab-content posx-tab-panels" id="m_tabs">
+%for t in tabs:
+<%
+src = t.get('src')
+if not src:
+    if t.get('singleview'):
+        src = '%s' % (t['id'],)
+    else:
+        src = '?fn=%s' % (t['id'],)
+%>
+<div role="tabpanel" class="tab-pane" id="tabs_${t['id']}">
+%if t.get('preload'):
+<iframe src="${src}"></iframe>
+%else:
+<iframe data-viewsrc="${src}"></iframe>
+%endif
+</div>
+%endfor
+</div>
+</div>
+
+
+</body>
+</html>

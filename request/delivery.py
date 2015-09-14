@@ -43,6 +43,31 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r['has_perm_admin'] = self.get_cur_rh_perm() & PERM_ADMIN
         self.req.writefile('delivery_v2.html', r)
     
+
+    def fn_shipments(self):
+        self.req.writefile('delivery_v3.html')
+
+    def fn_v3(self):
+        tabs = [
+        {'id': 'problems', 'name': 'Problems'},
+        {'id': 'shipments', 'name': 'Shipments'},
+        {'id': 'schedulev2', 'name': 'Scheduler', 'singleview': 1},
+        {'id': 'onlineorders', 'name': 'Online Orders', 'singleview': 1},
+        ]
+
+        view = self.req.qsv_ustr('view')
+        if view and view not in [ f_x['id'] for f_x in tabs ]: view = None
+        if not view: view = tabs[0]['id']
+
+        r = {
+            'tab_cur_idx' : 2,
+            'title': 'Report',
+            'tabs': tabs,
+            'view': view,
+            'has_perm_admin': self.get_cur_rh_perm() & PERM_ADMIN
+        }
+        self.req.writefile('tmpl_multitabs_bs_v1.html', r)
+
     def fn_get_delivery_record(self):
         d_id = self.req.qsv_int('d_id')
         if not d_id: return

@@ -13,9 +13,7 @@ $('.btn_login').button().click(function() {
     $('#login_form').submit();
 });
 
-g_v_user_passwd = $('input[name="user_passwd"]').keyup(function(e) {
-    if (e.which === 13) $('#login_form').submit();
-});
+g_v_user_passwd = $('input[name="user_passwd"]');
 
 $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).change();
 
@@ -53,7 +51,7 @@ $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).chan
 </div>
 
 <button type="button" class="btn btn-primary btn-lg btn_home">Home</button>&nbsp;&nbsp;
-<button type="button" class="btn btn-success btn-lg btn_login">Log In</button>
+<button type="submit" class="btn btn-success btn-lg btn_login">Log In</button>
 
 </form>
 

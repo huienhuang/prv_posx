@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - Item - Report - Sale</title>
+
+<script type="text/javascript">
+g_tg_item_list_data = {'frm_mon':'', 'to_mon':'', 'status':0, 'dept':''};
+
+function apply()
+{
+    var els = g_v_ctrl.data('in_els');
+    
+    var frm_mon = els.frm_mon[0].val().replace('-', '');
+    var to_mon = els.to_mon[0].val().replace('-', '');
+    
+    var v_status_cbs = $('.filter_status input:checked');
+    var status_lst = [];
+    for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
+    
+    var v_dept_cbs = $('.filter_dept >div:not(.sel_hidden) input:checked');
+    var dept_lst = [];
+    for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
+    
+    
+    g_tg_item_list_data.frm_mon = frm_mon;
+    g_tg_item_list_data.to_mon = to_mon;
+    g_tg_item_list_data.status = status_lst.join('|');
+    g_tg_item_list_data.dept = dept_lst.join('|');
+    
+    g_v_tg_item_list.tinygrid('update', -1, true, true, true);
+}
+
+function export_csv()
+{
+    var v_status_cbs = $('.filter_status input:checked');
+    var status_lst = [];
+    for(var i = 0; i < v_status_cbs.length; i++) status_lst.push( $(v_status_cbs[i]).val() );
+    
+    var v_dept_cbs = $('.filter_dept >div:not(.sel_hidden) input:checked');
+    var dept_lst = [];
+    for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
+    
+    var els = g_v_ctrl.data('in_els');
+    var data = {
+        'status': status_lst.join('|'),
+        'dept': dept_lst.join('|'),
+        'frm_mon': els.frm_mon[0].val().replace('-', ''),
+        'to_mon': els.to_mon[0].val().replace('-', ''),
+    };
+
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
+    g_v_form_dl.submit();
+}
+
+$(function() {
+    
+$('.btn').button();
+
+g_v_tg_item_list = $('.tg_item_list').tinygrid({
+len:0,
+src:{page:'?fn=get_items', data:g_tg_item_list_data, method:'post'},
+cols: [{name:'ID', width:70},
+       {name:'Name', width:"100%"},
+       {name:'UOM', width:50},
+       {name:'Status', width:0},
+       {name:'Cate', width:280},
+       {name:'Dept', width:280},
+       {name:'OnHand', width:90},
+       {name:'OnOrder', width:90},
+       {name:'T_Qty', width:0},
+       {name:'T_Sale', width:0},
+       {name:'T_Cost', width:0},
+       {name:'Margin', width:0},
+       {name:'Margin%', width:0},
+       ],
+click: function(r, c, d) {
+        window.open('hist?fn=itemhist&tid='+d[13],'posx_item_hist','location=0,width=992,height=700');
+},
+});
+
+g_v_form_dl = $('#form_dl');
+
+g_v_filter_chg = false;
+$('.filter input[type="checkbox"]').change(function() {
+    var d = $(this);
+    var n = d.prop('name').substr(7);
+    var v = d.val();
+    var chk = d.prop('checked');
+    var p = d.parent().parent();
+    if(n === 'cate') {
+        var v_dept = $('.filter_dept').children('div[title="'+v+'"]');
+        if(chk) {
+            v_dept.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            v_dept.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
+    g_v_filter_chg = true;
+    
+});
+
+function filter_chk_all(chk) {
+    var d = $(this);
+    var p = d.parent().parent();
+    p.find('input[type="checkbox"]').prop('checked', chk);
+    
+    var n = p.attr('class').substr(7);
+    if(n === 'cate') {
+        var c = $($('.filter_dept').children().slice(1));
+        if(chk) {
+            c.removeClass('sel_hidden').children('input').prop('checked', true);
+        } else {
+            c.addClass('sel_hidden').children('input').prop('checked', false);
+        }
+    }
+    
+    g_v_filter_chg = true;
+}
+
+v_filter_chkall = $('.filter >div:nth-child(2) >div >div:nth-child(1)');
+v_filter_chkall.children('span:nth-child(1)').click(function() { filter_chk_all.call(this, true); });
+v_filter_chkall.children('span:nth-child(2)').click(function() { filter_chk_all.call(this, false); });
+
+$('.filter').hover(null, function() {
+    if(!g_v_filter_chg) return;
+    g_v_filter_chg = false;
+    apply();
+})
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 0);
+var els = g_v_ctrl.data('in_els');
+els.frm_mon[0].change(apply);
+els.to_mon[0].change(apply);
+els.export[0].click(export_csv);
+els.quit[0].click(go_home);
+
+apply();
+
+});
+
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px}
+.x_ctrl {z-index:999}
+.x_ctrl >input {margin-right:10px}
+
+.tiny_popup {position:relative;display:inline-block;line-height:32px;}
+.tiny_popup >div:nth-child(1) {text-align:center}
+.tiny_popup >div:nth-child(2) {position:absolute;display:none;top:100%;left:0;background-color:#ddd;padding:20px 10px;}
+.tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
+.tiny_popup:hover >div:nth-child(2) {display:block;}
+
+.tiny_popup >div:nth-child(2) {width:715px;}
+.tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
+.tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
+.tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
+.tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
+
+.filter_dept >div.sel_hidden {display:none}
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+
+<div class="tiny_popup filter" style="width:100px">
+<div>Filter</div>
+<div>
+
+<div class="filter_status">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for status in const.ITEM_L_STATUS:
+%if status[1] == 127:
+<div><input type="checkbox" value="${status[1]|h}" name="filter_status" checked="checked" /><span>${status[0]|h}</span></div>
+%endif
+%endfor
+</div>
+
+<div class="filter_cate">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for cate in const.ITEM_L_CATE:
+<div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
+%endfor
+</div>
+
+<div class="filter_dept">
+<div><span>Check All</span> / <span>Uncheck All</span></div>
+%for dept in const.ITEM_L_DEPT:
+<div title="${dept[1]|h}"><input type="checkbox" value="${dept[0]|h}" name="filter_dept" checked="checked" /><span>${dept[0]|h}</span></div>
+%endfor
+</div>
+
+</div>
+</div>
+
+<input type="month" name="frm_mon" title="From" style="width:200px;display:none" />
+<input type="month" name="to_mon" title="To" style="width:200px;display:none" />
+<input type="button" name="export" value="export" class="btn" />
+<input type="button" name="quit" value="quit" class="btn" />
+</div>
+
+<div class="x_body tg_item_list"></div>
+
+<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none">
+<input type="hidden" name="js" />
+</form>
+
+</body>
+</html>

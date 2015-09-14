@@ -374,6 +374,12 @@ class RequestHandler(tinywsgi.RequestHandler):
     #fn_login
     fn_login.PERM = 0
     
+    def fn_dlg_login(self):
+        self.req.writefile('dlg/login.html')
+    #fn_login
+    fn_dlg_login.PERM = 0
+
+
     def fn_login_by_name_js(self):
         ret = {'user_id':0}
         user_name = self.req.psv_ustr('user_name')
