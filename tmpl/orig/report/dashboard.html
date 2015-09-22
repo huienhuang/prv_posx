@@ -7,28 +7,478 @@
 <script type="text/javascript">
 
 
-function load_report(nz)
+function load_report()
 {
+    var nz = $(this).data('nz');
+    
     for(var nzz in g_v_sale_tbls) {
-        if(nzz !== nz) g_v_sale_tbls[nzz].v.parent().parent().hide();
+        if(nzz !== nz) g_v_sale_tbls[nzz].v.parent().hide();
     }
     
     var c = g_v_sale_tbls[nz];
-    c.v.parent().parent().show();
+    c.v.parent().show();
     if(!c.inited) {
         c.init.call(c);
         c.inited = true;
     }
 }
 
-function _load_report()
+
+function show_tp()
+{
+    var o = $(this);
+    var i = parseInt(o.data('tar-tp-idx'));
+    
+    var v_cnt = o.parent();
+    var v_lst = v_cnt.children();
+    for(var j = 0; j < v_lst.length; j++) {
+        var l_o = $(v_lst[j]);
+        var idx = l_o.data('tp-idx');
+        if(idx === undefined) { l_o.removeClass('tbl_t_active'); continue; };
+        if(parseInt(idx) === i)
+            l_o.show();
+        else
+            l_o.hide();
+    }
+    
+    o.addClass('tbl_t_active');
+}
+
+function _load_cate_report()
+{
+    g_cate_js = null;
+    var v_hdr = this.v.children('thead').empty();
+    var v_cnt = this.v.children('tbody').empty();
+    var v_ftr = this.v.children('tfoot').empty();
+    
+    get_js_ex('?fn=get_cate_sale', {}, function(js) {
+        js = js.js;
+        if(js === undefined) return;
+        g_cate_js = js;
+        
+        var l_tps = [];
+        var d_yrs = {};
+        var ov_all = {};
+        for(var tnz in js) {
+            l_tps.push(tnz);
+            
+            var td = js[tnz][0];
+            var dd = js[tnz][0] = {};
+            for(var i = 0; i < td.length; i++) {
+                var md = td[i];
+                var yr = Math.floor(md[0] / 100);
+                dd[ md[0] ] = md[1];
+                
+                var s_k = yr * 100 + 0;
+                var yrd = dd[ s_k ];
+                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ s_k ];
+                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ md[0] ];
+                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                d_yrs[ yr ] = true;
+            }
+        }
+        
+        var l_yrs = [];
+        for(var yr in d_yrs) l_yrs.push(yr);
+        l_yrs.sort();
+        l_tps.sort();
+        
+        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
+        for(var i = 0; i < l_yrs.length; i++) {
+            o_lst.push( $('<th></th>').text(l_yrs[i]) );
+        }
+        v_hdr.append($('<tr></tr>').append(o_lst));
+        
+        l_tps.push('_ALL_');
+        js['_ALL_'] = [ov_all];
+        o_lst = [];
+        for(var t = 0; t < l_tps.length; t++) {
+            var tnz = l_tps[t]
+            var td = js[tnz][0];
+
+            for(var i = 0; i <= 12; i++) {
+                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
+                
+                var prev_v = 0;
+                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
+                for(var y = 0; y < l_yrs.length; y++) {
+                    var k = l_yrs[y] * 100 + i;
+                    var d = td[k];
+                    var cur_v = d && d[1] || 0;
+                    
+                    var c_v = $('<td></td>');
+                    if(cur_v) {
+                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
+                        if(prev_v){
+                            var dp = (cur_v - prev_v) / prev_v * 100;
+                            if(dp){
+                                if(dp > 0)
+                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                                else
+                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                            }
+                        }
+                    }
+                    prev_v = cur_v;
+                    l_v.push(c_v);
+                }
+                
+                if(i == 0)
+                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
+                else
+                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
+                    
+            }
+            
+            
+            
+        }
+        
+        v_cnt.append(o_lst);
+        
+    }, undefined, undefined, undefined, '__load_cate_report__');
+    
+}
+
+function _load_cate_mg_report()
+{
+    g_cate_js = null;
+    var v_hdr = this.v.children('thead').empty();
+    var v_cnt = this.v.children('tbody').empty();
+    var v_ftr = this.v.children('tfoot').empty();
+    
+    get_js_ex('?fn=get_cate_sale', {}, function(js) {
+        js = js.js;
+        if(js === undefined) return;
+        g_cate_js = js;
+        
+        var l_tps = [];
+        var d_yrs = {};
+        var ov_all = {};
+        for(var tnz in js) {
+            l_tps.push(tnz);
+            
+            var td = js[tnz][0];
+            var dd = js[tnz][0] = {};
+            for(var i = 0; i < td.length; i++) {
+                var md = td[i];
+                var yr = Math.floor(md[0] / 100);
+                dd[ md[0] ] = md[1];
+                
+                var s_k = yr * 100 + 0;
+                var yrd = dd[ s_k ];
+                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ s_k ];
+                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ md[0] ];
+                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                d_yrs[ yr ] = true;
+            }
+        }
+        
+        var l_yrs = [];
+        for(var yr in d_yrs) l_yrs.push(yr);
+        l_yrs.sort();
+        l_tps.sort();
+        
+        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
+        for(var i = 0; i < l_yrs.length; i++) {
+            o_lst.push( $('<th></th>').text(l_yrs[i]) );
+        }
+        v_hdr.append($('<tr></tr>').append(o_lst));
+        
+        l_tps.push('_ALL_');
+        js['_ALL_'] = [ov_all];
+        o_lst = [];
+        for(var t = 0; t < l_tps.length; t++) {
+            var tnz = l_tps[t]
+            var td = js[tnz][0];
+
+            for(var i = 0; i <= 12; i++) {
+                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
+                
+                var prev_v = 0;
+                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
+                for(var y = 0; y < l_yrs.length; y++) {
+                    var k = l_yrs[y] * 100 + i;
+                    var d = td[k];
+                    var cur_v = d && (d[1] - d[2]) || 0;
+                    
+                    var c_v = $('<td></td>');
+                    if(cur_v) {
+                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
+                        if(prev_v){
+                            var dp = (cur_v - prev_v) / prev_v * 100;
+                            if(dp){
+                                if(dp > 0)
+                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                                else
+                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                            }
+                        }
+                    }
+                    prev_v = cur_v;
+                    l_v.push(c_v);
+                }
+                
+                if(i == 0)
+                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
+                else
+                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
+                    
+            }
+            
+            
+            
+        }
+        
+        v_cnt.append(o_lst);
+        
+    }, undefined, undefined, undefined, '__load_cate_report__');
+}
+
+function _load_rep_report()
+{
+    var ctx = this;
+    ctx.js = null;
+    var v_hdr = this.v.children('thead').empty();
+    var v_cnt = this.v.children('tbody').empty();
+    var v_ftr = this.v.children('tfoot').empty();
+    
+    get_js_ex('?fn=get_rep_sale', {}, function(js) {
+        js = js.js;
+        if(js === undefined) return;
+        ctx.js = js;
+        
+        var l_tps = [];
+        var d_yrs = {};
+        var ov_all = {};
+        for(var tnz in js) {
+            l_tps.push(tnz);
+            
+            var td = js[tnz][0];
+            var dd = js[tnz][0] = {};
+            for(var i = 0; i < td.length; i++) {
+                var md = td[i];
+                var yr = Math.floor(md[0] / 100);
+                dd[ md[0] ] = md[1];
+                
+                var s_k = yr * 100 + 0;
+                var yrd = dd[ s_k ];
+                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ s_k ];
+                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ md[0] ];
+                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                d_yrs[ yr ] = true;
+            }
+        }
+        
+        var l_yrs = [];
+        for(var yr in d_yrs) l_yrs.push(yr);
+        l_yrs.sort();
+        l_tps.sort();
+        
+        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
+        for(var i = 0; i < l_yrs.length; i++) {
+            o_lst.push( $('<th></th>').text(l_yrs[i]) );
+        }
+        v_hdr.append($('<tr></tr>').append(o_lst));
+        
+        l_tps.push('_ALL_');
+        js['_ALL_'] = [ov_all];
+        o_lst = [];
+        for(var t = 0; t < l_tps.length; t++) {
+            var tnz = l_tps[t]
+            var td = js[tnz][0];
+
+            for(var i = 0; i <= 12; i++) {
+                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
+                
+                var prev_v = 0;
+                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
+                for(var y = 0; y < l_yrs.length; y++) {
+                    var k = l_yrs[y] * 100 + i;
+                    var d = td[k];
+                    var cur_v = d && d[1] || 0;
+                    
+                    var c_v = $('<td></td>');
+                    if(cur_v) {
+                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
+                        if(prev_v){
+                            var dp = (cur_v - prev_v) / prev_v * 100;
+                            if(dp){
+                                if(dp > 0)
+                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                                else
+                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                            }
+                        }
+                    }
+                    prev_v = cur_v;
+                    l_v.push(c_v);
+                }
+                
+                if(i == 0)
+                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
+                else
+                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
+                    
+            }
+            
+            
+            
+        }
+        
+        v_cnt.append(o_lst);
+        
+    }, undefined, undefined, undefined, '_load_rep_report');
+}
+
+function _load_rep_mg_report()
+{
+    var ctx = this;
+    ctx.js = null;
+    var v_hdr = this.v.children('thead').empty();
+    var v_cnt = this.v.children('tbody').empty();
+    var v_ftr = this.v.children('tfoot').empty();
+    
+    get_js_ex('?fn=get_rep_sale', {}, function(js) {
+        js = js.js;
+        if(js === undefined) return;
+        ctx.js = js;
+        
+        var l_tps = [];
+        var d_yrs = {};
+        var ov_all = {};
+        for(var tnz in js) {
+            l_tps.push(tnz);
+            
+            var td = js[tnz][0];
+            var dd = js[tnz][0] = {};
+            for(var i = 0; i < td.length; i++) {
+                var md = td[i];
+                var yr = Math.floor(md[0] / 100);
+                dd[ md[0] ] = md[1];
+                
+                var s_k = yr * 100 + 0;
+                var yrd = dd[ s_k ];
+                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ s_k ];
+                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                var yrd = ov_all[ md[0] ];
+                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
+                yrd[1] += md[1][1];
+                yrd[2] += md[1][2];
+                
+                d_yrs[ yr ] = true;
+            }
+        }
+        
+        var l_yrs = [];
+        for(var yr in d_yrs) l_yrs.push(yr);
+        l_yrs.sort();
+        l_tps.sort();
+        
+        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
+        for(var i = 0; i < l_yrs.length; i++) {
+            o_lst.push( $('<th></th>').text(l_yrs[i]) );
+        }
+        v_hdr.append($('<tr></tr>').append(o_lst));
+        
+        l_tps.push('_ALL_');
+        js['_ALL_'] = [ov_all];
+        o_lst = [];
+        for(var t = 0; t < l_tps.length; t++) {
+            var tnz = l_tps[t]
+            var td = js[tnz][0];
+
+            for(var i = 0; i <= 12; i++) {
+                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
+                
+                var prev_v = 0;
+                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
+                for(var y = 0; y < l_yrs.length; y++) {
+                    var k = l_yrs[y] * 100 + i;
+                    var d = td[k];
+                    var cur_v = d && (d[1] - d[2]) || 0;
+                    
+                    var c_v = $('<td></td>');
+                    if(cur_v) {
+                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
+                        if(prev_v){
+                            var dp = (cur_v - prev_v) / prev_v * 100;
+                            if(dp){
+                                if(dp > 0)
+                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                                else
+                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                            }
+                        }
+                    }
+                    prev_v = cur_v;
+                    l_v.push(c_v);
+                }
+                
+                if(i == 0)
+                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
+                else
+                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
+                    
+            }
+            
+            
+            
+        }
+        
+        v_cnt.append(o_lst);
+        
+    }, undefined, undefined, undefined, '_load_rep_report');
+}
+
+function _load_mom_report()
 {
     g_js = null;
     var v_hdr = this.v.children('thead').empty();
     var v_cnt = this.v.children('tbody').empty();
     var v_ftr = this.v.children('tfoot').empty();
     
-    get_js_ex('sreport?fn=get_sale', {}, function(js) {
+    get_js_ex('?fn=get_mom_sale', {}, function(js) {
         g_js = js;
         var o_lst = [ $('<th></th>') ];
         var ss = [];
@@ -97,18 +547,42 @@ function _load_report()
 $(function() {
 
 <%
-REPORT_TBL_NZS = ['mom', 'cate', 'cate_mg', 'rep', 'rep_mg']
-
+REPORT_TBL_NZS = [
+    ['mom', 'Month', 'Sales Month Over Month'],
+    ['cate', 'Category', 'Sales by Product Group'],
+    ['cate_mg', 'Category Margin', 'Product Group Margin'],
+    ['rep', 'Rep', 'Sales Rep'],
+    ['rep_mg', 'Rep Margin', 'Sales Rep Margin']
+]
 %>
 
 g_v_sale_tbls = {
-%for nz in REPORT_TBL_NZS:
-    ${nz}: { v: $('#sale_${nz}_tbl'), src: 'sreport?fn=get_sale', data: {}, init: _load_report },
+%for nz,btn_nz,desc in REPORT_TBL_NZS:
+    ${nz}: { src: 'sreport?fn=get_sale', data: {}, init: _load_${nz}_report, desc: "${desc}", btn_nz: "${btn_nz}"},
 %endfor
 };
 
+g_v_ctn_panels = $('#ctn_panels');
+g_v_cnt_btns = $('#cnt_btns');
 
-load_report('mom');
+for(var nz in g_v_sale_tbls) {
+    var r = g_v_sale_tbls[nz];
+    
+    var v_tbl = $('<table class="table table-striped table-hover"><thead></thead><tfoot></tfoot><tbody></tbody></table>')
+    r.v = v_tbl;
+    
+    var v = $('<div class="tbl_panel"></div>')
+    .append( $('<div class="alert alert-success"></div>').text(r.desc) )
+    .append( v_tbl );
+    g_v_ctn_panels.append(v);
+    
+    var v = $('<button type="button" class="btn btn-default"></button>').data('nz', nz).text(r.btn_nz).click(load_report);
+    g_v_cnt_btns.append(v);
+    
+}
+
+$(g_v_cnt_btns.children()[0]).click();
+
 
 });
 
@@ -124,6 +598,11 @@ table >thead >tr >th {text-align:center}
 table >tfoot {font-weight:bold}
 .tbl_panel {display:none}
 
+.tbl_t_sub {display:none;background-color:#fcf8e3 !important}
+.tbl_t_active {background-color:#dff0d8 !important}
+
+table >tbody >tr >td:nth-child(1) {font-weight:bold}
+table >tbody >tr:hover {background-color:#d9edf7 !important}
 
 </style>
 
@@ -141,26 +620,12 @@ table >tfoot {font-weight:bold}
 
 <button type="button" class="btn btn-primary navbar-btn">Export</button>
 
-<div class="btn-group" role="group">
-  <button type="button" class="btn btn-default">Month</button>
-  <button type="button" class="btn btn-default">Category</button>
-  <button type="button" class="btn btn-default">Category Margin</button>
-  <button type="button" class="btn btn-default">Rep</button>
-  <button type="button" class="btn btn-default">Rep Margin</button>
-</div>
+<div class="btn-group" role="group" id="cnt_btns"></div>
 
 </div></nav>
 
 
-<div class="container-fluid">
-
-%for nz in REPORT_TBL_NZS:
-<div class="panel panel-primary tbl_panel"><div class="panel-heading">Sales Month Over Month</div>
-<div class="panel-body"><table class="table table-striped table-hover" id="sale_${nz}_tbl"><thead></thead><tfoot></tfoot><tbody></tbody></table></div>
-</div>
-%endfor
-
-</div>
+<div class="container-fluid" id="ctn_panels"></div>
 
 
 

@@ -7,8 +7,23 @@ import os
 import db as mydb
 import const
 
+
+USER_MAP = {
+    'sales1': 'ray',
+    'sales2': 'anthony',
+    'sales3': 'joe',
+    'sales8': 'nicole',
+    'sales5': 'jimmy',
+    'sales6': 'sally',
+}
+REP_ROLE_BITMAP = (1 << config.BASE_ROLES_MAP['Sales']) | (1 << config.BASE_ROLES_MAP['Delivery'])
+
+
 mdb = mydb.db_mdb()
 cur = mdb.cursor()
+
+cur.execute("select user_name,user_roles from user")
+ROLES = dict((v[0].lower(), v[1]) for v in cur.fetchall())
 
 cur.execute("select cval from configv2 where ckey='departments' limit 1")
 DEPTS = {}
@@ -24,6 +39,7 @@ ITEM_NUMS = {}
 cur.execute('select sid,num from sync_receipts_items')
 for r in cur.fetchall(): ITEM_NUMS[r[0]] = r[1]
 
+g_clerks = {}
 g_items = {}
 cur.execute('select * from sync_receipts where sid_type=0 and (type&0xFF00)<0x0200 order by sid asc')
 nzs = cur.column_names
@@ -61,8 +77,16 @@ for r in cur:
         st[2] += ttl_cost
         st[3] += 1
 
+        clerk = (t['clerk'] or '').lower()
+        clerk = USER_MAP.get(clerk, clerk)
+        if not (ROLES.get(clerk, 0) & REP_ROLE_BITMAP): clerk = ''
+        cd = g_clerks.setdefault(clerk, [{}])[0].setdefault(dt_i, [0, 0, 0])
+        cd[1] += ttl_price
+        cd[2] += ttl_cost
 
-cur.execute('select * from sorder where (ord_flag&8)!=0')
+
+
+cur.execute('select *,(select user_name from user u where u.user_id=s.ord_assoc_id limit 1) as user_name from sorder s where (ord_flag&8)!=0')
 nzs = cur.column_names
 for r in cur:
     r = dict(zip(nzs, r))
@@ -75,6 +99,11 @@ for r in cur:
     
     tp = time.localtime(r['ord_order_date'])
     dt_i = tp.tm_year * 100 + tp.tm_mon
+
+    clerk = (r['user_name'] or '').lower()
+    clerk = USER_MAP.get(clerk, clerk)
+    if not (ROLES.get(clerk, 0) & REP_ROLE_BITMAP): clerk = ''
+    cd = g_clerks.setdefault(clerk, [{}])[0].setdefault(dt_i, [0, 0, 0])
 
     for t in items:
         ttl_base_qty = t['in_base_qty']
@@ -93,6 +122,9 @@ for r in cur:
         st[1] += ttl_price
         st[2] += ttl_cost
         st[3] += 1
+
+        cd[1] += ttl_price
+        cd[2] += ttl_cost
 
 
 g_depts = {}
@@ -126,10 +158,29 @@ for sid,dd in g_depts.items():
     dd[1] = n_l_ds
 
 
+g_types = {}
 for cnz,cd in g_cates.items():
+    n_l_ds = []
+    d_cs = g_types.setdefault(const.ITEM_D_CATE2.get(cnz) or "", [{}])[0]
+    for f_k,f_v in cd[0].items():
+        n_l_ds.append( (f_k,map(lambda f_x: round(f_x, 2), f_v[:-1]) + f_v[-1:]) )
+        cs = d_cs.setdefault(f_k, [0, 0, 0, 0])
+        for i in range(len(cs)): cs[i] += f_v[i]
+
+    n_l_ds.sort(key=lambda f_x: f_x[0])
+    cd[0] = n_l_ds
+
+
+for cnz,cd in g_types.items():
     cd[0] = [ (f_k,map(lambda f_x: round(f_x, 2), f_v[:-1]) + f_v[-1:]) for f_k,f_v in cd[0].items() ]
     cd[0].sort(key=lambda f_x: f_x[0])
 
+
+for cnz,cd in g_clerks.items():
+    cd[0] = [ (f_k,map(lambda f_x: round(f_x, 2), f_v)) for f_k,f_v in cd[0].items() ]
+    cd[0].sort(key=lambda f_x: f_x[0])
+
+
 fnz = os.path.join(config.DATA_DIR, 'items_stat_v2.txt')
-cPickle.dump({'cates': g_cates, 'depts': g_depts, 'items': g_items}, open(fnz, 'wb'), 1)
+cPickle.dump({'cates': g_cates, 'depts': g_depts, 'types': g_types, 'items': g_items, 'clerks': g_clerks}, open(fnz, 'wb'), 1)
 print "Done"
