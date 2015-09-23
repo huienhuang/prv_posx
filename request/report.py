@@ -4,6 +4,8 @@ import time
 import config
 import re
 import datetime
+import cStringIO
+import csv
 
 
 CFG = {
@@ -54,14 +56,29 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
 		self.req.writejs(ym)
 
-	def fn_get_cate_sale(self):
-		rjs = (self.get_data_file_cached('items_stat_v2', 'items_stat_v2.txt') or {}).get('types', {})
+	def fn_get_sale_cate(self):
+		rjs = (self.get_data_file_cached('items_stat_v3', 'items_stat_v3.txt') or {}).get('types', {})
 
 		self.req.writejs({'js': rjs})
 
 
-	def fn_get_rep_sale(self):
-		rjs = (self.get_data_file_cached('items_stat_v2', 'items_stat_v2.txt') or {}).get('clerks', {})
+	def fn_get_sale_rep(self):
+		rjs = (self.get_data_file_cached('items_stat_v3', 'items_stat_v3.txt') or {}).get('clerks', {})
 
 		self.req.writejs({'js': rjs})
 
+	def fn_get_sale_all(self):
+		rjs = (self.get_data_file_cached('items_stat_v3', 'items_stat_v3.txt') or {}).get('sales', {})
+
+		self.req.writejs({'js': rjs})
+
+
+	def fn_export_csv(self):
+		data = self.req.psv_js('js')
+
+		fp = cStringIO.StringIO()
+		wt = csv.writer(fp)
+		for r in data: wt.writerow( map(str, r) )
+		self.req.out_headers['content-type'] = 'application/octet-stream'
+		self.req.out_headers['content-disposition'] = 'attachment; filename="data.csv"'
+		self.req.write( fp.getvalue() )

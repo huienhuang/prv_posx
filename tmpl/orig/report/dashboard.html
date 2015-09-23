@@ -5,11 +5,18 @@
 <%include file="../header_bs_v1.html" />
 
 <script type="text/javascript">
-
+g_cur_report = 'all';
 
 function load_report()
 {
     var nz = $(this).data('nz');
+    g_cur_report = nz;
+    load_report_by_nz(nz);
+}
+
+function load_report_by_nz(nz)
+{
+    nz = nz || g_cur_report;
     
     for(var nzz in g_v_sale_tbls) {
         if(nzz !== nz) g_v_sale_tbls[nzz].v.parent().hide();
@@ -17,12 +24,8 @@ function load_report()
     
     var c = g_v_sale_tbls[nz];
     c.v.parent().show();
-    if(!c.inited) {
-        c.init.call(c);
-        c.inited = true;
-    }
+    c.fn.apply(c, c.ctx);
 }
-
 
 function show_tp()
 {
@@ -44,522 +47,207 @@ function show_tp()
     o.addClass('tbl_t_active');
 }
 
-function _load_cate_report()
-{
-    g_cate_js = null;
-    var v_hdr = this.v.children('thead').empty();
-    var v_cnt = this.v.children('tbody').empty();
-    var v_ftr = this.v.children('tfoot').empty();
-    
-    get_js_ex('?fn=get_cate_sale', {}, function(js) {
-        js = js.js;
-        if(js === undefined) return;
-        g_cate_js = js;
-        
-        var l_tps = [];
-        var d_yrs = {};
-        var ov_all = {};
-        for(var tnz in js) {
-            l_tps.push(tnz);
-            
-            var td = js[tnz][0];
-            var dd = js[tnz][0] = {};
-            for(var i = 0; i < td.length; i++) {
-                var md = td[i];
-                var yr = Math.floor(md[0] / 100);
-                dd[ md[0] ] = md[1];
-                
-                var s_k = yr * 100 + 0;
-                var yrd = dd[ s_k ];
-                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ s_k ];
-                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ md[0] ];
-                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                d_yrs[ yr ] = true;
-            }
-        }
-        
-        var l_yrs = [];
-        for(var yr in d_yrs) l_yrs.push(yr);
-        l_yrs.sort();
-        l_tps.sort();
-        
-        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
-        for(var i = 0; i < l_yrs.length; i++) {
-            o_lst.push( $('<th></th>').text(l_yrs[i]) );
-        }
-        v_hdr.append($('<tr></tr>').append(o_lst));
-        
-        l_tps.push('_ALL_');
-        js['_ALL_'] = [ov_all];
-        o_lst = [];
-        for(var t = 0; t < l_tps.length; t++) {
-            var tnz = l_tps[t]
-            var td = js[tnz][0];
+g_store_idx = 0;
+g_margin_only = 0;
 
-            for(var i = 0; i <= 12; i++) {
-                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
-                
-                var prev_v = 0;
-                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
-                for(var y = 0; y < l_yrs.length; y++) {
-                    var k = l_yrs[y] * 100 + i;
-                    var d = td[k];
-                    var cur_v = d && d[1] || 0;
-                    
-                    var c_v = $('<td></td>');
-                    if(cur_v) {
-                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
-                        if(prev_v){
-                            var dp = (cur_v - prev_v) / prev_v * 100;
-                            if(dp){
-                                if(dp > 0)
-                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                                else
-                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                            }
-                        }
-                    }
-                    prev_v = cur_v;
-                    l_v.push(c_v);
-                }
-                
-                if(i == 0)
-                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
-                else
-                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
-                    
+function get_v(d)
+{
+    if(!d) return 0;
+    var offset = (g_store_idx - 1) * 2;
+    
+    if(g_store_idx) {
+        return g_margin_only ? d[offset]- d[offset + 1] : d[offset];
+    } else {
+        return g_margin_only ? d[0] + d[2] - d[1] - d[3] : d[0] + d[2];
+    }
+}
+
+function export_csv()
+{
+    var ctx = g_v_sale_tbls[g_cur_report];
+    
+    var rows = [];
+    
+    var js = ctx.data.js;
+    var l_yrs = ctx.data.l_yrs;
+    var l_tps = ctx.data.l_tps;
+    
+    var o_lst = ['', 'Month'];
+    for(var i = 0; i < l_yrs.length; i++) {
+        o_lst.push( l_yrs[i] );
+    }
+    rows.push(o_lst);
+    
+    var mlen = l_tps.length > 2 ? l_tps.length : l_tps.length - 1;
+    for(var t = 0; t < mlen; t++) {
+        var tnz = l_tps[t]
+        var td = js[tnz][0];
+
+        for(var i = 0; i <= 12; i++) {
+            var l_v = [ i == 0 ? tnz || '*None*' : '->' ];
+            
+            l_v.push( i == 0 ? 'Total' : i );
+            for(var y = 0; y < l_yrs.length; y++) {
+                var k = l_yrs[y] * 100 + i;
+                var d = td[k];
+                var cur_v = get_v(d);
+                l_v.push(cur_v ? cur_v.toFixed(2) : '');
             }
             
-            
-            
+            rows.push(l_v);
         }
         
-        v_cnt.append(o_lst);
-        
-    }, undefined, undefined, undefined, '__load_cate_report__');
+    }
+    
+    g_v_form_dl.find('input[name="js"]').val( JSON.stringify(rows) );
+    g_v_form_dl.submit();
+
     
 }
 
-function _load_cate_mg_report()
+function render_report(ctx)
 {
-    g_cate_js = null;
-    var v_hdr = this.v.children('thead').empty();
-    var v_cnt = this.v.children('tbody').empty();
-    var v_ftr = this.v.children('tfoot').empty();
+    var v_hdr = ctx.v.children('thead').empty();
+    var v_cnt = ctx.v.children('tbody').empty();
+    var v_ftr = ctx.v.children('tfoot').empty();
     
-    get_js_ex('?fn=get_cate_sale', {}, function(js) {
-        js = js.js;
-        if(js === undefined) return;
-        g_cate_js = js;
-        
-        var l_tps = [];
-        var d_yrs = {};
-        var ov_all = {};
-        for(var tnz in js) {
-            l_tps.push(tnz);
-            
-            var td = js[tnz][0];
-            var dd = js[tnz][0] = {};
-            for(var i = 0; i < td.length; i++) {
-                var md = td[i];
-                var yr = Math.floor(md[0] / 100);
-                dd[ md[0] ] = md[1];
-                
-                var s_k = yr * 100 + 0;
-                var yrd = dd[ s_k ];
-                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ s_k ];
-                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ md[0] ];
-                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                d_yrs[ yr ] = true;
-            }
-        }
-        
-        var l_yrs = [];
-        for(var yr in d_yrs) l_yrs.push(yr);
-        l_yrs.sort();
-        l_tps.sort();
-        
-        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
-        for(var i = 0; i < l_yrs.length; i++) {
-            o_lst.push( $('<th></th>').text(l_yrs[i]) );
-        }
-        v_hdr.append($('<tr></tr>').append(o_lst));
-        
-        l_tps.push('_ALL_');
-        js['_ALL_'] = [ov_all];
-        o_lst = [];
-        for(var t = 0; t < l_tps.length; t++) {
-            var tnz = l_tps[t]
-            var td = js[tnz][0];
-
-            for(var i = 0; i <= 12; i++) {
-                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
-                
-                var prev_v = 0;
-                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
-                for(var y = 0; y < l_yrs.length; y++) {
-                    var k = l_yrs[y] * 100 + i;
-                    var d = td[k];
-                    var cur_v = d && (d[1] - d[2]) || 0;
-                    
-                    var c_v = $('<td></td>');
-                    if(cur_v) {
-                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
-                        if(prev_v){
-                            var dp = (cur_v - prev_v) / prev_v * 100;
-                            if(dp){
-                                if(dp > 0)
-                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                                else
-                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                            }
-                        }
-                    }
-                    prev_v = cur_v;
-                    l_v.push(c_v);
-                }
-                
-                if(i == 0)
-                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
-                else
-                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
-                    
-            }
-            
-            
-            
-        }
-        
-        v_cnt.append(o_lst);
-        
-    }, undefined, undefined, undefined, '__load_cate_report__');
-}
-
-function _load_rep_report()
-{
-    var ctx = this;
-    ctx.js = null;
-    var v_hdr = this.v.children('thead').empty();
-    var v_cnt = this.v.children('tbody').empty();
-    var v_ftr = this.v.children('tfoot').empty();
+    var js = ctx.data.js;
+    var l_yrs = ctx.data.l_yrs;
+    var l_tps = ctx.data.l_tps;
     
-    get_js_ex('?fn=get_rep_sale', {}, function(js) {
-        js = js.js;
-        if(js === undefined) return;
-        ctx.js = js;
-        
-        var l_tps = [];
-        var d_yrs = {};
-        var ov_all = {};
-        for(var tnz in js) {
-            l_tps.push(tnz);
-            
-            var td = js[tnz][0];
-            var dd = js[tnz][0] = {};
-            for(var i = 0; i < td.length; i++) {
-                var md = td[i];
-                var yr = Math.floor(md[0] / 100);
-                dd[ md[0] ] = md[1];
-                
-                var s_k = yr * 100 + 0;
-                var yrd = dd[ s_k ];
-                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ s_k ];
-                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ md[0] ];
-                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                d_yrs[ yr ] = true;
-            }
-        }
-        
-        var l_yrs = [];
-        for(var yr in d_yrs) l_yrs.push(yr);
-        l_yrs.sort();
-        l_tps.sort();
-        
-        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
-        for(var i = 0; i < l_yrs.length; i++) {
-            o_lst.push( $('<th></th>').text(l_yrs[i]) );
-        }
-        v_hdr.append($('<tr></tr>').append(o_lst));
-        
-        l_tps.push('_ALL_');
-        js['_ALL_'] = [ov_all];
-        o_lst = [];
-        for(var t = 0; t < l_tps.length; t++) {
-            var tnz = l_tps[t]
-            var td = js[tnz][0];
-
-            for(var i = 0; i <= 12; i++) {
-                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
-                
-                var prev_v = 0;
-                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
-                for(var y = 0; y < l_yrs.length; y++) {
-                    var k = l_yrs[y] * 100 + i;
-                    var d = td[k];
-                    var cur_v = d && d[1] || 0;
-                    
-                    var c_v = $('<td></td>');
-                    if(cur_v) {
-                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
-                        if(prev_v){
-                            var dp = (cur_v - prev_v) / prev_v * 100;
-                            if(dp){
-                                if(dp > 0)
-                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                                else
-                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                            }
-                        }
-                    }
-                    prev_v = cur_v;
-                    l_v.push(c_v);
-                }
-                
-                if(i == 0)
-                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
-                else
-                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
-                    
-            }
-            
-            
-            
-        }
-        
-        v_cnt.append(o_lst);
-        
-    }, undefined, undefined, undefined, '_load_rep_report');
-}
-
-function _load_rep_mg_report()
-{
-    var ctx = this;
-    ctx.js = null;
-    var v_hdr = this.v.children('thead').empty();
-    var v_cnt = this.v.children('tbody').empty();
-    var v_ftr = this.v.children('tfoot').empty();
+    var o_lst = [ $('<th></th>'), $('<th>Month</th>') ];
+    for(var i = 0; i < l_yrs.length; i++) {
+        o_lst.push( $('<th></th>').text(l_yrs[i]) );
+    }
+    v_hdr.append($('<tr></tr>').append(o_lst));
     
-    get_js_ex('?fn=get_rep_sale', {}, function(js) {
-        js = js.js;
-        if(js === undefined) return;
-        ctx.js = js;
-        
-        var l_tps = [];
-        var d_yrs = {};
-        var ov_all = {};
-        for(var tnz in js) {
-            l_tps.push(tnz);
-            
-            var td = js[tnz][0];
-            var dd = js[tnz][0] = {};
-            for(var i = 0; i < td.length; i++) {
-                var md = td[i];
-                var yr = Math.floor(md[0] / 100);
-                dd[ md[0] ] = md[1];
-                
-                var s_k = yr * 100 + 0;
-                var yrd = dd[ s_k ];
-                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ s_k ];
-                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                var yrd = ov_all[ md[0] ];
-                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0];
-                yrd[1] += md[1][1];
-                yrd[2] += md[1][2];
-                
-                d_yrs[ yr ] = true;
-            }
-        }
-        
-        var l_yrs = [];
-        for(var yr in d_yrs) l_yrs.push(yr);
-        l_yrs.sort();
-        l_tps.sort();
-        
-        var o_lst = [ $('<th>Type</th>'), $('<th>Month</th>') ];
-        for(var i = 0; i < l_yrs.length; i++) {
-            o_lst.push( $('<th></th>').text(l_yrs[i]) );
-        }
-        v_hdr.append($('<tr></tr>').append(o_lst));
-        
-        l_tps.push('_ALL_');
-        js['_ALL_'] = [ov_all];
-        o_lst = [];
-        for(var t = 0; t < l_tps.length; t++) {
-            var tnz = l_tps[t]
-            var td = js[tnz][0];
+    o_lst = [];
+    var mlen = l_tps.length > 2 ? l_tps.length : l_tps.length - 1;
+    for(var t = 0; t < mlen; t++) {
+        var tnz = l_tps[t]
+        var td = js[tnz][0];
 
-            for(var i = 0; i <= 12; i++) {
-                var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
+        for(var i = 0; i <= 12; i++) {
+            var l_v = [ $('<td></td>').text(i == 0 ? tnz || '*None*' : '->') ];
                 
-                var prev_v = 0;
-                l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
-                for(var y = 0; y < l_yrs.length; y++) {
-                    var k = l_yrs[y] * 100 + i;
-                    var d = td[k];
-                    var cur_v = d && (d[1] - d[2]) || 0;
+            var prev_v = 0;
+            l_v.push( $('<td></td>').text(i == 0 ? 'Total' : i) );
+            for(var y = 0; y < l_yrs.length; y++) {
+                var k = l_yrs[y] * 100 + i;
+                var d = td[k];
+                var cur_v = get_v(d);
                     
-                    var c_v = $('<td></td>');
-                    if(cur_v) {
-                        c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
-                        if(prev_v){
-                            var dp = (cur_v - prev_v) / prev_v * 100;
-                            if(dp){
-                                if(dp > 0)
-                                    c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                                else
-                                    c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                            }
-                        }
-                    }
-                    prev_v = cur_v;
-                    l_v.push(c_v);
-                }
-                
-                if(i == 0)
-                    o_lst.push( $('<tr></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
-                else
-                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
-                    
-            }
-            
-            
-            
-        }
-        
-        v_cnt.append(o_lst);
-        
-    }, undefined, undefined, undefined, '_load_rep_report');
-}
-
-function _load_mom_report()
-{
-    g_js = null;
-    var v_hdr = this.v.children('thead').empty();
-    var v_cnt = this.v.children('tbody').empty();
-    var v_ftr = this.v.children('tfoot').empty();
-    
-    get_js_ex('?fn=get_mom_sale', {}, function(js) {
-        g_js = js;
-        var o_lst = [ $('<th></th>') ];
-        var ss = [];
-        for(var i = 0; i < js.length; i++) {
-            ss.push(0);
-            o_lst.push( $('<th></th>').text(js[i][0]) );
-        }
-        v_hdr.append($('<tr></tr>').append(o_lst));
-        
-        o_lst = [];
-        for(var j = 0; j < 12; j++) {
-            var v = $('<tr onclick="show_chart_cmp_same_month('+j+')"></tr>').append( $('<td>'+(j+1)+'</td>') );
-            var last_o = 0;
-            for(var i = 0; i < js.length; i++) {
-                var o = js[i][1][j];
-                ss[i] += o;
-                var v_o = $('<td></td>');
-                if(o) {
-                    v_o.append( $('<span></span>').text( o.toFixed(2) ) );
-                    if(last_o){
-                        var dp = (o - last_o) / last_o * 100;
+                var c_v = $('<td></td>');
+                if(cur_v) {
+                    c_v.append( $('<span></span>').text( cur_v.toFixed(2) ) );
+                    if(prev_v){
+                        var dp = (cur_v - prev_v) / prev_v * 100;
                         if(dp){
                             if(dp > 0)
-                                v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
+                                c_v.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
                             else
-                                v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
+                                c_v.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
                         }
                     }
                 }
-                last_o = o;
-                v.append(v_o);
+                prev_v = cur_v;
+                l_v.push(c_v);
             }
-            o_lst.push(v);
-        }
-        v_cnt.append(o_lst);
-        
-        o_lst = [ $('<td>Total:</td>') ];
-        var last_o = 0;
-        for(var i = 0; i < js.length; i++) {
-            var o = ss[i];
-            var v_o = $('<td></td>');
-            if(o) {
-                v_o.append( $('<span></span>').text( o.toFixed(2) ) );
-                if(last_o){
-                    var dp = (o - last_o) / last_o * 100;
-                    if(dp){
-                        if(dp > 0)
-                            v_o.append( $('<span class="diff_pct_inc"></span>').text('(+' + dp.toFixed(1) + '%)') );
-                        else
-                            v_o.append( $('<span class="diff_pct_dec"></span>').text('(' + dp.toFixed(1) + '%)') );
-                    }
-                }
-            }
-            last_o = o;
             
-            o_lst.push(v_o);
+            if (mlen > 2) {
+                if(i == 0)
+                    o_lst.push( $('<tr class="tbl_t_main"></tr>').data('tar-tp-idx', t).click(show_tp).append(l_v) );
+                else
+                    o_lst.push( $('<tr class="tbl_t_sub"></tr>').data('tp-idx', t).append(l_v) );
+            } else {
+                if(i == 0)
+                    o_lst.push( $('<tr class="tbl_t_main"></tr>').data('tar-tp-idx', t).append(l_v) );
+                else
+                    o_lst.push( $('<tr></tr>').data('tp-idx', t).append(l_v) );
+            }
         }
-        v_ftr.append( $('<tr></tr>').append(o_lst) );
+            
+    }
         
-    }, undefined, undefined, undefined, '__load_sale_report__');
+    v_cnt.append(o_lst);
+    
 }
+
+function _load_report(fn, args)
+{
+    var ctx = this;
+    
+    if(ctx.data) {
+        render_report(ctx);
+        
+    } else {
+        _load_data(ctx, fn, args);
+        
+    }
+}
+
+
+function _load_data(ctx, fn, args)
+{
+    get_js_ex(fn, args || {}, function(js) {
+        js = js.js;
+        if(js === undefined) return;
+        
+        var l_tps = [];
+        var d_yrs = {};
+        var ov_all = {};
+        for(var tnz in js) {
+            l_tps.push(tnz);
+            
+            var td = js[tnz][0];
+            var dd = js[tnz][0] = {};
+            for(var i = 0; i < td.length; i++) {
+                var md = td[i];
+                var yr = Math.floor(md[0] / 100);
+                dd[ md[0] ] = md[1];
+                
+                var s_k = yr * 100 + 0;
+                var yrd = dd[ s_k ];
+                if(yrd === undefined) yrd = dd[ s_k ] = [0, 0, 0, 0];
+                for(var a = 0; a < 4; a++) yrd[a] += md[1][a];
+                
+                var yrd = ov_all[ s_k ];
+                if(yrd === undefined) yrd = ov_all[ s_k ] = [0, 0, 0, 0];
+                for(var a = 0; a < 4; a++) yrd[a] += md[1][a];
+                
+                var yrd = ov_all[ md[0] ];
+                if(yrd === undefined) yrd = ov_all[ md[0] ] = [0, 0, 0, 0];
+                for(var a = 0; a < 4; a++) yrd[a] += md[1][a];
+                
+                d_yrs[ yr ] = true;
+            }
+        }
+        
+        var l_yrs = [];
+        for(var yr in d_yrs) l_yrs.push(yr);
+        l_yrs.sort();
+        l_tps.sort();
+        
+        l_tps.push('TOTAL');
+        js['TOTAL'] = [ov_all];
+        
+        ctx.data = {js: js, l_yrs: l_yrs, l_tps: l_tps};
+        
+        render_report(ctx);
+        
+    }, undefined, undefined, undefined, fn);
+}
+
 
 
 
 
 $(function() {
 
-<%
-REPORT_TBL_NZS = [
-    ['mom', 'Month', 'Sales Month Over Month'],
-    ['cate', 'Category', 'Sales by Product Group'],
-    ['cate_mg', 'Category Margin', 'Product Group Margin'],
-    ['rep', 'Rep', 'Sales Rep'],
-    ['rep_mg', 'Rep Margin', 'Sales Rep Margin']
-]
-%>
-
 g_v_sale_tbls = {
-%for nz,btn_nz,desc in REPORT_TBL_NZS:
-    ${nz}: { src: 'sreport?fn=get_sale', data: {}, init: _load_${nz}_report, desc: "${desc}", btn_nz: "${btn_nz}"},
-%endfor
+    'all': {fn: _load_report, ctx: ['?fn=get_sale_all'], desc: "All Sales", btn_nz: "All"},
+    'cate': {fn: _load_report, ctx: ['?fn=get_sale_cate'], desc: "Sales by Group", btn_nz: "Group"},
+    'rep': {fn: _load_report, ctx: ['?fn=get_sale_rep'], desc: "Sales by Rep", btn_nz: "Rep"},
 };
 
 g_v_ctn_panels = $('#ctn_panels');
@@ -581,7 +269,24 @@ for(var nz in g_v_sale_tbls) {
     
 }
 
-$(g_v_cnt_btns.children()[0]).click();
+$('#store_idx').change(function() {
+    g_store_idx = parseInt($(this).val()) || 0;
+    
+    load_report_by_nz();
+});
+
+$('#margin_only').change(function() {
+    g_margin_only = parseInt($(this).val()) || 0;
+    
+    load_report_by_nz();
+});
+
+$('#export_csv').click(export_csv);
+
+g_v_form_dl = $('#form_dl');
+
+
+load_report_by_nz();
 
 
 });
@@ -598,6 +303,7 @@ table >thead >tr >th {text-align:center}
 table >tfoot {font-weight:bold}
 .tbl_panel {display:none}
 
+.tbl_t_main {font-weight:bold}
 .tbl_t_sub {display:none;background-color:#fcf8e3 !important}
 .tbl_t_active {background-color:#dff0d8 !important}
 
@@ -614,11 +320,18 @@ table >tbody >tr:hover {background-color:#d9edf7 !important}
 <form class="navbar-form navbar-left">
 <div class="form-group input-group">
 <span class="input-group-addon">Location:</span>
-<select class="form-control"><option>All</option><option>Delivery SSF</option><option>Store SF</option></select>
+<select id="store_idx" class="form-control"><option value="">All</option><option value="1">Delivery SSF</option><option value="2">Store SF</option></select>
 </div>
 </form>
 
-<button type="button" class="btn btn-primary navbar-btn">Export</button>
+<form class="navbar-form navbar-left">
+<div class="form-group input-group">
+<span class="input-group-addon">Margin Only:</span>
+<select id="margin_only" class="form-control"><option value="">No</option><option value="1">Yes</option></select>
+</div>
+</form>
+
+<button type="button" id="export_csv" class="btn btn-primary navbar-btn">Export</button>
 
 <div class="btn-group" role="group" id="cnt_btns"></div>
 
@@ -627,7 +340,7 @@ table >tbody >tr:hover {background-color:#d9edf7 !important}
 
 <div class="container-fluid" id="ctn_panels"></div>
 
-
+<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
 
 </body>
 </html>
