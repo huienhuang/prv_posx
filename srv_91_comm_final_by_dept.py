@@ -108,6 +108,9 @@ def parse_receipt(r):
         cate = (g_depts.get(deptsid) or [None, None])[1]
         if cate == None: cate = (g_item_depts.get(itemsid) or [None, None])[1]
         
+        if clerk == None:
+            print r, s
+        
         items.append( (itemsid, clerk.lower(), price, qty, cate, cost) )
     
     r['is_invoice'] = bool(not is_local_reversed and round(total_price_tax, 2) > 0 and acct_amt)
