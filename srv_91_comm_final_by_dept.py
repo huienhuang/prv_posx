@@ -80,6 +80,8 @@ def parse_receipt(r):
     rate = 1
     if r['subtotal']: rate = 1 - r['discamount'] / r['subtotal']
     
+    default_clerk = r['clerk'].lower()
+    
     items = []
     total_price_tax = 0.0
     sur_pos.execute('select i.itemsid,i.Clerk,i.Price,i.PriceTax,i.Qty,d.deptsid,i.cost from ReceiptItem i left join ReceiptItemDesc d on(i.sid=d.sid and i.itempos=d.itempos) where i.SID = ? and i.ItemSID != 1000000005', (r['sid'],))
@@ -108,10 +110,7 @@ def parse_receipt(r):
         cate = (g_depts.get(deptsid) or [None, None])[1]
         if cate == None: cate = (g_item_depts.get(itemsid) or [None, None])[1]
         
-        if clerk == None:
-            print r, s
-        
-        items.append( (itemsid, clerk.lower(), price, qty, cate, cost) )
+        items.append( (itemsid, clerk and clerk.lower() or default_clerk, price, qty, cate, cost) )
     
     r['is_invoice'] = bool(not is_local_reversed and round(total_price_tax, 2) > 0 and acct_amt)
     r['items'] = items
