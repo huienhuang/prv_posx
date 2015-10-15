@@ -61,6 +61,7 @@ g_v_tg_item_list = $('.tg_item_list').tinygrid({
 len:0,
 src:{page:'?fn=get_items', data:g_tg_item_list_data, method:'post'},
 cols: [{name:'ID', width:70},
+       {name:'ALU', width:160},
        {name:'Name', width:"100%"},
        {name:'UOM', width:50},
        {name:'Status', width:0},
@@ -75,7 +76,7 @@ cols: [{name:'ID', width:70},
        {name:'Margin%', width:0},
        ],
 click: function(r, c, d) {
-        window.open('hist?fn=itemhist&tid='+d[13],'posx_item_hist','location=0,width=992,height=700');
+        window.open('hist?fn=itemhist&tid='+d[14],'posx_item_hist','location=0,width=992,height=700');
 },
 });
 

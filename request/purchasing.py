@@ -150,6 +150,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             apg.append(
                 [
                     r['num'],
+                    r['unit'][1],
                     r['name'],
                     r['unit'][2],
                     r['s_status'] or '',
@@ -187,6 +188,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             apg.append(
                 [
                     r['num'],
+                    r['unit'][1],
                     r['name'],
                     r['unit'][2],
                     r['s_status'] or '',
@@ -205,7 +207,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         
         fp = cStringIO.StringIO()
         wt = csv.writer(fp)
-        wt.writerow(['#ID', 'Name', 'UOM', 'Status', 'Cate', 'Dept', 'OnHand', 'OnOrder'])
+        wt.writerow(['#ID', 'ALU', 'Name', 'UOM', 'Status', 'Cate', 'Dept', 'OnHand', 'OnOrder'])
         for r in apg: wt.writerow(map(lambda f_x: unicode(f_x).encode('utf8'), r[:-6]))
         
         self.req.out_headers['content-type'] = 'application/octet-stream'
