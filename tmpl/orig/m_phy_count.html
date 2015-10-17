@@ -9,6 +9,49 @@
 g_cfg = {};
 g_item = null;
 
+
+function scanBarcode()
+{
+    window.Android && window.Android.scanBarcode && window.Android.scanBarcode();
+}
+
+function takePicture()
+{
+    window.Android && window.Android.takePicture && window.Android.takePicture();
+}
+
+function OnBarcodeReady()
+{
+    var barcode = window.Android.getBarcode();
+    g_v_srch_item.val(barcode).keyup();
+}
+
+function finish_upload_img(lst)
+{
+    //g_v_img_upload_form[0].reset();
+    /*
+    for(var i = 0; i < lst.length; i++) {
+        var img = lst[i];
+        g_v_item_tbl.picture.prepend( $('<img />').attr('alt', img[0]).attr('src', img[1]).click(load_large_img) );
+    }
+    
+    var srcs = [];
+    var imgs = g_v_item_tbl.picture.children('img:not(.google_img)');
+    for(var i = 0; i < imgs.length; i++) srcs.push( $(imgs[i]).attr('src') );
+    
+    $.post('?fn=set_imgs', {'sid':g_item[0], 'imgs':srcs.join('|')}, function(js) {}, 'json');
+*/
+}
+
+function OnPictureReady()
+{
+    var pic = window.Android.getPicture();
+    post_js('sfile?fn=upload_img_v1', {'img': pic}, function(js) {
+        //MsgBox("ok", js.s);
+    });
+}
+
+
 function load_item()
 {
     _load_item($(this).data('pjs'));
@@ -385,7 +428,11 @@ g_v_srch_item = $('#srch_item').keyup(function() {
 load_cycle_count_sel();
 
 });
-    
+
+
+
+
+
     
 </script>
 
@@ -424,6 +471,8 @@ body {margin:62px 0px}
 #wnd_item_quantity >div:nth-child(3) {color:#882525}
 #wnd_item_name {font-size:20px;}
 
+#imgs_cnt >img {max-height:120px;max-width:120px;}
+
 </style>
 
 </head>
@@ -446,7 +495,11 @@ body {margin:62px 0px}
 </table>
 </div>
 <div class="panel-footer">Image</div>
-<div class="panel-body"></div>
+<div class="panel-body" id="imgs_cnt">
+
+<img src="img/add_1.png" alt="" class="img-rounded" onclick="takePicture()" />
+
+</div>
 </div>
 
 
@@ -485,7 +538,7 @@ body {margin:62px 0px}
 
 <div class="col-xs-12 col-sm-12"> 
 <div class="input-group input-group-lg">
-<span class="input-group-btn"><button type="button" class="btn btn-primary"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</button></span>
+<span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="scanBarcode()"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</button></span>
 <input type="text" class="form-control" placeholder="Search" id="srch_item" autocomplete="off">
 <span class="input-group-btn"><button type="button" class="btn btn-success" onclick="save_qty()"><span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span> Save</button></span>
 </div>
@@ -496,6 +549,7 @@ body {margin:62px 0px}
 
 <nav class="navbar-default" id="bottom-menu">
 <div class="btn-group btn-group-lg btn-group-justified" role="group">
+<a href="#" onclick="scanBarcode();return false" class="btn btn-primary" role="button"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</a>
 <a href="#" onclick="show_wnd('info');return false" class="btn btn-warning" role="button">Info</a>
 <a href="#" onclick="show_wnd('item');return false" class="btn btn-warning" role="button">Item</a>
 <a href="#" onclick="show_wnd('list');return false" class="btn btn-warning" role="button">List</a>

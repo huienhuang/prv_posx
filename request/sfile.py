@@ -76,7 +76,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         lst = json.dumps( (('IMG', '%s/%s_200.jpg' % (wdir, fnz)),) )
         self.req.writefile('finish_upload_img.html', {'lst': lst})
         
-    
     def fn_upload_img_v1(self):
         img = base64.b64decode(self.req.psv_ustr('img'))
         
