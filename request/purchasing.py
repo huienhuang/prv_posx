@@ -507,10 +507,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs( {'pid': pid} )
 
     def fn_get_po_sid_by_num(self):
-        num = self.req.qsv_int('num')
+        num = self.req.qsv_ustr('num')
+        if not num.isdigit(): self.req.exitjs({'sid': ''})
 
         cur = self.cur()
-        cur.execute("select sid from sync_purchaseorders where ponum=%s order by sid asc", (num, ))
+        cur.execute("select sid from sync_purchaseorders where ponum=%s order by sid asc", (int(num), ))
         rows = cur.fetchall()
         sid = rows and str(rows[0][0]) or ''
 

@@ -179,12 +179,18 @@ function load_history()
 
 function chg_load_history_inp()
 {
-    var ponum = g_v_dlg_history_inp.val();
+    var ponum = $.trim(g_v_dlg_history_inp.val());
     g_v_dlg_history_inp.data('js', null);
     g_v_dlg_history_body.empty();
     
+    if(!ponum.length) {
+        g_v_dlg_history_inp.data('js', null);
+        load_history();
+        return;
+    }
+    
     get_js_ex('?fn=get_po_sid_by_num', {num: ponum}, function(js) {
-        if(js.sid) {
+        if(js.sid && js.sid.length) {
             g_v_dlg_history_inp.data('js', {'sid': js.sid, 'num': ponum});
             load_history();
         }

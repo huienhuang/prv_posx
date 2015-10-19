@@ -47,7 +47,7 @@ function OnPictureReady()
 {
     var pic = window.Android.getPicture();
     post_js('sfile?fn=upload_img_v1', {'img': pic}, function(js) {
-        //MsgBox("ok", js.s);
+        MsgBox("ok", js.errs);
     });
 }
 
