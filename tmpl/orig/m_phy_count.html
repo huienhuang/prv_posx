@@ -8,7 +8,25 @@
 <script type="text/javascript">
 g_cfg = {};
 g_item = null;
+g_v_items = {};
 
+function clear_item()
+{
+    g_item = null;
+    
+    $(g_v_wnds.item.cds[0]).empty();
+    $(g_v_wnds.item.cds[1]).empty();
+    g_v_wnds.info.v_unit_tbl.empty();
+    g_v_wnds.info.v_vendor_tbl.empty();
+    g_v_wnds.item.v_hist_tbl.empty();
+    g_v_wnds.item.v_picture_tbl.empty();
+    
+}
+
+function new_search()
+{
+    g_v_srch_item.val('').focus();
+}
 
 function scanBarcode()
 {
@@ -23,46 +41,103 @@ function takePicture()
 function OnBarcodeReady()
 {
     var barcode = window.Android.getBarcode();
-    g_v_srch_item.val(barcode).keyup();
+    g_v_srch_item.val(barcode);
+    _search();
+}
+
+function load_large_img()
+{
+    
+}
+
+function load_imgs(sid, nz)
+{
+    if(!window.__load_imgs_seq) window.__load_imgs_seq = 0;
+    var seq = ++window.__load_imgs_seq;
+    
+    g_v_wnds.item.v_picture_tbl.empty();
+    get_js('m_item_lookup?fn=get_imgs', {'sid':sid}, function(js) {
+        if(seq !== window.__load_imgs_seq || g_item === null) return;
+        
+        if(js.imgs) {
+            var imgs = js.imgs.split('|');
+            for(var i = 0; i < imgs.length; i++)
+                g_v_wnds.item.v_picture_tbl.append( $('<img alt="IMG" />').attr('src', imgs[i]).click(load_large_img) );
+        } else {
+            load_google_imgs(seq, nz);
+            
+        }
+        
+    });
+}
+
+function load_google_imgs(seq, nz)
+{
+    $.get('https://ajax.googleapis.com/ajax/services/search/images?v=1.0',
+        {q: nz},
+        function(js) {
+            if(seq !== window.__load_imgs_seq || g_item === null) return;
+            
+            if(js.responseData) {
+                var results = js.responseData.results;
+                var max_len = Math.min(4, results.length);
+                for(var i = 0; i < max_len; i++) {
+                    var r = results[i];
+                    g_v_wnds.item.v_picture_tbl.append( $('<img alt="IMG" class="google_img" />').data('full_url', r.unescapedUrl).attr('src', r.tbUrl).click(load_large_img) );
+                }
+            }
+            
+        }, 'jsonp'
+    );
 }
 
 function finish_upload_img(lst)
 {
     //g_v_img_upload_form[0].reset();
-    /*
+    
+    g_v_wnds.item.v_picture_tbl.children().filter('.google_img').remove();
+    
     for(var i = 0; i < lst.length; i++) {
         var img = lst[i];
-        g_v_item_tbl.picture.prepend( $('<img />').attr('alt', img[0]).attr('src', img[1]).click(load_large_img) );
+        g_v_wnds.item.v_picture_tbl.prepend( $('<img />').attr('alt', img[0]).attr('src', img[1]).click(load_large_img) );
     }
     
     var srcs = [];
-    var imgs = g_v_item_tbl.picture.children('img:not(.google_img)');
+    var imgs = g_v_wnds.item.v_picture_tbl.children('img:not(.google_img)');
     for(var i = 0; i < imgs.length; i++) srcs.push( $(imgs[i]).attr('src') );
     
-    $.post('?fn=set_imgs', {'sid':g_item[0], 'imgs':srcs.join('|')}, function(js) {}, 'json');
-*/
+    post_js('m_item_lookup?fn=set_imgs', {'sid':g_item[0], 'imgs':srcs.join('|')}, function(js) {});
+
 }
 
 function OnPictureReady()
 {
+    if(g_item === null) return;
+    var sid = g_item[0];
+    
     var pic = window.Android.getPicture();
     post_js('sfile?fn=upload_img_v1', {'img': pic}, function(js) {
-        //MsgBox("ok", js.s);
+        if(sid !== g_item[0]) return;
+        finish_upload_img(js);
     });
 }
 
 
 function load_item()
 {
-    _load_item($(this).data('pjs'));
     g_v_srch_item.val('');
+    invalid_ajs('_srch_item_');
+    _load_item($(this).data('pjs'));
+    
 }
 
 function load_item_by_sid(sid)
-{   
+{
+    g_v_srch_item.val('');
+    
     get_js_ex('mobile?fn=get_item', {sid: sid}, function(js) {
         _load_item(js.item);
-    }, undefined, undefined, undefined, '__load_item_by_sid__');
+    }, undefined, undefined, undefined, '_srch_item_');
 }
 
 function _load_item(js)
@@ -136,6 +211,10 @@ function _load_item(js)
         }
     }
     g_v_wnds.info.v_vendor_tbl.empty().append(v_lst);
+    
+    
+    load_imgs(item[0], item[2]);
+    
     
     show_wnd('item');
 }
@@ -365,35 +444,10 @@ function load_cycle_count_sel()
     });
 }
 
-
-$(function() {
-
-g_load_list_type = 0;
-g_load_list_reload = true;
-
-g_cur_wnd = null;
-g_wnds = g_v_wnds = {
-    item: {v: $('#wnd_item')},
-    info: {v: $('#wnd_info')},
-    list: {v: $('#wnd_list'), save_scroll: true, on_show: function() {_load_list();} }
+function _search(ms)
+{
+    clear_item();
     
-};
-
-g_v_wnds.item.cds = g_v_wnds.item.v.children('.panel-body');
-g_v_wnds.item.v_hist_tbl = $(g_v_wnds.item.cds[3]).find('table >tbody');
-
-var cds = g_v_wnds.list.v.children();
-g_v_wnds.list.v_nums = $(cds[0]).find('a >span');
-g_v_wnds.list.v_tbl = $(cds[1]).find('tbody');
-
-var cds = g_v_wnds.info.v.children();
-g_v_wnds.info.v_vendor_tbl = $(cds[1]).find('tbody');
-g_v_wnds.info.v_unit_tbl = $(cds[3]).find('tbody');
-
-
-g_v_search_result = $('#search_result');
-
-g_v_srch_item = $('#srch_item').keyup(function() {
     if(window.g_srch_cust_to) {
         clearTimeout(window.g_srch_cust_to);
         window.g_srch_cust_to = null;
@@ -403,7 +457,11 @@ g_v_srch_item = $('#srch_item').keyup(function() {
         var o = g_v_search_result;
         
         var term = $.trim( g_v_srch_item.val() );
-        if(!term.length) { o.hide(); return; }
+        if(!term.length) {
+            invalid_ajs('_srch_item_');
+            o.hide();
+            return;
+        }
         
         get_js_ex('mobile?fn=search_item', {term: term}, function(js) {
             if(js.length) {
@@ -419,10 +477,38 @@ g_v_srch_item = $('#srch_item').keyup(function() {
             
         }, undefined, undefined, '_srch_item_');
         
-    }, 250);
-    
-});
+    }, ms || 0);
+}
 
+$(function() {
+
+g_load_list_type = 0;
+g_load_list_reload = true;
+
+g_cur_wnd = null;
+g_wnds = g_v_wnds = {
+    item: {v: $('#wnd_item')},
+    info: {v: $('#wnd_info')},
+    list: {v: $('#wnd_list'), save_scroll: true, on_show: function() {_load_list();} }
+    
+};
+
+g_v_wnds.item.cds = g_v_wnds.item.v.children('.panel-body');
+g_v_wnds.item.v_picture_tbl = $(g_v_wnds.item.cds[4]);
+g_v_wnds.item.v_hist_tbl = $(g_v_wnds.item.cds[3]).find('table >tbody');
+
+var cds = g_v_wnds.list.v.children();
+g_v_wnds.list.v_nums = $(cds[0]).find('a >span');
+g_v_wnds.list.v_tbl = $(cds[1]).find('tbody');
+
+var cds = g_v_wnds.info.v.children();
+g_v_wnds.info.v_vendor_tbl = $(cds[1]).find('tbody');
+g_v_wnds.info.v_unit_tbl = $(cds[3]).find('tbody');
+
+
+g_v_search_result = $('#search_result');
+
+g_v_srch_item = $('#srch_item').keyup(function() { _search(250); });
 
 
 load_cycle_count_sel();
@@ -471,7 +557,8 @@ body {margin:62px 0px}
 #wnd_item_quantity >div:nth-child(3) {color:#882525}
 #wnd_item_name {font-size:20px;}
 
-#imgs_cnt >img {max-height:120px;max-width:120px;}
+#imgs_cnt >img {max-height:120px;max-width:120px;border:1px solid #fff;margin-right:10px}
+#imgs_cnt >img.google_img {border:1px solid red}
 
 </style>
 
@@ -494,12 +581,8 @@ body {margin:62px 0px}
 <tbody></tbody>
 </table>
 </div>
-<div class="panel-footer">Image</div>
-<div class="panel-body" id="imgs_cnt">
-
-<img src="img/add_1.png" alt="" class="img-rounded" onclick="takePicture()" />
-
-</div>
+<div class="panel-footer" onclick="takePicture()">Image  <span class="glyphicon glyphicon-plus" aria-hidden="true"></span></div>
+<div class="panel-body" id="imgs_cnt"></div>
 </div>
 
 

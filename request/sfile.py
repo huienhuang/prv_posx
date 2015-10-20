@@ -76,7 +76,7 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         lst = json.dumps( (('IMG', '%s/%s_200.jpg' % (wdir, fnz)),) )
         self.req.writefile('finish_upload_img.html', {'lst': lst})
         
-
+    
     def fn_upload_img_v1(self):
         img = base64.b64decode(self.req.psv_ustr('img'))
         
@@ -91,7 +91,6 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         im = Image.open(cStringIO.StringIO(img))
         try:
             orien = (im._getexif() or {}).get(0x0112, 1)
-            open("c/data/pk.txt", 'wb').write(str(orien))
         except:
             orien = 1
         
