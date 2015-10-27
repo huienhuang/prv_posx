@@ -3,6 +3,9 @@
 <head>
 <script>posx_enable_chk_login = true;</script>
 <%include file="header_bs_v1.html" />
+
+<script type="text/javascript" src="js/jquery.mobile.custom.min.js"></script>
+
 <title>POSX - Physical Count</title>
 
 <script type="text/javascript">
@@ -12,7 +15,22 @@ g_item = null;
 
 function clear_item()
 {
+    g_item = null;
+    g_cur_wnd_nz = 'item';
+    
+    $(g_v_wnds.item.cds[0]).empty();
+    $(g_v_wnds.item.cds[1]).empty();
+    g_v_wnds.item.v_unit_tbl.empty();
+    g_v_wnds.item.v_vendor_tbl.empty();
+    g_v_wnds.item.v_picture_tbl.empty();
     g_v_wnds.item.v.hide();
+    
+    g_v_wnds.history.v.empty().hide();
+    g_v_wnds.history.ctx = null;
+    
+    
+    invalid_ajs('load_hist');
+    invalid_ajs('_srch_item_');
 }
 
 function new_search()
@@ -117,7 +135,6 @@ function OnPictureReady()
 
 function load_item()
 {
-    invalid_ajs('_srch_item_');
     _load_item($(this).data('pjs'));
     g_v_srch_item.val('');
 }
@@ -131,6 +148,10 @@ function load_item_by_sid(sid)
 
 function _load_item(js)
 {
+    
+    clear_item();
+    
+    
     var item = g_item = js;
     g_v_search_result.hide();
     
@@ -139,7 +160,7 @@ function _load_item(js)
     var units = item[3].units;
     var qty = item[3].qty.slice(0);
     var def_unit = units[ item[3].default_uom_idx ];
-    var v_oh_qty = $(g_v_wnds.item.cds[1]).empty();
+    var v_oh_qty = $(g_v_wnds.item.cds[1]);
     if(def_unit[3]) {
         if (def_unit[3] != 1) {
             qty[0] /= def_unit[3];
@@ -164,7 +185,7 @@ function _load_item(js)
             .append( $('<td></td>').text( unit[4]) )
         );
     }
-    g_v_wnds.item.v_unit_tbl.empty().append(v_lst);
+    g_v_wnds.item.v_unit_tbl.append(v_lst);
     
     
     var v_lst = [];
@@ -180,13 +201,13 @@ function _load_item(js)
             );
         }
     }
-    g_v_wnds.item.v_vendor_tbl.empty().append(v_lst);
+    g_v_wnds.item.v_vendor_tbl.append(v_lst);
     
     
     load_imgs(item[0], item[2]);
     
-    
     g_v_wnds.item.v.show();
+    
 }
 
 function hook_search_result(js)
@@ -278,11 +299,83 @@ function _search(ms)
     }, ms || 0);
 }
 
+function load_hist_cb(js)
+{
+    var ctx = g_v_wnds.history.ctx;
+    if(!ctx) return;
+    
+    var v_lst = [];
+    var lst = js.res.rpg[ctx.next_idx] || [];
+    for(var i = 0; i < lst.length; i++) {
+        var r = lst[i];
+        v_lst.push( $('<a href="#" class="list-group-item"></a>').text(r[4].split(' ')[0] + ' ' + r[1] + '#' + r[0] + ' - ' + r[2])
+                   .append( $('<span class="badge"></span>').text(r[3]) )
+        );
+    }
+    g_v_wnds.history.v.append(v_lst);
+    
+    if(lst < 30) ctx.end = true;
+    ctx.loaded_pages[ctx.next_idx] = 1;
+}
+
+function load_next()
+{
+    var ctx = g_v_wnds.history.ctx;
+    if(!ctx || ctx.end) return;
+    
+    if(ctx.loaded_pages[ctx.next_idx]) ctx.next_idx++;
+    
+    get_js_ex('hist?fn=getpageitem',
+        {tid: g_item[0], sidx: ctx.next_idx, eidx: ctx.next_idx + 1, pagesize: 30, sd: 0},
+        load_hist_cb,
+        undefined, undefined, undefined, "load_hist"
+    );
+}
+
+function load_hist()
+{
+    var ctx = g_v_wnds.history.ctx;
+    if(ctx) return;
+    
+    g_v_wnds.history.ctx = ctx = {next_idx: 0, loaded_pages: {}};
+    load_next();
+    
+}
+
+function swipe_wnd(evt) {
+    if(g_item === null) return;
+    
+    var wnd = g_wnds[ g_cur_wnd_nz ];
+    if(!wnd.swipe) return;
+    
+    var cur_nz;
+    if(evt.swipestart.coords[0] < evt.swipestop.coords[0]) {
+        cur_nz = wnd.swipe[1];
+    } else {
+        cur_nz = wnd.swipe[0];
+    }
+    
+    if(!cur_nz) return;
+    
+    g_cur_wnd_nz = cur_nz;
+    var new_wnd = g_wnds[cur_nz];
+    
+    wnd.scroll_top = $(document).scrollTop();
+    wnd.v.hide();
+    
+    new_wnd.v.show();
+    $(document).scrollTop(new_wnd.scroll_top || 0);
+    new_wnd.show && new_wnd.show();
+}
+
 $(function() {
 
 g_wnds = g_v_wnds = {
-    item: {v: $('#wnd_item')},
+    item: {v: $('#wnd_item'), swipe: ['history', null]},
+    history: {v: $('#wnd_history'), swipe: [null, 'item'], show: load_hist}
 };
+g_cur_wnd_nz = 'item';
+
 
 g_v_wnds.item.cds = g_v_wnds.item.v.children('.panel-body');
 g_v_wnds.item.v_picture_tbl = $(g_v_wnds.item.cds[2]);
@@ -294,8 +387,24 @@ g_v_search_result = $('#search_result');
 
 g_v_srch_item = $('#srch_item').keyup(function() { _search(250); });
 
+g_s_to = null;
+$(document).on("swipe", swipe_wnd).scroll(function() {
+    if(g_cur_wnd_nz !== 'history') return;
+    
+    if(g_s_to) { clearTimeout(g_s_to); g_s_to = null; }
+    
+    var d = $(document);
+    if(d.scrollTop() >= d.outerHeight() - $(window).outerHeight() - 10) {
+        g_s_to = setTimeout(load_next, 250);
+    }
+}).resize(function() {
+    g_wnds.history.v.css('min-height', ($(window).outerHeight() + 1 - 62 * 2) + 'px');
+    
+}).resize();
+
 
 });
+
 
  
 </script>
@@ -313,9 +422,9 @@ body {margin:62px 0px}
 #search_result >div >div:nth-child(3) {color:#006600;font-weight:bold}
 #search_result >div >div:nth-child(4) {color:#101010}
 
-.body_wnd {z-index:0;position:relative;}
+.body_wnd {display:none;z-index:0;position:relative;}
 
-#wnd_item {display:none}
+#wnd_item {}
 #wnd_item .row {margin-left:0;margin-right:0}
 #wnd_item >.panel-footer {font-weight:bold}
 
@@ -345,12 +454,19 @@ body {margin:62px 0px}
 <body>
 
 
+<div class="body_wnd list-group" id="wnd_history">
+    
+</div>
 
 <div class="panel panel-default body_wnd" id="wnd_item">
 <div class="panel-body" id="wnd_item_name"></div>
 <div class="panel-footer">Quantity</div>
 <div class="panel-body row" id="wnd_item_quantity"></div>
+%if store_id != 1:
 <div class="panel-footer" onclick="takePicture()">Image  <span class="glyphicon glyphicon-plus" aria-hidden="true"></span></div>
+%else:
+<div class="panel-footer">Image</div>
+%endif
 <div class="panel-body" id="imgs_cnt"></div>
 <div class="panel-footer">Vendor</div>
 <div class="panel-body">

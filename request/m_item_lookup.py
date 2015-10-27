@@ -26,7 +26,7 @@ TICKET_TYPE_MAPPING_R = dict([(f_v[1], f_v[0]) for f_v in TICKET_TYPE_MAPPING.it
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
-        r = {'mode': config.settings['mode']}
+        r = {'mode': config.settings['mode'], 'store_id': config.store_id}
         self.req.writefile('view_item_mobile_v1.html', r)
     
     def fn_search_item(self):
