@@ -1,0 +1,19 @@
+
+
+
+#jump to
+#push posstex.dll
+#call loadlibrary
+
+d = open("QBPOSProcIn.exe", "rb").read()
+print len(d)
+
+idx = d.find("\x55\x8B\xEC\x83\xC4\xF0\xB8\x90\xCA\x6B\x00\xE8\x30\x6E\xD4\xFF")
+d = d[:idx] + "\xE9\x2E\x81\xF5\xFF\x90" + d[idx + 6:]
+
+idx = d.find("\x64\x62\x6C\x69\x62\x31\x30\x2E\x64\x6C\x6C\x00\x64\x62\x6C\x69")
+d = d[:idx] + "\x70\x6F\x73\x73\x74\x65\x78" + d[idx + 7:]
+
+print len(d)
+
+open("QBPOSProcIn_E.exe", "wb").write(d)
