@@ -319,5 +319,135 @@ $(function() {
     if(window.posx_enable_chk_login) timeout_chk_login = setTimeout(chk_login, 5000);
 });
 
+
+function hook_search_result(kw, js)
+{
+    var ct = js || [];
+    var term = kw.toLowerCase();
+    
+    for(var i = 0; i < ct.length; i++) {
+        var c = ct[i];
+        if(typeof(c[3]) === typeof("")) c[3] = $.parseJSON(c[3]);
+        var item = c[3];
+        var units = item.units;
+            
+        if (c[4] !== null) {
+            var upc_uom_idx = parseInt(c[4]);
+            if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
+                
+        } else if(term) {
+            for(var u = 0; u < units.length; u++) {
+                var alu = units[u][1];
+                if(alu && alu.toLowerCase() === term) {
+                    item.default_uom_idx = u;
+                    break;
+                }
+            }
+        }
+
+    }
+}
+
+function render_list(js, cb)
+{
+    var lst = [];
+    for(var i = 0; i < js.length; i++) {
+        var c = js[i];
+        var d = c[3];
+        
+        var unit = d.units[d.default_uom_idx];
+        var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    
+        lst.push(
+            $('<div class="row"></div>').data('pjs', c).click(cb)
+                .append($('<div class="col-xs-2"></div>').text(c[1]))
+                .append($('<div class="col-xs-5"></div>').text( '$' + unit[0][0] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+                .append($('<div class="col-xs-5"></div>').text(d.units[0][1]))
+                .append($('<div class="col-xs-12"></div>').text(c[2]))
+        );
+    }
+    
+    lst.length && lst[0].focus();
+    
+    return lst;
+}
+
+tiny_search = function(src_sel, res_sel, opts) {
+    var _t = $.extend({}, opts);
+    
+    function _click() {
+        _t.kw = null;
+        _t.src_sel.val('');
+        _t.res_sel.hide();
+        _t.click && _t.click.call(this);
+    }
+    
+    function _abort() {
+        if(_t.ajax) { _t.ajax.abort(); _t.ajax = null; }
+    }
+    
+    function _search_delay(ms) {
+        if(_t.timeout) { clearTimeout(_t.timeout); _t.timeout = null; }
+        
+        var kw = $.trim(_t.src_sel.val());
+        if(!kw.length) { _abort(); _t.res_sel.hide(); return; }
+        if(kw === _t.kw) {
+            _t.ms = ms;
+            if(_t.ready) _t.res_sel.children().first().click();
+            
+            return;
+        } else {
+            _t.kw = null;
+            _abort();
+        }
+        
+        _t.timeout = setTimeout(function() {
+            _t.ms = ms;
+            _t.kw = kw;
+            _t.ready = false;
+            
+            _t.ajax = get_js_ex('mobile?fn=search_item', {term: kw}, function(js) {
+                if(js.length) {
+                    hook_search_result(kw, js);
+                    _t.res_sel.empty().append( render_list(js, _click) ).show();
+                    if(js.length == 1 || !_t.ms) _t.res_sel.children().first().click();
+                    _t.ready = true;
+                    
+                } else {
+                    _t.kw = null;
+                    _t.res_sel.hide();
+                    
+                }
+                
+            }, function() {
+                _t.kw = null;
+                _t.res_sel.hide();
+                
+            });
+            
+        }, ms || 0);
+    }
+    
+    function _search(evt) {
+        if(evt.which == 13 || evt.keyCode == 13) {
+            evt.preventDefault();
+            
+            _search_delay(0);
+            
+        } else
+            _search_delay(250);
+            
+    }
+    
+    _t.res_sel = $(res_sel);
+    _t.src_sel = $(src_sel).keyup(_search).data('tiny_search', {search: _search_delay});
+
+    return _t.src_sel;
+};
+
+
 })();
+
+
+
 

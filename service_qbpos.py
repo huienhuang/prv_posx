@@ -457,6 +457,89 @@ def insert_qty_adj(cur, r):
 
 
 
+def update_upc(cur, r):
+	gjs = r['js']
+
+	sid = gjs['sid']
+	cur[1].execute('select itemno from inventory where itemsid=? and datastate=0', (sid,))
+	row = cur[1].fetchall()
+	if not row: return (-2, None, "Can't Find Item - SID %s" % (sid, ))
+	itemno = row[0][0]
+
+	for unit in gjs['units']:
+		if unit[1] == None: continue
+		cur[1].execute('select count(*) from InventoryKeywords where sid!=? and fid=19 and datastate=0 and keyword=?', (
+			sid, unit[1]
+		))
+		row = cur[1].fetchall()
+		if row and row[0][0]:
+			return (-2, None, "ItemNo %s - Unit - Duplicate UPC %s" % (itemno, unit[1], ))
+
+	for vendor in gjs['vends']:
+		if vendor[1] == None: continue
+		cur[1].execute('select count(*) from InventoryKeywords where sid!=? and fid=19 and datastate=0 and keyword=?', (
+			sid, vendor[1]
+		))
+		row = cur[1].fetchall()
+		if row and row[0][0]:
+			return (-2, None, "ItemNo %s - Vendor - Duplicate UPC %s" % (itemno, vendor[1], ))
+
+
+	cur[1].execute('update inventory set lastedit=now() where itemsid=? and datastate=0', (sid,))
+	cur[1].execute('select @@rowcount')
+	if cur[1].fetchall()[0][0] <= 0: return
+
+	c_units = []
+	cur[1].execute('select unitofmeasure,upc,-1 from inventory where itemsid=?', (sid,))
+	c_units.append( cur[1].fetchall()[0] )
+	cur[1].execute('select unitofmeasure,upc,uompos from inventoryunits where itemsid=? and unitofmeasure is not null order by uompos asc', (sid,))
+	c_units.extend( cur[1].fetchall() )
+
+	chg = 0
+	for unit in gjs['units']:
+		for i in range(len(c_units)):
+			r = c_units[i]
+			if unit[0].lower() == (r[0] or '').lower():
+				if r[2] == -1:
+					cur[1].execute('update inventory set upc=? where itemsid=?', (unit[1], sid, ))
+				else:
+					cur[1].execute('update inventoryunits set upc=? where itemsid=? and uompos=?', (unit[1], sid, r[2]))
+				cur[1].execute('select @@rowcount')
+				if cur[1].fetchall()[0][0] > 0: chg = 1
+				c_units[i] = (r[0], unit[1], r[2])
+				break
+
+
+	c_vendors = []
+	cur[1].execute('select vendname,upc,vendorpos from inventoryVendor where itemsid=? and vendsid is not null order by vendorpos asc', (sid,))
+	c_vendors.extend( cur[1].fetchall() )
+	for vendor in gjs['vends']:
+		for i in range(len(c_vendors)):
+			r = c_vendors[i]
+			if vendor[0].lower() == (r[0] or '').lower():
+				cur[1].execute('update inventoryVendor set upc=? where itemsid=? and vendorpos=?', (vendor[1], sid, r[2]))
+				cur[1].execute('select @@rowcount')
+				if cur[1].fetchall()[0][0] > 0: chg = 1
+				c_vendors[i] = (r[0], vendor[1], r[2])
+				break
+
+	if chg:
+		k = 0
+		lst = []
+		for r in c_units[:1] + c_vendors + c_units[1:]:
+			if r[1] == None: continue
+			lst.append([sid, 19, k, 0, r[1]])
+			k += 1
+
+		cur[1].execute('delete from InventoryKeywords where sid=? and fid=19', (sid, ))
+		if lst: cur[1].executemany('insert into InventoryKeywords values(?, ?, ?, ?, ?)', lst)
+
+	cur[1].execute('update inventory set lastedit=now() where itemsid=?', (sid,))
+	cur[1].execute("insert into changejournal values(default,'Inventory',?,1,now(),'POSXRM', '-1')", (sid,))
+	cur[1].execute('commit')
+
+	return (0, (None, 0), 'OK')
+
 def insert_reorder_qty_adj(cur, r):
 	gjs = r['js']
 	rpts = gjs['reorder_pts']
@@ -520,6 +603,8 @@ def worker(cur):
 			ret = insert_qty_adj(cur, r)
 		elif r['doc_type'] == 5:
 			ret = insert_reorder_qty_adj(cur, r)
+		elif r['doc_type'] == 6:
+			ret = update_upc(cur, r)
 		else:
 			ret = (-1, None, 'Invalid Type')
 

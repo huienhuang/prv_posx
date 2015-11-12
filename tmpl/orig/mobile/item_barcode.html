@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html ng-app="POSX">
+<head>
+<script>posx_enable_chk_login = true;</script>
+<%include file="../header_bs_v1.html" />
+<title>POSX - POS Tool</title>
+<script type="text/javascript" src="js/angular.min.js"></script>
+
+
+<script type="text/javascript">
+var g_item = {};
+
+$(function() {
+    
+g_v_mainCtrl = $('#mainCtrl');
+g_v_srch_item = tiny_search($('#srch_item'), $('#search_result'), {click: function() {
+    var t = $(this).data('pjs');
+    //console.log(t);
+    g_item.sid = t[0];
+    g_item.num = t[1];
+    g_item.name = t[2];
+    g_item.js = t[3];
+    
+    g_v_mainCtrl.scope().$apply();
+    
+}});
+
+g_barcode_ctx = g_barcode_default = [g_v_srch_item, function() {
+    g_v_srch_item.data('tiny_search').search();
+}];
+
+});
+
+POSX = angular.module('POSX', []);
+POSX.controller('mainCtrl', function($scope) {
+    $scope.item = g_item;
+});
+
+
+function save() {
+    if(!g_item.sid) return;
+    
+    var units = [];
+    var v_units = g_v_mainCtrl.find('input.item_unit');
+    for(var i = 0; i < v_units.length; i++) {
+        var v = $(v_units[i]);
+        var a = $.trim(v.val());
+        var b = $.trim(v.data('org-value'));
+        if(a === b) continue;
+        
+        units.push([v.data('name'), a]);
+    }
+    
+    var vends = [];
+    var v_vendors = g_v_mainCtrl.find('input.item_vendor');
+    for(var i = 0; i < v_vendors.length; i++) {
+        var v = $(v_vendors[i]);
+        var a = $.trim(v.val());
+        var b = $.trim(v.data('org-value'));
+        if(a === b) continue;
+        
+        vends.push([v.data('name'), a]);
+    }
+    
+    if(!vends.length && !units.length) return;
+    
+    post_js_ex('?fn=save_info', {js: JSON.stringify({sid: g_item.sid, units: units, vends: vends})}, function(){
+        g_item.sid = undefined;
+        g_item.num = undefined;
+        g_item.name = undefined;
+        g_item.js = undefined;
+    
+        g_v_mainCtrl.scope().$apply();
+        
+    });
+    
+}
+
+function new_search()
+{
+    g_v_srch_item.val('').focus();
+}
+
+function scanBarcodeTo(ctx)
+{
+    g_barcode_ctx = ctx || g_barcode_default;
+    scanBarcode();
+}
+
+function scanBarcode()
+{
+    window.Android && window.Android.scanBarcode && window.Android.scanBarcode();
+}
+
+function OnBarcodeReady()
+{
+    var barcode = window.Android.getBarcode();
+    g_barcode_ctx[0].val(barcode);
+    g_barcode_ctx[1] && g_barcode_ctx[1]();
+}
+
+</script>
+
+
+<style>
+body {margin:62px 0px}
+#top-menu {position:fixed;top:0;left:0;right:0;height:62px;padding:8px 15px;}
+#bottom-menu {position:fixed;bottom:0;left:0;right:0;height:62px;padding:8px 15px;}
+#search_result {z-index:1;position:fixed;top:62px;bottom:62px;left:0;right:0;background-color:#f0f0f0;display:none;overflow-x:hidden;overflow-y:scroll}
+
+#search_result >div {font-size:18px;border-bottom:1px solid #ddd;padding:8px 4px}
+#search_result >div:nth-child(even) {background-color:#f9f9f9}
+#search_result >div >div:nth-child(1){color:#003366;font-weight:bold}
+#search_result >div >div:nth-child(2) {color:#994C00;font-weight:bold}
+#search_result >div >div:nth-child(3) {color:#006600;font-weight:bold}
+#search_result >div >div:nth-child(4) {color:#101010}
+
+.barcode-inp {width:240px}
+
+#mainCtrl {z-index:0;position:relative}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div id="mainCtrl" ng-controller="mainCtrl" class="container-fluid">
+
+<h3><span class="label label-default">{{item.num}}</span> {{item.name}}</h3>
+
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Unit</th><th>Factor</th><th>ALU</th><th>UPC</th><th>Price</th></tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="unit in item.js.units">
+            <td>{{unit[2]}}</td>
+            <td>{{unit[3]}}</td>
+            <td>{{unit[1]}}</td>
+            <td>
+                <div class="input-group barcode-inp">
+                <input data-name="{{unit[2]}}" class="form-control item_unit" type="number" value="{{unit[4]}}" data-org-value="{{unit[4]}}" />
+                <span class="input-group-btn"><button type="button" class="btn btn-danger" onclick="scanBarcodeTo([$(this).parent().prev(), null])"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</button></span>
+                </div>
+            </td>
+            <td>{{unit[0][0].toFixed(2)}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Vendor</th><th>ALU</th><th>UPC</th></tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="vend in item.js.vends.slice(1)">
+            <td>{{vend[0]}}</td>
+            <td>{{vend[1]}}</td>
+            <td>
+                <div class="input-group barcode-inp">
+                <input data-name="{{vend[0]}}" class="form-control item_vendor" type="number" value="{{vend[2]}}" data-org-value="{{vend[2]}}" />
+                <span class="input-group-btn"><button type="button" class="btn btn-danger" onclick="scanBarcodeTo([$(this).parent().prev(), null])"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</button></span>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+</div>
+
+
+
+<nav class="navbar-default row" id="top-menu">
+<div class="col-xs-12 col-sm-12"> 
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="scanBarcodeTo()"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</button></span>
+<input type="text" class="form-control" placeholder="Search" id="srch_item" autocomplete="off">
+</div>
+</div>
+</nav>
+<nav class="navbar-default" id="bottom-menu">
+<div class="btn-group btn-group-lg btn-group-justified" role="group">
+<a href="#" onclick="scanBarcodeTo();return false" class="btn btn-primary" role="button"><span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Scan</a>
+<a href="#" onclick="save();return false" class="btn btn-warning" role="button"><span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span> Save</a>
+<a href="#" onclick="new_search();return false" class="btn btn-success" role="button"><span class="glyphicon glyphicon-search" aria-hidden="true"></span> New Search</a>
+</div>
+</nav>
+
+<div id="search_result"></div>
+
+</body>
+
+</html>
+
