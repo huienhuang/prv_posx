@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header.html" />
+
+<script type="text/javascript">
+
+function setup_data(item)
+{
+    var price_s = '';
+    var units = item[3].units;
+    for(var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        if(unit[3] <= 0) continue;
+        price_s += '$' + unit[0][0].toFixed(2) + (unit[2] ? '/' + unit[2].toUpperCase() : '') + '   ';
+    }
+    if(price_s) price_s = price_s.substring(0, price_s.length - 3);
+    
+    return [ item[1], item[3].units[0][1], item[2], price_s ];
+}
+
+</script>
+
+<style type="text/css">
+.labelpaper > div:nth-child(1) {top:1.0in;left:0.25in}
+.labelpaper > div:nth-child(2) {top:1.0in;left:4.25in}
+.labelpaper > div:nth-child(3) {top:4.0in;left:0.25in}
+.labelpaper > div:nth-child(4) {top:4.0in;left:4.25in}
+.labelpaper > div:nth-child(5) {top:7.0in;left:0.25in}
+.labelpaper > div:nth-child(6) {top:7.0in;left:4.25in}
+
+.labelpaper > div {width:4in;height:3in}
+
+.txt_item {bottom:15px;left:8px;font-weight:bold;font-size:26px}
+.txt_pound {bottom:15px;left:150px;font-weight:bold;font-size:26px}
+.labelpaper > div > div.item_no {top:auto;bottom:15px;left:166px;font-weight:bold;font-size:26px}
+.labelpaper > div > div.item_alu {top:30px;left:8px;right:8px;height:70px;width:auto;font-weight:bold;font-size:48px;text-align:center;line-height:70px}
+.labelpaper > div > div.item_desc {top:100px;font-size:22px;bottom:50px;}
+.labelpaper > div > div.le_elem_multi td {white-space:pre-wrap}
+
+</style>
+
+</head>
+<body>
+
+<div class="labelpaper">
+%for i in range(6):
+<div>
+<div class="item_no le_id le_elem" title="Number"></div>
+<div class="item_alu le_elem" title="ALU"></div>
+<div class="item_desc le_elem le_elem_multi" title="Desc"><table><tr><td></td></tr></table></div>
+
+<div class="txt_pound">#</div>
+</div>
+%endfor
+</div>
+
+</body>
+</html>
