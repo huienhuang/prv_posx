@@ -87,6 +87,7 @@ function mk_hdr(frm_date, to_date, interval)
     
     //g_v_xtbl_hdr.empty().append('<div></div><div>Item#</div><div>Name</div><div>Unit</div><div>Order</div><div>TTLOH</div><div>TTLPC</div>');
     $(g_v_xtbl_hdr.children().slice(9)).remove();
+    $(g_v_xtbl_ftr.children().slice(9)).remove();
     var frm = frm_d;
     var width = 26 + 70 + 100 + 250 + 46 + 80 + 76 + 70 + 70 + 70 + 70;
     while(true) {
@@ -101,12 +102,15 @@ function mk_hdr(frm_date, to_date, interval)
         frm += interval;
     
         g_v_xtbl_hdr.append( $('<div>'+str_pad(mon, 2, '0')+'/'+(''+yr).substr(2,2)+'</div>') );
+        g_v_xtbl_ftr.append('<div></div>');
         width += 70;
     }
     g_v_xtbl_hdr.append('<div>AVG</div>');
     g_v_xtbl_hdr.append('<div>Total</div>');
+    g_v_xtbl_ftr.append('<div></div><div></div>');
     g_cur_hdr.width = width;
     g_v_xtbl_hdr.width(g_cur_hdr.width);
+    g_v_xtbl_ftr.width(g_cur_hdr.width);
     g_v_xtbl.children().width(g_cur_hdr.width);
 }
 
@@ -373,6 +377,23 @@ function load_items_sold_report_cb(js)
         el.append( $('<div></div>').text( count ? (total / count).toFixed(1) : '' ) );
         el.append( $('<div></div>').text(total.toFixed(1)) );
     }
+    
+    var v_lst = g_v_xtbl_ftr.children();
+    var c_lst = g_v_xtbl.children();
+    
+    var n_lst = [];
+    for(var j = 9; j < v_lst.length; j++) n_lst.push(0);
+    
+    for(var i = 0; i < c_lst.length; i++) {
+        var cds = $(c_lst[i]).children();
+        if(cds.length <= 9) continue;
+        
+        for(var j = 9; j < v_lst.length; j++)
+            n_lst[j - 9] += parseFloat($(cds[j]).text()) || 0;
+    }
+    
+    for(var j = 9; j < v_lst.length; j++) $(v_lst[j]).text( n_lst[j - 9].toFixed(1) );
+    
 }
 
 function load_items_sold_report()
@@ -657,6 +678,8 @@ $('.btn').button();
 
 g_v_xtbl_hdr_cnt = $('.xtbl_header').tooltip();
 g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
+g_v_xtbl_ftr = $('.xtbl_footer').children('.xtbl_row');
+
 
 g_v_xtbl = $('.xtbl').sortable({
     items: '> div',
@@ -887,7 +910,7 @@ margin:60px 50px;
 
 <div class="xtbl_header"><div class="xtbl_row noselect"><div></div><div>Item#</div><div>ALU</div><div>Name</div><div>PO</div><div>Unit</div><div title="reorder point">Point</div><div id="v_change_store" title="Switch Store" style="color:red">OH(AL)</div><div>PO</div></div></div>
 <div class="xtbl"></div>
-<div class="xtbl_footer"><div class="xtbl_row"></div></div>
+<div class="xtbl_footer"><div class="xtbl_row"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
 
 <div id="dlg_profile_name" title="Profile Name">Name: <input name="nz" type="text"/></div>
 
