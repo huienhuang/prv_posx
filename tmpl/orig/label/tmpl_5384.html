@@ -19,6 +19,22 @@ function setup_data(item)
     return [ item[1], item[3].units[0][1], item[2], price_s ];
 }
 
+function resize_elem(i_elem)
+{
+    if(!i_elem.hasClass('item_alu')) return;
+    
+    i_elem.addClass('item_alu_autosize');
+    for(var i = 48; i < 100; i++) {
+        i_elem.css('font-size', i + 'px');
+        if(i_elem.width() > 370) {
+            i_elem.css('font-size', (i - 1) + 'px');
+            break;
+        }
+    }
+    i_elem.removeClass('item_alu_autosize');
+}
+
+
 </script>
 
 <style type="text/css">
@@ -34,8 +50,9 @@ function setup_data(item)
 .txt_item {bottom:15px;left:8px;font-weight:bold;font-size:26px}
 .txt_pound {bottom:15px;left:150px;font-weight:bold;font-size:26px}
 .labelpaper > div > div.item_no {top:auto;bottom:15px;left:166px;font-weight:bold;font-size:26px}
-.labelpaper > div > div.item_alu {top:30px;left:8px;right:8px;height:70px;width:auto;font-weight:bold;font-size:48px;text-align:center;line-height:70px}
-.labelpaper > div > div.item_desc {top:100px;font-size:22px;bottom:50px;}
+.labelpaper > div > div.item_alu {white-space:nowrap;top:30px;left:8px;right:8px;height:auto;width:auto;font-weight:bold;font-size:48px;text-align:center;line-height:1}
+.labelpaper > div > div.item_alu_autosize {right:auto;}
+.labelpaper > div > div.item_desc {top:130px;font-size:22px;bottom:50px;}
 .labelpaper > div > div.le_elem_multi td {white-space:pre-wrap}
 
 </style>
