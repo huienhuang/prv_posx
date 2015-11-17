@@ -22,6 +22,7 @@ def open_db(dbs, nz):
             print "SQLANY(POS)",
             dbc = sqlanydb.connect(**config.sqlany_pos)
             cur = dbc.cursor()
+            cur.execute("SET TEMPORARY OPTION CONNECTION_AUTHENTICATION='Company=Intuit Inc.;Application=QuickBooks Point of Sale;Signature=000fa55157edb8e14d818eb4fe3db41447146f1571g7262d341128bbd2768e586a0b43d5568a6bb52cc'")
             #cur.execute("SET TEMPORARY OPTION isolation_level = 1;")
             print 'Connected'
 
