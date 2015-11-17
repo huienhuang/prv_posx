@@ -224,7 +224,7 @@ def _update_balance(qb_cur, pos_cur):
 		upd_users.append([sid, qblistid, balance])
 
 	if not upd_users: return
-	upd_users.sort(lambda f_x:f_x[0])
+	upd_users.sort(key=lambda f_x:f_x[0])
 
 	for r in upd_users:
 		pos_cur.execute('update customer set creditused=? where datastate=0 and sid=? and qblistid=?', (r[2], r[0], r[1]))
