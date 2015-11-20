@@ -98,8 +98,15 @@ for r in cur:
         s_stat[2] += total_cost
 
 
+
+f_y,f_m = time.localtime()[:2]
+to_mon = f_y * 12 + f_m - 1
+frm_mon = to_mon - 6
+
 g_vendors = {}
 g_item_nos = {}
+g_item_ov = {}
+
 
 cur.execute('select * from sync_items')
 nzs = cur.column_names
@@ -121,6 +128,14 @@ for r in cur:
         'deptsid': r['deptsid'],
     }
 
+    t = g_item_ov[ r['sid'] ] = [ [0, ] * 6, l_qty, r['num'], r['deptsid'], r['status'] ]
+    f_m = frm_mon
+    while f_m < to_mon:
+        c_y,c_m = divmod(f_m, 12)
+        t[0][f_m - frm_mon] = item[2].get(c_y * 100 + c_m + 1, [0])[0]
+        f_m += 1
+
+
 for item in g_items.values():
     item[0] = tuple(item[0])
     item[1] = tuple(item[1])
@@ -131,6 +146,7 @@ for item in g_items.values():
 for v in g_vendors.values(): v[1] = sorted(v[1], key=lambda f_x: g_item_nos[f_x])
 
 
+cPickle.dump(g_item_ov, open(os.path.join(config.DATA_DIR, 'items_stat_x2.txt'), 'wb'), 1)
 cPickle.dump(g_items, open(os.path.join(config.DATA_DIR, 'items_stat.txt'), 'wb'), 1)
 cPickle.dump(g_vendors, open(os.path.join(config.DATA_DIR, 'items_vendors.txt'), 'wb'), 1)
 

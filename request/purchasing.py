@@ -32,6 +32,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             ('price_adjustment', 'Price Adjustment'),
             ('$itemsold', 'Item Sold'),
             ('out_of_stock', 'Out Of Stock'),
+            ('over_stock', 'Over Stock'),
             ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
@@ -49,6 +50,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_out_of_stock(self):
         r = {'const':const}
         self.req.writefile('purchasing/out_of_stock.html', r)
+
+    def fn_over_stock(self):
+        r = {'const':const}
+        self.req.writefile('purchasing/over_stock.html', r)
     
     def get_items(self, frm_mon, to_mon, status_l, dept_l, sidx, eidx, pgsz, mode=0):
         where = []
@@ -519,3 +524,137 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
 
 
+    def get_items_x(self, mon_B, qty_M, status_l, dept_l, sidx, eidx, pgsz, mode=0):
+        where = []
+        if not status_l or not dept_l or not qty_M: return (0, [])
+        
+        s_status = set([ int(f_x) for f_x in status_l.split('|') if f_x ])
+        
+        l_depts = cPickle.loads(self.getconfigv2('departments'))
+        d_depts = dict(l_depts)
+        s_dept = set()
+        for dept in dept_l.split('|'):
+            if not dept: continue
+            deptsid = d_depts.get(dept.strip().lower())
+            if deptsid == None: continue
+            s_dept.add(deptsid)
+        
+        mon_B = set([ int(f_x) for f_x in mon_B.split('|') if f_x ])
+
+        if not s_dept or not mon_B: return (0, [])
+
+
+        nts = []
+        items = self.get_items_stat_x2()
+        for k,v in items.items():
+            if v[4] not in s_status: continue
+            if v[3] not in s_dept: continue
+
+            avg_qty = round(sum([ v[0][f_i] for f_i in range(len(v[0])) if (6 - f_i) in mon_B ]) / len(mon_B), 2)
+            if v[1][2] + v[1][3] < avg_qty * qty_M: continue
+
+            nts.append( (k, v, avg_qty) )
+        nts.sort(key=lambda f_v: (v[1][2], v[0]))
+        
+        
+        apg = []
+        if mode or pgsz > 0 and sidx >= 0 and sidx < eidx:
+            its = nts[ sidx * pgsz : sidx * pgsz + (eidx - sidx) * pgsz ]
+            if its:
+                d_r_depts = dict([(f_b, f_a) for f_a,f_b in l_depts])
+                d_r_status = dict([(f_b, f_a) for f_a,f_b in const.ITEM_L_STATUS])
+
+                ids = ','.join([ str(f_v[0]) for f_v in its ])
+                cur = self.cur()
+                cur.execute('select sid,num,name,status,deptsid,detail from sync_items where sid in (%s) order by num asc,sid asc' % (
+                    ids,
+                ))
+                tlus = {}
+                nzs = cur.column_names
+                for r in cur:
+                    r = dict(zip(nzs, r))
+                    tlus[ r['sid'] ] = r
+
+                    r['jsd'] = jsd = json.loads(r['detail'])
+
+                    dept = d_r_depts.get(r['deptsid'])
+                    cate = const.ITEM_D_DEPT.get(dept)
+                    
+                    r['s_status'] = d_r_status.get(r['status'])
+                    r['s_dept'] = dept
+                    r['s_cate'] = cate
+                    
+
+                for t in its:
+                    r = tlus.get(t[0])
+                    if not r:
+                        r = {
+                        'sid': t[0],
+                        'num': t[1][2],
+                        'unit': ['', '', ''],
+                        'name': '',
+                        's_status': '',
+                        's_cate': '',
+                        's_dept': '',
+                        'l_qty': [0, 0, 0, 0, 0],
+                        'l_stat': [0, 0, 0],
+                        }
+
+                    else:
+                        jsd = r['jsd']
+                        unit = jsd['units'][ jsd['default_uom_idx'] ]
+                        if not unit[3]: unit = jsd['units'][0]
+
+                        l_qty = jsd['qty'] + [t[2]]
+                        if unit[3] != 1:
+                            l_qty = map(lambda f_x: f_x / unit[3], l_qty)
+
+                        r['unit'] = unit
+                        r['l_qty'] = l_qty
+
+                    apg.append(r)
+
+        
+        rlen = len(nts)
+        return (rlen, apg)
+    
+
+
+    def fn_get_items_x(self):
+        ret = {'res':{'len':0, 'apg':[]}}
+        
+        pgsz = self.req.psv_int('pagesize')
+        sidx = self.req.psv_int('sidx')
+        eidx = self.req.psv_int('eidx')
+        if pgsz > 100 or eidx - sidx > 5: self.req.exitjs(ret)
+        
+        mon_l = self.req.psv_str('mon_l')
+        mul = self.req.psv_int('mul')
+        status_l = self.req.psv_str('status')
+        dept_l = self.req.psv_str('dept')
+        
+        rlen, apg_ = self.get_items_x(mon_l, mul, status_l, dept_l, sidx, eidx, pgsz)
+        apg = []
+        for r in apg_:
+            apg.append(
+                [
+                    r['num'],
+                    r['unit'][1],
+                    r['name'],
+                    r['unit'][2],
+                    r['s_status'] or '',
+                    r['s_cate'] or '',
+                    r['s_dept'] or '',
+                    r['l_qty'][0] and int(r['l_qty'][0]) or '',
+                    r['l_qty'][1] and int(r['l_qty'][1]) or '',
+                    r['l_qty'][3] and int(r['l_qty'][3]) or '',
+                    r['l_qty'][4] and "%0.1f" % r['l_qty'][4] or '',
+                    str(r['sid'])
+                    ]
+            )
+        
+        res = ret['res']
+        res['len'] = rlen
+        res['apg'] = apg
+        self.req.writejs(ret)
+    

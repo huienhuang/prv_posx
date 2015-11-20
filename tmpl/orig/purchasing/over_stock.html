@@ -5,7 +5,7 @@
 <title>POSX - Item - Report - Sale</title>
 
 <script type="text/javascript">
-g_tg_item_list_data = {'frm_mon':'', 'to_mon':'', 'status':0, 'dept':''};
+g_tg_item_list_data = {'frm_mon':'', 'to_mon':'', 'status':0, 'dept':'', 'mon_l': '', 'mul': 0};
 
 function apply()
 {
@@ -22,11 +22,16 @@ function apply()
     var dept_lst = [];
     for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
     
+    var mon_lst = [];
+    var ml = g_v_filter_month.filter(':checked');
+    for(var i = 0; i < ml.length; i++) mon_lst.push( $(ml[i]).val() );
     
     g_tg_item_list_data.frm_mon = frm_mon;
     g_tg_item_list_data.to_mon = to_mon;
     g_tg_item_list_data.status = status_lst.join('|');
     g_tg_item_list_data.dept = dept_lst.join('|');
+    g_tg_item_list_data.mon_l = mon_lst.join('|');
+    g_tg_item_list_data.mul = parseInt(g_v_filter_mul.filter(':checked').val()) || 3;
     
     g_v_tg_item_list.tinygrid('update', -1, true, true, true);
 }
@@ -41,12 +46,18 @@ function export_csv()
     var dept_lst = [];
     for(var i = 0; i < v_dept_cbs.length; i++) dept_lst.push( $(v_dept_cbs[i]).val() );
     
+    var mon_lst = [];
+    var ml = g_v_filter_month.filter(':checked');
+    for(var i = 0; i < ml.length; i++) mon_lst.push( $(ml[i]).val() );
+    
     var els = g_v_ctrl.data('in_els');
     var data = {
         'status': status_lst.join('|'),
         'dept': dept_lst.join('|'),
         'frm_mon': els.frm_mon[0].val().replace('-', ''),
         'to_mon': els.to_mon[0].val().replace('-', ''),
+        'mul': parseInt(g_v_filter_mul.filter(':checked').val()) || 3,
+        'mon_l': mon_lst.join('|'),
     };
 
     g_v_form_dl.find('input[name="js"]').val( JSON.stringify(data) );
@@ -59,7 +70,7 @@ $('.btn').button();
 
 g_v_tg_item_list = $('.tg_item_list').tinygrid({
 len:0,
-src:{page:'?fn=get_items', data:g_tg_item_list_data, method:'post'},
+src:{page:'?fn=get_items_x', data:g_tg_item_list_data, method:'post'},
 cols: [{name:'ID', width:70},
        {name:'ALU', width:160},
        {name:'Name', width:"100%"},
@@ -69,21 +80,18 @@ cols: [{name:'ID', width:70},
        {name:'Dept', width:280},
        {name:'OnHand', width:90},
        {name:'OnOrder', width:90},
-       {name:'T_Qty', width:0},
-       {name:'T_Sale', width:0},
-       {name:'T_Cost', width:0},
-       {name:'Margin', width:0},
-       {name:'Margin%', width:0},
+       {name:'OnPurchase', width:90},
+       {name:'AVG', width:90},
        ],
 click: function(r, c, d) {
-        window.open('hist?fn=itemhist&tid='+d[14],'posx_item_hist','location=0,width=992,height=700');
+        window.open('hist?fn=itemhist&tid='+d[d.length - 1],'posx_item_hist','location=0,width=992,height=700');
 },
 });
 
 g_v_form_dl = $('#form_dl');
 
 g_v_filter_chg = false;
-$('.filter input[type="checkbox"]').change(function() {
+$('.filter input[type="checkbox"], .filter input[type="radio"]').change(function() {
     var d = $(this);
     var n = d.prop('name').substr(7);
     var v = d.val();
@@ -128,7 +136,13 @@ $('.filter').hover(null, function() {
     if(!g_v_filter_chg) return;
     g_v_filter_chg = false;
     apply();
-})
+});
+
+
+g_v_filter_month = $('input[name="filter_month"]');
+g_v_filter_mul = $('input[name="filter_mul"]');
+
+
 
 g_v_ctrl = $('.x_ctrl');
 idx_elements(g_v_ctrl, 0);
@@ -156,12 +170,13 @@ apply();
 .tiny_popup:hover >div:nth-child(1) {background-color:#ddd;}
 .tiny_popup:hover >div:nth-child(2) {display:block;}
 
-.tiny_popup >div:nth-child(2) {width:715px;}
+.tiny_popup >div:nth-child(2) {width:985px;}
 .tiny_popup >div:nth-child(2) >div {width:200px;height:320px;float:left;overflow:auto;border:1px solid #84b2f1;padding:3px;margin-right:5px;background-color:white;white-space:nowrap}
 .tiny_popup >div:nth-child(2) >div:last-child {margin-right:0;width:280px;}
 .tiny_popup >div:nth-child(2) >div input[type="checkbox"] {margin-right:5px}
 .tiny_popup >div:nth-child(2) >div >div:nth-child(1) {cursor:pointer}
-
+.tiny_popup >div:nth-child(2) >div:nth-child(1) {width:100px;}
+.tiny_popup >div:nth-child(2) >div:nth-child(2) {width:140px;}
 .filter_dept >div.sel_hidden {display:none}
 
 </style>
@@ -175,26 +190,35 @@ apply();
 <div>Filter</div>
 <div>
 
+<div class="filter_mul">
+%for i in range(6):
+<div><input type="radio" value="${i + 1}" name="filter_mul" /><span>${i + 1}X QTY</span></div>
+%endfor
+</div>
+
+<div class="filter_month">
+<div><span>Check</span> / <span>Uncheck</span></div>
+%for i in range(6):
+<div><input type="checkbox" value="${i + 1}" name="filter_month" checked="checked" /><span>${i + 1}TH Month</span></div>
+%endfor
+</div>
+
 <div class="filter_status">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><span>Check</span> / <span>Uncheck</span></div>
 %for status in const.ITEM_L_STATUS:
-%if status[1] == 127:
 <div><input type="checkbox" value="${status[1]|h}" name="filter_status" checked="checked" /><span>${status[0]|h}</span></div>
-%else:
-<div><input type="checkbox" value="${status[1]|h}" name="filter_status" /><span>${status[0]|h}</span></div>
-%endif
 %endfor
 </div>
 
 <div class="filter_cate">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><span>Check</span> / <span>Uncheck</span></div>
 %for cate in const.ITEM_L_CATE:
 <div><input type="checkbox" value="${cate[0]|h}" name="filter_cate" checked="checked" /><span>${cate[0]|h}</span></div>
 %endfor
 </div>
 
 <div class="filter_dept">
-<div><span>Check All</span> / <span>Uncheck All</span></div>
+<div><span>Check</span> / <span>Uncheck</span></div>
 %for dept in const.ITEM_L_DEPT:
 <div title="${dept[1]|h}"><input type="checkbox" value="${dept[0]|h}" name="filter_dept" checked="checked" /><span>${dept[0]|h}</span></div>
 %endfor

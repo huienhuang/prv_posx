@@ -27,6 +27,9 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
     def get_items_stat(self):
         return self.get_data_file_cached('items_stat', 'items_stat.txt')
     
+    def get_items_stat_x2(self):
+        return self.get_data_file_cached('items_stat_x2', 'items_stat_x2.txt')
+
     def get_customer_report(self):
         return self.get_data_file_cached('customer_report', 'customer_report.txt')
     
