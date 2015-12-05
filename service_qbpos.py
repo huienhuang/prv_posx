@@ -16,7 +16,7 @@ def rf2(s): return rf(s, 2)
 def pos_process_request(s):
 	c = None
 	try:
-		c = QBPOS.OpenConnection(g_cfg["computer"], g_cfg["company"], "8")
+		c = QBPOS.OpenConnection(g_cfg["computer"], g_cfg["company"], g_cfg.get("version") or "8")
 		r = QBPOS.ProcessRequest(c, s)
 	finally:
 		c = None
