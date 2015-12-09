@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html ng-app="POSX">
+<head>
+<%include file="../header_bs_v1.html" />
+<title>POSX - POS Tool</title>
+<script type="text/javascript" src="js/angular.min.js"></script>
+
+<script type="text/javascript">
+POSX = angular.module('POSX', []);
+POSX.controller('mainCtrl', function($scope) {
+    
+});
+
+function get_form() {
+    return $('#mainCtrl').scope().form;
+}
+
+function set_form(data) {
+    var s = $('#mainCtrl').scope();
+    s.form = data;
+    s.$apply();
+}
+
+</script>
+
+<style>
+
+#customer_info .row {margin-bottom:10px}
+#customer_sign .row {margin-top:10px}
+.label_opts >div {margin-bottom:4px}
+
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container-fluid" ng-controller="mainCtrl" style="width:900px" id="mainCtrl">
+
+<input type="hidden" ng-model="form.id" />
+
+<div class="panel panel-default">
+<div class="panel-heading">Customer Information</div>
+<div class="panel-body" id="customer_info">
+
+<div class="row">
+<div class="col-md-12">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Business Name</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.name" />
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Delivery Address</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.address" />
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Contact Name</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.contact" />
+</div>
+</div>
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Alternate Contact</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.alt_contact" />
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Phone #1</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.phone1" />
+</div>
+</div>
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Phone #2</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.phone2" />
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Email</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.email" />
+</div>
+</div>
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Fax</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.fax" />
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+
+
+<div class="panel panel-default">
+<div class="panel-heading">Delivery Instructions</div>
+<div class="panel-body">
+
+
+<div class="row">
+<div class="col-md-6"><b>Delivery Date Requested</b></div>
+<div class="col-md-6"><b>Delivery Time Requested</b></div>
+</div>
+
+<div class="row">
+<div class="col-md-6">
+
+
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Monday"> Monday</label></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Thursday"> Thursday</label></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Tuesday"> Tuesday</label></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Friday"> Friday</label></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Wednesday"> Wednesday</label></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Saturday"> Saturday</label></div>
+<div class="col-md-12"><label><input type="checkbox" ng-model="form.instruction.Other"> Other Date: <input type="text" ng-model="form.instruction.Other_Date"></label></div>
+
+
+
+</div>
+
+<div class="col-md-6">
+
+<div class="col-md-6">Monday – Friday</div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.AM"> AM (8AM – 12PM)</label></div>
+<div class="col-md-6"></div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.PM"> PM (1PM – 5PM)</label></div>
+<div class="col-md-6"></div>
+<div class="col-md-6">&nbsp;</div>
+<div class="col-md-6">Saturday</div>
+<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.Other"> (8AM – 2PM)</label></div>
+
+</div>
+</div>
+
+
+
+</div>
+<div class="panel-footer">Delivery Service Details</div>
+<div class="panel-body label_opts">
+    
+    
+<div>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o1"> Building access for inside delivery: </label>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o2"> Gate </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o3"> Locks </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o4"> Back elevator </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o5"> Others: <input type="text" ng-model="form.service.o5_val"></label>
+</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o6"> Stairs: <input type="text" ng-model="form.service.o6_val"> steps</label></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o7"> Elevator Access <input type="text" ng-model="form.service.o7_val"></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o8"> Doorway &amp; hallway is spacious to fit merchandise</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.o9"> Lift over any objects <input type="text" ng-model="form.service.o9_val"></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.oa"> Obstructions to placement location <input type="text" ng-model="form.service.oa_val"></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.ob"> Parking Situation: <input type="text" ng-model="form.service.ob_val"></div>
+
+</div>
+<div class="panel-footer">Delivery Authorization</div>
+<div class="panel-body label_opts">
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.auth.oc"> A responsible adult, 18 years or older, must be present during delivery and review and approve all work completed.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.auth.od"> If there is no authorized person during delivery, customer will have to reschedule for the next available date with the Sales Representative.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.auth.oe"> Customer must inspect all merchandise at time of delivery and note damages on bill on landing before accepting merchandise.</div>
+
+</div>
+<div class="panel-footer">Policy</div>
+<div class="panel-body label_opts">
+<div><b>For safety reasons:</b></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.of"> Delivery Team will not move equipment up or down stairs, lift/hoist over counters or where access is limited by dimensional restrictions.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.og"> Customer is responsible for removal and reinstallation of all facility doors where necessary</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.oh"> Delivery does not include installation, set up, or assembly.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.oi"> Haul away item must be ready for pick up at time of delivery and scheduled prior with Sales Representative.</div>
+<br/>
+<div><b>Things to know:</b></div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.oj"> All equipment and furniture sold by Forest are supported by the manufacturer’s warranty and service agreement.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.ok"> Please ensure all information is accurate. If delivery team is unable reach contacts during time of delivery, delivery will be rescheduled for the next available date with the Sales Representative.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.ol"> To ensure the health and safety of our service providers, we reserve the right to refuse or reschedule work due to unsafe conditions. When merchandise is being hauled away for disposal or if there is any obstructions not reported, any equipment that may require additional personnel to safely remove or deliver, may result in a delay or rescheduling and may result in additional charge.</div>
+<div><label class="checkbox-inline"><input type="checkbox" ng-model="form.policy.om"> Deliveries are performed by third party, non-Forest Store employees.</div>
+
+</div>
+</div>
+
+<div class="row" id="customer_sign">
+<div class="col-md-12">I declare under penalty of perjury that I understand and agree to the Forest Terms and Conditions stated above.</div>
+<div class="col-md-12">&nbsp;</div>
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Printed Name</button></span>
+<input type="text" class="form-control" placeholder=""  ng-model="form.sign.name" />
+</div>
+</div>
+<div class="col-md-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Date</button></span>
+<input type="text" class="form-control" placeholder=""  ng-model="form.sign.date" />
+</div>
+</div>
+</div>
+
+</div>
+
+</body>
+
+</html>
