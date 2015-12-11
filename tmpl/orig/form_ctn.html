@@ -16,6 +16,10 @@ function set_form(form) {
     g_form_wnd[0].contentWindow.set_form && g_form_wnd[0].contentWindow.set_form(form);
 }
 
+function print_form() {
+    g_form_wnd[0].contentWindow.print && g_form_wnd[0].contentWindow.print();
+}
+
 function load_form(id) {
     g_form_wnd.data('id', id);
     get_js_ex('?fn=get_form_data', {id: id}, function(js) {
@@ -27,28 +31,27 @@ function _load_form() {
     load_form( $(this).data('id') );
 }
 
-
-function refresh_list() {
-    g_form_list.empty();
-    
-    get_js_ex('?fn=get_form_list', {}, function(js) {
-        
-        for(var i = 0; i < js.length; i++) {
-            var r = js[i];
-            g_form_list.append( $('<li class="list-group-item"></li>').text(r.name).data('id', r.id).click(_load_form) );
-        }
-    });
-    
-}
-
 POSX = angular.module('POSX', []);
 POSX.controller('mainCtrl', function($scope) {
     
+    $scope.refresh_list = function() {
+        g_form_list.empty();
+        
+        get_js_ex('?fn=get_form_list', {type: $scope.form.type, kw: $scope.form.kw}, function(js) {
+            
+            for(var i = 0; i < js.length; i++) {
+                var r = js[i];
+                g_form_list.append( $('<li class="list-group-item"></li>').text(r.name).data('id', r.id).click(_load_form) );
+            }
+        }, undefined, undefined, undefined, 'mainCtrl_search');
+    
+    }
+
     $scope.form_change = function() {
         g_form_wnd.attr('src', '?fn=get_form&type=' + $scope.form.type);
         g_form_wnd.data('id', 0);
         
-        refresh_list();
+        $scope.refresh_list();
     };
     
     $scope.form_new = function() {
@@ -56,22 +59,32 @@ POSX.controller('mainCtrl', function($scope) {
         set_form({});
     };
     
-    $scope.form_detele = function() {
-        if(!parseInt(g_form_wnd.data('id'))) return;
+    $scope.form_delete = function() {
+        var id = parseInt(g_form_wnd.data('id'));
+        if(!id) return;
+        if(!confirm("Delete this?")) return;
         
-        $scope.form_new();
+        post_js_ex('?fn=delete', {id: id}, function(js) {
+            $scope.form_new();
+            $scope.refresh_list();
+        });
+        
     };
     
     $scope.form_save = function() {
         var js = {type: $scope.form.type, id: g_form_wnd.data('id'), form: get_form() || {}};
         post_js_ex('?fn=save', {js: JSON.stringify(js)}, function(js) {
             load_form(js.id);
-            refresh_list();
+            $scope.refresh_list();
         });
         
     };
     
-    
+    var srch_to = null;
+    $scope.list_search = function() {
+        if(srch_to != null) {clearTimeout(srch_to); srch_to == null;}
+        srch_to = setTimeout($scope.refresh_list, 300);
+    }
     
 });
 
@@ -99,6 +112,8 @@ $('#form_type').val('1').change();
 #p_body {position:absolute;top:60px;left:280px;right:0;bottom:0;overflow:hidden}
 #p_body >iframe {width:100%;height:100%;margin:0;padding:0;border:none}
 
+#form_list >li {font-weight:bold}
+
 </style>
 
 </head>
@@ -117,7 +132,7 @@ $('#form_type').val('1').change();
 
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button></span>
-<input type="text" class="form-control" placeholder="" ng-model="form.search" style="width:220px" />
+<input type="text" class="form-control" placeholder="" ng-model="form.kw" style="width:220px" ng-change="list_search()" />
 </div>
 
 <ul id="form_list"></ul>
@@ -125,10 +140,11 @@ $('#form_type').val('1').change();
 </div>
 
 <div id="p_top">
-    <button type="submit" class="btn btn-default btn-lg" ng-click="form_new()">New</button>
-    <button type="submit" class="btn btn-default btn-lg" ng-click="form_save()">Save</button>
-    <button type="submit" class="btn btn-default btn-lg" ng-click="form_delete()">Delete</button>
-    <button type="submit" class="btn btn-default btn-lg" onclick="go_home()">Quit</button>
+    <button class="btn btn-default btn-lg" ng-click="form_new()">New</button>
+    <button class="btn btn-success btn-lg" ng-click="form_save()">Save</button>
+    <button class="btn btn-danger btn-lg" ng-click="form_delete()">Delete</button>
+    <button class="btn btn-default btn-lg" onclick="print_form()">Print</button>
+    <button class="btn btn-warning btn-lg" onclick="go_home()">Quit</button>
 </div>
 
 <div id="p_body"><iframe></iframe></div>

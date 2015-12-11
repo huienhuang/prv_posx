@@ -28,6 +28,7 @@ function set_form(data) {
 #customer_info .row {margin-bottom:10px}
 #customer_sign .row {margin-top:10px}
 .label_opts >div {margin-bottom:4px}
+textarea {page-break-inside:avoid}
 
 
 </style>
@@ -45,7 +46,7 @@ function set_form(data) {
 <div class="panel-body" id="customer_info">
 
 <div class="row">
-<div class="col-md-12">
+<div class="col-xs-12">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Business Name</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.name" />
@@ -54,7 +55,7 @@ function set_form(data) {
 </div>
 
 <div class="row">
-<div class="col-md-12">
+<div class="col-xs-12">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Delivery Address</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.address" />
@@ -63,13 +64,13 @@ function set_form(data) {
 </div>
 
 <div class="row">
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Contact Name</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.contact" />
 </div>
 </div>
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Alternate Contact</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.alt_contact" />
@@ -78,13 +79,13 @@ function set_form(data) {
 </div>
 
 <div class="row">
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Phone #1</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.phone1" />
 </div>
 </div>
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Phone #2</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.phone2" />
@@ -93,13 +94,13 @@ function set_form(data) {
 </div>
 
 <div class="row">
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Email</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.email" />
 </div>
 </div>
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Fax</button></span>
 <input type="text" class="form-control" placeholder="" ng-model="form.fax" />
@@ -118,36 +119,36 @@ function set_form(data) {
 
 
 <div class="row">
-<div class="col-md-6"><b>Delivery Date Requested</b></div>
-<div class="col-md-6"><b>Delivery Time Requested</b></div>
+<div class="col-xs-6"><b>Delivery Date Requested</b></div>
+<div class="col-xs-6"><b>Delivery Time Requested</b></div>
 </div>
 
 <div class="row">
-<div class="col-md-6">
+<div class="col-xs-6">
 
 
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Monday"> Monday</label></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Thursday"> Thursday</label></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Tuesday"> Tuesday</label></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Friday"> Friday</label></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Wednesday"> Wednesday</label></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.instruction.Saturday"> Saturday</label></div>
-<div class="col-md-12"><label><input type="checkbox" ng-model="form.instruction.Other"> Other Date: <input type="text" ng-model="form.instruction.Other_Date"></label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Monday"> Monday</label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Thursday"> Thursday</label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Tuesday"> Tuesday</label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Friday"> Friday</label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Wednesday"> Wednesday</label></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Saturday"> Saturday</label></div>
+<div class="col-xs-12"><label><input type="radio" ng-model="form.instruction.date" value="Other"> Other Date: <input type="text" ng-model="form.instruction.Other_Date"></label></div>
 
 
 
 </div>
 
-<div class="col-md-6">
+<div class="col-xs-6">
 
-<div class="col-md-6">Monday – Friday</div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.AM"> AM (8AM – 12PM)</label></div>
-<div class="col-md-6"></div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.PM"> PM (1PM – 5PM)</label></div>
-<div class="col-md-6"></div>
-<div class="col-md-6">&nbsp;</div>
-<div class="col-md-6">Saturday</div>
-<div class="col-md-6"><label><input type="checkbox" ng-model="form.time.Other"> (8AM – 2PM)</label></div>
+<div class="col-xs-6">Monday – Friday</div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="AM"> AM (8AM – 12PM)</label></div>
+<div class="col-xs-6"></div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="PM"> PM (1PM – 5PM)</label></div>
+<div class="col-xs-6"></div>
+<div class="col-xs-6">&nbsp;</div>
+<div class="col-xs-6">Saturday</div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="AMPM"> (8AM – 2PM)</label></div>
 
 </div>
 </div>
@@ -174,6 +175,56 @@ function set_form(data) {
 <div><label class="checkbox-inline"><input type="checkbox" ng-model="form.service.ob"> Parking Situation: <input type="text" ng-model="form.service.ob_val"></div>
 
 </div>
+
+<div class="panel-footer">Forest Staff Use Only</div>
+<div class="panel-body label_opts">
+    
+    
+<div>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o1"> Assembly: </label>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o2"> Casters </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o3"> Uncrate &amp; Unpack </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o5"> $ <input type="text" ng-model="form.staff.o5_val"></label>
+</div>
+<div>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o6"> Haul Away &amp; Dumping Fee: </label>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o7"> $50 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o8"> $100 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o9"> $150 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o10"> $200 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.o11"> $ <input type="text" ng-model="form.staff.o11_val"></label>
+</div>
+<div>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a1"> Delivery Charge: </label>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a2"> $50 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a3"> $100 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a4"> $150 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a5"> $200 </label>&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.a6"> $ <input type="text" ng-model="form.staff.a6_val"></label>
+</div>
+<div>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.b1"> Extra Person Charge: </label>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.b6"> $ <input type="text" ng-model="form.staff.b6_val"></label>
+</div>
+
+<div>
+<br/>
+<b>Total Delivery Charge: $ </b><input type="text" ng-model="form.staff.c6_val">
+</div>
+
+<div class="row">
+<div class="col-xs-6"><b>Sales Rep: </b><input type="text" ng-model="form.staff.d1_val"></div>
+<div class="col-xs-6"><b>Phone: </b><input type="text" ng-model="form.staff.d2_val"></div>
+</div>
+
+<div class="form-group">
+<label for="Instructions">Other Notes & Instructions:</label>
+<textarea class="form-control" rows="5" id="Instructions" ng-model="form.staff.instructions"></textarea>
+</div>
+
+
+</div>
+
 <div class="panel-footer">Delivery Authorization</div>
 <div class="panel-body label_opts">
 <div><label class="checkbox-inline"><input type="checkbox" ng-model="form.auth.oc"> A responsible adult, 18 years or older, must be present during delivery and review and approve all work completed.</div>
@@ -199,15 +250,15 @@ function set_form(data) {
 </div>
 
 <div class="row" id="customer_sign">
-<div class="col-md-12">I declare under penalty of perjury that I understand and agree to the Forest Terms and Conditions stated above.</div>
-<div class="col-md-12">&nbsp;</div>
-<div class="col-md-6">
+<div class="col-xs-12">I declare under penalty of perjury that I understand and agree to the Forest Terms and Conditions stated above.</div>
+<div class="col-xs-12">&nbsp;</div>
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Printed Name</button></span>
 <input type="text" class="form-control" placeholder=""  ng-model="form.sign.name" />
 </div>
 </div>
-<div class="col-md-6">
+<div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Date</button></span>
 <input type="text" class="form-control" placeholder=""  ng-model="form.sign.date" />
