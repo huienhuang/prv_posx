@@ -141,8 +141,8 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
             cur.execute('delete from phycount_user where r_id=%d and u_uid not in (%s)' % (r_id, ','.join(map(str, r_users))) )
             if r_items:
                 cur.execute('delete from phycount_item where r_id=%d and r_sid not in (%s)' % (r_id, ','.join(r_items)) )
-            else:
-                cur.execute('delete from phycount_item where r_id=%d')
+            #else:
+            #    cur.execute('delete from phycount_item where r_id=%d' % (r_id, ))
 
         cur.executemany('insert ignore into phycount_user values(%s,%s)', [ (r_id, f_x) for f_x in r_users ] )
         if r_items: cur.executemany('insert ignore into phycount_item values(%s,%s)', [ (r_id, f_x) for f_x in r_items ] )
