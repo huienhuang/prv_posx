@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app="POSX">
+<html>
 <head>
 <%include file="../header_bs_v1.html" />
 <title>POSX - POS Tool</title>
@@ -8,7 +8,10 @@
 <script type="text/javascript">
 POSX = angular.module('POSX', []);
 POSX.controller('mainCtrl', function($scope) {
-    
+});
+
+$(function() {
+    angular.bootstrap(document, ['POSX']);
 });
 
 function get_form() {
@@ -18,26 +21,30 @@ function get_form() {
 function set_form(data) {
     var s = $('#mainCtrl').scope();
     s.form = data;
+    s.curForm.$setPristine();
     s.$apply();
+    
 }
 
 </script>
 
 <style>
 
+#mainCtrl {padding:20px 0}
 #customer_info .row {margin-bottom:10px}
 #customer_sign .row {margin-top:10px}
 .label_opts >div {margin-bottom:4px}
 textarea {page-break-inside:avoid}
-
+#curForm.ng-dirty .panel-body {background:#f2dede}
 
 </style>
 
 </head>
 
-<body>
+<body ng-controller="mainCtrl" id="mainCtrl">
 
-<div class="container-fluid" ng-controller="mainCtrl" style="width:900px" id="mainCtrl">
+<form class="container-fluid"  style="width:900px" id="curForm" name="curForm">
+
 
 <input type="hidden" ng-model="form.id" />
 
@@ -49,7 +56,7 @@ textarea {page-break-inside:avoid}
 <div class="col-xs-12">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Business Name</button></span>
-<input type="text" class="form-control" placeholder="" ng-model="form.name" />
+<input type="text" class="form-control" placeholder="" ng-model="form.name" required />
 </div>
 </div>
 </div>
@@ -266,7 +273,7 @@ textarea {page-break-inside:avoid}
 </div>
 </div>
 
-</div>
+</form>
 
 </body>
 

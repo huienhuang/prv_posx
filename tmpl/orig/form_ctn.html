@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app="POSX">
+<html>
 <head>
 <script>posx_enable_chk_login = true;</script>
 <%include file="header_bs_v1.html" />
@@ -94,6 +94,8 @@ $(function() {
 g_form_list = $('#form_list');
 
 g_form_wnd = $('#p_body >iframe');
+
+angular.bootstrap(document, ['POSX']);
 
 $('#form_type').val('1').change();
 
