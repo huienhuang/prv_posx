@@ -7,7 +7,12 @@
 <script type="text/javascript" src="js/angular.min.js"></script>
 
 <script type="text/javascript">
-    
+var g_scope = null;
+
+function is_form_dirty() {
+    return g_form_wnd[0].contentWindow.is_form_dirty ? g_form_wnd[0].contentWindow.is_form_dirty() : false;
+}
+
 function get_form() {
     return g_form_wnd[0].contentWindow.set_form ? g_form_wnd[0].contentWindow.get_form() : null;
 }
@@ -33,6 +38,7 @@ function _load_form() {
 
 POSX = angular.module('POSX', []);
 POSX.controller('mainCtrl', function($scope) {
+    g_scope = $scope;
     
     $scope.refresh_list = function() {
         g_form_list.empty();
@@ -76,7 +82,7 @@ POSX.controller('mainCtrl', function($scope) {
         post_js_ex('?fn=save', {js: JSON.stringify(js)}, function(js) {
             load_form(js.id);
             $scope.refresh_list();
-        });
+        }, undefined, undefined, null, 'form_save');
         
     };
     
@@ -88,6 +94,16 @@ POSX.controller('mainCtrl', function($scope) {
     
 });
 
+function _autosave() {
+    if(g_to_autosave !== null) {clearTimeout(g_to_autosave); g_to_autosave = null;}
+    if(is_form_dirty()) g_scope.form_save();
+    g_to_autosave = setTimeout(_autosave, 2000);
+}
+
+var g_to_autosave = null;
+function active_autosave() {
+    g_to_autosave = setTimeout(_autosave, 2000);
+}
 
 $(function() {
 
@@ -98,6 +114,8 @@ g_form_wnd = $('#p_body >iframe');
 angular.bootstrap(document, ['POSX']);
 
 $('#form_type').val('1').change();
+
+//active_autosave();
 
 });
 

@@ -6,13 +6,19 @@
 <script type="text/javascript" src="js/angular.min.js"></script>
 
 <script type="text/javascript">
+var g_scope = null;
 POSX = angular.module('POSX', []);
 POSX.controller('mainCtrl', function($scope) {
+    g_scope = $scope;
 });
 
 $(function() {
     angular.bootstrap(document, ['POSX']);
 });
+
+function is_form_dirty() {
+    return g_scope && g_scope.curForm ? g_scope.curForm.$dirty : false;
+}
 
 function get_form() {
     return $('#mainCtrl').scope().form;
