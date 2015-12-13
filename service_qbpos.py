@@ -593,9 +593,9 @@ def worker(cur):
 
 		if config.store_id != 1 and r['doc_type'] not in (4, ): r['doc_type'] = -999
 
-		if r['doc_type'] == 1:
-			ret = insert_transfer_slip(cur, r)
-		elif r['doc_type'] == 2:
+		#if r['doc_type'] == 1:
+		#	ret = insert_transfer_slip(cur, r)
+		if r['doc_type'] == 2:
 			ret = insert_po(cur, r)
 		elif r['doc_type'] == 3:
 			ret = adjust_po(cur, r)
