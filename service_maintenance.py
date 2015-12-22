@@ -12,6 +12,7 @@ import struct
 import const
 import boundary
 import winlib
+import db as mydb
 
 
 def default_stop_pending(): return 0
@@ -25,7 +26,7 @@ def get_zone_id(lat, lng):
         return ZONE_IDX_MAP[idx]
 
 def open_db():
-    return MySQL.connect(**config.mysql)
+    return mydb.db_mdb()
 
 def close_db(dbc):
     dbc.close()

@@ -6,12 +6,13 @@ import datetime
 import sqlanydb
 import cPickle
 import os
+import db as mydb
 
 
 cur_tp = time.localtime()
 cur_dt = datetime.date(cur_tp.tm_year, cur_tp.tm_mon, cur_tp.tm_mday)
 
-db_qb = sqlanydb.connect(**config.sqlany_qb)
+db_qb = mydb.db_pos()
 cur = db_qb.cursor()
 
 g_invs = {}

@@ -9,16 +9,17 @@ import config
 import mysql.connector
 import json
 import const
+import db as mydb
 
 
-db_mdb = mysql.connector.connect(**config.mysql)
+db_mdb = mydb.db_mdb()
 cur_mdb = db_mdb.cursor()
 
-db_pos = sqlanydb.connect(**config.sqlany_pos)
+db_pos = mydb.db_pos()
 cur_pos = db_pos.cursor()
 sur_pos = db_pos.cursor()
 
-db_qb = sqlanydb.connect(**config.sqlany_qb)
+db_qb = mydb.db_qb()
 cur_qb = db_qb.cursor()
 sur_qb = db_qb.cursor()
 

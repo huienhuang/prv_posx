@@ -3,13 +3,15 @@ import config
 import thread
 import time
 import traceback
+import db as mydb
+
 
 def default_stop_pending(): return 0
 stop_pending = default_stop_pending
 
 
 def open_db():
-    return MySQL.connect(**config.mysql)
+    return mydb.db_mdb()
 
 def close_db(dbc):
     dbc.close()

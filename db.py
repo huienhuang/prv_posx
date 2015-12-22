@@ -24,7 +24,16 @@ def chk_default(c):
     return res
 
 def db_qb():
-    return sqlanydb.connect(**config.sqlany_qb)
+    cfg = config.sqlany_qb.copy()
+    dd = open(cfg['dbf'] + '.ND', 'rb').read()
+    nd = dict([ f_x.strip().split('=', 2) for f_x in dd[dd.find('[NetConnect]') + 12:].strip().split('\n') if f_x.strip()])
+
+    del cfg['dbf']
+    cfg['links'] = 'tcpip(host=%s:%s;DoBroadcast=None)' % (cfg['ServerIp'], cfg['ServerPort'])
+    cfg['ServerName'] = cfg['EngineName']
+    cfg['dbn'] = cfg['FileConnectionGuid']
+
+    return sqlanydb.connect(**cfg)
 
 def db_pos():
     return sqlanydb.connect(**config.sqlany_pos)
