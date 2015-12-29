@@ -12,7 +12,7 @@ import db as mydb
 cur_tp = time.localtime()
 cur_dt = datetime.date(cur_tp.tm_year, cur_tp.tm_mon, cur_tp.tm_mday)
 
-db_qb = mydb.db_pos()
+db_qb = mydb.db_qb()
 cur = db_qb.cursor()
 
 g_invs = {}
