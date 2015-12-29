@@ -19,7 +19,8 @@ function upd_qtys(cds, js)
     $(cds[6]).text(factor ? (factor == 1 ? s_qtys[1].toFixed(1) : (s_qtys[1] / factor).toFixed(1)) : 'E' );
 }
 
-var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+//var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+var CONST_STORE_NAMES = ['AL', 'HQ'];
 function upd_store(store_id)
 {
     g_store_id = store_id;
@@ -47,7 +48,7 @@ function set_store(store_id) {
 
 function change_store()
 {
-    set_store((g_store_id + 1) % 3);
+    set_store((g_store_id + 1) % CONST_STORE_NAMES.length);
 }
 
 function get_date_lower(year, month, interval) {
@@ -640,7 +641,7 @@ user-select:none;
 <input type="text" style="width:150px;background-color:#f6ffea" id="srch_item" />
 <input style="display:none" type="button" value="save" class="btn" />
 <input style="display:none" type="button" value="delete" class="btn"/>
-<select style="width:60px" name="dst"><option value="0">SF</option><option value="1">HQ</option></select>
+<select style="width:60px" name="dst"><option value="1">HQ</option></select>
 <select style="width:100px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
 <input style="width:100px" type="text" title="From Date" name="frm_date" />
 <input style="width:100px" type="text" title="To Date" name="to_date" />

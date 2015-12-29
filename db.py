@@ -29,9 +29,9 @@ def db_qb():
     nd = dict([ f_x.strip().split('=', 2) for f_x in dd[dd.find('[NetConnect]') + 12:].strip().split('\n') if f_x.strip()])
 
     del cfg['dbf']
-    cfg['links'] = 'tcpip(host=%s:%s;DoBroadcast=None)' % (cfg['ServerIp'], cfg['ServerPort'])
-    cfg['ServerName'] = cfg['EngineName']
-    cfg['dbn'] = cfg['FileConnectionGuid']
+    cfg['links'] = 'tcpip(host=%s:%s;DoBroadcast=None)' % (nd['ServerIp'], nd['ServerPort'])
+    cfg['ServerName'] = nd['EngineName']
+    cfg['dbn'] = nd['FileConnectionGuid']
 
     return sqlanydb.connect(**cfg)
 
