@@ -37,7 +37,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
             depts = n_depts
 
-        self.req.writefile('home.html', {'depts': depts, 'user_id': self.user_id, 'user_name': self.user_name})
+        self.req.writefile('home.html', {'depts': depts, 'user_id': self.user_id, 'user_name': '%s (%s)' % (self.user_name, getattr(config, 'store_name', None))})
         
     def fn_password(self):
         old_passwd = self.req.psv_ustr('old_passwd', '')

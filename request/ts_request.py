@@ -20,9 +20,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
     def fn_default(self):
         tabs = [
         
-        #{'id': 'Request', 'name': 'Request'},
-        #{'id': 'View', 'name': 'View', 'src': '?fn=View'},
-        {'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'},
+        {'id': 'Request', 'name': 'Request'},
+        {'id': 'View', 'name': 'View', 'src': '?fn=View'},
+        #{'id': 'pohelper', 'name': 'PO Helper', 'src': 'pohelper'},
         {'id': 'itemsold', 'name': 'Item Sold', 'src': 'itemsold'},
 
         ]
@@ -131,7 +131,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         pid = int(js['pid'])
         dtype = int(js['dtype'])
-        dst = int(js['dst'])
+        dst = 1#int(js['dst'])
         if dtype not in (1, 2): self.req.exitjs({'err': -1, 'pid':pid, 'errs': 'Invalid Type'})
 
         lst = [ map(int, f_x[:4]) for f_x in js['items'] if int(f_x[3]) > 0 ]

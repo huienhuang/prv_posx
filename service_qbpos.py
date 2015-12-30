@@ -139,6 +139,7 @@ def insert_po(cur, r):
 	T_ELEM.text = '1'
 	T_PurchaseOrderAdd.append(T_ELEM)
 
+	"""
 	if rr['dst']:
 		T_ELEM = ET.Element('ShipToStoreNumber')
 		T_ELEM.text = '1'
@@ -147,7 +148,8 @@ def insert_po(cur, r):
 		T_ELEM = ET.Element('ShipToStoreNumber')
 		T_ELEM.text = '2'
 		T_PurchaseOrderAdd.append(T_ELEM)
-
+	"""
+	
 	for a in lst:
 		item = items.get(a[0])
 		if not item: return (-1, None, 'Item %d No Found' % (a[1],))

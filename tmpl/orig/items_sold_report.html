@@ -605,7 +605,7 @@ function make_po()
         'desc': g_v_profile.children(":selected").text(),
         'items': items,
         'dtype': 2,
-        'dst': 0,
+        'dst': 1,
     };
     post_js_ex('ts_request?fn=save_request', {'js': JSON.stringify(d)}, function(js) {
         for(var i = 0; i < lst.length; i++) {
