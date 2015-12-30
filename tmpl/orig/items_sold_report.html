@@ -27,7 +27,8 @@ function upd_qtys(cds, js)
     update_reorder_point($(cds[0]).parent(), js);
 }
 
-var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+//var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
+var CONST_STORE_NAMES = ['AL'];
 function upd_store(store_id)
 {
     g_store_id = store_id;
@@ -59,7 +60,7 @@ function refresh_list()
 
 function change_store()
 {
-    set_store((g_store_id + 1) % 3);
+    set_store((g_store_id + 1) % CONST_STORE_NAMES.length);
 }
 
 function get_date_lower(year, month, interval)
@@ -587,7 +588,7 @@ function make_po()
 {
     var pid = parseInt(g_v_profile.val());
     var lst = g_v_xtbl.children();
-    if(!pid && !lst.length || !g_cur_hdr || !g_store_id) return;
+    if(!pid && !lst.length || !g_cur_hdr) return;
     
     var items = []
     for(var i = 0; i < lst.length; i++) {
@@ -604,7 +605,7 @@ function make_po()
         'desc': g_v_profile.children(":selected").text(),
         'items': items,
         'dtype': 2,
-        'dst': g_store_id - 1,
+        'dst': 0,
     };
     post_js_ex('ts_request?fn=save_request', {'js': JSON.stringify(d)}, function(js) {
         for(var i = 0; i < lst.length; i++) {
@@ -752,7 +753,7 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 
 g_v_form_dl = $('#form_dl');
 
-g_v_v_change_store = $('#v_change_store').click(change_store);
+g_v_v_change_store = $('#v_change_store');//.click(change_store);
 
 
 g_v_dlg_point = $('#dlg_point').dialog({

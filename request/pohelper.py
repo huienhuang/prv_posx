@@ -107,13 +107,13 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             ref = str(int(js['ref']))
         else:
             ref = None
-        dst = int(js['dst'])
+        dst = 0
         js = {
             'frm_ts': int(js['frm_ts']),
             'to_ts': int(js['to_ts']),
             'interval': int(js['interval']),
             'items': items,
-            'store_id': int(js['store_id'])
+            'store_id': 0
         }
         
         cur = self.cur()

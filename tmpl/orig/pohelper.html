@@ -20,7 +20,7 @@ function upd_qtys(cds, js)
 }
 
 //var CONST_STORE_NAMES = ['AL', 'HQ', 'SF'];
-var CONST_STORE_NAMES = ['AL', 'HQ'];
+var CONST_STORE_NAMES = ['AL'];
 function upd_store(store_id)
 {
     g_store_id = store_id;
@@ -396,7 +396,7 @@ function load_profile()
         if( !js || !js.pid || js.pid !== g_v_profile.val().substr(1) ) return;
         if(js.msgs.length) MsgBox('MSG', js.msgs.join('\n'));
         
-        if(js.dst !== undefined) g_v_dst.val(js.dst);
+        //if(js.dst !== undefined) g_v_dst.val(js.dst);
         
         if(js.frm_ts) {
             var frm_date = new Date();
@@ -412,7 +412,7 @@ function load_profile()
         
         if(js.interval) g_v_interval.val(js.interval);
         
-        if(js.store_id !== undefined) upd_store(js.store_id);
+        if(js.store_id !== undefined) upd_store(0);
         
         g_v_interval.change();
         
@@ -483,7 +483,7 @@ function __save_profile(is_copy)
         'items': items,
         'ref': ref,
         'store_id': g_store_id,
-        'dst': g_v_dst.val(),
+        //'dst': g_v_dst.val(),
     }
     
     post_js_ex('?fn=save_profile', {'js': JSON.stringify(data)}, function(js) {
@@ -535,7 +535,7 @@ g_v_frm_date = g_v_tp_ctrl.children('input[name="frm_date"]').datepicker().datep
 g_v_to_date = g_v_tp_ctrl.children('input[name="to_date"]').datepicker().datepicker("setDate", '-1m').change(load_items_sold_report);
 g_v_interval = g_v_tp_ctrl.children('select[name="interval"]').change(load_items_sold_report);
 g_v_dst = g_v_tp_ctrl.children('select[name="dst"]').change(function() {
-    set_store( parseInt(g_v_dst.val()) ? 1 : 2 )
+    set_store(0);
 });
 
 g_v_tp_ctrl.children('input[value="Save"]').click(save_profile);
@@ -554,7 +554,7 @@ g_v_dlg_profile_name = $('#dlg_profile_name').dialog({
 });
 
 g_v_filter_items = $('#filter_items').change(filter_items);
-g_v_v_change_store = $('#v_change_store').click(change_store);
+g_v_v_change_store = $('#v_change_store');//.click(change_store);
 
 g_v_form_dl = $('#form_dl');
 
@@ -641,7 +641,7 @@ user-select:none;
 <input type="text" style="width:150px;background-color:#f6ffea" id="srch_item" />
 <input style="display:none" type="button" value="save" class="btn" />
 <input style="display:none" type="button" value="delete" class="btn"/>
-<select style="width:60px" name="dst"><option value="1">HQ</option></select>
+<select style="width:60px;display:none" name="dst"><option value="0">AL</option></select>
 <select style="width:100px" name="interval"><option value="1">Month</option><option value="12">Year</option><option value="3">Quarter</option></select>
 <input style="width:100px" type="text" title="From Date" name="frm_date" />
 <input style="width:100px" type="text" title="To Date" name="to_date" />
