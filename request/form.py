@@ -92,7 +92,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 f_name, kws, form_js, f_id
             ))
         else:
-            cur.execute('insert into form values(null, %s, %s, %s, %s, %s, %s)', (
+            cur.execute('insert into form values(null, 0, 0, %s, %s, %s, %s, %s, %s)', (
                 f_type, f_name, kws, self.user_id, cts, form_js
             ))
 
