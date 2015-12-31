@@ -14,6 +14,15 @@ POSX.controller('mainCtrl', function($scope) {
 
 $(function() {
     angular.bootstrap(document, ['POSX']);
+    
+    
+    
+    g_v_textarea = $('textarea').on('keyup input', function() {
+        $(this).css('height', 'auto').css('height', this.scrollHeight + 2);
+        //console.log(this.scrollHeight);
+    });
+    
+    
 });
 
 function is_form_dirty() {
@@ -30,6 +39,8 @@ function set_form(data) {
     s.curForm.$setPristine();
     s.$apply();
     
+    g_v_textarea.trigger('keyup');
+    
 }
 
 </script>
@@ -42,6 +53,12 @@ function set_form(data) {
 .label_opts >div {margin-bottom:4px}
 textarea {page-break-inside:avoid}
 #curForm.ng-dirty .panel-body {background:#f2dede}
+
+textarea {
+-moz-box-sizing: border-box;
+box-sizing: border-box;
+resize: none;
+}
 
 </style>
 

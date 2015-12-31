@@ -58,7 +58,7 @@ cur_qb = db_qb.cursor()
 sur_qb = db_qb.cursor()
 
 qb_invoices = {}
-regx_posnum = re.compile('pos receipt #([0-9]+)', re.S|re.I|re.M)
+regx_posnum = re.compile(r'pos receipt[\s]*#([0-9]+)', re.S|re.I|re.M)
 cur_qb.execute("select transaction_id,memo,transaction_date,doc_num from abmc_invoice_header")
 for r in cur_qb.rows():
     tid,memo,tdate,docnum = r
