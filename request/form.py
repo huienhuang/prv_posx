@@ -65,14 +65,19 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             res = self.search(f_kw, 0, num_rows)
         else:
             cur = self.cur()
-            cur.execute('select id,name,user_id,ts,state,dirty_ts from form where type=%s order by id desc limit %s', (f_type, num_rows))
+            cur.execute('select id,name,user_id,ts,state,dirty_ts,schedule_ts from form where type=%s and state<2 order by dirty_ts asc,id asc limit %s', (f_type, num_rows))
             res = cur.fetchall()
 
         rows = []
-        cnzs = ['id','name','user_id','ts','state','dirty_ts']
+        cnzs = ['id','name','user_id','ts','state','dirty_ts', 'schedule_ts']
         for r in res:
             r = dict(zip(cnzs, r[:len(cnzs)]))
-            rows.append(r)
+            #rows.append(r)
+
+            ks = time.strftime("%Y-%m-%d %a", time.localtime(r['schedule_ts']))
+            if not rows or rows[-1][0] != ks: rows.append((ks, []))
+            rows[-1][1].append(r)
+
 
         self.req.writejs(rows)
 
@@ -157,7 +162,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             kw = '+' + u' +'.join([k for k in kws])
         else:
             kw = '+' + u' +'.join([k + '* ' + k for k in kws])
-        qs = "select id,name,user_id,ts,state,dirty_ts,(match(name,keyword) against (%s in boolean mode) + match(name) against (%s in boolean mode)*2) as pos from form where match(name,keyword) against (%s in boolean mode) order by pos desc,id desc limit " + str(num_row)
+        qs = "select id,name,user_id,ts,state,dirty_ts,schedule_ts,(match(name,keyword) against (%s in boolean mode) + match(name) against (%s in boolean mode)*2) as pos from form where match(name,keyword) against (%s in boolean mode) order by pos desc,id desc limit " + str(num_row)
         cur.execute(qs, (kw, kw.replace(u'+', u''), kw))
         res = [ [str(x[0]),] + list(x[1:]) for x in cur.fetchall()]
         

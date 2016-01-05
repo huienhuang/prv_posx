@@ -48,12 +48,20 @@ POSX.controller('mainCtrl', function($scope) {
     $scope.refresh_list = function() {
         g_form_list.empty();
         
-        get_js_ex('?fn=get_form_list', {type: $scope.form.type, kw: $scope.form.kw}, function(js) {
-            
-            for(var i = 0; i < js.length; i++) {
-                var r = js[i];
-                g_form_list.append( $('<li class="list-group-item '+(r.dirty_ts ? FORM_LST_CLS[3] : FORM_LST_CLS[r.state])+'"></li>').text(r.name).data('id', r.id).click(_load_form) );
+        
+        get_js_ex('?fn=get_form_list', {type: $scope.form.type, kw: $scope.form.kw}, function(ljs) {
+            var v_lst = [];
+            for(var l = 0; l < ljs.length; l++) {
+                var js = ljs[l][1];
+                v_lst.push( $('<li class="list-group-item lst_title"></li>').text(ljs[l][0]) );
+                for(var i = 0; i < js.length; i++) {
+                    var r = js[i];
+                    v_lst.push( $('<li class="list-group-item '+(r.dirty_ts ? FORM_LST_CLS[3] : FORM_LST_CLS[r.state])+'"></li>').text(r.name).data('id', r.id).click(_load_form) );
+                }
             }
+            
+            g_form_list.empty().append(v_lst);
+            
         }, undefined, undefined, undefined, 'mainCtrl_search');
     
     }
@@ -153,6 +161,8 @@ $('#form_type').val('1').change();
 
 .form_state_1 {color:#5cb85c}
 .form_state_2 {color:#337ab7}
+
+.lst_title {text-align:center;font-size:18px;font-weight:bold;color:#fff;font-style:italic;background: -webkit-linear-gradient(top, rgba(125,126,125,1) 0%,rgba(14,14,14,1) 100%);}
 
 </style>
 
