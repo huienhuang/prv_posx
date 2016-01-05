@@ -56,7 +56,7 @@ POSX.controller('mainCtrl', function($scope) {
                 v_lst.push( $('<li class="list-group-item lst_title"></li>').text(ljs[l][0]) );
                 for(var i = 0; i < js.length; i++) {
                     var r = js[i];
-                    v_lst.push( $('<li class="list-group-item '+(r.dirty_ts ? FORM_LST_CLS[3] : FORM_LST_CLS[r.state])+'"></li>').text(r.name).data('id', r.id).click(_load_form) );
+                    v_lst.push( $('<li class="list-group-item '+(r.state < 2 && r.dirty_ts ? FORM_LST_CLS[3] : FORM_LST_CLS[r.state])+'"></li>').text(r.name).data('id', r.id).click(_load_form) );
                 }
             }
             
@@ -157,7 +157,7 @@ $('#form_type').val('1').change();
 #p_body {position:absolute;top:100px;left:280px;right:0;bottom:0;overflow:hidden}
 #p_body >iframe {width:100%;height:100%;margin:0;padding:0;border:none}
 
-#form_list >li {font-weight:bold}
+#form_list >li {}
 
 .form_state_1 {color:#5cb85c}
 .form_state_2 {color:#337ab7}
@@ -208,14 +208,14 @@ $('#form_type').val('1').change();
 <span class="input-group-btn"><button type="button" class="btn btn-primary" ng-click="form_set_state()"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></button></span>
 </div>
 <div class="input-group has-error">
-<div class="input-group-addon">Submitted On</div>
+<div class="input-group-addon">Submitted By</div>
 <input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.ts_s" />
 </div>
 <div class="input-group has-success">
 <div class="input-group-addon">Ship By</div>
 <input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.schedule_ts_s" />
 </div>
-<div class="input-group has-warning{{js.dirty_ts ? '' : ' hidden'}}">
+<div class="input-group has-warning{{js.state < 2 && js.dirty_ts ? '' : ' hidden'}}">
 <div class="input-group-addon">Modified By</div>
 <input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.dirty_ts_s" />
 </div>

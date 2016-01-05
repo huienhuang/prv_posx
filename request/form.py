@@ -36,7 +36,10 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if f_state not in (1, 2): return
 
         cur = self.cur()
-        cur.execute('update form set state=%s,dirty_ts=0 where id=%s and state<=%s', (f_state, f_id, f_state))
+        if f_state == 1:
+            cur.execute('update form set state=%s,dirty_ts=0 where id=%s and state<=%s', (f_state, f_id, f_state))
+        elif f_state == 2:
+            cur.execute('update form set state=%s,dirty_ts=%s where id=%s and state<%s', (f_state, int(time.time()), f_id, f_state))
 
         self.req.writejs({'res': cur.rowcount, 'id': f_id})
 
@@ -61,11 +64,12 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         f_kw = self.req.qsv_ustr('kw')
         num_rows = 50
 
+        cts = int(time.time())
         if f_kw:
             res = self.search(f_kw, 0, num_rows)
         else:
             cur = self.cur()
-            cur.execute('select id,name,user_id,ts,state,dirty_ts,schedule_ts from form where type=%s and state<2 order by schedule_ts asc,id asc limit %s', (f_type, num_rows))
+            cur.execute('select id,name,user_id,ts,state,dirty_ts,schedule_ts from form where type=%s and (state<2 or %s-dirty_ts<86400) order by schedule_ts asc,id asc limit %s', (f_type, cts, num_rows))
             res = cur.fetchall()
 
         rows = []
@@ -137,11 +141,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             h1 = hashlib.md5(json.dumps(sorted(js_form.items(), key=lambda f_x:f_x[0]))).digest()
             h2 = hashlib.md5(json.dumps(sorted(js['form'].items(), key=lambda f_x:f_x[0]))).digest()
             if h1 == h2:
-                cur.execute('update form set name=%s,keyword=%s,js=%s,schedule_ts=%s where id=%s', (
+                cur.execute('update form set name=%s,keyword=%s,js=%s,schedule_ts=%s where id=%s and state<2', (
                     f_name, kws, form_js, dts, f_id
                 ))
             else:
-                cur.execute('update form set name=%s,keyword=%s,js=%s,dirty_ts=%s,schedule_ts=%s where id=%s', (
+                cur.execute('update form set name=%s,keyword=%s,js=%s,dirty_ts=%s,schedule_ts=%s where id=%s and state<2', (
                     f_name, kws, form_js, cts, dts, f_id
                 ))
         else:
