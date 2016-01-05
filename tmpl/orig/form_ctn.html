@@ -17,8 +17,11 @@ function get_form() {
     return g_form_wnd[0].contentWindow.set_form ? g_form_wnd[0].contentWindow.get_form() : null;
 }
 
-function set_form(form) {
-    g_form_wnd[0].contentWindow.set_form && g_form_wnd[0].contentWindow.set_form(form);
+function set_form(js) {
+    g_scope.js = js;
+    $('#mainCtrl').scope().$apply();
+    
+    g_form_wnd[0].contentWindow.set_form && g_form_wnd[0].contentWindow.set_form(js.js || {});
 }
 
 function print_form() {
@@ -28,13 +31,15 @@ function print_form() {
 function load_form(id) {
     g_form_wnd.data('id', id);
     get_js_ex('?fn=get_form_data', {id: id}, function(js) {
-        set_form(js.js);
+        set_form(js);
     });
 }
 
 function _load_form() {
     load_form( $(this).data('id') );
 }
+
+var FORM_LST_CLS = ['', 'list-group-item-info', 'list-group-item-success', 'list-group-item-warning'];
 
 POSX = angular.module('POSX', []);
 POSX.controller('mainCtrl', function($scope) {
@@ -47,7 +52,7 @@ POSX.controller('mainCtrl', function($scope) {
             
             for(var i = 0; i < js.length; i++) {
                 var r = js[i];
-                g_form_list.append( $('<li class="list-group-item"></li>').text(r.name).data('id', r.id).click(_load_form) );
+                g_form_list.append( $('<li class="list-group-item '+(r.dirty_ts ? FORM_LST_CLS[3] : FORM_LST_CLS[r.state])+'"></li>').text(r.name).data('id', r.id).click(_load_form) );
             }
         }, undefined, undefined, undefined, 'mainCtrl_search');
     
@@ -62,7 +67,7 @@ POSX.controller('mainCtrl', function($scope) {
     
     $scope.form_new = function() {
         g_form_wnd.data('id', 0);
-        set_form({});
+        setTimeout(function() {set_form({})}, 0);
     };
     
     $scope.form_delete = function() {
@@ -74,6 +79,15 @@ POSX.controller('mainCtrl', function($scope) {
             $scope.form_new();
             $scope.refresh_list();
         });
+        
+    };
+    
+    $scope.form_set_state = function() {
+        var js = {state: $scope.js.state_s, id: g_form_wnd.data('id')};
+        post_js_ex('?fn=set_state', {js: JSON.stringify(js)}, function(js) {
+            load_form(js.id);
+            $scope.refresh_list();
+        }, undefined, undefined, null, 'form_set_state');
         
     };
     
@@ -111,6 +125,8 @@ g_form_list = $('#form_list');
 
 g_form_wnd = $('#p_body >iframe');
 
+g_body_hdr = $('#p_body_hdr');
+
 angular.bootstrap(document, ['POSX']);
 
 $('#form_type').val('1').change();
@@ -129,21 +145,25 @@ $('#form_type').val('1').change();
 
 #p_top {padding:4px 2px;position:absolute;top:0;left:280px;right:0;height:42px;}
 
-#p_body {position:absolute;top:60px;left:280px;right:0;bottom:0;overflow:hidden}
+#p_body_hdr {position:absolute;top:60px;left:280px;right:0;height:40px;overflow:hidden}
+#p_body {position:absolute;top:100px;left:280px;right:0;bottom:0;overflow:hidden}
 #p_body >iframe {width:100%;height:100%;margin:0;padding:0;border:none}
 
 #form_list >li {font-weight:bold}
+
+.form_state_1 {color:#5cb85c}
+.form_state_2 {color:#337ab7}
 
 </style>
 
 </head>
 
-<body ng-controller="mainCtrl">
+<body ng-controller="mainCtrl" id="mainCtrl">
 
 <div id="p_left" class="form-inline">
 
 <div class="input-group input-group-lg">
-<span class="input-group-btn"><button type="button" class="btn btn-primary"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span></button></span>
+<div class="input-group-addon"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span></div>
 <select class="form-control" style="width:220px" ng-model="form.type" id="form_type" ng-change="form_change()">
 <option value="">-- Type --</option>
 <option value="1">Delivery</option>
@@ -151,7 +171,7 @@ $('#form_type').val('1').change();
 </div>
 
 <div class="input-group input-group-lg">
-<span class="input-group-btn"><button type="button" class="btn btn-primary"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button></span>
+<div class="input-group-addon"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></div>
 <input type="text" class="form-control" placeholder="" ng-model="form.kw" style="width:220px" ng-change="list_search()" />
 </div>
 
@@ -166,7 +186,31 @@ $('#form_type').val('1').change();
     <button class="btn btn-default btn-lg" onclick="print_form()">Print</button>
     <button class="btn btn-warning btn-lg" onclick="go_home()">Quit</button>
 </div>
-
+<div id="p_body_hdr" class="{{js.id ? '' : 'hidden'}}">
+<form class="form-inline">
+<div class="input-group">
+<div class="input-group-addon">State</div>
+<select class="form-control" style="width:130px" ng-model="js.state_s">
+<option value="0">Pending</option>
+<option value="1">Approved</option>
+<option value="2">Completed</option>
+</select>
+<span class="input-group-btn"><button type="button" class="btn btn-primary" ng-click="form_set_state()"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></button></span>
+</div>
+<div class="input-group has-error">
+<div class="input-group-addon">Submitted On</div>
+<input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.ts_s" />
+</div>
+<div class="input-group has-success">
+<div class="input-group-addon">Ship By</div>
+<input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.schedule_ts_s" />
+</div>
+<div class="input-group has-warning{{js.dirty_ts ? '' : ' hidden'}}">
+<div class="input-group-addon">Modified By</div>
+<input type="text" class="form-control" style="width:190px" disabled="disabled" ng-model="js.dirty_ts_s" />
+</div>
+</form>
+</div>
 <div id="p_body"><iframe></iframe></div>
 
 </body>
