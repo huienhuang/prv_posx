@@ -1224,6 +1224,14 @@ class RequestHandler(App.load('/basehandler').RequestHandler):
         self.req.writefile('schedule_batch_print.html', r)
         
     
+    def fn_invalidate_address(self):
+        loc = base64.b64decode(self.req.qsv_ustr('loc'))
+
+        cur = self.cur()
+        cur.execute('update address set flag=0 where loc=%s', (loc,))
+
+        self.req.writejs({'err': int(cur.rowcount<=0) })
+
     def fn_map(self):
         dt = self.qsv_int('dt')
         r = {

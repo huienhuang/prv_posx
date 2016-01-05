@@ -41,6 +41,12 @@ function doc_action(fn, sc_id)
     });
 }
 
+function invalidate_address(loc)
+{
+    if(!loc) return;
+    get_js('?fn=invalidate_address', {loc: loc}, function() {});
+}
+
 $(function() {
 $(document).tooltip();
 
@@ -56,6 +62,8 @@ g_doc_notice_d2.show();
 %endif
 
 <style type="text/css">
+
+.refresh_address {cursor:pointer}
 
 .p_doc {page-break-after:always;width:712px;margin:0 auto;min-height:400px;position:relative;}
 .p_doc > div {margin-bottom:8px}
@@ -268,7 +276,7 @@ f_diff,f_pos,t = f_v
 cust = gjs['customer']
 %>
 <div class="c_addr billto">
-<div>Bill To:</div>
+<div class="refresh_address" title="refresh location zone" onclick="invalidate_address('${cust.get('loc') or ''}')">Bill To:</div>
 <div${view_only and ' onclick="view_customer(\''+str(r['cid'])+'\')"' or ''}>${(cust['company'] or cust['name'] or '')|h}</div>
 <div${view_only and ' onclick="view_map.call(this)"' or ''}>
 <div><span>${cust['addr1']}</span>
@@ -289,7 +297,7 @@ cust = gjs['customer']
 cust = gjs['shipping']
 %>
 <div class="c_addr shipto">
-<div>Ship To:</div>
+<div class="refresh_address" title="refresh location zone" onclick="invalidate_address('${cust.get('loc') or ''}')">Ship To:</div>
 <div>${(cust['company'] or cust['name'] or '')|h}</div>
 <div${view_only and ' onclick="view_map.call(this)"' or ''}>
 <div><span>${cust['addr1']}</span>
