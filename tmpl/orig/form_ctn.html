@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script>posx_enable_chk_login = true;</script>
+<script>posx_enable_chk_login = false;</script>
 <%include file="header_bs_v1.html" />
 <title>POSX - Form</title>
 <script type="text/javascript" src="js/angular.min.js"></script>
@@ -194,7 +194,7 @@ $('#form_type').val('1').change();
     <button class="btn btn-success btn-lg" ng-click="form_save()">Save</button>
     <button class="btn btn-danger btn-lg" ng-click="form_delete()">Delete</button>
     <button class="btn btn-default btn-lg" onclick="print_form()">Print</button>
-    <button class="btn btn-warning btn-lg" onclick="go_home()">Quit</button>
+    <button class="btn btn-warning btn-lg" onclick="go_home()" style="display:none">Quit</button>
 </div>
 <div id="p_body_hdr" class="{{js.id ? '' : 'hidden'}}">
 <form class="form-inline">

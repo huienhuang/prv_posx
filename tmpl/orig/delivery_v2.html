@@ -63,6 +63,11 @@ g_v_tabs = $('#m_tabs').tabs({
                 g_v_schedule_iframe.data('inited', true);
                 g_v_schedule_iframe.attr('src', 'schedulev2');
             }
+        } else if(nz == 'equipment') {
+            if(!g_v_equipment_iframe.data('inited')) {
+                g_v_equipment_iframe.data('inited', true);
+                g_v_equipment_iframe.attr('src', 'form');
+            }
         }
     },
     active: 0
@@ -73,6 +78,8 @@ g_v_view_iframe = $('#tabs_view > iframe', g_v_tabs);
 g_v_district_iframe = $('#tabs_district > iframe', g_v_tabs);
 
 g_v_schedule_iframe = $('#tabs_schedule > iframe', g_v_tabs);
+
+g_v_equipment_iframe = $('#tabs_equipment > iframe', g_v_tabs);
 
 g_v_report_iframe = $('#tabs_report > iframe', g_v_tabs);
 
@@ -143,6 +150,7 @@ body {-webkit-user-select:none;}
     <li><a href="#tabs_receipts">Problems</a></li>
     <li><a href="#tabs_district">District</a></li>
     <li><a href="#tabs_schedule">Schedule</a></li>
+    <li><a href="#tabs_equipment">Equipment</a></li>
 %if has_perm_admin:
     <li><a href="#tabs_report">Report</a></li>
 %endif
@@ -159,6 +167,9 @@ body {-webkit-user-select:none;}
 <div id="tabs_district"><iframe></iframe></div>
 
 <div id="tabs_schedule"><iframe></iframe></div>
+
+<div id="tabs_equipment"><iframe></iframe></div>
+
 %if has_perm_admin:
 <div id="tabs_report"><iframe></iframe></div>
 %endif
