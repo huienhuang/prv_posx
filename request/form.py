@@ -65,7 +65,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             res = self.search(f_kw, 0, num_rows)
         else:
             cur = self.cur()
-            cur.execute('select id,name,user_id,ts,state,dirty_ts,schedule_ts from form where type=%s and state<2 order by dirty_ts asc,id asc limit %s', (f_type, num_rows))
+            cur.execute('select id,name,user_id,ts,state,dirty_ts,schedule_ts from form where type=%s and state<2 order by schedule_ts asc,id asc limit %s', (f_type, num_rows))
             res = cur.fetchall()
 
         rows = []
@@ -104,14 +104,22 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             data_helper.parse_phone_num(form.get('phone2', ''))
             ]).strip()
 
+        cur = self.cur()
+        if f_id:
+            cur.execute('select ts,js from form where id=%s', (f_id, ))
+            ts_form,js_form = cur.fetchall()[0]
+            js_form = json.loads(js_form)
+            frm_dt = datetime.date.fromtimestamp(ts_form)
+        else:
+            frm_dt = datetime.date.today()
+
         s_day = form['instruction']['date']
         i_day = self.MDAYS_LKU.index(s_day.lower())
-        today = datetime.date.today()
         a_days = 0
 
         if i_day:
-            tar_date = datetime.datetime(today.year, today.month, today.day)
-            a_days = (i_day - 1 - today.weekday()) % 7
+            tar_date = datetime.datetime(frm_dt.year, frm_dt.month, frm_dt.day)
+            a_days = (i_day - 1 - frm_dt.weekday()) % 7
         else:
             i_date = map(int, form['instruction']['Other_Date'].split('/', 3))
             tar_date = datetime.datetime(i_date[2], i_date[0], i_date[1])
@@ -123,17 +131,11 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         dts = int(time.mktime((tar_date + datetime.timedelta(a_days, hours=a_hrs)).timetuple()))
 
-
-        cur = self.cur()
-
         cts = int(time.time())
         form_js = json.dumps(js['form'], separators=(',',':'))
         if f_id:
-            cur.execute('select js from form where id=%s', (f_id, ))
-            js_form = json.loads(cur.fetchall()[0][0])
             h1 = hashlib.md5(json.dumps(sorted(js_form.items(), key=lambda f_x:f_x[0]))).digest()
             h2 = hashlib.md5(json.dumps(sorted(js['form'].items(), key=lambda f_x:f_x[0]))).digest()
-
             if h1 == h2:
                 cur.execute('update form set name=%s,keyword=%s,js=%s,schedule_ts=%s where id=%s', (
                     f_name, kws, form_js, dts, f_id
