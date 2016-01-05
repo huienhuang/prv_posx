@@ -138,8 +138,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cts = int(time.time())
         form_js = json.dumps(js['form'], separators=(',',':'))
         if f_id:
-            h1 = hashlib.md5(json.dumps(sorted(js_form.items(), key=lambda f_x:f_x[0]))).digest()
-            h2 = hashlib.md5(json.dumps(sorted(js['form'].items(), key=lambda f_x:f_x[0]))).digest()
+            h1 = self.hash_dict(js_form)
+            h2 = self.hash_dict(js['form'])
             if h1 == h2:
                 cur.execute('update form set name=%s,keyword=%s,js=%s,schedule_ts=%s where id=%s and state<2', (
                     f_name, kws, form_js, dts, f_id
@@ -156,6 +156,16 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             f_id = cur.lastrowid
 
         self.req.writejs({'id': f_id})
+
+    def hash_dict(self, d):
+        lst = sorted(d.items(), key=lambda f_x:f_x[0])
+        for i in range(len(lst)):
+            k, v = lst[i]
+            if type(v) == dict:
+                lst[i] = (k, self.hash_dict(v))
+
+        return hashlib.md5(json.dumps(lst)).hexdigest()
+
 
     def search(self, kw, mode, num_row=16):
         kws = set(self.regx_kw.sub(u' ', kw).strip().lower().replace(u',', u' ').strip().split(u' '))
