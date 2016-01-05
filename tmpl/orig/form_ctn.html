@@ -147,7 +147,7 @@ $('#form_type').val('1').change();
 </script>
 
 <style>
-#p_left {padding:4px 2px;position:absolute;top:0;left:0px;width:280px;bottom:0}
+#p_left {padding:4px 2px;position:absolute;top:0;left:0px;width:280px;bottom:0;overflow:auto}
 #p_left >div {margin-bottom:4px}
 #p_left >:nth-child(3) {position:absolute;top:110px;left:0;right:0;bottom:0;padding:0 2px;cursor:pointer}
 
@@ -170,11 +170,11 @@ $('#form_type').val('1').change();
 
 <body ng-controller="mainCtrl" id="mainCtrl">
 
-<div id="p_left" class="form-inline">
+<div id="p_left">
 
 <div class="input-group input-group-lg">
 <div class="input-group-addon"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span></div>
-<select class="form-control" style="width:220px" ng-model="form.type" id="form_type" ng-change="form_change()">
+<select class="form-control" ng-model="form.type" id="form_type" ng-change="form_change()">
 <option value="">-- Type --</option>
 <option value="1">Delivery</option>
 </select>
@@ -182,7 +182,7 @@ $('#form_type').val('1').change();
 
 <div class="input-group input-group-lg">
 <div class="input-group-addon"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></div>
-<input type="text" class="form-control" placeholder="" ng-model="form.kw" style="width:220px" ng-change="list_search()" />
+<input type="text" class="form-control" placeholder="" ng-model="form.kw" ng-change="list_search()" />
 </div>
 
 <ul id="form_list"></ul>
