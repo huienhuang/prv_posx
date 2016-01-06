@@ -516,7 +516,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not num.isdigit(): self.req.exitjs({'sid': ''})
 
         cur = self.cur()
-        cur.execute("select sid from sync_purchaseorders where ponum=%s order by sid asc", (int(num), ))
+        cur.execute("select sid from sync_purchaseorders where ponum=%s and (status>>16)=0 order by sid asc", (int(num), ))
         rows = cur.fetchall()
         sid = rows and str(rows[0][0]) or ''
 

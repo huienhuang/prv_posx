@@ -24,6 +24,44 @@ Delivery = App.load('/request/delivery')
 DEFAULT_PERM = 0x00000001
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
+
+    def fn_search_by_docnum(self):
+        num = self.req.qsv_ustr('term')
+        cur = self.cur()
+
+        rs = []
+
+        cur.execute("select sid,sid_type,global_js from sync_receipts where num=%s order by sid desc", (num,))
+        cnz = cur.column_names
+        for r in cur.fetchall():
+            gjs = r[2] and json.loads(r[2]) or {}
+            a = {'type': 0, 'sid': str(r[0]), 'sid_type': r[1], 'txt': (gjs.get('customer') or {}).get('company', '')}
+            rs.append(a)
+
+        cur.execute("select sid,(status>>16) as deleted,global_js from sync_salesorders where sonum=%s order by deleted asc,sid desc", (num,))
+        cnz = cur.column_names
+        for r in cur.fetchall():
+            gjs = r[2] and json.loads(r[2]) or {}
+            a = {'type': 1, 'sid': str(r[0]), 'txt': (gjs.get('customer') or {}).get('company', '')}
+            rs.append(a)
+
+        cur.execute("select sid,(status>>16) as deleted,global_js from sync_purchaseorders where ponum=%s order by deleted asc,sid desc", (num,))
+        cnz = cur.column_names
+        for r in cur.fetchall():
+            gjs = r[2] and json.loads(r[2]) or {}
+            a = {'type': 2, 'sid': str(r[0]), 'txt': gjs.get('vend', '')}
+            rs.append(a)
+
+        cur.execute("select sid,global_js from sync_vouchers where num=%s order by sid desc", (num,))
+        cnz = cur.column_names
+        for r in cur.fetchall():
+            gjs = r[1] and json.loads(r[1]) or {}
+            a = {'type': 3, 'sid': str(r[0]), 'txt': gjs.get('vend', '')}
+            rs.append(a)
+
+        self.req.writejs(rs)
+
+
     def fn_get_items_by_nums(self):
         nums = map(str, map(int, self.req.psv_str('nums').split('|')))[:5000]
 

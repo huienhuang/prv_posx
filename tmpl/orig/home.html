@@ -30,6 +30,11 @@
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(3) {width:460px;color:#004C99;}
 .ui-menu > .ui-menu-item.srch_cust > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
 
+.ui-menu > .ui-menu-item.srch_docnum > a > span:nth-child(1) {width:140px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_docnum > a > span:nth-child(2) {width:20px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_docnum > a > span:nth-child(3) {width:600px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_docnum > a > span:nth-child(4) {width:0px;color:#101010;margin-right:0;}
+
 .sys_menu {width:130px;position:absolute;right:0;top:10px;}
 .sys_menu > ul > li {padding:0}
 .sys_menu > ul > li > a {width:130px;text-align:center}
@@ -170,6 +175,31 @@ function ac_item_search_response(event, ui) {
     }
 }
 
+
+function render_item__search_docnum(ul, item)
+{
+    //console.log(item);
+    var type_s = '';
+    if(item.type == 0)
+        type_s = 'Receipt';
+    else if(item.type == 1)
+        type_s = 'SalesOrder';
+    else if(item.type == 2)
+        type_s = 'PurchaseOrder';
+    else if(item.type == 3)
+        type_s = 'ReceivingVoucher';
+    
+    return $('<li class="srch_docnum"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(type_s))
+            .append($('<span></span>').text(''))
+            .append($('<span></span>').text(item.txt))
+            .append($('<span></span>').text(''))
+    ).appendTo(ul);
+}
+
+
+
 $(function() {
 
 g_v_msg_icon = $('.msg_icon');
@@ -238,6 +268,30 @@ $('#srch_salesorder').keyup(function(e) {
 });
 
 
+g_v_ac_srch_docnum = $('#srch_docnum').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=search_by_docnum",
+    minLength: 1,
+    select: function(event, ui) {
+        var item = ui.item;
+        if(item.type == 0) {
+            if(item.sid_type == 0) {
+                open_wnd('hist?fn=printreceipt&rid=' + item.sid, 'posx_print_wnd', 992, 700);
+            } else {
+                open_wnd('sorder?fn=print&rid=' + item.sid, 'posx_print_wnd', 992, 700);
+            }
+        } else if(item.type == 1) {
+            open_wnd('sync?fn=printorder&type=2&rid='+item.sid,'posx_so_wnd', 992, 700);
+        } else if(item.type == 2) {
+            open_wnd('sync?fn=printorder&type=1&rid='+item.sid,'posx_po_wnd', 992, 700);
+        } else if(item.type == 3) {
+            open_wnd('sync?fn=printorder&type=3&rid='+item.sid,'posx_vo_wnd', 992, 700);
+        }
+
+    }
+});
+g_v_ac_srch_docnum.data("ui-autocomplete")._renderItem = render_item__search_docnum;
+
 
 g_v_ac_item_search = $('#srch_item').autocomplete({
     autoFocus: true,
@@ -290,8 +344,7 @@ get_js('?fn=load_dashboard', {}, function(js) {
 <div class="m_ctrl">
 <input type="text" id="srch_cust" style="width:180px" placeholder="Find Customer" />
 <input type="text" id="srch_item" style="width:180px" placeholder="Find Item" />
-<input type="text" id="srch_receipt" style="width:110px" placeholder="Receipt#" />
-<input type="text" id="srch_salesorder" style="width:110px" placeholder="SalesOrder#" />
+<input type="text" id="srch_docnum" style="width:120px" placeholder="Document #" />
 
 %if user_id:
 <div class="msg_icon"></div>
