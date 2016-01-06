@@ -22,9 +22,10 @@ g_po = dict(pos_cur.fetchall())
 print "Checking PO..."
 m_cur.execute("select sid,status from sync_purchaseorders")
 for r in m_cur.fetchall():
-	#if r[1] >> 16: continue
-	deleted = int(bool(g_po.get(r[0], 1)))
-	m_cur.execute("update sync_purchaseorders set status=((%d<<16)|(0xFFFF&status)) where sid=%d" % (deleted, r[0],))
+	if r[1] >> 16: continue
+	deleted = g_po.get(r[0], 1)
+	if not deleted: continue
+	m_cur.execute("update sync_purchaseorders set status=((1<<16)|(0xFFFF&status)) where sid=%d" % (r[0],))
 
 print "Done"
 
