@@ -457,7 +457,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         po_id = self.qsv_str('po_id')
 
         cur = self.cur()
-        cur.execute("select * from sync_purchaseorders where ponum=%s", (po_id,))
+        cur.execute("select * from sync_purchaseorders where ponum=%s and (status>>16)=0 order by sid desc", (po_id,))
         rows = cur.fetchall()
         if not rows: return
         r = dict(zip(cur.column_names, rows[0]))
