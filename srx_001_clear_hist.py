@@ -7,8 +7,11 @@ import os
 import db as mydb
 import sys
 
-m_cur = mydb.db_mdb().cursor()
-pos_cur = mydb.db_pos().cursor()
+m_con = mydb.db_mdb()
+m_cur = m_con.cursor()
+
+pos_con = mydb.db_pos()
+pos_cur = pos_con.cursor()
 
 
 print "Looking For PO"
