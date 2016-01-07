@@ -5,6 +5,10 @@
 <title>POSX - POS Tool</title>
 <script type="text/javascript" src="js/angular.min.js"></script>
 
+<link type="text/css" href="js/bootstrap/css/datepicker.css" rel="stylesheet" />
+<script type="text/javascript" src="js/bootstrap/js/bootstrap-datepicker.js"></script>
+
+
 <script type="text/javascript">
 var g_scope = null;
 POSX = angular.module('POSX', []);
@@ -22,6 +26,8 @@ $(function() {
         //console.log(this.scrollHeight);
     });
     
+    
+    $('.cls_datepicker').datepicker();
     
 });
 
@@ -163,7 +169,7 @@ resize: none;
 <div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Friday"> Friday</label></div>
 <div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Wednesday"> Wednesday</label></div>
 <div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.date" value="Saturday"> Saturday</label></div>
-<div class="col-xs-12"><label><input type="radio" ng-model="form.instruction.date" value="Other"> Other Date: <input type="text" ng-model="form.instruction.Other_Date"></label></div>
+<div class="col-xs-12"><label><input type="radio" ng-model="form.instruction.date" value="Other"> Other Date: <input type="text" class="cls_datepicker" ng-model="form.instruction.Other_Date"></label></div>
 
 
 
@@ -291,7 +297,7 @@ resize: none;
 <div class="col-xs-6">
 <div class="input-group input-group-lg">
 <span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Date</button></span>
-<input type="text" class="form-control" placeholder=""  ng-model="form.sign.date" />
+<input type="text" class="form-control cls_datepicker" placeholder=""  ng-model="form.sign.date" />
 </div>
 </div>
 </div>
