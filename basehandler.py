@@ -369,6 +369,7 @@ class RequestHandler(tinywsgi.RequestHandler):
             'action_url': urllib.urlencode({'fn': 'login', 'req_qs': req_qs}),
             'ck_uid': ck_uid,
             'userlist': [ user for user in self.get_user_roles() if user[2] & PM_BASE ],
+            'store_name': getattr(config, 'store_name', '')
         }
         self.req.writefile('login.html', d)
     #fn_login

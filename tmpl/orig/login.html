@@ -6,6 +6,22 @@
 
 <script type="text/javascript">
 
+
+function change_store(store_nz) {
+    var loc = window.location;
+    var href;
+    if(store_nz.toLowerCase() == 'sf') {
+        href = loc.href.replace(loc.host, '10.0.1.188');
+        
+    } else {
+        href = loc.href.replace(loc.host, '10.0.0.20');
+        
+    }
+    
+    window.location.href = href;
+    
+}
+
 $(function() {
     
 $('.btn_home').button().click(go_home);
@@ -16,6 +32,9 @@ $('.btn_login').button().click(function() {
 g_v_user_passwd = $('input[name="user_passwd"]');
 
 $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).change();
+
+
+
 
 });
 
@@ -33,6 +52,11 @@ $('select[name="user_id"]').change(function() { g_v_user_passwd.focus(); }).chan
 
 <div class="form-group form-group-lg">
 <img src="img/logo_280px.png" alt="Forest" />
+</div>
+
+<div class="form-group btn-group btn-group-lg" role="group">
+<button type="button" class="btn ${store_name.lower() == 'sf' and 'btn-primary' or 'btn-default'}" onclick="change_store('sf')">SF</button>
+<button type="button" class="btn ${store_name.lower() == 'ssf' and 'btn-primary' or 'btn-default'}" onclick="change_store('ssf')">SSF</button>
 </div>
 
 <div class="form-group input-group input-group-lg">
