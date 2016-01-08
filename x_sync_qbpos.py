@@ -206,10 +206,16 @@ def update_balance(get_cur):
 
 def _update_balance(qb_cur, pos_cur):
 	qb_users = {}
-	qb_cur.execute("select list_ident,end_balance_amt from abmc_customer_internal")
+	qb_cur.execute("select list_ident,end_balance_amt,customer_id from abmc_customer_internal")
 	for r in qb_cur.fetchall():
 		if not r[0]: continue
-		qb_users[ r[0] ] = round(float(r[1]), 2)
+		try:
+			cid = int(r[0].split('-')[0], 16)
+		except:
+			cid = 0
+		if (0x80000000 | r[2]) != cid: continue
+
+		qb_users[ cid ] = round(float(r[1]), 2)
 
 	if not qb_users: return
 
@@ -218,7 +224,14 @@ def _update_balance(qb_cur, pos_cur):
 	for r in pos_cur.fetchall():
 		sid,qblistid,creditused = r[:3]
 		creditused = round(float(creditused), 2)
-		balance = qb_users.get(qblistid)
+
+		try:
+			cid = int(qblistid.split('-')[0], 16)
+		except:
+			cid = 0
+		if not (cid & 0x80000000): continue
+
+		balance = qb_users.get(cid)
 		if balance == None or balance == creditused: continue
 
 		upd_users.append([sid, qblistid, balance])
@@ -227,7 +240,7 @@ def _update_balance(qb_cur, pos_cur):
 	upd_users.sort(key=lambda f_x:f_x[0])
 
 	for r in upd_users:
-		pos_cur.execute('update customer set creditused=? where datastate=0 and sid=? and qblistid=?', (r[2], r[0], r[1]))
+		pos_cur.execute('update customer set creditused=? where datastate=0 and sid=?', (r[2], r[0]))
 		pos_cur.execute("insert into changejournal values(default,'Customer',?,1,now(),'POSX', '-1')", (r[0],))
 	pos_cur.execute('commit')
 
