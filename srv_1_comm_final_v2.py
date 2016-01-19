@@ -152,7 +152,7 @@ print "-- start qb lookup --"
 cur_qb = db_qb.cursor()
 sur_qb = db_qb.cursor()
 
-regx_posnum = re.compile('pos receipt #([0-9]+)', re.S|re.I|re.M)
+regx_posnum = re.compile(r'pos receipt[\s]*#[\s]*([0-9]+)', re.S|re.I|re.M)
 cur_qb.execute("select transaction_id,memo,transaction_date,doc_num from abmc_invoice_header where is_paid_bool = 1 and transaction_id in"
                + " (select transaction_id from abmc_transaction_link where link_type in (3,4) and is_t1_source_bool = 0 group by transaction_id having max(transaction_date) >= ? and max(transaction_date) < ?)",
                (from_date, to_date)
