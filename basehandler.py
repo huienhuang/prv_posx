@@ -6,10 +6,13 @@ import struct
 import tinywsgi4 as tinywsgi
 import config
 import urllib
+import urllib2
 import urlparse
 import json
 import os
 import types
+import gzip
+import cStringIO
 
 
 G_ADMIN_APP_PERM = (1 << 30) - 1
@@ -152,6 +155,30 @@ class RequestHandler(tinywsgi.RequestHandler):
         if auth: self.logout()
         
         return False
+
+
+    def intcom(self, store_nz, uri, data=None):
+        rip = config.server_ip
+        ts_idx = int(int(time.time()) / 3600)
+
+        auth = config.stores[store_nz]
+        r_aid_ = self.gen_pre_auth(rip, auth['uid'], self.genpasswd(auth['pass']))
+        r_aid = self.gen_auth(r_aid_, ts_idx)
+
+        req = urllib2.Request(url='http://%s/posx%s' % (auth['host'], uri), data=data)
+        req.add_header('Cookie', '__auth__="%s:%s"' % (auth['uid'], r_aid))
+        req.add_header('Accept-Encoding', 'gzip')
+
+        d = None
+        f = urllib2.urlopen(req)
+        if f.code == 200:
+            if f.headers.get('Content-Encoding', '').lower() == 'gzip':
+                d= gzip.GzipFile(fileobj=cStringIO.StringIO(f.read())).read()
+            else:
+                d = f.read()
+
+        return d
+
 
     def get_user_perms(self):
         if type(self.__user_perms) == dict: return self.__user_perms

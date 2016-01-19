@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="header_inc_v4.html" />
+<title>POSX - Item &gt; Sold Report</title>
+
+<script type="text/javascript">
+var g_price_level = 0;
+var g_cur_hdr = null;
+var g_items = {};
+var g_store_id = 0;
+
+
+function round_x(f, p)
+{
+    var r = Math.pow(10, p);
+    return Math.round(f * r) / r;
+}
+
+function change_uom()
+{
+    var sel = $(this);
+    var row = sel.closest('.xtbl_row');
+    var item = row.data('item_data');
+    var gjs = item[3]
+    gjs.default_uom_idx = parseInt(sel.val());
+    
+    _change_uom(row, gjs);
+}
+
+function _change_uom(row, gjs)
+{
+
+    if(!gjs.rjs) return;
+    var ritem = gjs.rjs;
+    var ui = -1;
+    var u0 = gjs.units[gjs.default_uom_idx];
+    for(var i = 0; i < ritem.units.length; i++) {
+        var u1 = ritem.units[i];
+        if(u1[0].toLowerCase() === u0[1].toLowerCase() && u1[1].toLowerCase() === u0[2].toLowerCase()) {
+            ui = i;
+            break;
+        }
+    }
+
+    var cd = row.children();
+    if(ui < 0) {
+        gjs.v_price.val('');
+        gjs.v_num.val('');
+        $(cd[8]).text('');
+        $(cd[9]).text('');
+        gjs.rjs = undefined;
+        
+    } else {
+        if(ritem.ui === undefined) {
+            gjs.v_num.val(ritem.num);
+            $(cd[8]).text(ritem.units[0][0]);
+            $(cd[9]).text(ritem.name);
+        }
+        
+        ritem.ui = ui;
+        gjs.v_price.val((ritem.last_cost * ritem.units[ui][2]).toFixed(2) );
+    }
+}
+
+function delete_row()
+{
+    var row = $(this).closest('.xtbl_row');
+    var tid = row.data('item_data')[0];
+    
+    if(g_items[tid]) delete g_items[tid];
+    row.remove();
+}
+
+function click_item_hist()
+{
+    var row = $(this).closest('.xtbl_row');
+    var tid = row.data('item_data')[0];
+    window.open('hist?fn=itemhist&tid=' + tid,'posx_item_hist','location=0,width=992,height=700');
+}
+
+
+function new_row(item)
+{
+    var js = item[3];
+    var sel = '';
+    if(js.units.length > 1) {
+        sel = $('<select></select>').change(change_uom);
+        for(var i = 0; i < js.units.length; i++) {
+            var unit = js.units[i];
+            sel.append( $('<option></option>').text(unit[2] + (unit[3]!=1?'*' + unit[3]:'')).val(i) );
+        }
+        sel.val(js.default_uom_idx);
+    }
+    
+    var cls = '';
+    
+    js.v_inp = $('<input text="number" />');
+    
+    js.v_num = $('<input text="number" />');
+    js.v_price = $('<input text="number" />');
+    
+    var row = $('<div class="xtbl_row'+cls+'"></div>')
+    .append( $('<div></div>').click(delete_row) )
+    .append( $('<div></div>').text(item[1]).click(click_item_hist) )
+    .append( $('<div></div>').text(js.units[0][1]) )
+    .append( $('<div></div>').text(item[2]).attr('title', js.units[0][1]).tooltip() )
+    .append( $('<div></div>').append(js.v_inp) )
+    .append( $('<div></div>').append(sel) )
+    .append( $('<div></div>').append(js.v_price) )
+    .append( $('<div></div>').append(js.v_num) )
+    .append( $('<div></div>') )
+    .append( $('<div></div>') );
+    
+    //js.v_row = row;
+    //upd_qtys(row.children(), js);
+    
+    g_v_xtbl.append(row);
+    return row.data('item_data', item);
+}
+
+function itemsearch_render_item(ul, item)
+{
+    var d = item[3];
+    
+    var unit = d.units[d.default_uom_idx];
+    var qty = unit[3] ? Math.floor(unit[3] != 1 ? d.qty[0] / unit[3] : d.qty[0]) : 'E';
+    return $('<li class="srch_item"></li>').append(
+        $('<a></a>')
+            .append($('<span></span>').text(item[1]))
+            .append($('<span></span>').text(d.units[0][1]))
+            .append($('<span></span>').text( '$' + unit[0][g_price_level] + (unit[2] ? '/' + unit[2] : '') + ' (' + qty +')' ))
+            .append($('<span></span>').text(item[2]))
+    ).appendTo(ul);
+    
+}
+
+function ac_item_search_response(event, ui)
+{
+    var ct = ui.content;
+    var term = $.trim( $(this).data("ui-autocomplete").term.toLowerCase() );
+        
+    for(var i = 0; i < ct.length; i++) {
+        var c = ct[i];
+        var item = c[3] = $.parseJSON(c[3]);
+        var units = item.units;
+        
+        item.default_uom_idx = item.order_uom_idx;
+        
+        /* 
+        if (c[4] !== null) {
+            var upc_uom_idx = parseInt(c[4]);
+            if(upc_uom_idx >= 0 && upc_uom_idx < units.length) item.default_uom_idx = upc_uom_idx;
+                
+        } else if(term) {
+            for(var u = 0; u < units.length; u++) {
+                var alu = units[u][1];
+                if(alu && alu.toLowerCase() === term) {
+                    item.default_uom_idx = u;
+                    break;
+                }
+            }
+        }
+        */
+        
+    }
+}
+
+function load_remote_items_cb(js)
+{
+    if(!js.items) return;
+    
+    for(var tid in g_items) {
+        var v = g_items[tid];
+        var item = v.data('item_data');
+        var num = item[1];
+        var gjs = item[3];
+        if(js.mapping[num + ''] === undefined) continue;
+        if(gjs.rjs) continue;
+        
+        var rno =  '' + (gjs.rno || js.mapping['' + num] || num);
+        var ritem = js.items[rno];
+        if(!ritem) continue;
+        
+        gjs.rjs = ritem;
+        ritem.num = rno;
+        _change_uom(v, gjs);
+    }
+    
+}
+
+
+
+function __load_remote_items(tids)
+{
+    if(!tids || !tids.length) return;
+    
+    get_js_ex('?fn=get_items_mapping',
+        {
+            'snz': g_v_remote_store.val(),
+            'nums': tids.join('|')
+        },
+        load_remote_items_cb, undefined, undefined, 'Loading...'
+    );
+    
+}
+
+function save() {
+    var vlst = g_v_xtbl.children();
+    var lst = [];
+    for(var i = 0; i < vlst.length; i++) {
+        var item = $(vlst[i]).data('item_data');
+        var gjs = item[3];
+        if(!gjs.rjs) continue;
+        
+        var ritem = gjs.rjs;
+        var price = (ritem.last_cost * ritem.units[ritem.ui][2]).toFixed(2);
+        var qty = parseInt(gjs.v_inp.val());
+        
+        lst.push( [item[0], gjs.units[gjs.default_uom_idx][2], qty, gjs.rjs.sid, price] );
+    }
+    
+    
+    
+}
+
+
+
+function print_x()
+{
+    var v = $('<div><div>ID</div><div>ALU</div><div>Name</div><div>OnHand</div></div>');
+    
+    var vs = [v];
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var t = $(lst[i]).data('item_data');
+        var js = t[3];
+        
+        var unit = js.units[js.default_uom_idx];
+        var factor = js.units.length > 1 ? unit[3] : 1;
+        var s_qtys = js.stores[g_store_id];
+        var qty = factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E';
+        
+        var v = $('<div></div>')
+        .append( $('<div></div>').text(t[1]) )
+        .append( $('<div></div>').text(js.units[0][1]) )
+        .append( $('<div></div>').text(t[2]) )
+        .append( $('<div></div>').text(qty + ' ' + unit[2] + ' ') );
+        vs.push(v);
+    }
+    
+    
+    g_v_print_lst.empty().append(vs);
+    
+    print();
+    
+}
+
+
+$(function() {
+
+$('.btn').button();
+
+g_v_xtbl_hdr_cnt = $('.xtbl_header').tooltip();
+g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
+g_v_xtbl_ftr = $('.xtbl_footer').children('.xtbl_row');
+
+
+g_v_xtbl = $('.xtbl').sortable({
+    items: '> div',
+}).disableSelection().scroll(function() {
+    g_v_xtbl_hdr_cnt.scrollLeft( g_v_xtbl.scrollLeft() );
+});
+
+g_v_ac_item_search = $('#srch_item').autocomplete({
+    autoFocus: true,
+    source: "sync?fn=itemsearch",
+    minLength: 1,
+    select: function(event, ui) {
+        var tid = ui.item[0];
+        var num = ui.item[1];
+        if(g_items[tid] !== undefined) {
+            var v = g_items[tid];
+            g_v_xtbl.scrollTop( (v.index() ) * 37 );
+            v.effect("shake");
+            return;
+        }
+        g_items[tid]= new_row(ui.item).width(g_v_xtbl_hdr.width);
+        __load_remote_items([num]);
+        
+        g_v_xtbl.scrollTop( (g_v_xtbl.children().length - 1) * 37);
+        
+    },
+    response: ac_item_search_response
+});
+g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
+
+g_v_tp_ctrl = $('.tp_ctrl');
+
+g_v_remote_store = g_v_tp_ctrl.children('select[name="remote_store"]');
+
+//g_v_tp_ctrl.children('input[value="apply"]').click(load_items_sold_report);
+
+//g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
+
+g_v_tp_ctrl.children('input[value="print"]').click(print_x);
+
+g_v_tp_ctrl.children('input[value="quit"]').click(go_home);
+
+g_v_form_dl = $('#form_dl');
+
+g_v_print_lst = $('.vtable >div');
+
+
+}); //ready
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.tp_ctrl {height:50px;line-height:50px;padding-left:10px;}
+.tp_ctrl input, .tp_ctrl select {margin-right:10px;}
+
+.xtbl_row {height:36px;font-size:16px;line-height:36px;border-bottom:1px solid #ddd;background-color:#fff;white-space:nowrap;min-width:800px;}
+.xtbl_row > div {float:left;text-align:center;height:100%;white-space:nowrap;overflow:hidden;width:70px;position:relative}
+.xtbl_row > div > select {position:absolute;top:2px;left:0;width:100%;background-color:#fffcee}
+.xtbl_row > div > input {position:absolute;top:2px;left:1px;bottom:2px;right:1px;background-color:#f7fff4;width:38px}
+.xtbl_row > div:nth-child(1) {width:26px}
+.xtbl_row > div:nth-child(2) {width:50px;cursor:pointer;font-weight:bold}
+.xtbl_row > div:nth-child(3) {width:100px;font-style:italic}
+.xtbl_row > div:nth-child(4) {width:280px}
+.xtbl_row > div:nth-child(5) {width:46px}
+.xtbl_row > div:nth-child(6) {width:100px}
+.xtbl_row > div:nth-child(7) {width:90px}
+.xtbl_row > div:nth-child(7) >input {width:82px}
+.xtbl_row > div:nth-child(8) {width:70px;cursor:pointer;font-weight:bold}
+.xtbl_row > div:nth-child(8) >input {width:62px}
+.xtbl_row > div:nth-child(9) {width:100px;font-style:italic}
+.xtbl_row > div:nth-child(10) {width:280px}
+.xtbl_row > div:nth-child(11) {width:100px}
+
+.xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
+.xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
+.xtbl_header,.xtbl_footer {position:absolute;top:0;left:0;right:0;overflow:hidden}
+.xtbl_header > .xtbl_row,.xtbl_footer > .xtbl_row {background-color:#f1f1f1;font-weight:bold;}
+.xtbl_header {top:50px}
+.xtbl_footer {bottom:0;top:auto}
+.xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
+
+.xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
+
+.xtbl .xtbl_row:hover {background-color:#fffade}
+
+
+.ui-menu > .ui-menu-item {display:block;width:821px;height:32px;position:relative;margin:0;background-color:#ffffff;overflow:hidden;}
+.ui-menu > .ui-menu-item:nth-child(even) {background-color:#f6f6f6}
+.ui-menu > .ui-menu-item > a {display:block;margin:0;padding:3px;width:815px;height:26px;line-height:26px;font-size:18px;}
+.ui-menu > .ui-menu-item > a.ui-state-focus {background:#cee6ff;border:none;margin:0}
+.ui-menu > .ui-menu-item > a > span {display:block;float:left;height:26px;overflow:hidden;margin-right:5px;}
+
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(1) {width:70px;color:#003366;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(2) {width:110px;color:#994C00;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(3) {width:160px;color:#006600;font-weight:bold}
+.ui-menu > .ui-menu-item.srch_item > a > span:nth-child(4) {width:460px;color:#101010;margin-right:0}
+
+#dlg_profile_name {text-align:center}
+
+.below_reorder_point {background-color:#fac4c4}
+
+#dlg_point .sl_val {width:100px;height:30px;}
+#dlg_point .sl_point {width:300px;margin:5px 10px}
+.red_point .ui-slider-range {background:#ef2929}
+.red_point .ui-slider-handle {border-color:#ef2929}
+.yellow_point .ui-slider-range {background:#eecb80}
+.yellow_point .ui-slider-handle {border-color:#be953c}
+.avg_pt_be_red {background-color:#ec8b8b}
+.avg_pt_be_yellow {background-color:#ebdfc5}
+
+
+.bg_red {background-color:#ec8b8b !important;}
+.bg_purple {background-color:#e5c2e9 !important;}
+
+
+
+.vtable {width:952px;display:none}
+.vtable > div:nth-child(2) {padding-top:10px;}
+.vtable > div > div {position:relative;page-break-inside:avoid;}
+.vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
+.vtable > div:nth-child(1) > div {height:29px;line-height:29px;border:1px solid #ccc;border-bottom:none;}
+.vtable > div:nth-child(1) > div:last-child {border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div {bottom:-1px;border-bottom:1px solid #ccc;}
+.vtable > div:nth-child(1) > div > div:first-child {cursor:pointer}
+.vtable > div:nth-child(1) > div:nth-child(even) {background-color:#F9F9F9}
+.vtable > div:nth-child(1) > div:hover {background-color:#FFE5CC}
+.vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
+.vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:101px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:1px;width:100px;font-weight:bold;text-align:right}
+
+
+@media print {
+.vtable {display:block}
+.tp_ctrl,.xtbl_header,.xtbl,.xtbl_footer {display:none}
+.vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000}
+}
+@page {
+margin:60px 50px;
+}
+
+
+</style>
+
+</head>
+<body>
+
+<div class="tp_ctrl">
+<select style="width:100px" name="remote_store">
+%for nz,cfg in stores.items():
+%if nz != store_name:
+<option value="${nz|h}">${nz|h}</option>
+%endif
+%endfor
+</select>
+
+<input type="text" style="width:150px" id="srch_item" placeholder="search item"/>
+
+<input type="button" value="save" class="btn" />
+<input type="button" value="submit" class="btn" />
+<input type="button" value="print" class="btn" />
+
+</div>
+
+<div class="xtbl_header"><div class="xtbl_row noselect">
+<div></div>
+<div>#</div>
+<div>ALU</div>
+<div>Name</div>
+<div>QTY</div>
+<div>Unit</div>
+<div>UPrice</div>
+<div>R_#</div>
+<div>R_ALU</div>
+<div>R_Name</div>
+
+</div></div>
+
+<div class="xtbl"></div>
+<div class="xtbl_footer"><div class="xtbl_row">
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+</div></div>
+
+<div id="dlg_profile_name" title="Profile Name">Name: <input name="nz" type="text"/></div>
+
+<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
+
+<div class="vtable"><div></div></div>
+
+</body>
+</html>
