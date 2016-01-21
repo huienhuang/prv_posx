@@ -3,7 +3,7 @@ import os
 import time
 import datetime
 import sys
-import Image
+from PIL import Image
 import hashlib
 import struct
 import base64
