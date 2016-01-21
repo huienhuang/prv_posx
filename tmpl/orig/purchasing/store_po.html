@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<%include file="header_inc_v4.html" />
+<%include file="../header_inc_v4.html" />
 <title>POSX - Item &gt; Sold Report</title>
 
 <script type="text/javascript">
@@ -9,7 +9,7 @@ var g_price_level = 0;
 var g_cur_hdr = null;
 var g_items = {};
 var g_store_id = 0;
-
+var g_store_po = null;
 
 function round_x(f, p)
 {
@@ -22,53 +22,37 @@ function change_uom()
     var sel = $(this);
     var row = sel.closest('.xtbl_row');
     var item = row.data('item_data');
-    var gjs = item[3]
+    var gjs = item[3];
     gjs.default_uom_idx = parseInt(sel.val());
     
     _change_uom(row, gjs);
 }
 
-function _change_uom(row, gjs)
+function _change_uom(v, gjs)
 {
-
-    if(!gjs.rjs) return;
-    var ritem = gjs.rjs;
-    var ui = -1;
-    var u0 = gjs.units[gjs.default_uom_idx];
-    for(var i = 0; i < ritem.units.length; i++) {
-        var u1 = ritem.units[i];
-        if(u1[0].toLowerCase() === u0[1].toLowerCase() && u1[1].toLowerCase() === u0[2].toLowerCase()) {
-            ui = i;
-            break;
+    if(gjs.rjs) {
+        var ritem = gjs.rjs;
+        var ui = -1;
+        var u0 = gjs.units[gjs.default_uom_idx];
+        for(var i = 0; i < ritem.units.length; i++) {
+            var u1 = ritem.units[i];
+            if(u0[3] && u1[0].toLowerCase() === u0[1].toLowerCase() && u1[1].toLowerCase() === u0[2].toLowerCase()) {
+                ui = i;
+                break;
+            }
         }
-    }
-
-    var cd = row.children();
-    if(ui < 0) {
-        gjs.v_price.val('');
-        gjs.v_num.val('');
-        $(cd[8]).text('');
-        $(cd[9]).text('');
-        gjs.rjs = undefined;
-        
-    } else {
-        if(ritem.ui === undefined) {
-            gjs.v_num.val(ritem.num);
-            $(cd[8]).text(ritem.units[0][0]);
-            $(cd[9]).text(ritem.name);
-        }
-        
         ritem.ui = ui;
-        gjs.v_price.val((ritem.last_cost * ritem.units[ui][2]).toFixed(2) );
     }
+    
+    _update_remote_item(v, gjs);
 }
 
 function delete_row()
 {
     var row = $(this).closest('.xtbl_row');
-    var tid = row.data('item_data')[0];
+    var num = row.data('item_data')[1];
     
-    if(g_items[tid]) delete g_items[tid];
+    if(g_items[num]) delete g_items[num];
     row.remove();
 }
 
@@ -96,11 +80,10 @@ function new_row(item)
     var cls = '';
     
     js.v_inp = $('<input text="number" />');
-    
-    js.v_num = $('<input text="number" />');
+    js.v_num = $('<input text="number" />').change(on_get_item);
     js.v_price = $('<input text="number" />');
     
-    var row = $('<div class="xtbl_row'+cls+'"></div>')
+    var row = $('<div class="xtbl_row'+cls+' s_error"></div>')
     .append( $('<div></div>').click(delete_row) )
     .append( $('<div></div>').text(item[1]).click(click_item_hist) )
     .append( $('<div></div>').text(js.units[0][1]) )
@@ -166,96 +149,247 @@ function ac_item_search_response(event, ui)
     }
 }
 
-function load_remote_items_cb(js)
+function _load_remote_items(rnums, vs) {
+    get_js_ex('?fn=get_remote_items',
+        {
+            'snz': g_v_remote_store.val(),
+            'nums': rnums.join('|')
+        },
+        function(js) {
+            for(var i = 0; i < rnums.length; i++) {
+                var rnum = rnums[i];
+                var v = vs[i];
+                var item = v.data('item_data');
+                var gjs = item[3];
+                if(gjs.rnum !== rnum) continue;
+                
+                gjs.rjs = js.ret[rnum + ''];
+                _change_uom(v, gjs);
+                
+            }
+    }, undefined, undefined, 'Loading Remote Items ...');
+}
+
+function _update_remote_item(v, gjs)
 {
-    if(!js.items) return;
+    gjs.v_num.val(gjs.rnum || '');
     
-    for(var tid in g_items) {
-        var v = g_items[tid];
-        var item = v.data('item_data');
-        var num = item[1];
-        var gjs = item[3];
-        if(js.mapping[num + ''] === undefined) continue;
-        if(gjs.rjs) continue;
+    var cds = v.children();
+    var rjs = gjs.rjs;
+    if(rjs) {
+        $(cds[8]).text(rjs.units[0][0]);
+        $(cds[9]).text(rjs.name);
+        gjs.v_price.val( rjs.ui < 0 ? '' : (rjs.last_cost * rjs.units[rjs.ui][2]).toFixed(2) );
         
-        var rno =  '' + (gjs.rno || js.mapping['' + num] || num);
-        var ritem = js.items[rno];
-        if(!ritem) continue;
+    } else {
+        $(cds[8]).text('');
+        $(cds[9]).text('');
+        gjs.v_price.val('');
         
-        gjs.rjs = ritem;
-        ritem.num = rno;
-        _change_uom(v, gjs);
     }
+    
+    if(rjs && rjs.ui >= 0)
+        v.removeClass('s_error');
+    else
+        v.addClass('s_error');
     
 }
 
-
-
-function __load_remote_items(tids)
+function _load_mapping(nums, vs)
 {
-    if(!tids || !tids.length) return;
+    if(!nums.length) return;
     
     get_js_ex('?fn=get_items_mapping',
         {
             'snz': g_v_remote_store.val(),
-            'nums': tids.join('|')
+            'nums': nums.join('|')
         },
-        load_remote_items_cb, undefined, undefined, 'Loading...'
+        function(js) {
+            var rnums = [];
+            var rvs = [];
+            
+            for(var i = 0; i < nums.length; i++) {
+                var num = nums[i];
+                var v = vs[i];
+                
+                var item = v.data('item_data');
+                var gjs = item[3];
+        
+                var rnum = js.ret[num + ''] || num;
+                gjs.rnum = rnum;
+                gjs.rjs = undefined;
+                
+                _update_remote_item(v, gjs);
+                
+                rnums.push(rnum);
+                rvs.push(v);
+            }
+            
+            if(rnums.length) _load_remote_items(rnums, rvs);
+            
+        }, undefined, undefined, 'Loading Mapping ...'
     );
     
 }
 
+
+function load(id) {
+    g_store_po = null;
+    g_items = {};
+    g_v_xtbl.empty();
+    if(!id) return;
+    
+    get_js('?fn=load_store_po', {id: id}, function(js) {
+        g_store_po = js;
+        g_items = {};
+        g_v_xtbl.empty();
+        g_v_remote_store.val(js.store_nz);
+        var lst = js.js;
+        
+        var nums = [];
+        var vs = [];
+        for(var i = 0; i < lst.length; i++) {
+            var item = lst[i];
+            var num = item[1];
+            var v = g_items[num] = new_row(item);
+            
+            item[3].v_inp.val(item[3].qty);
+            
+            nums.push(item[3].rnum);
+            vs.push(v);
+        }
+        
+        _load_remote_items(nums, vs);
+        
+        
+    }, undefined, undefined, 'Loading #' + id);
+    
+}
+
 function save() {
+    if(g_store_po) {
+        MsgBox("Error", "You can't modify the current PO in this moment!");
+        return;
+    }
+    
     var vlst = g_v_xtbl.children();
     var lst = [];
     for(var i = 0; i < vlst.length; i++) {
         var item = $(vlst[i]).data('item_data');
         var gjs = item[3];
-        if(!gjs.rjs) continue;
+        var rjs = gjs.rjs;
+        if(!rjs || rjs.ui < 0) {
+            MsgBox("Error", "Uncompleted Data - Item #" + item[1] + " - " + item[2]);
+            return;
+        }
         
-        var ritem = gjs.rjs;
-        var price = (ritem.last_cost * ritem.units[ritem.ui][2]).toFixed(2);
+        var price = (rjs.last_cost * rjs.units[rjs.ui][2]).toFixed(2);
         var qty = parseInt(gjs.v_inp.val());
+        if(!qty || price < 0) {
+            MsgBox("Error", "Invalid Input - Item #" + item[1] + " - " + item[2]);
+            return;
+        }
         
-        lst.push( [item[0], gjs.units[gjs.default_uom_idx][2], qty, gjs.rjs.sid, price] );
+        
+        lst.push( [item[0], item[1], gjs.units[gjs.default_uom_idx][2], qty, rjs.sid, gjs.rnum, price] );
+        
     }
     
-    
+    post_js_ex('?fn=save_store_po', {js: JSON.stringify({lst: lst, id: 0, snz: g_v_remote_store.val()})}, function(js){
+        
+        load(js.id);
+        
+    });
     
 }
 
 
 
-function print_x()
+function print_po()
 {
-    var v = $('<div><div>ID</div><div>ALU</div><div>Name</div><div>OnHand</div></div>');
+    var v = $('<div><div>ID</div><div>ALU</div><div>Name</div><div>QTY</div></div>');
     
     var vs = [v];
     var lst = g_v_xtbl.children();
     for(var i = 0; i < lst.length; i++) {
-        var t = $(lst[i]).data('item_data');
-        var js = t[3];
+        var item = $(lst[i]).data('item_data');
+        var gjs = item[3];
         
-        var unit = js.units[js.default_uom_idx];
-        var factor = js.units.length > 1 ? unit[3] : 1;
-        var s_qtys = js.stores[g_store_id];
-        var qty = factor ? (factor == 1 ? s_qtys[0].toFixed(1) : (s_qtys[0] / factor).toFixed(1)) : 'E';
+        var rjs = gjs.rjs;
+        if(!rjs) {
+            MsgBox("Error", "Uncompleted Data - Item #" + item[1] + " - " + item[2]);
+            return;
+        }
+        
+        var unit = gjs.units[gjs.default_uom_idx];
+        var qty = parseInt(gjs.v_inp.val());
         
         var v = $('<div></div>')
-        .append( $('<div></div>').text(t[1]) )
-        .append( $('<div></div>').text(js.units[0][1]) )
-        .append( $('<div></div>').text(t[2]) )
-        .append( $('<div></div>').text(qty + ' ' + unit[2] + ' ') );
+        .append( $('<div></div>').text(gjs.rnum) )
+        .append( $('<div></div>').text(rjs.units[0][0]) )
+        .append( $('<div></div>').text(rjs.name) )
+        .append( $('<div></div>').text( qty ? qty + ' ' + unit[2]: '') );
         vs.push(v);
     }
     
     
     g_v_print_lst.empty().append(vs);
     
+    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Local POS PO# ");
+    
     print();
     
 }
 
+function print_so()
+{
+    var v = $('<div><div>ID</div><div>ALU</div><div>Name</div><div>QTY</div></div>');
+    
+    var vs = [v];
+    var lst = g_v_xtbl.children();
+    for(var i = 0; i < lst.length; i++) {
+        var t = $(lst[i]).data('item_data');
+        var gjs = t[3];
+        
+        var unit = gjs.units[gjs.default_uom_idx];
+        var qty = parseInt(gjs.v_inp.val());
+        
+        
+        
+        var v = $('<div></div>')
+        .append( $('<div></div>').text(t[1]) )
+        .append( $('<div></div>').text(gjs.units[0][1]) )
+        .append( $('<div></div>').text(t[2]) )
+        .append( $('<div></div>').text( qty ? qty + ' ' + unit[2]: '') );
+        vs.push(v);
+    }
+    
+    
+    g_v_print_lst.empty().append(vs);
+    
+    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Remote POS SO# ");
+    
+    print();
+    
+}
+
+
+function on_get_item()
+{
+    var o = $(this);
+    var row = o.closest('.xtbl_row');
+    var item = row.data('item_data');
+    var gjs = item[3];
+    
+    var rnum = parseInt(o.val()) || undefined;
+    gjs.rnum = rnum;
+    gjs.rjs = undefined;
+    _update_remote_item(row, gjs);
+    
+    if(!rnum) return;
+    
+    _load_remote_items([rnum], [row]);
+}
 
 $(function() {
 
@@ -279,14 +413,14 @@ g_v_ac_item_search = $('#srch_item').autocomplete({
     select: function(event, ui) {
         var tid = ui.item[0];
         var num = ui.item[1];
-        if(g_items[tid] !== undefined) {
-            var v = g_items[tid];
+        if(g_items[num] !== undefined) {
+            var v = g_items[num];
             g_v_xtbl.scrollTop( (v.index() ) * 37 );
             v.effect("shake");
             return;
         }
-        g_items[tid]= new_row(ui.item).width(g_v_xtbl_hdr.width);
-        __load_remote_items([num]);
+        var v = g_items[num] = new_row(ui.item);
+        _load_mapping([num], [v]);
         
         g_v_xtbl.scrollTop( (g_v_xtbl.children().length - 1) * 37);
         
@@ -301,16 +435,17 @@ g_v_remote_store = g_v_tp_ctrl.children('select[name="remote_store"]');
 
 //g_v_tp_ctrl.children('input[value="apply"]').click(load_items_sold_report);
 
-//g_v_tp_ctrl.children('input[value="save"]').click(save_profile);
+g_v_tp_ctrl.children('input[value="Submit"]').click(save);
 
-g_v_tp_ctrl.children('input[value="print"]').click(print_x);
+g_v_tp_ctrl.children('input[value="Print PO"]').click(print_po);
+g_v_tp_ctrl.children('input[value="Print SO"]').click(print_so);
 
 g_v_tp_ctrl.children('input[value="quit"]').click(go_home);
 
 g_v_form_dl = $('#form_dl');
 
 g_v_print_lst = $('.vtable >div');
-
+g_v_print_hdr = $('.vtable_hdr');
 
 }); //ready
 
@@ -338,6 +473,8 @@ g_v_print_lst = $('.vtable >div');
 .xtbl_row > div:nth-child(9) {width:100px;font-style:italic}
 .xtbl_row > div:nth-child(10) {width:280px}
 .xtbl_row > div:nth-child(11) {width:100px}
+
+.xtbl_row.s_error {background-color:#f6d2d2}
 
 .xtbl .xtbl_row > div:nth-child(1) {background:url('img/tools.png') no-repeat 0px 5px;cursor:pointer}
 .xtbl .xtbl_row:nth-child(even) {background-color:#f9f9f9}
@@ -383,7 +520,7 @@ g_v_print_lst = $('.vtable >div');
 
 
 
-.vtable {width:952px;display:none}
+.vtable, .vtable_hdr {width:952px;display:none}
 .vtable > div:nth-child(2) {padding-top:10px;}
 .vtable > div > div {position:relative;page-break-inside:avoid;}
 .vtable > div > div > div {position:absolute;top:0;text-align:center;overflow:hidden;}
@@ -396,12 +533,12 @@ g_v_print_lst = $('.vtable >div');
 .vtable > div:nth-child(1) > div:nth-child(1) {font-weight:bold;background-color:#E0E0E0}
 .vtable > div:nth-child(1) > div > div:nth-child(1) {left:1px;width:60px;font-weight:bold}
 .vtable > div:nth-child(1) > div > div:nth-child(2) {left:61px;width:130px;font-weight:bold}
-.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:101px}
-.vtable > div:nth-child(1) > div > div:nth-child(4) {right:1px;width:100px;font-weight:bold;text-align:right}
+.vtable > div:nth-child(1) > div > div:nth-child(3) {left:191px;right:104px}
+.vtable > div:nth-child(1) > div > div:nth-child(4) {right:4px;width:100px;font-weight:bold;text-align:right}
 
 
 @media print {
-.vtable {display:block}
+.vtable, .vtable_hdr {display:block}
 .tp_ctrl,.xtbl_header,.xtbl,.xtbl_footer {display:none}
 .vtable > div:nth-child(1) > div, .vtable > div:nth-child(1) > div > div, .vtable > div:nth-child(1) > div:last-child {border-color:#000}
 }
@@ -426,9 +563,9 @@ margin:60px 50px;
 
 <input type="text" style="width:150px" id="srch_item" placeholder="search item"/>
 
-<input type="button" value="save" class="btn" />
-<input type="button" value="submit" class="btn" />
-<input type="button" value="print" class="btn" />
+<input type="button" value="Submit" class="btn" />
+<input type="button" value="Print PO" class="btn" />
+<input type="button" value="Print SO" class="btn" />
 
 </div>
 
@@ -460,10 +597,7 @@ margin:60px 50px;
 <div></div>
 </div></div>
 
-<div id="dlg_profile_name" title="Profile Name">Name: <input name="nz" type="text"/></div>
-
-<form id="form_dl" target="_blank" action="?fn=export_csv" method="post" style="display:none"><input type="hidden" name="js" /></form>
-
+<div class="vtable_hdr"></div>
 <div class="vtable"><div></div></div>
 
 </body>

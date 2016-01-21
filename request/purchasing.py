@@ -34,6 +34,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             ('$itemsold', 'Item Sold'),
             ('out_of_stock', 'Out Of Stock'),
             ('over_stock', 'Over Stock'),
+
+
             ]
         }
         self.req.writefile('tmpl_multitabs.html', r)
@@ -660,67 +662,6 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         self.req.writejs(ret)
     
 
-    def fn_store_po(self):
-        self.req.writefile('store_po.html', {'stores': config.stores, 'store_name': config.store_name})
-
-
-
-    def fn_get_items_lite(self):
-        nums = self.req.qsv_ustr('nums').split('|')
-        nums_s = ','.join(set([ str(int(f_x)) for f_x in nums ]))
-
-        rs = {}
-        cur = self.cur()
-        cur.execute('select sid,num,name,detail,detail2 from sync_items where num in (%s)' % (nums_s, ))
-        for r in cur.fetchall():
-            jsa = json.loads(r[3])
-            jsb = json.loads(r[4])
-
-            rs[ r[1] ] = {
-                'sid': str(r[0]),
-                'name': r[2],
-                #'order_uom_idx': jsa['order_uom_idx'],
-                'units': [ f_x[1:] for f_x in jsa['units'] ],
-                'last_cost': jsb['costs'][0]
-            }
-
-        self.req.writejs(rs)
-
-
-    def fn_test(self):
-        self.req.writejs( self.intcom('LOCAL', '/purchasing?fn=get_items_lite&nums=13100') )
-
-    def get_remote_items(self, snz, nums):
-        d = urllib.urlencode({'fn': 'get_items_lite', 'nums': '|'.join(map(str, nums))})
-        return json.loads(self.intcom(snz, '/purchasing?' + d))
-
-
-    def get_items_mapping(self, snz, nums):
-        cur = self.cur()
-        cur.execute('select local_num,remote_num from item_mapping where local_num in (%s) and store_nz=%%s' % (','.join(map(str, nums)), ), (snz, ))
-        rs = dict(cur.fetchall())
-        s = set()
-        for num in nums:
-            if not rs.get(num):
-                s.add(num)
-                rs[num] = None
-            else:
-                s.add(rs[num])
-
-        items = self.get_remote_items(snz, s)
-
-        return {'mapping': rs, 'items': items}
-
-
-    def fn_get_items_mapping(self):
-        snz = self.req.qsv_ustr('snz')
-        nums = set(map(int, self.req.qsv_ustr('nums').split('|')))
-
-        self.req.writejs(self.get_items_mapping(snz, nums))
-
-
-
-
-
+    
 
 

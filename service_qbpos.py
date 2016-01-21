@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import json
 import time
 import config
+import traceback
 
 
 g_cfg = config.qbpos_cfg
@@ -635,9 +636,184 @@ def worker(cur):
 			print "-- %s > %s" % (r['id'], ret)
 		print '->%0.3fs' % (secs,)
 
+
+
+
+
+
+
+
+
+
+
+def API_new_po(cur, r):
+	req_js = r['req_js']
+
+	tree = ET.fromstring('<QBPOSXML><QBPOSXMLMsgsRq onError="stopOnError"><PurchaseOrderAddRq><PurchaseOrderAdd></PurchaseOrderAdd></PurchaseOrderAddRq></QBPOSXMLMsgsRq></QBPOSXML>')
+	T_PurchaseOrderAdd = tree.find('QBPOSXMLMsgsRq/PurchaseOrderAddRq/PurchaseOrderAdd')
+
+
+	T_ELEM = ET.Element('VendorListID')
+	T_ELEM.text = str(req_js['sid_vendor'])
+	T_PurchaseOrderAdd.append(T_ELEM)
+
+	T_ELEM = ET.Element('Instructions')
+	T_ELEM.text = "POSX Store PO #%d - %s" % (req_js['ref_id'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()))
+	T_PurchaseOrderAdd.append(T_ELEM)
+
+
+	lst = req_js['lst']
+
+	for a in lst:
+		T_PurchaseOrderItemAdd = ET.Element('PurchaseOrderItemAdd')
+
+		T_ELEM = ET.Element('ListID')
+		T_ELEM.text = str(a['sid'])
+		T_PurchaseOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('Qty')
+		T_ELEM.text = str(a['qty'])
+		T_PurchaseOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('UnitOfMeasure')
+		T_ELEM.text = str(a['uom'])
+		T_PurchaseOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('Cost')
+		T_ELEM.text = str(a['price'])
+		T_PurchaseOrderItemAdd.append(T_ELEM)
+
+		T_PurchaseOrderAdd.append(T_PurchaseOrderItemAdd)
+
+	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
+	xml = pos_process_request(xml.decode('utf8'))
+	if not xml: return (-111, {'err': 'QBPOS Runtime Error'})
+	
+	tree = ET.fromstring(xml)
+
+	rs = tree.find("QBPOSXMLMsgsRs/PurchaseOrderAddRs")
+	msg = (rs.get('statusSeverity') + ' ' + rs.get('statusMessage', '')).strip()
+
+	if int(rs.get('statusCode')) != 0:
+		return (-2, {'err': msg})
+	else:
+		rt = rs.find('PurchaseOrderRet')
+		sid = int(rt.find('TxnID').text)
+		num = int(rt.find('PurchaseOrderNumber').text)
+		return (0, {'sid': sid, 'num': num, 'msg': msg})
+
+
+
+def API_new_so(cur, r):
+	req_js = r['req_js']
+
+	tree = ET.fromstring('<QBPOSXML><QBPOSXMLMsgsRq onError="stopOnError"><SalesOrderAddRq><SalesOrderAdd></SalesOrderAdd></SalesOrderAddRq></QBPOSXMLMsgsRq></QBPOSXML>')
+	T_SalesOrderAdd = tree.find('QBPOSXMLMsgsRq/SalesOrderAddRq/SalesOrderAdd')
+
+
+	T_ELEM = ET.Element('CustomerListID')
+	T_ELEM.text = str(req_js['sid_customer'])
+	T_SalesOrderAdd.append(T_ELEM)
+
+	T_ELEM = ET.Element('SalesOrderType')
+	T_ELEM.text = 'SalesOrder'
+	T_SalesOrderAdd.append(T_ELEM)
+
+
+	T_ELEM = ET.Element('Instructions')
+	T_ELEM.text = "POSX Store PO Remote #%d - %s" % (req_js['ref_id'], time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()))
+	T_SalesOrderAdd.append(T_ELEM)
+
+
+	lst = req_js['lst']
+
+	for a in lst:
+		T_SalesOrderItemAdd = ET.Element('SalesOrderItemAdd')
+
+		T_ELEM = ET.Element('ListID')
+		T_ELEM.text = str(a['sid'])
+		T_SalesOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('Qty')
+		T_ELEM.text = str(a['qty'])
+		T_SalesOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('UnitOfMeasure')
+		T_ELEM.text = str(a['uom'])
+		T_SalesOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('Price')
+		T_ELEM.text = str(a['price'])
+		T_SalesOrderItemAdd.append(T_ELEM)
+
+		T_ELEM = ET.Element('TaxCode')
+		T_ELEM.text = 'Non'
+		T_SalesOrderItemAdd.append(T_ELEM)
+
+		T_SalesOrderAdd.append(T_SalesOrderItemAdd)
+
+	xml = '<?xml version="1.0" ?><?qbposxml version="3.0"?>' + ET.tostring(tree, 'utf8')
+	xml = pos_process_request(xml.decode('utf8'))
+	if not xml: return (-111, {'err': 'QBPOS Runtime Error'})
+	
+	tree = ET.fromstring(xml)
+
+	rs = tree.find("QBPOSXMLMsgsRs/SalesOrderAddRs")
+	msg = (rs.get('statusSeverity') + ' ' + rs.get('statusMessage', '')).strip()
+
+	if int(rs.get('statusCode')) != 0:
+		return (-2, {'err': msg})
+	else:
+		rt = rs.find('SalesOrderRet')
+		sid = int(rt.find('TxnID').text)
+		num = int(rt.find('SalesOrderNumber').text)
+		return (0, {'sid': sid, 'num': num, 'msg': msg})
+
+
+
+API2_MAPPING = {
+'new_po': API_new_po,
+'new_so': API_new_so,
+}
+def API2(cur):
+	ts = time.time()
+	rs = []
+
+	cur[0].execute("select * from api_req where state = 1 limit 10")
+	nz = cur[0].column_names
+	for r in cur[0].fetchall():
+		r = dict(zip(nz, r))
+
+		r['req_js'] = json.loads(r['req_js'])
+
+		try:
+			print r
+			ret,res = API2_MAPPING.get(r['type'])(cur, r)
+
+		except Exception, e:
+			ret = -127
+			print traceback.format_exc()
+			res = {'err': traceback.format_exc()}
+
+		res_js = json.dumps(res, separators=(',',':'))
+		cur[0].execute("update api_req set rev=rev+1,state=2,ret=%s,res_js=%s,lts=%s where id=%s and state=1", (
+			ret, res_js, int(time.time()), r['id']
+			)
+		)
+
+		rs.append( (r, ret, res) )
+
+	secs = time.time() - ts
+	if rs:
+		print "API2+>%s" % (time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime()), )
+		for r, ret, res in rs:
+			print "API2-- %s > ret: %s" % (r['id'], ret)
+		print 'API2->%0.3fs' % (secs,)
+
+
 def main():
 	#get_pos_conn()
-	srv_main( ((worker, 600),) )
+	srv_main( ((worker, 600), (API2, 600)) )
 
 if __name__ == '__main__':
     main()

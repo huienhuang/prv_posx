@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<%include file="../header_inc_v4.html" />
+<title>POSX - PO</title>
+
+<script type="text/javascript">
+
+
+function _chg()
+{
+    var els = g_v_ctrl.data('in_els');
+    g_v_tg_items.tinygrid('update', -1, true, true, true);
+    
+    $.get('?fn=fetch_remote_api_res');
+    
+    
+}
+
+function load(id)
+{
+    //console.log(id);
+    if(window.parent.g_wnds.store_po) {
+        window.parent.open_wnd('store_po');
+        window.parent.g_wnds.store_po.wnd[0].contentWindow.load(id);
+    }
+}
+
+on_wnd_active = _chg;
+
+
+$(function() {
+
+$('.btn').button();
+
+g_v_ctrl = $('.x_ctrl');
+idx_elements(g_v_ctrl, 5);
+var els = g_v_ctrl.data('in_els');
+els.new_po[0].click(function() {
+    load(0);
+});
+
+els.config[0].click(function() {
+    g_v_dlg_config.dialog('open');
+});
+
+g_tg_item_data = {};
+g_v_tg_items = $('#tg_items').tinygrid({
+len:1,
+src:{page:'?fn=get_store_po_list'},
+cols: [{name:'ID', width:80},
+       {name:'Remote Store', width:130},
+       {name:'Remote SO#', width:130},
+       {name:'Local PO#', width:130},
+       {name:'User', width:130},
+       {name:'Datetime', width:210},
+       ],
+click: function(r, c, d) {
+    load(d[0]);
+}
+});
+
+
+g_v_dlg_config = $('#dlg_config').dialog({
+    autoOpen: false,
+    width:460,
+    height:250,
+    open: function() {
+        get_js('?fn=get_store_po_config', {}, function(js) {
+            var els = g_v_dlg_config.data('in_els');
+            els.sid_vendor[0].val(js.sid_vendor || '');
+            els.sid_customer[0].val(js.sid_customer || '');
+        });
+    },
+    buttons: {
+        'save': function() {
+            var els = g_v_dlg_config.data('in_els');
+            var rjs = {
+                'sid_vendor': els.sid_vendor[0].val(),
+                'sid_customer': els.sid_customer[0].val(),
+            };
+            
+            post_js('?fn=set_store_po_config', rjs, function() {});
+        },
+    }
+});
+idx_elements(g_v_dlg_config, 7);
+
+
+});
+
+</script>
+
+<style type="text/css">
+.ui-widget {font-size:18px;}
+.x_ctrl input, .x_ctrl select {margin-right:10px;}
+
+#tg_items {top:0;bottom:0;right:0;left:0}
+
+
+</style>
+
+</head>
+<body>
+
+<div class="x_ctrl">
+<input class="btn" name="ctrl_new_po" type="button" value="New PO" />
+<input class="btn" name="ctrl_config" type="button" value="Config" />
+</div>
+
+<div class="x_body">
+
+<div id="tg_items"></div>
+
+</div>
+
+
+<div id="dlg_config">
+<table>
+<tr><th>Role</th><th>SID</th></tr>
+<tr><td>Local Vendor</td><td><input type="text" name="config_sid_vendor" /></td></tr>
+<tr><td>Remote Customer</td><td><input type="text" name="config_sid_customer" /></td></tr>
+</table>
+</div>
+
+</body>
+</html>
