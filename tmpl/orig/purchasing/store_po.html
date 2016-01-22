@@ -237,6 +237,8 @@ function load(id) {
     g_store_po = null;
     g_items = {};
     g_v_xtbl.empty();
+    g_v_xtbl_ftr.empty();
+    
     if(!id) return;
     
     get_js('?fn=load_store_po', {id: id}, function(js) {
@@ -244,6 +246,8 @@ function load(id) {
         g_items = {};
         g_v_xtbl.empty();
         g_v_remote_store.val(js.store_nz);
+        g_v_xtbl_ftr.text('ID: ' + id + ',  PO: ' + (js.res_js.num || '') + ',  Remote SO: ' + ((js.remote_api_res_js.res_js || {}).num || ''));
+        
         var lst = js.js;
         
         var nums = [];
@@ -397,7 +401,7 @@ $('.btn').button();
 
 g_v_xtbl_hdr_cnt = $('.xtbl_header').tooltip();
 g_v_xtbl_hdr = g_v_xtbl_hdr_cnt.children('.xtbl_row');
-g_v_xtbl_ftr = $('.xtbl_footer').children('.xtbl_row');
+g_v_xtbl_ftr = $($('.xtbl_footer').children('.xtbl_row').children()[0]);
 
 
 g_v_xtbl = $('.xtbl').sortable({
@@ -483,6 +487,7 @@ g_v_print_hdr = $('.vtable_hdr');
 .xtbl_header {top:50px}
 .xtbl_footer {bottom:0;top:auto}
 .xtbl_footer > .xtbl_row {border-bottom:none;border-top:1px solid #ddd}
+.xtbl_footer > .xtbl_row >div:nth-child(1) {width:100%;text-align:center;color:blue;font-size:24px}
 .xtbl {position:absolute;top:87px;bottom:37px;right:0;left:0;overflow:auto;}
 
 .xtbl_row .row_tools {background:url('img/tools.png') no-repeat 2px 8px;position:relative}
@@ -553,6 +558,7 @@ margin:60px 50px;
 <body>
 
 <div class="tp_ctrl">
+    
 <select style="width:100px" name="remote_store">
 %for nz,cfg in stores.items():
 %if nz != store_name:
@@ -585,15 +591,6 @@ margin:60px 50px;
 
 <div class="xtbl"></div>
 <div class="xtbl_footer"><div class="xtbl_row">
-<div></div>
-<div></div>
-<div></div>
-<div></div>
-<div></div>
-<div></div>
-<div></div>
-<div></div>
-<div></div>
 <div></div>
 </div></div>
 

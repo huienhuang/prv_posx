@@ -361,8 +361,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         r = dict(zip(cur.column_names, rows[0]))
 
         r['js'] = json.loads(r['js'])
-        if r['remote_api_res_js']: r['remote_api_res_js'] = json.loads(r['remote_api_res_js'])
+        r['remote_api_res_js'] = r['remote_api_res_js'] and json.loads(r['remote_api_res_js']) or {}
 
+        if r['api_req_id']:
+            cur.execute('select res_js from api_req where id=%s', (r['api_req_id'], ))
+            res_js = cur.fetchall()[0][0]
+            r['res_js'] = res_js and json.loads(res_js) or {}
+        else:
+            r['res_js'] = {}
 
         cur.execute('select sid,num,name,detail from sync_items where sid in (%s)' % (
             ','.join(str(f_x['sid']) for f_x in r['js']['lst'])
