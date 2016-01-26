@@ -355,7 +355,7 @@ function print_po()
     
     g_v_print_lst.empty().append(vs);
     
-    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Local POS PO# ");
+    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Local POS PO# " + (g_store_po.res_js.num || ''));
     
     print();
     
@@ -387,7 +387,7 @@ function print_so()
     
     g_v_print_lst.empty().append(vs);
     
-    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Remote POS SO# ");
+    g_v_print_hdr.text("POSX ID# " + (g_store_po ? g_store_po.id : '') + " - Remote POS SO# " + ((g_store_po.remote_api_res_js.res_js || {}).num || ''));
     
     print();
     
