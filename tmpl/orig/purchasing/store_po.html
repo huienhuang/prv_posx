@@ -24,6 +24,7 @@ function change_uom()
     var item = row.data('item_data');
     var gjs = item[3];
     gjs.default_uom_idx = parseInt(sel.val());
+    gjs.price = undefined;
     
     _change_uom(row, gjs);
 }
