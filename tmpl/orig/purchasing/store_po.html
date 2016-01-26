@@ -179,7 +179,8 @@ function _update_remote_item(v, gjs)
     if(rjs) {
         $(cds[8]).text(rjs.units[0][0]);
         $(cds[9]).text(rjs.name);
-        gjs.v_price.val( rjs.ui < 0 ? '' : (rjs.last_cost * rjs.units[rjs.ui][2]).toFixed(2) );
+        
+        gjs.v_price.val( rjs.ui < 0 ? '' : (gjs.price !== undefined ? gjs.price.toFixed(2) : (rjs.last_cost * rjs.units[rjs.ui][2]).toFixed(2)) );
         
     } else {
         $(cds[8]).text('');
@@ -270,9 +271,23 @@ function load(id) {
     
 }
 
-function save() {
-    if(g_store_po) {
-        MsgBox("Error", "You can't modify the current PO in this moment!");
+function refresh_price()
+{
+    var vlst = g_v_xtbl.children();
+    var lst = [];
+    for(var i = 0; i < vlst.length; i++) {
+        var row = $(vlst[i]);
+        var item = row.data('item_data');
+        var gjs = item[3];
+        gjs.price = undefined;
+        
+        _update_remote_item(row, gjs);
+    }
+}
+
+function save(submit) {
+    if(g_store_po && (g_store_po.api_req_id || g_store_po.r_api_req_id)) {
+        MsgBox("Error", "You can't modify the current PO after it's submitted!");
         return;
     }
     
@@ -287,9 +302,9 @@ function save() {
             return;
         }
         
-        var price = (rjs.last_cost * rjs.units[rjs.ui][2]).toFixed(2);
-        var qty = parseInt(gjs.v_inp.val());
-        if(!qty || price < 0) {
+        var price = parseFloat(gjs.v_price.val()) || 0;
+        var qty = parseInt(gjs.v_inp.val()) || 0;
+        if(qty <= 0 || price <= 0) {
             MsgBox("Error", "Invalid Input - Item #" + item[1] + " - " + item[2]);
             return;
         }
@@ -299,7 +314,7 @@ function save() {
         
     }
     
-    post_js_ex('?fn=save_store_po', {js: JSON.stringify({lst: lst, id: 0, snz: g_v_remote_store.val()})}, function(js){
+    post_js_ex('?fn=save_store_po', {js: JSON.stringify({lst: lst, id: g_store_po ? g_store_po.id : 0, snz: g_v_remote_store.val(), submit: submit})}, function(js) {
         
         load(js.id);
         
@@ -388,6 +403,7 @@ function on_get_item()
     var rnum = parseInt(o.val()) || undefined;
     gjs.rnum = rnum;
     gjs.rjs = undefined;
+    gjs.price = undefined;
     _update_remote_item(row, gjs);
     
     if(!rnum) return;
@@ -434,17 +450,18 @@ g_v_ac_item_search = $('#srch_item').autocomplete({
 g_v_ac_item_search.data("ui-autocomplete")._renderItem = itemsearch_render_item;
 
 g_v_tp_ctrl = $('.tp_ctrl');
+idx_elements(g_v_tp_ctrl, 5);
+var els = g_v_tp_ctrl.data('in_els');
 
-g_v_remote_store = g_v_tp_ctrl.children('select[name="remote_store"]');
+g_v_remote_store = els.remote_store[0];
 
-//g_v_tp_ctrl.children('input[value="apply"]').click(load_items_sold_report);
+els.btn_save_only[0].click(function() {save(0);});
+els.btn_save_and_submit[0].click(function() {save(1);});
 
-g_v_tp_ctrl.children('input[value="Submit"]').click(save);
+els.btn_refresh_price[0].click(refresh_price);
 
-g_v_tp_ctrl.children('input[value="Print PO"]').click(print_po);
-g_v_tp_ctrl.children('input[value="Print SO"]').click(print_so);
-
-g_v_tp_ctrl.children('input[value="quit"]').click(go_home);
+els.btn_print_po[0].click(print_po);
+els.btn_print_so[0].click(print_so);
 
 g_v_form_dl = $('#form_dl');
 
@@ -559,7 +576,7 @@ margin:60px 50px;
 
 <div class="tp_ctrl">
     
-<select style="width:100px" name="remote_store">
+<select style="width:100px" name="ctrl_remote_store">
 %for nz,cfg in stores.items():
 %if nz != store_name:
 <option value="${nz|h}">${nz|h}</option>
@@ -567,11 +584,13 @@ margin:60px 50px;
 %endfor
 </select>
 
-<input type="text" style="width:150px" id="srch_item" placeholder="search item"/>
+<input type="text" style="width:150px" id="srch_item" placeholder="search item" name="ctrl_srch_item" />
 
-<input type="button" value="Submit" class="btn" />
-<input type="button" value="Print PO" class="btn" />
-<input type="button" value="Print SO" class="btn" />
+<input type="button" value="Save Only" class="btn" name="ctrl_btn_save_only" />
+<input type="button" value="Save &amp; Submit" class="btn" name="ctrl_btn_save_and_submit" />
+<input type="button" value="Refresh Price" class="btn" name="ctrl_btn_refresh_price" />
+<input type="button" value="Print PO" class="btn" name="ctrl_btn_print_po" />
+<input type="button" value="Print SO" class="btn" name="ctrl_btn_print_so" />
 
 </div>
 

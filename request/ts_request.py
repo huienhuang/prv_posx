@@ -31,7 +31,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
         ]
         r = {
-            'tab_cur_idx' : 2,
+            'tab_cur_idx' : 5,
             'title': 'Request',
             'tabs': tabs
         }
@@ -305,6 +305,14 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         sid_vendor = int(po_config.get('sid_vendor'))
         sid_customer = int(po_config.get('sid_customer'))
 
+        submit = int(js.get('submit', 0))
+
+        cur = self.cur()
+        sp_id = int(js['id'])
+        if sp_id:
+            cur.execute("select * from store_po where id=%s", (sp_id, ))
+            rows = cur.fetchall()
+            cur_sp = dict(zip(cur.column_names, rows[0]))
 
         snz = js['snz']
 
@@ -326,27 +334,40 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             so_lst.append( {'sid': r_sid, 'uom': uom, 'qty': qty, 'price': price} )
             if num != rnum: mapping.append( [num, rnum, snz] )
 
-        
-        cur = self.cur()
-        cur.execute('insert into store_po values (null,%s,0,0,%s,%s,0,null,%s)', (
-            self.user_id, snz, json.dumps({'lst': lst}, separators=(',',':')),
-            int(time.time())
-        ))
-        store_po_id= cur.lastrowid
+        if sp_id:
+            cur.execute('update store_po set cts=%s,user_id=%s,store_nz=%s,js=%s where id=%s and (api_req_id=0 or api_req_id=-1 and ' + '(%s-cts)>10000) and r_api_req_id=0' % (int(time.time()), ), (
+                int(time.time()), self.user_id, snz, json.dumps({'lst': lst}, separators=(',',':')), sp_id
+            ))
+            if cur.rowcount < 1:
+                self.req.exitjs({'err': -1, 'err_s': "unable to update current po"})
+            store_po_id = sp_id
+        else:
+            cur.execute('insert into store_po values (null,%s,0,0,%s,%s,0,null,%s)', (
+                self.user_id, snz, json.dumps({'lst': lst}, separators=(',',':')),
+                int(time.time())
+            ))
+            store_po_id= cur.lastrowid
 
         if mapping: cur.executemany('replace into item_mapping values(%s,%s,%s)', mapping)
 
-        r_rid = self.remote_api_insert_so(snz, {'lst': so_lst, 'ref_id': store_po_id, 'sid_customer': sid_customer})['rid']
+        if submit:
+            cur.execute('update store_po set api_req_id=-1 where id=%s and api_req_id in (0, -1) and r_api_req_id=0', (
+                store_po_id,
+            ))
+            if cur.rowcount < 1:
+                self.req.exitjs({'err': -1, 'err_s': "unable to submit current po"})
 
-        req_js = json.dumps({'lst': po_lst, 'ref_id': store_po_id, 'sid_vendor': sid_vendor}, separators=(',',':'))
-        cur.execute('insert into api_req values(null,0,1,0,%s,%s,null,%s,%s)', (
-            'new_po', req_js, int(time.time()), 0
-        ))
-        rid= cur.lastrowid
+            r_rid = self.remote_api_insert_so(snz, {'lst': so_lst, 'ref_id': store_po_id, 'sid_customer': sid_customer})['rid']
 
-        cur.execute('update store_po set api_req_id=%s,r_api_req_id=%s where id=%s', (
-            rid, r_rid, store_po_id
-        ))
+            req_js = json.dumps({'lst': po_lst, 'ref_id': store_po_id, 'sid_vendor': sid_vendor}, separators=(',',':'))
+            cur.execute('insert into api_req values(null,0,1,0,%s,%s,null,%s,%s)', (
+                'new_po', req_js, int(time.time()), 0
+            ))
+            rid= cur.lastrowid
+
+            cur.execute('update store_po set api_req_id=%s,r_api_req_id=%s where id=%s', (
+                rid, r_rid, store_po_id
+            ))
 
         self.req.writejs({'id': store_po_id})
 
@@ -394,6 +415,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
             t_js['default_uom_idx'] = k
             t_js['rnum'] = t['rnum']
             t_js['qty'] = t['qty']
+            t_js['price'] = t['price']
 
             lst.append([ str(t['sid']), t['num'], td[2], t_js ])
 
