@@ -4,6 +4,8 @@ import json
 import const
 
 
+def rf5(s): return rf(s, 5)
+
 def sync_items(cj_data, mode=0):
     cur,sur = pos_db()
     mdb = sys_db()
@@ -59,10 +61,10 @@ def sync_items(cj_data, mode=0):
         costs = []
         for x in sur.fetchall():
             vends.append( (x[0] or '', x[1] or '', x[2] and str(x[2]) or '', x[4]) )
-            costs.append( rf2(x[3]) )
+            costs.append( rf5(x[3]) )
             if x[2]: upc_lku[ x[2] ] = sbu_idx
         vends.insert(0, (r['vendname'] or '', '', '', r['vendsid']))
-        costs.insert(0, rf2(r['lastcost']))
+        costs.insert(0, rf5(r['lastcost']))
         
         if r['upc']: upc_lku[ r['upc'] ] = 0
         item_upcs[itemsid] = upc_lku
@@ -94,7 +96,7 @@ def sync_items(cj_data, mode=0):
             'stores': stores,
         }
         jsp = {
-            'cost': rf(r['cost'], 5),
+            'cost': rf5(r['cost']),
             'costs': costs,
         }
         
