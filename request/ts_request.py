@@ -247,7 +247,8 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
                 'name': r[2],
                 #'order_uom_idx': jsa['order_uom_idx'],
                 'units': [ f_x[1:] for f_x in jsa['units'] ],
-                'last_cost': jsb['costs'][0]
+                'last_cost': jsb['costs'][0],
+                'qty': jsa['qty'],
             }
 
         self.req.writejs(rs)
@@ -414,7 +415,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
             t_js['default_uom_idx'] = k
             t_js['rnum'] = t['rnum']
-            t_js['qty'] = t['qty']
+            t_js['rqty'] = t['qty']
             t_js['price'] = t['price']
 
             lst.append([ str(t['sid']), t['num'], td[2], t_js ])
