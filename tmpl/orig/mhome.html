@@ -18,6 +18,8 @@ body {margin:0 auto}
 .m_tools >a >span {position:absolute;bottom:20px;left:0;right:0;background:transparent url('img/overlay.png') 0 0 repeat;height:50px;line-height:50px;color:#fff;font-weight:bold}
 .m_tools >a.tool_lookup {background:transparent url('img/lookup.png') 0 0 no-repeat}
 .m_tools >a.tool_count {background:transparent url('img/inventory.jpg') 0 0 no-repeat}
+.m_tools >a.tool_barcode {background:transparent url('img/barcode.png') 0 0 no-repeat}
+
 </style>
 
 </head>
@@ -26,8 +28,7 @@ body {margin:0 auto}
 <div class="m_tools">
 <a href="m_item_lookup" class="tool_lookup"><span>Item Lookup / 产品查询</span></a>
 <a href="cycle_count?fn=mobile" class="tool_count"><span>Cycle Count / 盘点</span></a>
-<a href="http://10.0.0.20/posx/m_item_lookup" class="tool_lookup"><span>HQ Lookup / 总部查询</span></a>
-<a href="http://10.0.0.20/posx/postool?fn=item_barcode" class="tool_count"><span>HQ Barcode</span></a>
+<a href="postool?fn=item_barcode" class="tool_barcode"><span>Barcode / 条形码</span></a>
 </div>
 
 </body>
