@@ -60,7 +60,7 @@ for r in cur:
 
     tp = time.localtime(r['order_date'])
 
-    idx = (glbs['store'] - 1) * 3
+    idx = (glbs.get('store',1) - 1) * 3
 
     di = tp.tm_year * 10000 + tp.tm_mon * 100 + tp.tm_mday
     d0 = g_c[0].setdefault(di, {})
