@@ -29,6 +29,22 @@ $(function() {
     
     $('.cls_datepicker').datepicker();
     
+    $('#btn_salesorder').click(function() {
+        var form = $('#mainCtrl').scope().form;
+        if (form === undefined) return;
+        console.log(form.store, form.salesorder);
+        
+        var host;
+        if(form.store == 'SF') {
+            host = '${config.stores['SF']['host']}';
+        } else if(form.store == 'SSF') {
+            host = '${config.stores['SSF']['host']}';
+        }
+        
+        host && open_wnd('http://'+host+'/posx/sync?fn=print_so_by_num&rno='+form.salesorder,'posx_so_wnd', 992, 700);
+        
+    });
+    
 });
 
 function is_form_dirty() {
@@ -54,7 +70,7 @@ function set_form(data) {
 <style>
 
 #mainCtrl {padding:20px 0}
-#customer_info .row {margin-bottom:10px}
+#customer_info .row, #document_reference .row {margin-bottom:10px}
 #customer_sign .row {margin-top:10px}
 .label_opts >div {margin-bottom:4px}
 textarea {page-break-inside:avoid}
@@ -76,6 +92,35 @@ resize: none;
 
 
 <input type="hidden" ng-model="form.id" />
+
+<div class="panel panel-default">
+<div class="panel-heading">Document Reference</div>
+<div class="panel-body" id="document_reference">
+
+<div class="row">
+<div class="col-xs-12">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">From Store</button></span>
+<select class="form-control" ng-model="form.store">
+<option>SF</option>
+<option>SSF</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-xs-12">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" id="btn_salesorder" class="btn btn-success">SalesOrder</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.salesorder" />
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
 
 <div class="panel panel-default">
 <div class="panel-heading">Customer Information</div>

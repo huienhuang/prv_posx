@@ -68,6 +68,7 @@ CFG_SCHEDULE_UPDATE_SEQ = CFG_SEQ_MIN
 
 
 BASE_ROLES_MAP = {
+'Nobody' : 0,
 'Base' : 1,
 
 'Driver': 11,

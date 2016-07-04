@@ -15,8 +15,10 @@ CFG = {
     'name': 'FORM',
     'perm_list': [
     ('access', ''),
+    ('admin', ''),
     ]
 }
+PERM_ADMIN = 1 << 1
 
 
 class RequestHandler(App.load('/advancehandler').RequestHandler):
@@ -27,7 +29,7 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
 
 
     def fn_get_form(self):
-        self.req.writefile('form/delivery.html')
+        self.req.writefile('form/delivery.html', {'config': config})
 
     def fn_set_state(self):
         js = self.req.psv_js('js')
@@ -90,6 +92,9 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         cur = self.cur()
         cur.execute('delete from form where id=%s', (f_id, ))
         self.req.writejs({'ret': int(cur.rowcount > 0)})
+
+    fn_delete.PERM = PERM_ADMIN
+
 
     MDAYS_LKU = ['other', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     def fn_save(self):

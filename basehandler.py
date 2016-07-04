@@ -36,8 +36,8 @@ class RequestHandler(tinywsgi.RequestHandler):
         self.user_name = None
         self.user_lvl = 0
         self.user_msg_id = 0
-        self.__user_perms = {}
-        self.user_roles = 0
+        self.__user_perms = None
+        self.user_roles = 1
 
     def cleanup(self):
         tinywsgi.RequestHandler.cleanup(self)
@@ -139,7 +139,7 @@ class RequestHandler(tinywsgi.RequestHandler):
                     self.user_name = r[0]
                     self.user_msg_id = r[2]
                     self.__user_perms = r[3]
-                    self.user_roles = r[4]
+                    self.user_roles = r[4] | 1
                     
                     if login_pass == 2 and self.user_triggered: self.out_cookie['__auth__'] = '%s:%s' % (uid, r_aid)
                     if in_uid:
@@ -184,8 +184,10 @@ class RequestHandler(tinywsgi.RequestHandler):
         if type(self.__user_perms) == dict: return self.__user_perms
 
         self.__user_perms = self.__user_perms and json.loads(self.__user_perms) or {}
-        perms = {}
+        
         if self.user_roles:
+            perms = {}
+
             cur = self.cur()
             cur.execute('select role_perms from user_role where role_id in (%s)' % (
                 ','.join(map(str, config.extract_bits(self.user_roles))),
@@ -196,10 +198,10 @@ class RequestHandler(tinywsgi.RequestHandler):
                 p = json.loads(r[0])
                 for k,v in p.items(): perms[k] = perms.get(k, 0) | v
 
-        perms.update(self.__user_perms)
-        self.__user_perms = perms
+            perms.update(self.__user_perms)
+            self.__user_perms = perms
         
-        return perms
+        return self.__user_perms
 
     def get_fn_info(self, fn):
         cfg = fn.im_func.func_globals.get('CFG', {})

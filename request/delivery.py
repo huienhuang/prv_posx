@@ -39,7 +39,7 @@ REC_FLAG_PARTIAL = 1 << 6
 class RequestHandler(App.load('/advancehandler').RequestHandler):
     
     def fn_default(self):
-        r = {}
+        r = {'config' : config}
         r['has_perm_admin'] = self.get_cur_rh_perm() & PERM_ADMIN
         self.req.writefile('delivery_v2.html', r)
     

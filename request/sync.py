@@ -311,6 +311,17 @@ class RequestHandler(App.load('/advancehandler').RequestHandler):
         if not rows: return
         self.req.writejs({'sid': str(rows[0][0])})
     
+    def fn_print_so_by_num(self):
+        rno = self.req.qsv_ustr('rno')
+        cur = self.cur()
+        cur.execute('select sid from sync_salesorders where sonum=%s order by status asc,sid desc', (rno,))
+        rows = cur.fetchall()
+        if not rows: return
+
+        self.print_so(rows[0][0])
+
+    fn_print_so_by_num.PERM = 0
+
     def print_so(self, rid):
         db = self.db()
         cur = db.cur()
