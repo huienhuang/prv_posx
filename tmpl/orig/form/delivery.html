@@ -144,6 +144,23 @@ resize: none;
 </div>
 </div>
 
+
+<div class="row">
+<div class="col-xs-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">City</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.city" />
+</div>
+</div>
+<div class="col-xs-6">
+<div class="input-group input-group-lg">
+<span class="input-group-btn"><button type="button" class="btn btn-primary" disabled="disabled">Zip &amp; State</button></span>
+<input type="text" class="form-control" placeholder="" ng-model="form.zip_n_state" />
+</div>
+</div>
+</div>
+
+
 <div class="row">
 <div class="col-xs-6">
 <div class="input-group input-group-lg">
@@ -174,6 +191,8 @@ resize: none;
 </div>
 </div>
 
+
+<!--
 <div class="row">
 <div class="col-xs-6">
 <div class="input-group input-group-lg">
@@ -188,6 +207,8 @@ resize: none;
 </div>
 </div>
 </div>
+-->
+
 
 </div>
 </div>
@@ -227,7 +248,7 @@ resize: none;
 <div class="col-xs-6"></div>
 <div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="PM"> PM (1PM – 5PM)</label></div>
 <div class="col-xs-6"></div>
-<div class="col-xs-6">&nbsp;</div>
+<div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="ANY"> Anytime</label></div>
 <div class="col-xs-6">Saturday</div>
 <div class="col-xs-6"><label><input type="radio" ng-model="form.instruction.time" value="AMPM"> (8AM – 2PM)</label></div>
 
@@ -299,8 +320,17 @@ resize: none;
 </div>
 
 <div class="form-group">
+    
 <label for="Instructions">Other Notes & Instructions:</label>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.p001"> Pick up unit in SF </label>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.p002"> Pick up Payment: <input type="text" ng-model="form.staff.p003"> </label>
+<br/><br/>
 <textarea class="form-control" rows="5" id="Instructions" ng-model="form.staff.instructions"></textarea>
+<br/>
+<label class="checkbox-inline"><input type="checkbox" ng-model="form.staff.p004"> Call Customer: <input type="text" ng-model="form.staff.p005"> </label>
+
 </div>
 
 
