@@ -57,3 +57,11 @@ C:\www\posx\update_db.cmd
 
 ### Done
 *http://ServerIP/posx/home*
+
+
+### Sample Screenshots
+![](https://raw.githubusercontent.com/michaelhuang8192/POSX/master/web/img/sample1.jpg)
+![](https://raw.githubusercontent.com/michaelhuang8192/POSX/master/web/img/sample2.jpg)
+
+
+
